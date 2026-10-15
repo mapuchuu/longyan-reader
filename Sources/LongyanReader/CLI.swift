@@ -1,0 +1,145 @@
+import AppKit
+import SwiftUI
+import Foundation
+
+/// Command-line modes for testing the pipeline without the hotkey or screen.
+///   --status
+///   --lookup "<passage>" <word-or-character-index>
+///   --ocr <image> <x 0-1> <y 0-1, from top>
+enum CLI {
+    /// Keeps the main thread free (SwiftUI rendering needs it) and exits when done.
+    static func run(_ args: [String]) -> Never {
+        Task { @MainActor in
+            do { try await dispatch(args) } catch { print("error:", error.localizedDescription) }
+            exit(0)
+        }
+        // Not dispatchMain(): it exits the main thread, and AppKit then refuses to draw.
+        while true { RunLoop.main.run(mode: .default, before: .distantFuture) }
+    }
+
+    private static func dispatch(_ args: [String]) async throws {
+        switch args[1] {
+        case "--status":
+            let t = Date()
+            let dict = try CEDict.load()
+            print("dictionary: \(dict.entryCount) entries, longest word \(dict.maxWordLength) chars, loaded in \(Int(Date().timeIntervalSince(t) * 1000)) ms")
+            print("sense chooser: \(SenseChooser.unavailableReason)")
+        case "--lookup" where args.count >= 4:
+            let dict = try CEDict.load()
+            let passage = Array(args[2])
+            let index: Int
+            if let n = Int(args[3]) { index = n }
+            else if let r = args[2].range(of: args[3]) { index = args[2].distance(from: args[2].startIndex, to: r.lowerBound) }
+            else { print("word not in passage"); return }
+            try await lookup(passage: passage, index: index, dict: dict)
+        case "--ocr" where args.count >= 5:
+            guard let image = NSImage(contentsOfFile: args[2])?.cgImage(forProposedRect: nil, context: nil, hints: nil),
+                  let x = Double(args[3]), let y = Double(args[4]) else { print("bad arguments"); return }
+            guard let captured = TextCapture.locate(CGPoint(x: x, y: 1 - y), in: image) else { print("no text found at point"); return }
+            print("ocr passage: \(String(captured.passage))")
+            print("character at point: \(captured.passage[captured.index]) (index \(captured.index))")
+            if args.count >= 6, args[5] == "--lookup" {
+                try await lookup(passage: captured.passage, index: captured.index, dict: try CEDict.load())
+            }
+        case "--render" where args.count >= 5:
+            try await render(passage: args[2], click: args[3], to: URL(fileURLWithPath: args[4]))
+        case "--eval":
+            try await eval(dict: try CEDict.load())
+        default:
+            print("usage: LongyanReader --status | --lookup \"<passage>\" <word|index> | --ocr <image> <x> <y> [--lookup]")
+        }
+    }
+
+    private static func lookup(passage: [Character], index: Int, dict: CEDict) async throws {
+        guard let ctx = Segmenter.word(at: index, in: passage, dict: dict) else { print("no Chinese word at index \(index)"); return }
+        let senses = dict.senses(for: ctx.word)
+        print("word: \(ctx.word)  alternatives: \(ctx.alternatives)")
+        print("sentence: \(ctx.sentence)")
+        for (i, s) in senses.enumerated() { print("  \(i + 1). [\(Pinyin.marked(s.pinyin))] \(s.gloss)") }
+        guard SenseChooser.isAvailable, !senses.isEmpty else { print("sense chooser: \(SenseChooser.unavailableReason)"); return }
+        let t = Date()
+        let c = try await SenseChooser.choose(for: ctx, senses: senses)
+        print("chosen: \(c.senseNumber). \(senses[c.senseNumber - 1].gloss)  [\(Int(Date().timeIntervalSince(t) * 1000)) ms]")
+        print("meaning here: \(c.meaningHere)")
+        print("tag: \(c.tag.rawValue)\(c.note.isEmpty ? "" : "\nnote: \(c.note)")")
+    }
+
+    /// Hand-labelled cases: (passage, clicked text, expected word, expected sense substring, tag that should appear or nil).
+    static let cases: [(String, String, String, String, NuanceTag?)] = [
+        ("我们研究生命的起源。", "生", "生命", "life", nil),
+        ("他是研究生。", "生", "研究生", "graduate student", nil),
+        ("这个办法行不行？", "行", "行", "OK", nil),
+        ("他在银行工作。", "行", "银行", "bank", nil),
+        ("我已经吃了饭了。", "了", "了", "completed action", nil),
+        ("他长得很高。", "长", "长得", "to look", nil),
+        ("这条路很长。", "长", "长", "long", nil),
+        ("他是我们的校长。", "长", "校长", "head", nil),
+        ("他靠关系找到了工作。", "关系", "关系", "connection", .culturalContext),
+        ("他们掠夺了村庄的粮食。", "掠夺", "掠夺", "plunder", nil),
+        ("明朝实行海禁，闭关锁国。", "闭关锁国", "闭关锁国", "close", .culturalContext),
+        ("有识之士都应该站出来说话。", "识", "有识之士", "knowledge", nil),
+        ("他打了一个电话。", "打", "打", "", nil),
+        ("这本书很有意思。", "意思", "有意思", "interesting", nil),
+        ("你这是什么意思？", "意思", "意思", "meaning", nil),
+        ("春节的时候大家都回家过年。", "过年", "过年", "New Year", .culturalContext),
+    ]
+
+    static func eval(dict: CEDict) async throws {
+        var wordOK = 0, senseOK = 0, tagOK = 0, failures = 0, totalMs = 0
+        for (passage, click, wantWord, wantSense, wantTag) in cases {
+            let index = passage.distance(from: passage.startIndex, to: passage.range(of: click)!.lowerBound)
+            guard let ctx = Segmenter.word(at: index, in: Array(passage), dict: dict) else { continue }
+            let senses = dict.senses(for: ctx.word)
+            let w = ctx.word == wantWord
+            if w { wordOK += 1 }
+            var line = "\(w ? "✓" : "✗") \(ctx.word)"
+            do {
+                let t = Date()
+                let c = try await SenseChooser.choose(for: ctx, senses: senses)
+                totalMs += Int(Date().timeIntervalSince(t) * 1000)
+                let gloss = senses[c.senseNumber - 1].gloss
+                let s = wantSense.isEmpty || gloss.localizedCaseInsensitiveContains(wantSense)
+                let tg = wantTag == nil || c.tag == wantTag
+                if s { senseOK += 1 }
+                if tg { tagOK += 1 }
+                line += "  sense \(s ? "✓" : "✗") [\(Pinyin.marked(senses[c.senseNumber - 1].pinyin))] \(gloss)  | here: \(c.meaningHere) | tag \(tg ? "✓" : "✗") \(c.tag.rawValue)"
+                if !c.note.isEmpty { line += "\n      note: \(c.note)" }
+            } catch {
+                failures += 1
+                line += "  ERROR \(error)"
+            }
+            print("\(passage)  \(line)")
+        }
+        let n = cases.count
+        print("\nwords \(wordOK)/\(n)  senses \(senseOK)/\(n)  tags \(tagOK)/\(n)  errors \(failures)  avg \(totalMs / max(n - failures, 1)) ms")
+    }
+
+    /// Draws the popup for a lookup into a PNG, to check the design without the hotkey.
+    @MainActor
+    static func render(passage: String, click: String, to url: URL) async throws {
+        let dict = try CEDict.load()
+        guard let r = passage.range(of: click),
+              let ctx = Segmenter.word(at: passage.distance(from: passage.startIndex, to: r.lowerBound), in: Array(passage), dict: dict)
+        else { print("no word"); return }
+        let senses = dict.senses(for: ctx.word)
+        let state = LookupState(context: ctx, senses: senses, source: .accessibility, appName: "Preview", phase: .choosing)
+        if SenseChooser.isAvailable, !senses.isEmpty {
+            state.choice = try await SenseChooser.choose(for: ctx, senses: senses)
+            state.phase = .chosen
+        }
+        // AppKit drawing must happen on the main thread.
+        let png: Data? = await withCheckedContinuation { cont in
+            DispatchQueue.main.async {
+                _ = NSApplication.shared
+                let host = NSHostingView(rootView: LookupView(state: state).padding(12).background(Color(nsColor: .underPageBackgroundColor)))
+                host.frame = NSRect(origin: .zero, size: host.fittingSize)
+                host.layoutSubtreeIfNeeded()
+                let rep = host.bitmapImageRepForCachingDisplay(in: host.bounds)
+                if let rep { host.cacheDisplay(in: host.bounds, to: rep) }
+                cont.resume(returning: rep?.representation(using: .png, properties: [:]))
+            }
+        }
+        try png?.write(to: url)
+        print("wrote \(url.path)")
+    }
+}
