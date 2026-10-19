@@ -41,9 +41,11 @@ enum SenseChooser {
     Most words get tag none. A tagged word gets a note in plain English: what a native speaker feels or pictures when using it here. No em dashes.
     """
 
-    /// Numbered pinyin on purpose: tone-marked ü (lüè) makes the model reject the prompt as an unsupported language.
+    /// No pinyin in the prompt: repeated syllables like "kuan1 rong2" (or tone-marked ü)
+    /// make the on-device model reject the whole prompt as an unsupported language.
+    /// The English glosses are enough to tell the senses apart; the card shows pinyin itself.
     static func prompt(_ passage: String, word: String, senses: [Sense]) -> String {
-        let list = senses.enumerated().map { i, s in "\(i + 1). [\(s.pinyin.replacingOccurrences(of: "u:", with: "v"))] \(s.gloss)" }
+        let list = senses.enumerated().map { i, s in "\(i + 1). \(s.gloss)" }
         return """
         Passage: \(passage)
         Marked word: \(word)

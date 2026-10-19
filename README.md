@@ -51,7 +51,7 @@ Each lookup appends a line to `~/Library/Logs/LongyanReader/lookups.jsonl`, a fe
 
 ## Status
 
-Current `--eval` score: words 15/16, senses 12/16, no errors, about 0.7 s per lookup on an M5 Pro.
+Current `--eval` score: words 15/16, senses 11/16, no errors, about 0.7 s per lookup on an M5 Pro.
 
 The on-device model is about 3B parameters. It's good at saying what a word means in context, and weaker at:
 - hard readings of single characters (行 in 行不行);
