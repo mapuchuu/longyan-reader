@@ -48,6 +48,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         chip.start()
 
+        // Switch on Chromium's page accessibility as soon as a browser comes to the front.
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
+        ) { note in
+            if let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication {
+                SelectionReader.prepare(app)
+            }
+        }
+        if let front = NSWorkspace.shared.frontmostApplication { SelectionReader.prepare(front) }
+
+        // Debug: describe an app's accessibility structure (see Probe.swift).
+        DistributedNotificationCenter.default().addObserver(
+            forName: Notification.Name("com.mapuchuu.longyanreader.probe"), object: nil, queue: .main
+        ) { note in
+            let arg = note.object as? String ?? ""
+            var report: String
+            if arg.hasSuffix("|read"), let app = NSRunningApplication.runningApplications(
+                withBundleIdentifier: String(arg.dropLast(5))).first {
+                // Run the real selection reader against that app; log shape, not content.
+                switch SelectionReader.readAccessibility(from: app) {
+                case .selection(let s):
+                    report = "selection: \(s.range.count) chars, passage \(s.passage.count) chars, bounds \(s.bounds.map { "\($0)" } ?? "none"), source \(s.source.rawValue)"
+                case .nothingSelected: report = "nothing selected"
+                case .unreadable: report = "unreadable"
+                }
+                report += "\ntrace: " + SelectionReader.trace.joined(separator: " | ")
+            } else {
+                report = Probe.run(bundleID: arg)
+            }
+            try? report.write(to: Log.directory.appendingPathComponent("ax-probe.txt"), atomically: true, encoding: .utf8)
+        }
+
         // Ask for Accessibility once; the system shows its own prompt.
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
         _ = AXIsProcessTrustedWithOptions(options)

@@ -45,32 +45,45 @@ final class SelectionChip {
             case .selection(let s):
                 let t = s.trimmed()
                 guard !t.range.isEmpty, t.hasChinese, t.range.count <= 400 else { return }
-                self.show(at: upPoint, selection: t)
+                self.show(at: upPoint, selectionBounds: s.bounds, selection: t)
             case .unreadable:
                 // The app won't say what's selected; offer the chip and copy on click.
-                if dragged || clickCount >= 2 { self.show(at: upPoint, selection: nil) }
+                self.show(at: upPoint, selectionBounds: nil, selection: nil)
             case .nothingSelected:
                 return
             }
         }
     }
 
-    private func show(at point: NSPoint, selection: Selection?) {
+    private static let size: CGFloat = 20
+
+    /// Sits just after the end of a one-line selection; for longer selections,
+    /// just above and right of where the mouse was released.
+    private func show(at point: NSPoint, selectionBounds: CGRect?, selection: Selection?) {
         hide()
         pending = selection
-        let size: CGFloat = 26
-        let panel = NSPanel(contentRect: NSRect(x: point.x + 6, y: point.y + 6, width: size, height: size),
+        let size = Self.size
+        var origin = NSPoint(x: point.x + 6, y: point.y + 6)
+        if let b = selectionBounds, b.height > 0, b.height < 40 {
+            let r = AppDelegate.appKitRect(b)
+            origin = NSPoint(x: r.maxX + 4, y: r.midY - size / 2)
+        }
+        let panel = NSPanel(contentRect: NSRect(origin: origin, size: NSSize(width: size, height: size)),
                             styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = true
         panel.level = .popUpMenu
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
-        let button = ChipButton(frame: NSRect(x: 0, y: 0, width: size, height: size))
-        button.target = self
-        button.action = #selector(clicked)
-        panel.contentView = button
+        let chip = ChipView(frame: NSRect(x: 0, y: 0, width: size, height: size))
+        chip.onClick = { [weak self] in self?.clicked() }
+        panel.contentView = chip
+        panel.alphaValue = 0
         panel.orderFrontRegardless()
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.12
+            panel.animator().alphaValue = 1
+        }
         self.panel = panel
 
         let work = DispatchWorkItem { [weak self] in self?.hide() }
@@ -78,7 +91,7 @@ final class SelectionChip {
         DispatchQueue.main.asyncAfter(deadline: .now() + 6, execute: work)
     }
 
-    @objc private func clicked() {
+    private func clicked() {
         let frame = panel?.frame ?? .zero
         let selection = pending
         hide()
@@ -92,20 +105,32 @@ final class SelectionChip {
     }
 }
 
-/// Round button with the Longyan eye, tinted for light or dark mode.
-final class ChipButton: NSButton {
+/// A small translucent circle with the Longyan eye: quiet until hovered.
+final class ChipView: NSView {
+    var onClick: () -> Void = {}
+    private let background = NSVisualEffectView()
+    private let icon = NSImageView()
+
     override init(frame: NSRect) {
         super.init(frame: frame)
-        isBordered = false
-        title = ""
-        image = Icons.mark(size: 16)
-        imagePosition = .imageOnly
-        contentTintColor = .labelColor
         wantsLayer = true
-        layer?.cornerRadius = frame.height / 2
-        layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
-        layer?.borderWidth = 0.5
-        layer?.borderColor = NSColor.separatorColor.cgColor
+        background.frame = bounds
+        background.material = .popover
+        background.blendingMode = .behindWindow
+        background.state = .active
+        background.wantsLayer = true
+        background.layer?.cornerRadius = frame.height / 2
+        background.layer?.masksToBounds = true
+        background.layer?.borderWidth = 0.5
+        background.layer?.borderColor = NSColor.separatorColor.cgColor
+        addSubview(background)
+
+        let inset = (frame.width - 12) / 2
+        icon.frame = bounds.insetBy(dx: inset, dy: inset)
+        icon.image = Icons.mark(size: 12)
+        icon.imageScaling = .scaleProportionallyUpOrDown
+        icon.contentTintColor = .secondaryLabelColor
+        addSubview(icon)
         toolTip = "Look up in Longyan"
         addTrackingArea(NSTrackingArea(rect: bounds, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
                                        owner: self, userInfo: nil))
@@ -113,13 +138,9 @@ final class ChipButton: NSButton {
     required init?(coder: NSCoder) { fatalError() }
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
-    override func mouseEntered(with event: NSEvent) { layer?.backgroundColor = NSColor.selectedContentBackgroundColor.withAlphaComponent(0.25).cgColor }
-    override func mouseExited(with event: NSEvent) { layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor }
-    override func updateLayer() {
-        super.updateLayer()
-        layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
-        layer?.borderColor = NSColor.separatorColor.cgColor
-    }
+    override func mouseEntered(with event: NSEvent) { icon.contentTintColor = .labelColor }
+    override func mouseExited(with event: NSEvent) { icon.contentTintColor = .secondaryLabelColor }
+    override func mouseDown(with event: NSEvent) { onClick() }
 }
 
 /// The Longyan eye from the Chrome extension, as a template image.

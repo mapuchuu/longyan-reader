@@ -1,6 +1,7 @@
 import AppKit
 import ApplicationServices
 import Carbon.HIToolbox
+import PDFKit
 
 /// Text the user highlighted, with the text around it when the app exposes it.
 struct Selection {
@@ -34,32 +35,54 @@ enum SelectionReader {
 
     // MARK: Accessibility (no side effects)
 
-    static func readAccessibility() -> Result {
+    static func readAccessibility(from target: NSRunningApplication? = nil) -> Result {
         trace = []
         guard AXIsProcessTrusted() else { note("not trusted"); return .unreadable }
-        guard let app = NSWorkspace.shared.frontmostApplication else { return .unreadable }
+        guard let app = target ?? NSWorkspace.shared.frontmostApplication else { return .unreadable }
         let appElement = AXUIElementCreateApplication(app.processIdentifier)
         AXUIElementSetMessagingTimeout(appElement, 0.3)
-        enableAccessibilityTree(appElement, pid: app.processIdentifier)
+        prepare(app)
 
         guard let focused: AXUIElement = attribute(appElement, kAXFocusedUIElementAttribute) else {
             note("no focused element in \(app.localizedName ?? "?")")
             return .unreadable
         }
-        note("focused \(attribute(focused, kAXRoleAttribute) as String? ?? "?") in \(app.localizedName ?? "?")")
+        let role: String = attribute(focused, kAXRoleAttribute) ?? "?"
+        note("focused \(role) in \(app.localizedName ?? "?")")
 
-        if let s = nativeSelection(focused, app: app.localizedName) { return s }
+        // Web pages first: their text views also answer the plain-text queries, but without context.
         if let s = webSelection(focused, app: app.localizedName) { return s }
+        if let s = nativeSelection(focused, app: app.localizedName) { return s }
+        if app.bundleIdentifier == "com.apple.Preview", let s = pdfSelection(focused, app: app.localizedName) { return s }
+        // Some apps only say what is selected, not where: still better than copying.
+        if let selected: String = attribute(focused, kAXSelectedTextAttribute) {
+            if selected.isEmpty { return .nothingSelected }
+            note("selected text only, no context")
+            let passage = Array(selected)
+            return .selection(Selection(passage: passage, range: 0..<passage.count, bounds: nil,
+                                        source: .accessibility, appName: app.localizedName))
+        }
         return .unreadable
     }
 
-    /// Chrome, Electron and other Chromium apps keep their accessibility tree off
-    /// until an assistive app asks for it. Ask once per process.
-    private static var enabledPIDs: Set<pid_t> = []
-    private static func enableAccessibilityTree(_ appElement: AXUIElement, pid: pid_t) {
-        guard !enabledPIDs.contains(pid) else { return }
-        enabledPIDs.insert(pid)
-        AXUIElementSetAttributeValue(appElement, "AXManualAccessibility" as CFString, kCFBooleanTrue)
+    /// Chromium browsers build their page accessibility tree only when an assistive app
+    /// turns on AXEnhancedUserInterface (the VoiceOver switch); Electron apps use
+    /// AXManualAccessibility. Called when such an app comes to the front, so the tree is
+    /// ready by the time text is selected. Chrome keeps it on until it quits.
+    private static var preparedPIDs: Set<pid_t> = []
+    static let chromiumBrowsers: Set<String> = [
+        "com.google.Chrome", "com.google.Chrome.beta", "com.google.Chrome.canary", "org.chromium.Chromium",
+        "com.brave.Browser", "com.microsoft.edgemac", "company.thebrowser.Browser", "com.vivaldi.Vivaldi",
+        "com.operasoftware.Opera",
+    ]
+    static func prepare(_ app: NSRunningApplication) {
+        guard AXIsProcessTrusted(), !preparedPIDs.contains(app.processIdentifier) else { return }
+        preparedPIDs.insert(app.processIdentifier)
+        let element = AXUIElementCreateApplication(app.processIdentifier)
+        AXUIElementSetAttributeValue(element, "AXManualAccessibility" as CFString, kCFBooleanTrue)
+        if chromiumBrowsers.contains(app.bundleIdentifier ?? "") {
+            AXUIElementSetAttributeValue(element, "AXEnhancedUserInterface" as CFString, kCFBooleanTrue)
+        }
     }
 
     /// Text fields, TextEdit, Notes, Pages, Preview: selection as a character range.
@@ -141,6 +164,72 @@ enum SelectionReader {
                                     source: .accessibility, appName: app))
     }
 
+    // MARK: Preview PDFs
+
+    /// Preview reports the selected text but not where it is. It does report the open
+    /// file and which page holds the selection, so read the surrounding text from the
+    /// PDF itself with PDFKit.
+    private static var cachedPDF: (url: URL, doc: PDFDocument)?
+    private static func pdfSelection(_ container: AXUIElement, app: String?) -> Result? {
+        guard let selected: String = attribute(container, kAXSelectedTextAttribute) else { return nil }
+        if selected.isEmpty { return .nothingSelected }
+        guard let window: AXUIElement = attribute(container, kAXWindowAttribute),
+              let path: String = attribute(window, kAXDocumentAttribute),
+              let url = URL(string: path), url.isFileURL else { note("pdf: no document path"); return nil }
+
+        // The page holding the selection (visible pages first).
+        let visible: [AXUIElement] = attribute(container, kAXVisibleChildrenAttribute) ?? []
+        let all: [AXUIElement] = visible.isEmpty ? (attribute(container, kAXChildrenAttribute) ?? []) : visible
+        let page = all.first { (attribute($0, kAXSelectedTextAttribute) as String?).map { !$0.isEmpty } ?? false }
+        guard let page, let index: Int = attribute(page, "AXPageIndex") else { note("pdf: no page with the selection"); return nil }
+
+        let doc: PDFDocument
+        if let cached = cachedPDF, cached.url == url { doc = cached.doc }
+        else {
+            guard let d = PDFDocument(url: url) else { note("pdf: couldn't open \(url.lastPathComponent)"); return nil }
+            doc = d
+            cachedPDF = (url, d)
+        }
+        guard let pageText = doc.page(at: index)?.string else { note("pdf: page \(index) has no text"); return nil }
+        let text = joinLines(pageText)
+        guard let found = find(selected, in: Array(text)) else { note("pdf: selection not found on page \(index)"); return nil }
+
+        // Keep up to 300 characters either side.
+        let chars = Array(text)
+        let lo = max(0, found.lowerBound - 300), hi = min(chars.count, found.upperBound + 300)
+        note("pdf: page \(index), \(found.count) chars selected")
+        return .selection(Selection(passage: Array(chars[lo..<hi]), range: (found.lowerBound - lo)..<(found.upperBound - lo),
+                                    bounds: nil, source: .accessibility, appName: app))
+    }
+
+    /// PDF text breaks lines mid-sentence. Join lines between Chinese characters without
+    /// a space, and with one space otherwise.
+    static func joinLines(_ text: String) -> String {
+        var out: [Character] = []
+        let chars = Array(text)
+        for (i, c) in chars.enumerated() {
+            guard c.isNewline else { out.append(c); continue }
+            let prev = out.last, next = chars[safe: i + 1]
+            if let p = prev, let n = next, isCJK(p) || isCJK(n) || !p.isLetter { continue }
+            if prev != " " { out.append(" ") }
+        }
+        return String(out)
+    }
+
+    /// Finds `needle` in `hay`, ignoring whitespace on both sides. Returns the range in `hay`.
+    static func find(_ needle: String, in hay: [Character]) -> Range<Int>? {
+        let n = Array(needle.filter { !$0.isWhitespace })
+        guard !n.isEmpty else { return nil }
+        var kept: [Int] = []          // positions in hay of non-whitespace characters
+        for (i, c) in hay.enumerated() where !c.isWhitespace { kept.append(i) }
+        guard kept.count >= n.count else { return nil }
+        outer: for start in 0...(kept.count - n.count) {
+            for k in 0..<n.count where hay[kept[start + k]] != n[k] { continue outer }
+            return kept[start]..<(kept[start + n.count - 1] + 1)
+        }
+        return nil
+    }
+
     // MARK: Copy fallback (only on an explicit click or hotkey)
 
     /// Sends ⌘C to the front app, reads the copied text, then puts the previous
@@ -149,6 +238,11 @@ enum SelectionReader {
         let pasteboard = NSPasteboard.general
         let saved: [[(NSPasteboard.PasteboardType, Data)]] = (pasteboard.pasteboardItems ?? []).map { item in
             item.types.compactMap { t in item.data(forType: t).map { (t, $0) } }
+        }
+        // Held ⌃⌥ (from the hotkey) would turn ⌘C into a different shortcut.
+        for _ in 0..<30 where !CGEventSource.flagsState(.combinedSessionState)
+            .intersection([.maskControl, .maskAlternate, .maskShift]).isEmpty {
+            try? await Task.sleep(for: .milliseconds(20))
         }
         let before = pasteboard.changeCount
         postCommandC()

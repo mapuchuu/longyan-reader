@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import Foundation
+import PDFKit
 
 /// Command-line modes for testing the pipeline without the hotkey or screen.
 ///   --status
@@ -48,6 +49,14 @@ enum CLI {
             }.joined(separator: " / "))
         case "--render-phrase" where args.count >= 4:
             try await renderPhrase(args[2], expand: args.count >= 5 ? args[4] : nil, to: URL(fileURLWithPath: args[3]))
+        case "--pdf-context" where args.count >= 5:
+            // --pdf-context file.pdf <page index> "<selected text>"
+            guard let doc = PDFDocument(url: URL(fileURLWithPath: args[2])), let i = Int(args[3]),
+                  let raw = doc.page(at: i)?.string else { print("can't read page"); return }
+            let text = Array(SelectionReader.joinLines(raw))
+            guard let r = SelectionReader.find(args[4], in: text) else { print("selection not found"); return }
+            let lo = max(0, r.lowerBound - 40), hi = min(text.count, r.upperBound + 40)
+            print("found at \(r): …" + String(text[lo..<r.lowerBound]) + "【" + String(text[r]) + "】" + String(text[r.upperBound..<hi]) + "…")
         case "--render" where args.count >= 5:
             try await render(passage: args[2], click: args[3], to: URL(fileURLWithPath: args[4]))
         case "--eval":
