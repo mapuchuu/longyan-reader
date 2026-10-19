@@ -1,5 +1,5 @@
 Longyan Reader — sample passages
-Hover over a Chinese word and press Control-Option-L.
+Highlight a word or a phrase, then click the eye button (or press Control-Option-L).
 
 1. 我们研究生命的起源。        (研究生命: 生命 "life", not 研究生 "graduate student")
 2. 他是研究生。                (研究生: graduate student)
@@ -9,3 +9,8 @@ Hover over a Chinese word and press Control-Option-L.
 6. 有识之士都应该站出来说话。    (有识之士: idiom)
 7. 春节的时候大家都回家过年。    (过年: celebrate the New Year)
 8. 你这是什么意思？              (意思: meaning)
+
+Phrases (select a whole line, then click the eye):
+明朝实行海禁，闭关锁国，导致中国错过了工业革命。
+快递员每天晚上都要上夜班分拣包裹。
+他靠关系找到了工作，这本书很有意思。

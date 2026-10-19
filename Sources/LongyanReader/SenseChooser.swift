@@ -116,16 +116,34 @@ enum SenseChooser {
     /// (校长: "school principal" but sense "president"). If the chosen sense shares
     /// no word with meaningHere and exactly one other sense does, take that one.
     static func agreeingSense(_ choice: SenseChoice, senses: [Sense]) -> Int {
-        let stop: Set<String> = ["the", "a", "an", "to", "of", "in", "on", "for", "and", "or", "be", "is", "etc", "sb", "sth"]
-        func words(_ s: String) -> Set<String> {
-            Set(s.lowercased().split { !$0.isLetter }.map(String.init).filter { $0.count > 2 && !stop.contains($0) }
-                  .map { String($0.prefix(5)) })   // crude stem: principal/principals, finish/finished
-        }
-        let want = words(choice.meaningHere)
+        let want = glossWords(choice.meaningHere)
         guard !want.isEmpty else { return choice.senseNumber }
-        let overlaps = senses.map { !words($0.gloss).isDisjoint(with: want) }
+        let overlaps = senses.map { !glossWords($0.gloss).isDisjoint(with: want) }
         if overlaps[choice.senseNumber - 1] { return choice.senseNumber }
         let matching = overlaps.indices.filter { overlaps[$0] }
         return matching.count == 1 ? matching[0] + 1 : choice.senseNumber
+    }
+
+    /// Content words of an English gloss, crudely stemmed (principal/principals, finish/finished).
+    static func glossWords(_ s: String) -> Set<String> {
+        let stop: Set<String> = ["the", "a", "an", "to", "of", "in", "on", "for", "and", "or", "be", "is", "etc", "sb", "sth",
+                                 "with", "used", "form", "bound", "one", "his", "her", "its", "their", "this", "that"]
+        var out: Set<String> = []
+        for part in s.lowercased().split(whereSeparator: { !$0.isLetter }) {
+            var word = String(part)
+            guard word.count > 2, !stop.contains(word) else { continue }
+            if word.count > 3, word.hasSuffix("s") { word.removeLast() }
+            out.insert(String(word.prefix(5)))
+        }
+        return out
+    }
+
+    /// The sense whose gloss shares the most words with an English translation of the
+    /// passage, or nil when none does. Instant; used for a phrase's first-pass glosses.
+    static func senseMatching(translation: String, senses: [Sense]) -> Int? {
+        let words = glossWords(translation)
+        let scores = senses.map { glossWords($0.gloss).intersection(words).count }
+        guard let best = scores.max(), best > 0 else { return nil }
+        return scores.firstIndex(of: best)
     }
 }

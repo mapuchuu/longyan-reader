@@ -99,3 +99,71 @@ enum Segmenter {
         return found
     }
 }
+
+/// One unit of a highlighted phrase.
+struct PhraseToken: Identifiable {
+    let id: Int
+    let text: String
+    let range: Range<Int>      // character offsets into the passage
+}
+
+extension Segmenter {
+    /// Splits the selected range into dictionary words. Uses the system tokenizer for
+    /// boundaries, splits tokens the dictionary doesn't know by longest match, then
+    /// merges tokens that together form a longer dictionary word (有/意思 → 有意思, idioms).
+    static func phrase(_ range: Range<Int>, in passage: [Character], dict: CEDict) -> [PhraseToken] {
+        let text = String(passage[range])
+        let tokenizer = NLTokenizer(unit: .word)
+        tokenizer.setLanguage(.simplifiedChinese)
+        tokenizer.string = text
+        var pieces: [Range<Int>] = []
+        tokenizer.enumerateTokens(in: text.startIndex..<text.endIndex) { r, _ in
+            let a = text.distance(from: text.startIndex, to: r.lowerBound) + range.lowerBound
+            let b = text.distance(from: text.startIndex, to: r.upperBound) + range.lowerBound
+            let piece = a..<b
+            if !piece.contains(where: { isCJK(passage[$0]) }) || dict.contains(String(passage[piece])) {
+                pieces.append(piece)
+            } else {
+                pieces += longestMatch(piece, in: passage, dict: dict)
+            }
+            return true
+        }
+
+        // Merge runs of tokens that form a dictionary word of 3+ characters.
+        var merged: [Range<Int>] = []
+        var i = 0
+        while i < pieces.count {
+            var best = i
+            var j = i + 1
+            while j < pieces.count, pieces[j].upperBound - pieces[i].lowerBound <= dict.maxWordLength {
+                let candidate = pieces[i].lowerBound..<pieces[j].upperBound
+                if pieces[j].lowerBound == pieces[j - 1].upperBound, candidate.count >= 3,
+                   dict.contains(String(passage[candidate])) { best = j }
+                j += 1
+            }
+            merged.append(pieces[i].lowerBound..<pieces[best].upperBound)
+            i = best + 1
+        }
+
+        return merged.enumerated()
+            .filter { _, r in r.contains(where: { isCJK(passage[$0]) }) }
+            .map { n, r in PhraseToken(id: n, text: String(passage[r]), range: r) }
+    }
+
+    private static func longestMatch(_ piece: Range<Int>, in passage: [Character], dict: CEDict) -> [Range<Int>] {
+        var out: [Range<Int>] = []
+        var start = piece.lowerBound
+        while start < piece.upperBound {
+            var len = min(dict.maxWordLength, piece.upperBound - start)
+            while len > 1, !dict.contains(String(passage[start..<(start + len)])) { len -= 1 }
+            out.append(start..<(start + len))
+            start += len
+        }
+        return out
+    }
+
+    /// Context for a word that sits at a known range (a selection or a phrase token).
+    static func context(for range: Range<Int>, in passage: [Character]) -> WordInContext {
+        WordInContext(word: String(passage[range]), passage: passage, wordRange: range, alternatives: [])
+    }
+}

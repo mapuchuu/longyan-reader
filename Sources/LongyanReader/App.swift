@@ -25,11 +25,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hotKey: HotKey?
     private var dict: CEDict?
     private let popup = PopupController()
+    private let chip = SelectionChip()
     private var lookupTask: Task<Void, Never>?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        statusItem.button?.title = "龍"
+        if let mark = Icons.mark(size: 18) { statusItem.button?.image = mark } else { statusItem.button?.title = "龙" }
         rebuildMenu()
 
         DispatchQueue.global(qos: .userInitiated).async {
@@ -37,21 +38,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             DispatchQueue.main.async { self.dict = loaded; self.rebuildMenu() }
         }
 
-        // ⌃⌥L: look up the word under the mouse.
+        // ⌃⌥L: look up the selection, or the word under the mouse when nothing is selected.
         hotKey = HotKey(keyCode: kVK_ANSI_L, modifiers: controlKey | optionKey, id: 1) { [weak self] in
-            Task { @MainActor in self?.lookUpAtMouse() }
+            Task { @MainActor in self?.hotKeyPressed() }
         }
 
-        // Debug trigger: look up at a given point without the keyboard.
-        DistributedNotificationCenter.default().addObserver(
-            forName: Notification.Name("com.mapuchuu.longyanreader.lookup"), object: nil, queue: .main
-        ) { [weak self] note in
-            let x = (note.object as? String).flatMap { s -> CGPoint? in
-                let parts = s.split(separator: ",").compactMap { Double($0) }
-                return parts.count == 2 ? CGPoint(x: parts[0], y: parts[1]) : nil
-            }
-            Task { @MainActor in self?.lookUp(at: x ?? Self.mouseInCGSpace(), mouse: x.map(Self.cgToAppKit) ?? NSEvent.mouseLocation) }
+        chip.onClick = { [weak self] selection, chipFrame in
+            Task { @MainActor in await self?.chipClicked(selection, chipFrame: chipFrame) }
         }
+        chip.start()
 
         // Ask for Accessibility once; the system shows its own prompt.
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
@@ -62,98 +57,154 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func rebuildMenu() {
         let menu = NSMenu()
-        menu.addItem(withTitle: "Look up word under cursor   ⌃⌥L", action: nil, keyEquivalent: "").isEnabled = false
+        menu.addItem(withTitle: "Highlight Chinese text, then click the eye or press ⌃⌥L", action: nil, keyEquivalent: "").isEnabled = false
+        menu.addItem(.separator())
+        let chipItem = menu.addItem(withTitle: "Show Button on Selection", action: #selector(toggleChip), keyEquivalent: "")
+        chipItem.target = self
+        chipItem.state = chip.isEnabled ? .on : .off
         menu.addItem(.separator())
         menu.addItem(withTitle: "Dictionary: " + (dict.map { "\($0.entryCount) entries" } ?? "loading…"), action: nil, keyEquivalent: "")
         menu.addItem(withTitle: "Sense chooser: " + SenseChooser.unavailableReason, action: nil, keyEquivalent: "")
         menu.addItem(withTitle: "Accessibility: " + (AXIsProcessTrusted() ? "allowed" : "not allowed"), action: nil, keyEquivalent: "")
-        menu.addItem(withTitle: "Screen reading (OCR): " + (CGPreflightScreenCaptureAccess() ? "allowed" : "not allowed"), action: nil, keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Open Accessibility Settings…", action: #selector(openAccessibility), keyEquivalent: "").target = self
-        menu.addItem(withTitle: "Open Screen Recording Settings…", action: #selector(requestScreen), keyEquivalent: "").target = self
         menu.addItem(withTitle: "Refresh Status", action: #selector(refresh), keyEquivalent: "").target = self
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit Longyan Reader", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         statusItem.menu = menu
     }
 
+    @objc private func toggleChip() { chip.isEnabled.toggle(); rebuildMenu() }
     @objc private func openAccessibility() {
         NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
     }
-    /// macOS shows the screen-recording prompt only once per app, so also open the
-    /// settings page directly; the app appears in its list after the request.
-    @objc private func requestScreen() {
-        _ = CGRequestScreenCaptureAccess()
-        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!)
-        rebuildMenu()
-    }
     @objc private func refresh() { rebuildMenu() }
+
+    // MARK: Triggers
+
+    static func appKitRect(_ cg: CGRect) -> NSRect {
+        let primaryHeight = NSScreen.screens.first?.frame.height ?? 0
+        return NSRect(x: cg.minX, y: primaryHeight - cg.maxY, width: cg.width, height: cg.height)
+    }
+    static func mouseInCGSpace() -> CGPoint {
+        let primaryHeight = NSScreen.screens.first?.frame.height ?? 0
+        let p = NSEvent.mouseLocation
+        return CGPoint(x: p.x, y: primaryHeight - p.y)
+    }
+    private static var mouseBox: NSRect {
+        let p = NSEvent.mouseLocation
+        return NSRect(x: p.x - 20, y: p.y - 10, width: 40, height: 20)
+    }
+
+    private func hotKeyPressed() {
+        chip.hide()
+        if case .selection(let s) = SelectionReader.readAccessibility(), s.trimmed().hasChinese {
+            show(s.trimmed(), near: s.bounds.map(Self.appKitRect) ?? Self.mouseBox)
+            return
+        }
+        // Nothing readable is selected: the word under the cursor, else whatever copying finds.
+        if let captured = TextCapture.at(Self.mouseInCGSpace()) {
+            showWord(captured)
+            return
+        }
+        Task {
+            if let s = await SelectionReader.readByCopying()?.trimmed(), s.hasChinese {
+                show(s, near: Self.mouseBox)
+            } else {
+                hint("Highlight some Chinese text first", near: Self.mouseBox)
+                Log.write(["event": "miss", "trace": SelectionReader.trace + TextCapture.trace,
+                           "frontApp": NSWorkspace.shared.frontmostApplication?.localizedName ?? ""])
+            }
+        }
+    }
+
+    private func chipClicked(_ selection: Selection?, chipFrame: NSRect) async {
+        var selection = selection
+        if selection == nil { selection = await SelectionReader.readByCopying()?.trimmed() }
+        guard let s = selection, s.hasChinese else {
+            hint("No Chinese text in the selection", near: chipFrame)
+            Log.write(["event": "miss", "trace": SelectionReader.trace,
+                       "frontApp": NSWorkspace.shared.frontmostApplication?.localizedName ?? ""])
+            return
+        }
+        show(s, near: s.bounds.map(Self.appKitRect) ?? chipFrame)
+    }
 
     // MARK: Lookup
 
-    static func mouseInCGSpace() -> CGPoint { appKitToCG(NSEvent.mouseLocation) }
-
-    static func appKitToCG(_ p: NSPoint) -> CGPoint {
-        let primaryHeight = NSScreen.screens.first?.frame.height ?? 0
-        return CGPoint(x: p.x, y: primaryHeight - p.y)
+    /// One dictionary word gets the word card; anything longer gets the phrase card.
+    private func show(_ selection: Selection, near anchor: NSRect) {
+        guard let dict else { hint("Dictionary still loading…", near: anchor); return }
+        let note = selection.source == .clipboard ? "copied, no surrounding text" : nil
+        let text = selection.text
+        if text.count == 1 || (text.allSatisfy(isCJK) && dict.contains(text)) {
+            let context = Segmenter.context(for: selection.range, in: selection.passage)
+            showWord(context, sourceNote: note, appName: selection.appName, near: anchor)
+        } else {
+            showPhrase(selection, dict: dict, sourceNote: note, near: anchor)
+        }
     }
-    static func cgToAppKit(_ p: CGPoint) -> NSPoint { appKitToCG(p) }   // the flip is its own inverse
 
-    private func lookUpAtMouse() { lookUp(at: Self.mouseInCGSpace(), mouse: NSEvent.mouseLocation) }
+    private func showWord(_ captured: CapturedText) {
+        guard let dict, let context = Segmenter.word(at: captured.index, in: captured.passage, dict: dict) else { return }
+        showWord(context, sourceNote: nil, appName: captured.appName, near: Self.mouseBox)
+    }
 
-    private func lookUp(at point: CGPoint, mouse: NSPoint) {
+    private func showWord(_ context: WordInContext, sourceNote: String?, appName: String?, near anchor: NSRect) {
+        guard let dict else { return }
         lookupTask?.cancel()
-        popup.close()
-        guard let dict else { hint("Dictionary still loading…", at: mouse); return }
+        let senses = dict.senses(for: context.word)
+        let modelReady = SenseChooser.isAvailable && !senses.isEmpty
+        let state = LookupState(context: context, senses: senses, sourceNote: sourceNote, appName: appName,
+                                phase: modelReady ? .choosing : .dictionaryOnly(senses.isEmpty ? "not in dictionary" : SenseChooser.unavailableReason))
+        popup.show(LookupView(state: state), near: anchor)
+        var record: [String: Any] = ["event": "word", "word": context.word, "sentence": context.sentence,
+                                     "app": appName ?? "", "senses": senses.count]
         lookupTask = Task {
             let started = Date()
-            guard let captured = await TextCapture.at(point) else {
-                let why = !AXIsProcessTrusted() && !CGPreflightScreenCaptureAccess()
-                    ? "Allow Accessibility or Screen Reading in the 龍 menu"
-                    : "No Chinese text under the cursor"
-                hint(why, at: mouse)
-                Log.write(["event": "miss", "x": point.x, "y": point.y, "reason": why, "trace": TextCapture.trace,
-                           "frontApp": NSWorkspace.shared.frontmostApplication?.localizedName ?? "",
-                           "axTrusted": AXIsProcessTrusted(), "screenAllowed": CGPreflightScreenCaptureAccess()])
-                return
-            }
-            guard !Task.isCancelled,
-                  let context = Segmenter.word(at: captured.index, in: captured.passage, dict: dict) else { return }
-            let senses = dict.senses(for: context.word)
-            let modelReady = SenseChooser.isAvailable && senses.count > 0
-            let state = LookupState(context: context, senses: senses, source: captured.source, appName: captured.appName,
-                                    phase: modelReady ? .choosing : .dictionaryOnly(senses.isEmpty ? "not in dictionary" : SenseChooser.unavailableReason))
-            popup.show(LookupView(state: state), at: mouse)
-
-            var record: [String: Any] = [
-                "event": "lookup", "word": context.word, "sentence": context.sentence, "source": captured.source.rawValue,
-                "app": captured.appName ?? "", "senses": senses.count, "captureMs": Int(Date().timeIntervalSince(started) * 1000),
-            ]
             if modelReady {
                 do {
                     let choice = try await SenseChooser.choose(for: context, senses: senses)
                     guard !Task.isCancelled else { return }
                     state.choice = choice
                     state.phase = .chosen
-                    record["chosen"] = choice.senseNumber
                     record["meaningHere"] = choice.meaningHere
                     record["tag"] = choice.tag.rawValue
-                    record["note"] = choice.note
                 } catch {
                     state.phase = .failed(String(describing: error).prefix(80).description)
                     record["error"] = String(describing: error)
                 }
-                record["totalMs"] = Int(Date().timeIntervalSince(started) * 1000)
-                try? await Task.sleep(for: .milliseconds(30))   // let SwiftUI lay out the new content
-                popup.reposition()
+                record["ms"] = Int(Date().timeIntervalSince(started) * 1000)
+                await relayout()
             }
             Log.write(record)
-            popup.snapshot(to: Log.directory.appendingPathComponent("last-popup.png"))
         }
     }
 
-    private func hint(_ text: String, at mouse: NSPoint) {
-        popup.show(HintView(text: text), at: mouse)
+    private func showPhrase(_ selection: Selection, dict: CEDict, sourceNote: String?, near anchor: NSRect) {
+        lookupTask?.cancel()
+        let state = PhraseState(selection: selection, dict: dict, sourceNote: sourceNote)
+        state.onLayoutChange = { [weak self] in Task { await self?.relayout() } }
+        popup.show(PhraseView(state: state), near: anchor)
+        lookupTask = Task {
+            let started = Date()
+            do { state.translation = try await Translator.translate(selection.text) }
+            catch { state.translationError = String(describing: error).prefix(60).description }
+            await relayout()
+            Log.write(["event": "phrase", "text": selection.text, "words": state.tokens.map(\.text),
+                       "translation": state.translation ?? "", "app": selection.appName ?? "",
+                       "source": selection.source.rawValue, "ms": Int(Date().timeIntervalSince(started) * 1000)])
+        }
+    }
+
+    /// Let SwiftUI lay out new content, then resize the popup around it.
+    private func relayout() async {
+        try? await Task.sleep(for: .milliseconds(30))
+        popup.reposition()
+    }
+
+    private func hint(_ text: String, near anchor: NSRect) {
+        popup.show(HintView(text: text), near: anchor)
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) { [weak self] in self?.popup.close() }
     }
 }

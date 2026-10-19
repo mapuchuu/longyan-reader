@@ -9,15 +9,15 @@ final class LookupState: ObservableObject {
 
     let context: WordInContext
     let senses: [Sense]
-    let source: CapturedText.Source
+    let sourceNote: String?        // e.g. "copied selection, no surrounding text"
     let appName: String?
     @Published var phase: Phase
     @Published var choice: SenseChoice?
 
-    init(context: WordInContext, senses: [Sense], source: CapturedText.Source, appName: String?, phase: Phase) {
+    init(context: WordInContext, senses: [Sense], sourceNote: String? = nil, appName: String?, phase: Phase) {
         self.context = context
         self.senses = senses
-        self.source = source
+        self.sourceNote = sourceNote
         self.appName = appName
         self.phase = phase
     }
@@ -138,7 +138,7 @@ struct LookupView: View {
             text = text + Text(part)
             if i < parts.count - 1 { text = text + Text(state.context.word).bold().foregroundColor(.primary) }
         }
-        let where_ = [state.appName, state.source == .ocr ? "read from screen" : nil].compactMap { $0 }.joined(separator: " · ")
+        let where_ = [state.appName, state.sourceNote].compactMap { $0 }.joined(separator: " · ")
         return VStack(alignment: .leading, spacing: 3) {
             text.font(.system(size: 12)).foregroundColor(.secondary).lineLimit(3)
             if !where_.isEmpty { Text(where_).font(.system(size: 10)).foregroundStyle(.tertiary) }
@@ -151,17 +151,24 @@ final class PopupPanel: NSPanel {
     override var canBecomeKey: Bool { true }
 }
 
+/// Lets the first click land on a control instead of just focusing the panel.
+final class FirstMouseHostingView<Content: View>: NSHostingView<Content> {
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+}
+
 @MainActor
 final class PopupController {
     private var panel: PopupPanel?
     private var hosting: NSView?
-    private var anchor: NSPoint = .zero
+    private var anchor: NSRect = .zero        // AppKit coordinates
     private var monitors: [Any] = []
+    var isShowing: Bool { panel != nil }
 
-    func show<V: View>(_ view: V, at mouse: NSPoint) {
+    /// Shows the view just below `anchor` (the selection, or a small box at the cursor).
+    func show<V: View>(_ view: V, near anchor: NSRect) {
         close()
-        anchor = mouse
-        let host = NSHostingView(rootView: view)
+        self.anchor = anchor
+        let host = FirstMouseHostingView(rootView: view)
         let panel = PopupPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel],
                                backing: .buffered, defer: false)
         panel.isOpaque = false
@@ -175,24 +182,29 @@ final class PopupController {
         reposition()
         panel.orderFrontRegardless()
 
-        let dismiss: (NSEvent) -> Void = { [weak self] _ in self?.close() }
-        if let m = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .scrollWheel], handler: dismiss) { monitors.append(m) }
+        // Close on a click elsewhere, scrolling, or Esc. Global monitors only see
+        // events for other apps, so clicks inside the popup are unaffected.
+        if let m = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .scrollWheel],
+                                                     handler: { [weak self] _ in self?.close() }) { monitors.append(m) }
+        if let m = NSEvent.addGlobalMonitorForEvents(matching: [.keyDown], handler: { [weak self] e in
+            if e.keyCode == 53 { self?.close() }
+        }) { monitors.append(m) }
         if let m = NSEvent.addLocalMonitorForEvents(matching: [.keyDown], handler: { [weak self] e in
-            if e.keyCode == 53 { self?.close(); return nil }   // Esc
+            if e.keyCode == 53 { self?.close(); return nil }
             return e
         }) { monitors.append(m) }
     }
 
-    /// Sizes to the content and keeps the top edge just below the cursor
+    /// Sizes to the content with the top edge just below the anchor
     /// (or above it when there's no room below).
     func reposition() {
         guard let panel, let hosting else { return }
         let size = hosting.fittingSize
-        let screen = NSScreen.screens.first { $0.frame.contains(anchor) } ?? NSScreen.main
+        let screen = NSScreen.screens.first { $0.frame.intersects(anchor) } ?? NSScreen.main
         let visible = screen?.visibleFrame ?? .zero
-        var x = anchor.x - 24
-        var y = anchor.y - 18 - size.height
-        if y < visible.minY { y = anchor.y + 18 }
+        var x = anchor.minX
+        var y = anchor.minY - 8 - size.height
+        if y < visible.minY { y = anchor.maxY + 8 }
         x = min(max(x, visible.minX + 8), visible.maxX - size.width - 8)
         y = min(max(y, visible.minY + 8), visible.maxY - size.height - 8)
         panel.setFrame(NSRect(x: x, y: y, width: size.width, height: size.height), display: true)

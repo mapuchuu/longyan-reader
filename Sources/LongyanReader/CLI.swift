@@ -5,7 +5,9 @@ import Foundation
 /// Command-line modes for testing the pipeline without the hotkey or screen.
 ///   --status
 ///   --lookup "<passage>" <word-or-character-index>
-///   --ocr <image> <x 0-1> <y 0-1, from top>
+///   --phrase "<text>"
+///   --render "<passage>" <word> <out.png>
+///   --render-phrase "<text>" <out.png> [word-to-expand]
 enum CLI {
     /// Keeps the main thread free (SwiftUI rendering needs it) and exits when done.
     static func run(_ args: [String]) -> Never {
@@ -32,21 +34,26 @@ enum CLI {
             else if let r = args[2].range(of: args[3]) { index = args[2].distance(from: args[2].startIndex, to: r.lowerBound) }
             else { print("word not in passage"); return }
             try await lookup(passage: passage, index: index, dict: dict)
-        case "--ocr" where args.count >= 5:
-            guard let image = NSImage(contentsOfFile: args[2])?.cgImage(forProposedRect: nil, context: nil, hints: nil),
-                  let x = Double(args[3]), let y = Double(args[4]) else { print("bad arguments"); return }
-            guard let captured = TextCapture.locate(CGPoint(x: x, y: 1 - y), in: image) else { print("no text found at point"); return }
-            print("ocr passage: \(String(captured.passage))")
-            print("character at point: \(captured.passage[captured.index]) (index \(captured.index))")
-            if args.count >= 6, args[5] == "--lookup" {
-                try await lookup(passage: captured.passage, index: captured.index, dict: try CEDict.load())
-            }
+        case "--phrase" where args.count >= 3:
+            let dict = try CEDict.load()
+            let passage = Array(args[2])
+            let tokens = Segmenter.phrase(0..<passage.count, in: passage, dict: dict)
+            let t = Date()
+            let translation = try await Translator.translate(args[2])
+            print("translation: \(translation)  [\(Int(Date().timeIntervalSince(t) * 1000)) ms]")
+            print("words: " + tokens.map { token -> String in
+                let senses = dict.senses(for: token.text)
+                let i = SenseChooser.senseMatching(translation: translation, senses: senses)
+                return "\(token.text) (\(shortGloss(i.map { [senses[$0]] } ?? senses)))"
+            }.joined(separator: " / "))
+        case "--render-phrase" where args.count >= 4:
+            try await renderPhrase(args[2], expand: args.count >= 5 ? args[4] : nil, to: URL(fileURLWithPath: args[3]))
         case "--render" where args.count >= 5:
             try await render(passage: args[2], click: args[3], to: URL(fileURLWithPath: args[4]))
         case "--eval":
             try await eval(dict: try CEDict.load())
         default:
-            print("usage: LongyanReader --status | --lookup \"<passage>\" <word|index> | --ocr <image> <x> <y> [--lookup]")
+            print("usage: LongyanReader --status | --lookup \"<passage>\" <word|index> | --phrase \"<text>\" | --eval | --render … | --render-phrase …")
         }
     }
 
@@ -122,24 +129,39 @@ enum CLI {
               let ctx = Segmenter.word(at: passage.distance(from: passage.startIndex, to: r.lowerBound), in: Array(passage), dict: dict)
         else { print("no word"); return }
         let senses = dict.senses(for: ctx.word)
-        let state = LookupState(context: ctx, senses: senses, source: .accessibility, appName: "Preview", phase: .choosing)
+        let state = LookupState(context: ctx, senses: senses, appName: "Preview", phase: .choosing)
         if SenseChooser.isAvailable, !senses.isEmpty {
             state.choice = try await SenseChooser.choose(for: ctx, senses: senses)
             state.phase = .chosen
         }
-        // AppKit drawing must happen on the main thread.
-        let png: Data? = await withCheckedContinuation { cont in
-            DispatchQueue.main.async {
-                _ = NSApplication.shared
-                let host = NSHostingView(rootView: LookupView(state: state).padding(12).background(Color(nsColor: .underPageBackgroundColor)))
-                host.frame = NSRect(origin: .zero, size: host.fittingSize)
-                host.layoutSubtreeIfNeeded()
-                let rep = host.bitmapImageRepForCachingDisplay(in: host.bounds)
-                if let rep { host.cacheDisplay(in: host.bounds, to: rep) }
-                cont.resume(returning: rep?.representation(using: .png, properties: [:]))
-            }
-        }
-        try png?.write(to: url)
+        try await writePNG(LookupView(state: state), to: url)
         print("wrote \(url.path)")
+    }
+
+    @MainActor
+    static func renderPhrase(_ text: String, expand: String?, to url: URL) async throws {
+        let dict = try CEDict.load()
+        let passage = Array(text)
+        let selection = Selection(passage: passage, range: 0..<passage.count, bounds: nil, source: .accessibility, appName: "Safari")
+        let state = PhraseState(selection: selection, dict: dict, sourceNote: nil)
+        state.translation = try? await Translator.translate(text)
+        if let expand, let token = state.tokens.first(where: { $0.text == expand }) {
+            state.toggle(token)
+            while state.choosing.contains(token.id) { try await Task.sleep(for: .milliseconds(50)) }
+        }
+        try await writePNG(PhraseView(state: state), to: url)
+        print("wrote \(url.path)")
+    }
+
+    /// AppKit drawing must happen on the main thread.
+    @MainActor
+    static func writePNG<V: View>(_ view: V, to url: URL) async throws {
+        _ = NSApplication.shared
+        let host = NSHostingView(rootView: view.padding(12).background(Color(nsColor: .underPageBackgroundColor)))
+        host.frame = NSRect(origin: .zero, size: host.fittingSize)
+        host.layoutSubtreeIfNeeded()
+        guard let rep = host.bitmapImageRepForCachingDisplay(in: host.bounds) else { return }
+        host.cacheDisplay(in: host.bounds, to: rep)
+        try rep.representation(using: .png, properties: [:])?.write(to: url)
     }
 }
