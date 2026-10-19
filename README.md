@@ -51,14 +51,11 @@ Each lookup appends a line to `~/Library/Logs/LongyanReader/lookups.jsonl`, a fe
 
 ## Status
 
-Current `--eval` score: words 15/16, senses 11/16, no errors, about 0.7 s per lookup on an M5 Pro.
+Current `--eval` score: words 15/16, senses 13/16, no errors, about 0.35 s per lookup on an M5 Pro. When the model refuses a sentence, the sense is matched to an on-device translation of it instead.
 
-The on-device model is about 3B parameters. It's good at saying what a word means in context, and weaker at:
-- hard readings of single characters (行 in 行不行);
-- grammar particles (了);
-- writing nuance notes. Its notes are generic and well short of Longyan's quality.
+The on-device model is about 3B parameters. It's decent at saying what a word means in context. It was confidently wrong when writing nuance notes (熟练 "skilled" tagged as cultural context), so it no longer writes them.
 
-The plan is to write those notes at build time with a larger model, per sense, and use the small model only to pick between them.
+Next: write nuance notes at build time with a stronger model, per dictionary sense, for common words and idioms. Ship them with the app, and let the on-device model only pick the sense.
 
 ## Licences
 

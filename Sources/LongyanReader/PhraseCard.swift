@@ -57,7 +57,7 @@ final class PhraseState: ObservableObject {
                 choices[token.id] = try await SenseChooser.choose(
                     for: Segmenter.context(for: token.range, in: selection.passage), senses: list)
             } catch {
-                failures[token.id] = "couldn't choose a sense"
+                failures[token.id] = "Dictionary order: couldn't place this word in the sentence"
             }
             choosing.remove(token.id)
             onLayoutChange()
@@ -160,6 +160,8 @@ struct PhraseView: View {
                     .font(.system(size: 12)).foregroundStyle(.secondary)
             } else if let f = state.failures[token.id] {
                 Text(f).font(.system(size: 11)).foregroundStyle(.secondary)
+            } else if state.choices[token.id]?.viaTranslation == true {
+                Text("Matched to the sentence translation").font(.system(size: 11)).foregroundStyle(.secondary)
             }
             if let c = state.choices[token.id], c.tag != .none, !c.note.isEmpty {
                 VStack(alignment: .leading, spacing: 3) {

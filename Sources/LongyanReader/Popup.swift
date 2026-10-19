@@ -99,9 +99,12 @@ struct LookupView: View {
         case .dictionaryOnly(let why):
             Text("Dictionary order only (\(why))").font(.system(size: 11)).foregroundStyle(.secondary)
         case .failed(let why):
-            Text("Couldn't choose a sense: \(why)").font(.system(size: 11)).foregroundStyle(.secondary)
+            Text("Dictionary order: couldn't place this word in the sentence").font(.system(size: 11)).foregroundStyle(.secondary)
+                .help(why)
         case .chosen:
-            EmptyView()
+            if state.choice?.viaTranslation == true {
+                Text("Matched to the sentence translation").font(.system(size: 11)).foregroundStyle(.secondary)
+            }
         }
     }
 

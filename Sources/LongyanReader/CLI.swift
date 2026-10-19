@@ -101,8 +101,8 @@ enum CLI {
     ]
 
     static func eval(dict: CEDict) async throws {
-        var wordOK = 0, senseOK = 0, tagOK = 0, failures = 0, totalMs = 0
-        for (passage, click, wantWord, wantSense, wantTag) in cases {
+        var wordOK = 0, senseOK = 0, failures = 0, totalMs = 0
+        for (passage, click, wantWord, wantSense, _) in cases {
             let index = passage.distance(from: passage.startIndex, to: passage.range(of: click)!.lowerBound)
             guard let ctx = Segmenter.word(at: index, in: Array(passage), dict: dict) else { continue }
             let senses = dict.senses(for: ctx.word)
@@ -115,10 +115,8 @@ enum CLI {
                 totalMs += Int(Date().timeIntervalSince(t) * 1000)
                 let gloss = senses[c.senseNumber - 1].gloss
                 let s = wantSense.isEmpty || gloss.localizedCaseInsensitiveContains(wantSense)
-                let tg = wantTag == nil || c.tag == wantTag
                 if s { senseOK += 1 }
-                if tg { tagOK += 1 }
-                line += "  sense \(s ? "✓" : "✗") [\(Pinyin.marked(senses[c.senseNumber - 1].pinyin))] \(gloss)  | here: \(c.meaningHere) | tag \(tg ? "✓" : "✗") \(c.tag.rawValue)"
+                line += "  sense \(s ? "✓" : "✗") [\(Pinyin.marked(senses[c.senseNumber - 1].pinyin))] \(gloss)  | here: \(c.meaningHere)\(c.viaTranslation ? " (via translation)" : "")"
                 if !c.note.isEmpty { line += "\n      note: \(c.note)" }
             } catch {
                 failures += 1
@@ -127,7 +125,7 @@ enum CLI {
             print("\(passage)  \(line)")
         }
         let n = cases.count
-        print("\nwords \(wordOK)/\(n)  senses \(senseOK)/\(n)  tags \(tagOK)/\(n)  errors \(failures)  avg \(totalMs / max(n - failures, 1)) ms")
+        print("\nwords \(wordOK)/\(n)  senses \(senseOK)/\(n)  errors \(failures)  avg \(totalMs / max(n - failures, 1)) ms")
     }
 
     /// Draws the popup for a lookup into a PNG, to check the design without the hotkey.

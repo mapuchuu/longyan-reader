@@ -10,8 +10,10 @@ enum NuanceTag: String, CaseIterable {
 struct SenseChoice {
     var senseNumber: Int
     var meaningHere: String
-    var tag: NuanceTag
-    var note: String
+    var tag: NuanceTag = .none
+    var note: String = ""
+    /// True when the model refused and the sense was matched to a translation instead.
+    var viaTranslation = false
 }
 
 /// Chooses which dictionary sense fits the passage, using Apple's on-device model.
@@ -34,11 +36,12 @@ enum SenseChooser {
         }
     }
 
-    // Kept short: longer instructions made the on-device model refuse ordinary history sentences.
+    // Kept short: longer instructions made the on-device model refuse ordinary sentences.
+    // The model only picks a sense; notes from a 3B model were confidently wrong, so it
+    // writes none (good notes need to be written ahead of time by a stronger model).
     static let instructions = """
     You help an English speaker read Chinese. You get a Chinese passage with one word marked 【like this】 and that word's numbered dictionary senses. \
-    Say what the marked word alone means here, then pick the matching sense. Never invent a sense. \
-    Most words get tag none. A tagged word gets a note in plain English: what a native speaker feels or pictures when using it here. No em dashes.
+    Say what the marked word alone means here, then pick the matching sense. Never invent a sense.
     """
 
     /// No pinyin in the prompt: repeated syllables like "kuan1 rong2" (or tone-marked ü)
@@ -78,20 +81,27 @@ enum SenseChooser {
 
     /// The on-device model sometimes rejects a prompt (a false "unsupported language"
     /// or "sensitive content"), so retry with less: the sentence alone, then no nuance fields.
+    /// The on-device model sometimes rejects ordinary text (a false "unsupported language"
+    /// or a guardrail violation). Retry with just the sentence; if it still refuses,
+    /// translate the sentence on-device and take the sense that matches the translation.
     static func choose(for context: WordInContext, senses: [Sense]) async throws -> SenseChoice {
-        let attempts: [(passage: String, nuance: Bool)] = [
-            (context.markedPassage, true), (context.markedSentence, true), (context.markedSentence, false),
-        ]
         var lastError: Error?
-        for attempt in attempts {
+        // LONGYAN_SKIP_MODEL=1 exercises the translation fallback in tests.
+        let passages = ProcessInfo.processInfo.environment["LONGYAN_SKIP_MODEL"] == "1"
+            ? [] : [context.markedPassage, context.markedSentence]
+        for passage in passages {
             do {
-                return try await respond(prompt(attempt.passage, word: context.word, senses: senses),
-                                         senses: senses, nuance: attempt.nuance)
+                return try await respond(prompt(passage, word: context.word, senses: senses), senses: senses, nuance: false)
             } catch {
                 lastError = error
             }
         }
-        throw lastError!
+        if let translation = try? await Translator.translate(context.sentence),
+           let i = senseMatching(translation: translation, senses: senses) {
+            return SenseChoice(senseNumber: i + 1, meaningHere: shortGloss([senses[i]]), viaTranslation: true)
+        }
+        throw lastError ?? NSError(domain: "LongyanReader", code: 2,
+                                   userInfo: [NSLocalizedDescriptionKey: "no sense matched the translation"])
     }
 
     private static func respond(_ prompt: String, senses: [Sense], nuance: Bool) async throws -> SenseChoice {
