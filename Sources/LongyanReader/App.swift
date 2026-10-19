@@ -70,7 +70,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(withTitle: "Screen reading (OCR): " + (CGPreflightScreenCaptureAccess() ? "allowed" : "not allowed"), action: nil, keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Open Accessibility Settings…", action: #selector(openAccessibility), keyEquivalent: "").target = self
-        menu.addItem(withTitle: "Allow Screen Reading…", action: #selector(requestScreen), keyEquivalent: "").target = self
+        menu.addItem(withTitle: "Open Screen Recording Settings…", action: #selector(requestScreen), keyEquivalent: "").target = self
         menu.addItem(withTitle: "Refresh Status", action: #selector(refresh), keyEquivalent: "").target = self
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit Longyan Reader", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
@@ -80,7 +80,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func openAccessibility() {
         NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
     }
-    @objc private func requestScreen() { _ = CGRequestScreenCaptureAccess(); rebuildMenu() }
+    /// macOS shows the screen-recording prompt only once per app, so also open the
+    /// settings page directly; the app appears in its list after the request.
+    @objc private func requestScreen() {
+        _ = CGRequestScreenCaptureAccess()
+        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!)
+        rebuildMenu()
+    }
     @objc private func refresh() { rebuildMenu() }
 
     // MARK: Lookup
@@ -106,7 +112,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     ? "Allow Accessibility or Screen Reading in the 龍 menu"
                     : "No Chinese text under the cursor"
                 hint(why, at: mouse)
-                Log.write(["event": "miss", "x": point.x, "y": point.y, "reason": why])
+                Log.write(["event": "miss", "x": point.x, "y": point.y, "reason": why, "trace": TextCapture.trace,
+                           "frontApp": NSWorkspace.shared.frontmostApplication?.localizedName ?? "",
+                           "axTrusted": AXIsProcessTrusted(), "screenAllowed": CGPreflightScreenCaptureAccess()])
                 return
             }
             guard !Task.isCancelled,

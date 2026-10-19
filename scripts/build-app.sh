@@ -23,5 +23,8 @@ cat > "$app/Contents/Info.plist" <<PLIST
   <key>LSUIElement</key><true/>
 </dict></plist>
 PLIST
-codesign --force --sign - "$app"
+# Ad-hoc signatures are identified by a hash of the binary, so each rebuild would
+# lose the Accessibility and Screen Recording grants. An explicit requirement on the
+# bundle identifier lets the grants carry over between local builds.
+codesign --force --sign - -r='designated => identifier "com.mapuchuu.longyanreader"' "$app"
 echo "built $app"

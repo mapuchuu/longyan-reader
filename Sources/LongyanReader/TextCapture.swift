@@ -15,7 +15,12 @@ struct CapturedText {
 /// Screen points here use the global CoreGraphics space: origin at the top-left
 /// of the primary display, y growing downward (what Accessibility expects).
 enum TextCapture {
+    /// Why the last capture failed, step by step; written to the lookup log.
+    static var trace: [String] = []
+    private static func note(_ s: String) { trace.append(s) }
+
     static func at(_ point: CGPoint) async -> CapturedText? {
+        trace = []
         if let ax = accessibility(at: point) { return ax }
         return await ocr(at: point)
     }
@@ -23,17 +28,20 @@ enum TextCapture {
     // MARK: Accessibility: exact text when the app exposes it.
 
     static func accessibility(at point: CGPoint) -> CapturedText? {
-        guard AXIsProcessTrusted() else { return nil }
+        guard AXIsProcessTrusted() else { note("ax: not trusted"); return nil }
         let system = AXUIElementCreateSystemWide()
         AXUIElementSetMessagingTimeout(system, 0.4)
         var elementRef: AXUIElement?
         guard AXUIElementCopyElementAtPosition(system, Float(point.x), Float(point.y), &elementRef) == .success,
-              let element = elementRef else { return nil }
+              let element = elementRef else { note("ax: no element at point"); return nil }
+        var roleRef: CFTypeRef?
+        AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &roleRef)
+        note("ax: element \((roleRef as? String) ?? "?")")
 
         var p = point
         guard let pointValue = AXValueCreate(.cgPoint, &p),
               let rangeValue = parameterized(element, kAXRangeForPositionParameterizedAttribute, pointValue),
-              let hit = cfRange(rangeValue), hit.location >= 0 else { return nil }
+              let hit = cfRange(rangeValue), hit.location >= 0 else { note("ax: element has no range-for-position"); return nil }
 
         // The hit must actually be under the cursor; apps return the nearest
         // character even when the point is past the end of a line.
@@ -43,6 +51,7 @@ enum TextCapture {
             var rect = CGRect.zero
             if AXValueGetValue(boundsValue as! AXValue, .cgRect, &rect),
                rect.width > 0, !rect.insetBy(dx: -3, dy: -3).contains(point) {
+                note("ax: hit character \(hit.location) is not under the cursor")
                 return nil
             }
         }
@@ -56,7 +65,7 @@ enum TextCapture {
         var window = CFRange(location: start, length: end - start)
         guard let windowValue = AXValueCreate(.cfRange, &window),
               let textRef = parameterized(element, kAXStringForRangeParameterizedAttribute, windowValue),
-              let text = textRef as? String else { return nil }
+              let text = textRef as? String else { note("ax: no string for range"); return nil }
 
         // AX offsets are UTF-16; convert to a Character index.
         let utf16Offset = hit.location - start
@@ -64,7 +73,10 @@ enum TextCapture {
               let stringIndex = String.Index(utf16Offset: utf16Offset, in: text).samePosition(in: text) else { return nil }
         let passage = Array(text)
         let index = text.distance(from: text.startIndex, to: stringIndex)
-        guard passage.indices.contains(index), isCJK(passage[index]) else { return nil }
+        guard passage.indices.contains(index), isCJK(passage[index]) else {
+            note("ax: character at point is not Chinese (\(passage.indices.contains(index) ? String(passage[index]) : "out of range"))")
+            return nil
+        }
 
         var pid: pid_t = 0
         AXUIElementGetPid(element, &pid)
@@ -87,16 +99,17 @@ enum TextCapture {
     // MARK: OCR: works on anything visible (PDF scans, images, uncooperative apps).
 
     static func ocr(at point: CGPoint) async -> CapturedText? {
-        guard CGPreflightScreenCaptureAccess() else { return nil }
+        guard CGPreflightScreenCaptureAccess() else { note("ocr: screen recording not allowed"); return nil }
         var displayID: CGDirectDisplayID = 0
         var count: UInt32 = 0
         guard CGGetDisplaysWithPoint(point, 1, &displayID, &count) == .success, count > 0 else { return nil }
         let rect = CGRect(x: point.x - 460, y: point.y - 130, width: 920, height: 260)
             .intersection(CGDisplayBounds(displayID))
-        guard !rect.isNull, let image = try? await SCScreenshotManager.captureImage(in: rect) else { return nil }
+        let image: CGImage
+        do { image = try await SCScreenshotManager.captureImage(in: rect) } catch { note("ocr: capture failed: \(error.localizedDescription)"); return nil }
         // Cursor position inside the image, normalised with a bottom-left origin (Vision's space).
         let cursor = CGPoint(x: (point.x - rect.minX) / rect.width, y: 1 - (point.y - rect.minY) / rect.height)
-        guard var captured = locate(cursor, in: image) else { return nil }
+        guard var captured = locate(cursor, in: image) else { note("ocr: no Chinese character found at the cursor"); return nil }
         captured = CapturedText(passage: captured.passage, index: captured.index, source: .ocr,
                                 appName: NSWorkspace.shared.frontmostApplication?.localizedName)
         return captured
