@@ -189,6 +189,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let modelReady = SenseChooser.isAvailable && !senses.isEmpty
         let state = LookupState(context: context, senses: senses, sourceNote: sourceNote, appName: appName,
                                 phase: modelReady ? .choosing : .dictionaryOnly(senses.isEmpty ? "not in dictionary" : SenseChooser.unavailableReason))
+        state.onLayoutChange = { [weak self] in Task { await self?.relayout() } }
         popup.show(LookupView(state: state), near: anchor)
         var record: [String: Any] = ["event": "word", "word": context.word, "sentence": context.sentence,
                                      "app": appName ?? "", "senses": senses.count]

@@ -55,7 +55,7 @@ Current `--eval` score (29 cases, including 7 where a noted sense is right and 5
 
 The on-device model is about 3B parameters. It's decent at saying what a word means in context. It was confidently wrong when writing nuance notes (熟练 "skilled" tagged as cultural context), so it no longer writes them.
 
-Nuance notes are written ahead of time, one per dictionary sense that needs one, and shipped in `Resources/notes.json`. The on-device model only picks the sense. The pilot covers 502 words (95 idioms): 267 notes across 1,434 senses, written by Claude in a Claude Code session. See `notes/pilot/review.md`. For a full build, `NotesBuilder.swift` can also run the same job through the Message Batches API (`--notes-submit`, `--notes-status`, `--notes-fetch`).
+Nuance notes are written ahead of time, one per dictionary sense that needs one, and shipped in `Resources/notes.json`. The on-device model only picks the sense. The pilot covers 502 words (95 idioms): 267 notes across 1,434 senses, written by Claude in a Claude Code session. See `notes/pilot/review.md`. Example sentences for about 40 ambiguous words (`notes/pilot/examples.tsv` → `Resources/examples.json`) help the on-device model choose between its pick and a noted sense; `--eval-notes` checks 30 held-out sentences (currently 22/30 right, no note shown for a wrong reading). In the word card you can also click any sense to use it. For a full build, `NotesBuilder.swift` can also run the same job through the Message Batches API (`--notes-submit`, `--notes-status`, `--notes-fetch`).
 
 ## Licences
 

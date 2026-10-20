@@ -164,7 +164,9 @@ enum SenseChooser {
 
     static func overlapScores(translation: String, senses: [Sense]) -> [Int] {
         let words = glossWords(translation)
-        return senses.map { glossWords($0.gloss).intersection(words).count }
+        return senses.map { sense in
+            glossWords(sense.gloss).filter { g in words.contains { w in w == g || (min(w.count, g.count) >= 4 && (w.hasPrefix(g) || g.hasPrefix(w))) } }.count
+        }
     }
 
     /// The 3B model tends to pick the plainest sense (关系 "relationship" in 他靠关系找到了工作).
@@ -172,19 +174,26 @@ enum SenseChooser {
     /// as the model's pick, show that sense, so its note appears.
     static func preferNoted(_ choice: SenseChoice, context: WordInContext, senses: [Sense]) async -> SenseChoice {
         let chosen = choice.senseNumber - 1
-        let noted = senses.indices.filter { $0 != chosen && NotesStore.note(context.word, senses[$0]) != nil }
-        let chosenHasNote = NotesStore.note(context.word, senses[chosen]) != nil
+        let noted = senses.indices.filter { $0 != chosen && NotesStore.hasExactNote(context.word, senses[$0]) }
+        let chosenHasNote = NotesStore.hasExactNote(context.word, senses[chosen])
         guard !noted.isEmpty, let translation = try? await Translator.translate(context.sentence) else { return choice }
         let scores = overlapScores(translation: translation, senses: senses)
         var pick: Int?
         if !chosenHasNote, let best = noted.max(by: { scores[$0] < scores[$1] }), scores[best] > 0, scores[best] >= scores[chosen] {
             pick = best
         } else {
-            // Word overlap can't see synonyms, so ask the model to choose between its own pick
-            // and the noted sense, in both orders; switch only if it picks the noted sense twice.
-            for i in noted.prefix(2) where await prefersNoted(senses[i], over: senses[chosen], context: context) {
-                pick = i
-                break
+            // Word overlap can't see synonyms. Two other signals, either of which is enough:
+            // the model picks the noted sense twice (both orders, examples shown), or the
+            // sentence is clearly closer to that sense's examples than to any other sense's.
+            // Ask the model to choose between its pick and the noted sense, examples shown, in
+            // both orders. Veto the switch when the sentence's translation matches the original
+            // pick but not the noted sense ("I have a good relationship with him" is not guanxi).
+            for i in noted.prefix(2) where !(scores[chosen] > 0 && scores[i] == 0) {
+                if await prefersNoted(senses[i], over: senses[chosen], context: context) {
+                    trace("model picked \(senses[i].gloss.prefix(30)) twice")
+                    pick = i
+                    break
+                }
             }
         }
         guard let pick else { return choice }
@@ -205,10 +214,19 @@ enum SenseChooser {
                            schema: S(name: "Choice", anyOf: [x, y])),
             ]), dependencies: []) else { return false }
             let session = LanguageModelSession(instructions: "You help an English speaker read Chinese.")
-            let prompt = "Passage: \(context.markedSentence)\nWhich meaning does the marked word \(context.word) have here: \"\(x)\" or \"\(y)\"?"
+            func option(_ gloss: String, _ sense: Sense) -> String {
+                let ex = ExamplesStore.examples(context.word, sense).prefix(2)
+                return ex.isEmpty ? "\"\(gloss)\"" : "\"\(gloss)\", as in: " + ex.joined(separator: " ")
+            }
+            let senseX = x == noted.gloss ? noted : current, senseY = y == noted.gloss ? noted : current
+            let prompt = "Passage: \(context.markedSentence)\nWhich meaning does the marked word \(context.word) have here?\n\(option(x, senseX))\n\(option(y, senseY))"
             guard let r = try? await session.respond(to: prompt, schema: schema, options: GenerationOptions(sampling: .greedy)),
                   (try? r.content.value(String.self, forProperty: "meaning")) == noted.gloss else { return false }
         }
         return true
+    }
+
+    private static func trace(_ s: String) {
+        if ProcessInfo.processInfo.environment["LONGYAN_TRACE"] == "1" { print("    · " + s) }
     }
 }

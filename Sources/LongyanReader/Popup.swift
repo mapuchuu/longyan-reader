@@ -13,6 +13,16 @@ final class LookupState: ObservableObject {
     let appName: String?
     @Published var phase: Phase
     @Published var choice: SenseChoice?
+    @Published var showAllSenses = false
+    var onLayoutChange: () -> Void = {}
+
+    /// The reader overrides the chosen sense by clicking it.
+    func pick(_ index: Int) {
+        guard senses.indices.contains(index) else { return }
+        choice = SenseChoice(senseNumber: index + 1, meaningHere: shortGloss([senses[index]]))
+        phase = .chosen
+        onLayoutChange()
+    }
 
     init(context: WordInContext, senses: [Sense], sourceNote: String? = nil, appName: String?, phase: Phase) {
         self.context = context
@@ -99,26 +109,45 @@ struct LookupView: View {
     }
 
     private var senses: some View {
-        let shown = Array(state.senses.enumerated().prefix(7))
+        // The first seven senses, plus the chosen one if it sits further down.
+        let all = Array(state.senses.enumerated())
+        let shown = state.showAllSenses ? all
+            : all.filter { $0.offset < 7 || $0.offset == state.chosenIndex }
         let showReading = Set(state.senses.map(\.pinyin)).count > 1
         return VStack(alignment: .leading, spacing: 4) {
             ForEach(shown, id: \.offset) { i, sense in
                 let chosen = state.chosenIndex == i
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text("\(i + 1)").font(.system(size: 11).monospacedDigit()).foregroundStyle(.tertiary)
-                    if showReading {
-                        Text(Pinyin.marked(sense.pinyin)).font(.system(size: 12)).foregroundStyle(.secondary)
+                let note = NotesStore.hasExactNote(state.context.word, sense)
+                    ? NotesStore.note(state.context.word, sense) : nil
+                Button { state.pick(i) } label: {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text("\(i + 1)").font(.system(size: 11).monospacedDigit()).foregroundStyle(.tertiary)
+                        if showReading {
+                            Text(Pinyin.marked(sense.pinyin)).font(.system(size: 12)).foregroundStyle(.secondary)
+                        }
+                        Text(sense.gloss)
+                            .font(.system(size: 13, weight: chosen ? .semibold : .regular))
+                            .foregroundStyle(chosen || state.choice == nil ? .primary : .secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        if let note {
+                            Circle().fill(note.tag == "lost_in_translation" ? Color.orange : Color.teal)
+                                .frame(width: 5, height: 5)
+                        }
+                        Spacer(minLength: 0)
                     }
-                    Text(sense.gloss)
-                        .font(.system(size: 13, weight: chosen ? .semibold : .regular))
-                        .foregroundStyle(chosen || state.choice == nil ? .primary : .secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                    .contentShape(Rectangle())
+                    .padding(.vertical, 2).padding(.horizontal, 6)
+                    .background(RoundedRectangle(cornerRadius: 6).fill(chosen ? Color.accentColor.opacity(0.14) : .clear))
                 }
-                .padding(.vertical, 2).padding(.horizontal, 6)
-                .background(RoundedRectangle(cornerRadius: 6).fill(chosen ? Color.accentColor.opacity(0.14) : .clear))
+                .buttonStyle(.plain)
+                .help("Use this meaning")
             }
             if state.senses.count > shown.count {
-                Text("+\(state.senses.count - shown.count) more").font(.system(size: 11)).foregroundStyle(.tertiary)
+                Button("+\(state.senses.count - shown.count) more") {
+                    state.showAllSenses = true
+                    state.onLayoutChange()
+                }
+                .buttonStyle(.plain).font(.system(size: 11)).foregroundStyle(.secondary)
             }
         }
     }

@@ -83,6 +83,22 @@ enum CLI {
             print("notes \(report.notes.count), flagged \(report.notes.filter { !$0.problems.isEmpty }.count), unmatched \(report.errored.count)")
             for e in report.errored { print("  " + e) }
             for n in report.notes where !n.problems.isEmpty { print("  flagged \(n.word) \(n.problems): \(n.note)") }
+        case "--examples-build" where args.count >= 5:
+            // --examples-build selection.json examples.tsv Resources/examples.json
+            let words = try JSONDecoder().decode([NotesBuilder.PilotWord].self, from: Data(contentsOf: URL(fileURLWithPath: args[2])))
+            let byWord = Dictionary(words.map { ($0.word, $0) }, uniquingKeysWith: { a, _ in a })
+            var map: [String: [String]] = [:]
+            var unmatched: [String] = []
+            for line in try String(contentsOfFile: args[3], encoding: .utf8).split(whereSeparator: \.isNewline) where !line.hasPrefix("#") {
+                let cols = line.split(separator: "\t", maxSplits: 2).map(String.init)
+                guard cols.count == 3, let w = byWord[cols[0]], let i = Int(cols[1]),
+                      let sense = w.senses.first(where: { $0.index == i }) else { unmatched.append(String(line.prefix(30))); continue }
+                map[NotesStore.key(w.word, sense.pinyin, sense.gloss), default: []].append(cols[2])
+            }
+            let enc = JSONEncoder(); enc.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes, .sortedKeys]
+            try enc.encode(map).write(to: URL(fileURLWithPath: args[4]))
+            print("\(map.values.map(\.count).reduce(0, +)) examples for \(map.count) senses; unmatched \(unmatched.count)")
+            unmatched.forEach { print("  " + $0) }
         case "--notes-submit" where args.count >= 4:
             let words = try JSONDecoder().decode([NotesBuilder.PilotWord].self, from: Data(contentsOf: URL(fileURLWithPath: args[2])))
             let batch = try await NotesBuilder.submit(words)
@@ -100,6 +116,8 @@ enum CLI {
             try enc.encode(report.notes).write(to: URL(fileURLWithPath: args[4]))
             try NotesBuilder.review(report, words: words).write(to: URL(fileURLWithPath: args[5]), atomically: true, encoding: .utf8)
             print("notes \(report.notes.count), flagged \(report.notes.filter { !$0.problems.isEmpty }.count), failed \(report.errored.count)")
+        case "--eval-notes":
+            try await evalNotes(dict: try CEDict.load())
         case "--eval":
             try await eval(dict: try CEDict.load())
         default:
@@ -227,5 +245,60 @@ enum CLI {
         guard let rep = host.bitmapImageRepForCachingDisplay(in: host.bounds) else { return }
         host.cacheDisplay(in: host.bounds, to: rep)
         try rep.representation(using: .png, properties: [:])?.write(to: url)
+    }
+
+    /// Held-out sentences (never used as examples) for words with a noted sense.
+    /// (passage, word, expected gloss substring, should the noted sense win?)
+    static let noteCases: [(String, String, String, Bool)] = [
+        ("奶奶上个月走了，全家人都很难过。", "走", "to die", true),
+        ("他父亲前年就走了，是癌症。", "走", "to die", true),
+        ("时间不早了，我们走吧。", "走", "", false),
+        ("他刚走，你晚来了五分钟。", "走", "", false),
+        ("他给医生塞了一个红包。", "红包", "bribe", true),
+        ("这位法官从来不收红包。", "红包", "bribe", true),
+        ("过年的时候孩子们都收到了很多红包。", "红包", "gift", true),
+        ("参加婚礼要准备红包。", "红包", "gift", true),
+        ("他靠关系找到了工作。", "关系", "guanxi", true),
+        ("我和他的关系很好。", "关系", "relation", false),
+        ("一点小意思，不成敬意。", "意思", "token", true),
+        ("你说的这句话是什么意思？", "意思", "meaning", false),
+        ("他太老实了，总是被人骗。", "老实", "naive", true),
+        ("这孩子很老实，从来不撒谎。", "老实", "honest", false),
+        ("你这个东西，怎么能这样对你妈说话？", "东西", "person", true),
+        ("桌子上的东西是谁的？", "东西", "thing", false),
+        ("他现在在网上很红。", "红", "popular", false),
+        ("中医说她气血不足。", "气", "qi", true),
+        ("他气得脸都红了。", "气", "angry", false),
+        ("我的机场又不能用了，上不了谷歌。", "机场", "Shadowsocks", true),
+        ("我们打车去机场吧。", "机场", "airport", false),
+        ("周五下午大家都在公司摸鱼。", "摸鱼", "loaf", true),
+        ("孩子们在池塘里摸鱼摸虾。", "摸鱼", "catch fish", false),
+        ("考研的人越来越多，太卷了。", "卷", "compete", true),
+        ("她把头发卷了起来。", "卷", "roll", false),
+        ("新买的电脑摔坏了，真心疼。", "心疼", "grudge", true),
+        ("吃火锅吃得上火了，喉咙疼。", "上火", "internal heat", true),
+        ("他为这件事上火，跟老婆吵了一架。", "上火", "angry", false),
+        ("你这身打扮太土了。", "土", "unsophisticated", true),
+        ("花盆里的土太干了。", "土", "earth", false),
+    ]
+
+    static func evalNotes(dict: CEDict) async throws {
+        var right = 0, falseNotes = 0
+        for (passage, word, want, noted) in noteCases {
+            let index = passage.distance(from: passage.startIndex, to: passage.range(of: word)!.lowerBound)
+            let ctx = Segmenter.context(for: index..<(index + word.count), in: Array(passage))
+            let senses = dict.senses(for: word)
+            guard let c = try? await SenseChooser.choose(for: ctx, senses: senses) else {
+                print("? \(passage)  → model refused; dictionary order")
+                continue
+            }
+            let sense = senses[c.senseNumber - 1]
+            let shownNote = NotesStore.hasExactNote(word, sense)
+            let ok = want.isEmpty ? !shownNote : sense.gloss.localizedCaseInsensitiveContains(want)
+            if ok { right += 1 }
+            if shownNote && !noted { falseNotes += 1 }
+            print("\(ok ? "✓" : "✗") \(passage)  → \(sense.gloss.prefix(45))\(shownNote ? "  [NOTE]" : "")")
+        }
+        print("\nright \(right)/\(noteCases.count), wrong notes shown \(falseNotes)")
     }
 }
