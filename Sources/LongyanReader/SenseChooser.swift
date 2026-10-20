@@ -85,6 +85,12 @@ enum SenseChooser {
     /// or a guardrail violation). Retry with just the sentence; if it still refuses,
     /// translate the sentence on-device and take the sense that matches the translation.
     static func choose(for context: WordInContext, senses: [Sense]) async throws -> SenseChoice {
+        // A stronger local model (Ollama), when running, picks first. LONGYAN_TIEBREAK=0
+        // skips the noted-sense tie-break, which was built around the 3B model's habits.
+        if await LocalModel.isAvailable(), let choice = try? await LocalModel.choose(context, senses: senses) {
+            if ProcessInfo.processInfo.environment["LONGYAN_TIEBREAK"] == "0" { return choice }
+            return await preferNoted(choice, context: context, senses: senses)
+        }
         var lastError: Error?
         // LONGYAN_SKIP_MODEL=1 exercises the translation fallback in tests.
         let passages = ProcessInfo.processInfo.environment["LONGYAN_SKIP_MODEL"] == "1"
