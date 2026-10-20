@@ -44,7 +44,9 @@ struct LookupView: View {
             header
             if let choice = state.choice {
                 Text(choice.meaningHere).font(.system(size: 15, weight: .semibold))
-                if choice.tag != .none, !choice.note.isEmpty { nuance(choice) }
+                if let note = NotesStore.note(state.context.word, state.senses[safe: choice.senseNumber - 1]) {
+                    NuanceView(note: note)
+                }
             }
             status
             Divider()
@@ -77,18 +79,6 @@ struct LookupView: View {
             }
             .font(.system(size: 15))
         }
-    }
-
-    private func nuance(_ choice: SenseChoice) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(choice.tag == .lostInTranslation ? "LOST IN TRANSLATION" : "CULTURAL CONTEXT")
-                .font(.system(size: 10, weight: .semibold)).tracking(0.6)
-                .foregroundStyle(choice.tag == .lostInTranslation ? Color.orange : Color.teal)
-            Text(choice.note).font(.system(size: 13)).fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(8)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.05)))
     }
 
     @ViewBuilder private var status: some View {

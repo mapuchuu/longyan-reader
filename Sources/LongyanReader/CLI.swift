@@ -67,6 +67,22 @@ enum CLI {
             let senses = words.map(\.senses.count).reduce(0, +)
             print("selected \(words.count) words (\(words.filter { $0.kind == "idiom" }.count) idioms), \(senses) senses")
             print("sample: " + words.prefix(40).map(\.word).joined(separator: " "))
+        case "--notes-from-list" where args.count >= 4:
+            let (words, missing) = NotesBuilder.fromList(try String(contentsOfFile: args[2], encoding: .utf8), dict: try CEDict.load())
+            let enc = JSONEncoder(); enc.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
+            try enc.encode(words).write(to: URL(fileURLWithPath: args[3]))
+            print("\(words.count) words (\(words.filter { $0.kind == "idiom" }.count) idioms), \(words.map(\.senses.count).reduce(0, +)) senses")
+            if !missing.isEmpty { print("not in dictionary: " + missing.joined(separator: " ")) }
+        case "--notes-review" where args.count >= 6:
+            // --notes-review selection.json annotations.tsv notes.json review.md
+            let words = try JSONDecoder().decode([NotesBuilder.PilotWord].self, from: Data(contentsOf: URL(fileURLWithPath: args[2])))
+            let report = NotesBuilder.fromTSV(try String(contentsOfFile: args[3], encoding: .utf8), words: words)
+            let enc = JSONEncoder(); enc.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes, .sortedKeys]
+            try enc.encode(report.notes.filter { $0.problems.isEmpty }).write(to: URL(fileURLWithPath: args[4]))
+            try NotesBuilder.review(report, words: words).write(to: URL(fileURLWithPath: args[5]), atomically: true, encoding: .utf8)
+            print("notes \(report.notes.count), flagged \(report.notes.filter { !$0.problems.isEmpty }.count), unmatched \(report.errored.count)")
+            for e in report.errored { print("  " + e) }
+            for n in report.notes where !n.problems.isEmpty { print("  flagged \(n.word) \(n.problems): \(n.note)") }
         case "--notes-submit" where args.count >= 4:
             let words = try JSONDecoder().decode([NotesBuilder.PilotWord].self, from: Data(contentsOf: URL(fileURLWithPath: args[2])))
             let batch = try await NotesBuilder.submit(words)

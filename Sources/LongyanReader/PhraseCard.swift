@@ -46,6 +46,13 @@ final class PhraseState: ObservableObject {
         return shortGloss(list)
     }
 
+    /// The prewritten note for the sense this word currently shows, if any.
+    func note(_ token: PhraseToken) -> StoredNote? {
+        let list = senses[token.id] ?? []
+        let shown = choices[token.id].map { $0.senseNumber - 1 } ?? translationSense[token.id] ?? 0
+        return NotesStore.note(token.text, list[safe: shown])
+    }
+
     func toggle(_ token: PhraseToken) {
         expanded = expanded == token.id ? nil : token.id
         defer { onLayoutChange() }
@@ -138,6 +145,10 @@ struct PhraseView: View {
                     Text(syllables.map(\.text).joined(separator: " "))
                         .font(.system(size: 11)).foregroundStyle(.secondary)
                         .frame(minWidth: 70, alignment: .leading)
+                    if let note = state.note(token) {
+                        Circle().fill(note.tag == "lost_in_translation" ? Color.orange : Color.teal)
+                            .frame(width: 5, height: 5).alignmentGuide(.firstTextBaseline) { $0[.bottom] + 3 }
+                    }
                     Text(state.gloss(token))
                         .font(.system(size: 13, weight: state.choices[token.id] == nil ? .regular : .semibold))
                         .foregroundStyle(dim ? .secondary : .primary)
@@ -163,14 +174,7 @@ struct PhraseView: View {
             } else if state.choices[token.id]?.viaTranslation == true {
                 Text("Matched to the sentence translation").font(.system(size: 11)).foregroundStyle(.secondary)
             }
-            if let c = state.choices[token.id], c.tag != .none, !c.note.isEmpty {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(c.tag == .lostInTranslation ? "LOST IN TRANSLATION" : "CULTURAL CONTEXT")
-                        .font(.system(size: 10, weight: .semibold)).tracking(0.6)
-                        .foregroundStyle(c.tag == .lostInTranslation ? Color.orange : Color.teal)
-                    Text(c.note).font(.system(size: 12)).fixedSize(horizontal: false, vertical: true)
-                }
-            }
+            if let note = state.note(token) { NuanceView(note: note) }
             ForEach(Array(senses.prefix(5).enumerated()), id: \.offset) { i, sense in
                 let chosen = state.choices[token.id].map { $0.senseNumber == i + 1 } ?? (state.translationSense[token.id] == i)
                 Text(sense.gloss)

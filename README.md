@@ -55,7 +55,7 @@ Current `--eval` score: words 15/16, senses 13/16, no errors, about 0.35 s per l
 
 The on-device model is about 3B parameters. It's decent at saying what a word means in context. It was confidently wrong when writing nuance notes (熟练 "skilled" tagged as cultural context), so it no longer writes them.
 
-Next: write nuance notes at build time with a stronger model, per dictionary sense, for common words and idioms. Ship them with the app, and let the on-device model only pick the sense.
+Nuance notes are written ahead of time, one per dictionary sense that needs one, and shipped in `Resources/notes.json`. The on-device model only picks the sense. The pilot covers 502 words (95 idioms): 267 notes across 1,434 senses, written by Claude in a Claude Code session. See `notes/pilot/review.md`. For a full build, `NotesBuilder.swift` can also run the same job through the Message Batches API (`--notes-submit`, `--notes-status`, `--notes-fetch`).
 
 ## Licences
 

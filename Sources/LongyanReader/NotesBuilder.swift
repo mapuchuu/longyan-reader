@@ -70,6 +70,27 @@ enum NotesBuilder {
         return frequent + idioms
     }
 
+    /// Pilot words from a hand-written list: lines are words; a line "# idioms" switches
+    /// the kind for the lines after it. Words the dictionary doesn't have are reported.
+    static func fromList(_ text: String, dict: CEDict) -> (words: [PilotWord], missing: [String]) {
+        var words: [PilotWord] = []
+        var missing: [String] = []
+        var kind = "frequent"
+        var seen: Set<String> = []
+        for raw in text.split(whereSeparator: \.isNewline) {
+            let line = raw.trimmingCharacters(in: .whitespaces)
+            if line.hasPrefix("#") { if line.contains("idiom") { kind = "idiom" }; continue }
+            for w in line.split(whereSeparator: { $0 == " " || $0 == "," }).map(String.init) where !w.isEmpty && !seen.contains(w) {
+                seen.insert(w)
+                let senses = dict.senses(for: w)
+                guard !senses.isEmpty, !dict.entries(for: w).allSatisfy(\.isProperNoun) else { missing.append(w); continue }
+                words.append(PilotWord(word: w, rank: 0, kind: kind,
+                                       senses: senses.enumerated().map { PilotSense(index: $0.offset + 1, pinyin: $0.element.pinyin, gloss: $0.element.gloss) }))
+            }
+        }
+        return (words, missing)
+    }
+
     // MARK: Prompt
 
     /// Adapted from the Longyan Chrome extension's note prompt, judged per dictionary sense.
@@ -240,13 +261,34 @@ enum NotesBuilder {
         return report
     }
 
+    /// Notes written by hand (or in a session) as TSV: word, sense number, L/C, note.
+    static func fromTSV(_ text: String, words: [PilotWord]) -> FetchReport {
+        var report = FetchReport()
+        report.sensesTotal = words.map(\.senses.count).reduce(0, +)
+        let byWord = Dictionary(words.map { ($0.word, $0) }, uniquingKeysWith: { a, _ in a })
+        for line in text.split(whereSeparator: \.isNewline) where !line.hasPrefix("#") {
+            let cols = line.split(separator: "\t", maxSplits: 3).map(String.init)
+            guard cols.count == 4, let w = byWord[cols[0]], let i = Int(cols[1]),
+                  let sense = w.senses.first(where: { $0.index == i }) else {
+                report.errored.append("unmatched line: \(line.prefix(40))")
+                continue
+            }
+            let tag = cols[2] == "C" ? "cultural_context" : "lost_in_translation"
+            report.notes.append(Note(word: w.word, pinyin: sense.pinyin, gloss: sense.gloss, tag: tag, note: cols[3],
+                                     problems: problems(in: cols[3])))
+        }
+        return report
+    }
+
     /// Mechanical checks on a note; anything flagged is held back from the app.
     static func problems(in note: String) -> [String] {
         var out: [String] = []
         if note.isEmpty { out.append("empty") }
         if note.contains("—") || note.contains("–") { out.append("em dash") }
-        let sentences = note.split(whereSeparator: { ".!?".contains($0) }).filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
-        if sentences.count > 2 { out.append("\(sentences.count) sentences") }
+        // A sentence ends at . ! ? followed by a space and a capital, or the end ("9 a.m." isn't one).
+        let enders = (try? NSRegularExpression(pattern: "[.!?](\\s+[A-Z\"“]|\\s*$)"))?
+            .numberOfMatches(in: note, range: NSRange(note.startIndex..., in: note)) ?? 0
+        if enders > 2 { out.append("\(enders) sentences") }
         if note.count > 320 { out.append("\(note.count) characters") }
         let lower = note.lowercased()
         for banned in ["historiographic", "invokes", "refers to", "translat", "in english", "english word"] where lower.contains(banned) {
@@ -265,13 +307,15 @@ enum NotesBuilder {
         var md = """
         # Longyan nuance notes: pilot review
 
-        - Model: `\(model)` via the Message Batches API
+        - Written by: \(r.inputTokens == 0 ? "Claude in a Claude Code session (no API calls)" : "`\(model)` via the Message Batches API")
         - Words: \(words.count) (\(words.filter { $0.kind == "idiom" }.count) idioms), senses judged: \(r.sensesTotal)
         - Notes written: \(r.notes.count) across \(tagged.count) words; \(clean.count) pass the checks, \(r.notes.count - clean.count) flagged
         - Failed requests: \(r.errored.count)
-        - Tokens: \(r.inputTokens) input, \(r.cacheWriteTokens) cache write, \(r.cacheReadTokens) cache read, \(r.outputTokens) output (approx. $\(String(format: "%.2f", cost)))
 
         """
+        if r.inputTokens > 0 {
+            md += "- Tokens: \(r.inputTokens) input, \(r.cacheWriteTokens) cache write, \(r.cacheReadTokens) cache read, \(r.outputTokens) output (approx. $\(String(format: "%.2f", cost)))\n"
+        }
         if !r.errored.isEmpty { md += "\n## Failed\n\n" + r.errored.map { "- \($0)" }.joined(separator: "\n") + "\n" }
         let flagged = r.notes.filter { !$0.problems.isEmpty }
         if !flagged.isEmpty {

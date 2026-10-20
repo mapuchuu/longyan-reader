@@ -1,0 +1,2672 @@
+[
+  {
+    "gloss" : "dumpling",
+    "note" : "A crescent dumpling folded around a minced filling. You picture the whole family around the table on New Year's Eve, pinching edges, someone hiding a coin in one for luck.",
+    "pinyin" : "jiao3 zi5",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "饺子"
+  },
+  {
+    "gloss" : "(slang) service provider for Shadowsocks or similar software for circumventing Internet censorship",
+    "note" : "Slang for a paid service that sells a way around the Great Firewall. When a friend says they switched 机场, you know they mean their route to Google, not an airport.",
+    "pinyin" : "ji1 chang3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "机场"
+  },
+  {
+    "gloss" : "rural area",
+    "note" : "The countryside, as the half of China outside city life and city registration. Saying someone grew up in 农村 quietly places them: you hear dirt roads, farm chores and fewer chances, not pretty scenery.",
+    "pinyin" : "nong2 cun1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "农村"
+  },
+  {
+    "gloss" : "classmate",
+    "note" : "A classmate, and also the polite way to hail any student you don't know. The tie lasts, so decades later being someone's 同学 is still a reason to do them a favour.",
+    "pinyin" : "tong2 xue2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "同学"
+  },
+  {
+    "gloss" : "a relative (i.e. family relation)",
+    "note" : "Relatives, as a whole web you owe visits to. You picture New Year rounds of aunts and cousins asking how much you earn and when you're getting married.",
+    "pinyin" : "qin1 qi5",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "亲戚"
+  },
+  {
+    "gloss" : "form of address used by children for a male one generation older",
+    "note" : "A friendly title a child uses for any man of their parents' generation. You call a friend's dad or the security guard 叔叔, and it signals respect with no family tie at all.",
+    "pinyin" : "shu1 shu5",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "叔叔"
+  },
+  {
+    "gloss" : "term of address for a woman of one's mother's generation",
+    "note" : "A warm title for any woman of your mother's generation. Shop assistants, neighbours and a friend's mum all become 阿姨, which keeps things polite and a little familial.",
+    "pinyin" : "a1 yi2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "阿姨"
+  },
+  {
+    "gloss" : "childcare worker; nanny",
+    "note" : "A nanny or childminder, addressed as auntie. Calling her 阿姨 keeps it warm and respectful, though the arrangement is paid work.",
+    "pinyin" : "a1 yi2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "阿姨"
+  },
+  {
+    "gloss" : "daughter-in-law",
+    "note" : "A son's wife, seen as having married into his family. You picture a young woman learning the ways of her mother-in-law's house, the classic source of family friction.",
+    "pinyin" : "xi2 fu4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "媳妇"
+  },
+  {
+    "gloss" : "(dialect) wife",
+    "note" : "A husband's homely word for his wife in the north. It sounds affectionate and down to earth, the way you'd say \"the missus\" with a smile.",
+    "pinyin" : "xi2 fu5",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "媳妇"
+  },
+  {
+    "gloss" : "to die (euph.)",
+    "note" : "To die, said gently. You hear 他走了 softly in a hospital corridor, a way of saying it without saying the hard word.",
+    "pinyin" : "zou3",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "走"
+  },
+  {
+    "gloss" : "revolutionary",
+    "note" : "Revolutionary, communist. Red songs, red tourism and red classics carry the Party's glow of patriotism and nostalgia, not just a colour.",
+    "pinyin" : "hong2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "红"
+  },
+  {
+    "gloss" : "person",
+    "note" : "A person, said with contempt. Calling someone a 东西, as in 你不是东西, turns them into a thing, and it stings.",
+    "pinyin" : "dong1 xi5",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "东西"
+  },
+  {
+    "gloss" : "token of appreciation, affection etc",
+    "note" : "A small gift or gesture that shows goodwill. You hand over an envelope saying it's just 一点小意思, and everyone understands it's a courtesy, or a gentle nudge.",
+    "pinyin" : "yi4 si5",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "意思"
+  },
+  {
+    "gloss" : "guanxi (personal connections)",
+    "note" : "Personal connections that get things done. You don't just know people, you owe and are owed, and a job found 靠关系 means somebody cashed in a favour.",
+    "pinyin" : "guan1 xi5",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "关系"
+  },
+  {
+    "gloss" : "good enough",
+    "note" : "Good enough, close enough. It can be an easy-going shrug, or a dig at the famous Mr About-Right, 差不多先生, who never quite bothers to get things right.",
+    "pinyin" : "cha4 bu5 duo1",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "差不多"
+  },
+  {
+    "gloss" : "as one wishes",
+    "note" : "Whatever you like. When a host says 随便 it's generous, but when your partner says 随便 about where to eat, you know no answer will be right.",
+    "pinyin" : "sui2 bian4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "随便"
+  },
+  {
+    "gloss" : "to go to a lot of trouble",
+    "note" : "To go to a lot of trouble for something. You say 辛苦了 to the courier or a colleague at the end of a long day, a small bow to the effort they put in.",
+    "pinyin" : "xin1 ku3",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "辛苦"
+  },
+  {
+    "gloss" : "to bother sb; to put sb to trouble",
+    "note" : "To put someone to trouble, used as a polite ask. Saying 麻烦你 before a request admits you're about to put them out, and softens it.",
+    "pinyin" : "ma2 fan5",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "麻烦"
+  },
+  {
+    "gloss" : "polite",
+    "note" : "Polite in a holding-back way. When a friend says 别客气 they mean drop the ceremony, because being too 客气 with someone close feels cold.",
+    "pinyin" : "ke4 qi5",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "客气"
+  },
+  {
+    "gloss" : "lively; bustling; full of activity",
+    "note" : "Lively in the good, crowded, noisy way. You picture a packed restaurant, firecrackers and everyone talking at once, and that's exactly what makes it feel happy.",
+    "pinyin" : "re4 nao5",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "热闹"
+  },
+  {
+    "gloss" : "wronged; aggrieved",
+    "note" : "Wronged, and having to swallow it. You picture a child with trembling lips who did nothing wrong but got blamed anyway.",
+    "pinyin" : "wei3 qu5",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "委屈"
+  },
+  {
+    "gloss" : "to feel sorry for sb",
+    "note" : "To ache for someone. Your chest tightens seeing your mum work too hard; it's love felt as a small pain.",
+    "pinyin" : "xin1 teng2",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "心疼"
+  },
+  {
+    "gloss" : "to grudge",
+    "note" : "To hate losing or spending something. You wince at a cracked new phone or a wasted meal, and that wince is 心疼.",
+    "pinyin" : "xin1 teng2",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "心疼"
+  },
+  {
+    "gloss" : "to hate to part with",
+    "note" : "Can't bear to let go. You linger at the station hugging your grandma, or keep a worn jacket you'll never wear again.",
+    "pinyin" : "she3 bu5 de5",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "舍不得"
+  },
+  {
+    "gloss" : "to be sorry (for inconveniencing sb)",
+    "note" : "Sorry for the bother, said lightly. You say it squeezing past someone or asking a favour, half apology and half embarrassment.",
+    "pinyin" : "bu4 hao3 yi4 si5",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "不好意思"
+  },
+  {
+    "gloss" : "section of society operating independently of mainstream society, out of reach of the law; the milieu in which wuxia tales play out (cf. 武俠|武侠[wu3 xia2])",
+    "note" : "The world outside respectable society, where reputation and loyalty rule. You picture wandering swordsmen, and later anyone living by their wits beyond official rules.",
+    "pinyin" : "jiang1 hu2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "江湖"
+  },
+  {
+    "gloss" : "social prestige; face",
+    "note" : "Social face: the standing other people grant you. You insist on paying the bill to give a friend 面子, and contradicting your boss in public makes him lose it.",
+    "pinyin" : "mian4 zi5",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "面子"
+  },
+  {
+    "gloss" : "favor; a good turn",
+    "note" : "A favour owed. Accepting help means you now carry a 人情, and you'll be expected to repay it, maybe years later.",
+    "pinyin" : "ren2 qing2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "人情"
+  },
+  {
+    "gloss" : "a connection (sb with whom one has dealings on the basis of \"scratch my back and I'll scratch yours\")",
+    "note" : "Someone who got their place through connections. Coworkers say it under their breath about the new hire nobody remembers interviewing.",
+    "pinyin" : "guan1 xi5 hu4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "关系户"
+  },
+  {
+    "gloss" : "(fig.) to pull strings; to use connections",
+    "note" : "To get something through connections instead of the official way. You picture a quiet word, a dinner, a gift, and suddenly the hospital bed is free.",
+    "pinyin" : "zou3 hou4 men2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "走后门"
+  },
+  {
+    "gloss" : "devoted to one's parents (and grandparents etc)",
+    "note" : "Devoted and obedient to your parents, as a moral duty. It's not just loving them; you're expected to support them, defer to them and give them grandchildren.",
+    "pinyin" : "xiao4 shun4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "孝顺"
+  },
+  {
+    "gloss" : "fate or chance that brings people together",
+    "note" : "The pull of fate that brings two people together. Running into an old friend in a foreign city, you smile and say it's 缘分.",
+    "pinyin" : "yuan2 fen4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "缘分"
+  },
+  {
+    "gloss" : "vital energy; qi",
+    "note" : "Vital energy, the life force of traditional medicine and martial arts. You picture breath, warmth and strength flowing through the body, and illness as that flow getting stuck.",
+    "pinyin" : "qi4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "气"
+  },
+  {
+    "gloss" : "to suffer from excessive internal heat (TCM)",
+    "note" : "In traditional medicine, too much internal heat in the body. After spicy hotpot you get a sore throat and mouth ulcers, and your mum hands you herbal tea because you've 上火.",
+    "pinyin" : "shang4 huo3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "上火"
+  },
+  {
+    "gloss" : "to supplement",
+    "note" : "To build up the body with nourishing food or tonics. Grandma ladles you chicken soup after an illness because you need to 补.",
+    "pinyin" : "bu3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "补"
+  },
+  {
+    "gloss" : "registered residence",
+    "note" : "Your household registration, tied to where your family is officially from. It decides which school your child can attend and whether a city ever fully counts you as its own.",
+    "pinyin" : "hu4 kou3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "户口"
+  },
+  {
+    "gloss" : "work unit (place of employment, esp. in the PRC prior to economic reform)",
+    "note" : "Your work unit: once the employer that also handed out housing, medical care and permission to marry. People still say 我们单位 with that sense of an institution owning part of your life.",
+    "pinyin" : "dan1 wei4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "单位"
+  },
+  {
+    "gloss" : "secure employment (lit. iron rice bowl)",
+    "note" : "A job you can't lose, usually in the state sector. Parents dream of it for their children: never rich, never fired.",
+    "pinyin" : "tie3 fan4 wan3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "铁饭碗"
+  },
+  {
+    "gloss" : "(fig.) to take the plunge (e.g. leave a secure job, or enter prostitution etc)",
+    "note" : "To quit a secure state job and go into business. It recalls the 1990s rush when officials and teachers jumped into private trade.",
+    "pinyin" : "xia4 hai3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "下海"
+  },
+  {
+    "gloss" : "(of a worker) be to laid off",
+    "note" : "Laid off, especially from a state factory during the 1990s reforms. It brings back millions of workers suddenly without the jobs they'd been promised for life.",
+    "pinyin" : "xia4 gang3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "下岗"
+  },
+  {
+    "gloss" : "(neologism, attested by 2017) (of a society) to become more and more of a rat race; to become increasingly competitive (due to limited resources)",
+    "note" : "Pointless, exhausting competition where everyone works harder and nobody gets ahead. You feel it when classmates start studying at 5 a.m. only because others do.",
+    "pinyin" : "nei4 juan3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "内卷"
+  },
+  {
+    "gloss" : "(neologism, attested by 2021) to opt out of the rat race",
+    "note" : "To lie flat: quietly opt out of the rat race. It's a shrug against 内卷, choosing a modest life over wearing yourself out for a promotion.",
+    "pinyin" : "tang3 ping2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "躺平"
+  },
+  {
+    "gloss" : "(fig.) to loaf on the job; to be slack; to take it easy",
+    "note" : "To slack off at work. You picture someone scrolling their phone under the desk, feeling they've stolen a little time back.",
+    "pinyin" : "mo1 yu2",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "摸鱼"
+  },
+  {
+    "gloss" : "(neologism, attested by 2017) (coll.) chill about everything (typically used to describe young people who don't buy into aspirational society)",
+    "note" : "Chill about everything, like a calm Buddhist monk. You don't push and don't compete, and whatever happens is fine.",
+    "pinyin" : "fo2 xi4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "佛系"
+  },
+  {
+    "gloss" : "to bear hardships",
+    "note" : "To endure hardship, seen as a virtue. Parents praise a child who 能吃苦, and suffering is treated as proof of character.",
+    "pinyin" : "chi1 ku3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "吃苦"
+  },
+  {
+    "gloss" : "ordinary people",
+    "note" : "Ordinary people, as opposed to officials. You mean the folks who just get on with their lives while decisions are made above them.",
+    "pinyin" : "lao3 bai3 xing4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "老百姓"
+  },
+  {
+    "gloss" : "intellectual; intelligentsia",
+    "note" : "Intellectuals, as a social class with a duty to the nation. The word carries a long history, from honoured scholars to targets of political campaigns.",
+    "pinyin" : "zhi1 shi5 fen4 zi3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "知识分子"
+  },
+  {
+    "gloss" : "cadre",
+    "note" : "A Party or state cadre: someone with a position in the system. You picture the official in a work unit or village whose signature gets things done.",
+    "pinyin" : "gan4 bu4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "干部"
+  },
+  {
+    "gloss" : "the masses",
+    "note" : "The masses, in political language. It's the people as a whole that the Party says it serves, and officials are told to \"go among the masses\".",
+    "pinyin" : "qun2 zhong4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "群众"
+  },
+  {
+    "gloss" : "comrade",
+    "note" : "Comrade: the old revolutionary address between equals. Today it sounds official or nostalgic, and it is also a word gay people use for themselves.",
+    "pinyin" : "tong2 zhi4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "同志"
+  },
+  {
+    "gloss" : "revolution",
+    "note" : "Revolution, above all the Communist one. The word carries a heroic, almost sacred glow from decades of Party history and textbooks.",
+    "pinyin" : "ge2 ming4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "革命"
+  },
+  {
+    "gloss" : "reform and opening up (Chinese policy introduced in 1978)",
+    "note" : "Reform and opening up, the move to markets that began in 1978. People use it to mark the line between the poor, closed China of their parents and the boom since.",
+    "pinyin" : "gai3 ge2 kai1 fang4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "改革开放"
+  },
+  {
+    "gloss" : "educated youth (esp. those sent to work in rural areas during the Cultural Revolution) (abbr. for 知識青年|知识青年[zhi1 shi5 qing1 nian2])",
+    "note" : "City youth sent to work in the countryside during the Cultural Revolution. You think of a whole generation who lost their schooling and still tell stories of those villages.",
+    "pinyin" : "zhi1 qing1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "知青"
+  },
+  {
+    "gloss" : "forced agricultural experience for city intellectuals",
+    "note" : "The campaign sending city teenagers to labour in the countryside in the 1960s and 70s. You picture trains of young people heading to remote farms, many staying for a decade.",
+    "pinyin" : "shang4 shan1 xia4 xiang1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "上山下乡"
+  },
+  {
+    "gloss" : "migrant worker (who moved from a rural area of China to a city to find work)",
+    "note" : "Rural migrant workers in the cities. You picture men on building sites and women in factories, far from children left back home, without city registration.",
+    "pinyin" : "nong2 min2 gong1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "农民工"
+  },
+  {
+    "gloss" : "to work a temporary or casual job",
+    "note" : "To work for someone else, especially a casual or migrant job. Every year young people from the countryside 出去打工, leaving villages to the old and the very young.",
+    "pinyin" : "da3 gong1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "打工"
+  },
+  {
+    "gloss" : "worker",
+    "note" : "A wage slave, said with ironic self-pity. Office workers call themselves 打工人 to joke about grinding away for a boss.",
+    "pinyin" : "da3 gong1 ren2",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "打工人"
+  },
+  {
+    "gloss" : "(increased) passenger transportation around Chinese New Year",
+    "note" : "The Spring Festival travel rush. You picture packed trains, people standing for twenty hours and tickets gone in seconds, all to get home for New Year.",
+    "pinyin" : "chun1 yun4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "春运"
+  },
+  {
+    "gloss" : "money wrapped in red as a gift",
+    "note" : "A red envelope of money given at New Year, weddings and other happy occasions. Children collect them from relatives, and adults feel the pressure of giving the right amount.",
+    "pinyin" : "hong2 bao1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "红包"
+  },
+  {
+    "gloss" : "bribe",
+    "note" : "A cash gift slipped to a doctor or official for better treatment. Everyone knows what it means when a 红包 changes hands before surgery.",
+    "pinyin" : "hong2 bao1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "红包"
+  },
+  {
+    "gloss" : "to celebrate the Chinese New Year",
+    "note" : "To celebrate Chinese New Year. It means going home, the family dinner, red envelopes and noise; missing it feels like missing the whole year.",
+    "pinyin" : "guo4 nian2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "过年"
+  },
+  {
+    "gloss" : "Pure Brightness Festival or Tomb Sweeping Day (in early April)",
+    "note" : "Tomb Sweeping Day in early April. Families visit graves, tidy them and burn paper offerings for the dead.",
+    "pinyin" : "Qing1 ming2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "清明"
+  },
+  {
+    "gloss" : "ancestor",
+    "note" : "Ancestors, as a family line owed respect. Shaming yourself shames the 祖宗, whose graves and tablets are tended for generations.",
+    "pinyin" : "zu3 zong1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "祖宗"
+  },
+  {
+    "gloss" : "motherland",
+    "note" : "The motherland, said with patriotic warmth. It's the word of school songs and National Day, full of pride and duty.",
+    "pinyin" : "zu3 guo2",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "祖国"
+  },
+  {
+    "gloss" : "native place",
+    "note" : "Your family's place of origin, where your roots are. Even if you grew up in Shanghai, your 老家 might be a village you visit once a year.",
+    "pinyin" : "lao3 jia1",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "老家"
+  },
+  {
+    "gloss" : "homesickness",
+    "note" : "Homesickness and longing for the place you came from. It's the ache of an emigrant looking at the moon and thinking of a village far away.",
+    "pinyin" : "xiang1 chou2",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "乡愁"
+  },
+  {
+    "gloss" : "in old age, an expatriate returns home",
+    "note" : "To return home in old age. You picture an elderly emigrant who wants to be buried in the village of their ancestors.",
+    "pinyin" : "luo4 ye4 gui1 gen1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "落叶归根"
+  },
+  {
+    "gloss" : "filial piety or obedience",
+    "note" : "Filial piety: the Confucian duty to honour and care for your parents. It's the moral bedrock of family life, not just affection.",
+    "pinyin" : "xiao4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "孝"
+  },
+  {
+    "gloss" : "propriety",
+    "note" : "Propriety: the Confucian order of correct behaviour. It's knowing who pours tea for whom, who sits where, and how to show respect without being told.",
+    "pinyin" : "li3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "礼"
+  },
+  {
+    "gloss" : "humane",
+    "note" : "Humaneness, the central Confucian virtue. It's kindness rooted in your relationships, the mark of a truly good person.",
+    "pinyin" : "ren2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "仁"
+  },
+  {
+    "gloss" : "righteousness",
+    "note" : "Righteousness: doing what's right even when it costs you. It's the loyalty of sworn brothers in old novels who'd die for each other.",
+    "pinyin" : "yi4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "义"
+  },
+  {
+    "gloss" : "(Daoism) the Way; the Dao",
+    "note" : "The Dao, the Way of things in Daoism. It's the natural flow of the world that can't be named, only followed.",
+    "pinyin" : "dao4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "道"
+  },
+  {
+    "gloss" : "person of noble character",
+    "note" : "A person of noble character, the Confucian gentleman. You picture someone principled and composed, the opposite of a petty 小人.",
+    "pinyin" : "jun1 zi3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "君子"
+  },
+  {
+    "gloss" : "nasty person",
+    "note" : "A petty, scheming person. You picture a coworker who smiles to your face and undermines you behind your back.",
+    "pinyin" : "xiao3 ren2",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "小人"
+  },
+  {
+    "gloss" : "land under heaven",
+    "note" : "All under heaven: the whole world as one realm under a ruler. It carries the ancient sense of China as the civilised centre of everything.",
+    "pinyin" : "tian1 xia4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "天下"
+  },
+  {
+    "gloss" : "state power",
+    "note" : "State power, the realm held by a ruler or a party. When people say someone 打江山, they mean they fought to win the country.",
+    "pinyin" : "jiang1 shan1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "江山"
+  },
+  {
+    "gloss" : "nationality; ethnic group",
+    "note" : "A nation or ethnic group. In China it covers both the 56 official ethnic groups and the idea of one Chinese nation.",
+    "pinyin" : "min2 zu2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "民族"
+  },
+  {
+    "gloss" : "to love one's country",
+    "note" : "To love one's country. It's taught as a core duty from school onward, and can feel both heartfelt and expected.",
+    "pinyin" : "ai4 guo2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "爱国"
+  },
+  {
+    "gloss" : "respectful form of address for older men",
+    "note" : "A respectful address for a skilled worker or an older man. You call the taxi driver or the plumber 师傅, and they feel properly respected.",
+    "pinyin" : "shi1 fu5",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "师傅"
+  },
+  {
+    "gloss" : "boss; proprietor",
+    "note" : "Boss or owner, and also a flattering way to address a customer. Street vendors call you 老板 to make you feel important.",
+    "pinyin" : "lao3 ban3",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "老板"
+  },
+  {
+    "gloss" : "to pay particular attention to",
+    "note" : "To be particular about doing things properly. A family that 讲究 about food cares about season, region and how it's served; it reads as refinement, not fussiness.",
+    "pinyin" : "jiang3 jiu5",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "讲究"
+  },
+  {
+    "gloss" : "to accept (a bit reluctantly)",
+    "note" : "To make do with less than you'd like. You squeeze into a small flat and tell yourself it will do for now.",
+    "pinyin" : "jiang1 jiu5",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "将就"
+  },
+  {
+    "gloss" : "to just get by",
+    "note" : "To just about get by. Asked how life is, you say 凑合 with a shrug: not great, not terrible.",
+    "pinyin" : "cou4 he5",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "凑合"
+  },
+  {
+    "gloss" : "to repeat sth over and over again",
+    "note" : "To keep fussing and changing things for no good reason. Moving house three times in a year is 瞎折腾, and everyone is worn out.",
+    "pinyin" : "zhe1 teng5",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "折腾"
+  },
+  {
+    "gloss" : "to work overtime",
+    "note" : "To work overtime, often unpaid and expected. In tech jobs it's part of 996 culture: 9 a.m. to 9 p.m., six days a week.",
+    "pinyin" : "jia1 ban1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "加班"
+  },
+  {
+    "gloss" : "leader",
+    "note" : "Your boss or superior, especially in an office or state body. You say 领导 even for a middle manager, and everyone knows to laugh at their jokes at dinner.",
+    "pinyin" : "ling3 dao3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "领导"
+  },
+  {
+    "gloss" : "(slang) prostitute",
+    "note" : "A sex worker, in slang. Because of this, calling a waitress 小姐 can now sound insulting, so people say 服务员 or 美女 instead.",
+    "pinyin" : "xiao3 jie5",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "小姐"
+  },
+  {
+    "gloss" : "beautiful woman",
+    "note" : "A beautiful woman, and also a casual way to hail any young woman. A shop assistant calling you 美女 is just being friendly, not flirting.",
+    "pinyin" : "mei3 nu:3",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "美女"
+  },
+  {
+    "gloss" : "handsome (form of address)",
+    "note" : "Handsome, as a casual way to address any young man. A street vendor shouts 帅哥 to get your attention, whatever you look like.",
+    "pinyin" : "shuai4 ge1",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "帅哥"
+  },
+  {
+    "gloss" : "teacher",
+    "note" : "A teacher, in an older and more reverent sense. Calling a great scholar 先生, as people do for Lu Xun, gives them deep respect.",
+    "pinyin" : "xian1 sheng5",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "先生"
+  },
+  {
+    "gloss" : "fellow townsman; fellow villager; sb from the same hometown",
+    "note" : "Someone from your home town or province. Meeting a 老乡 far from home, you switch to dialect and instantly feel you're on the same side.",
+    "pinyin" : "lao3 xiang1",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "老乡"
+  },
+  {
+    "gloss" : "(coll.) dude; buddy; bro",
+    "note" : "A buddy, a mate. Calling someone 哥们 claims easy male loyalty: you'd help each other move house, no questions asked.",
+    "pinyin" : "ge1 men5",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "哥们"
+  },
+  {
+    "gloss" : "(coll.) (a woman's) close female friend; bestie",
+    "note" : "A woman's closest female friend. She's the one who hears everything first and judges your boyfriends ruthlessly.",
+    "pinyin" : "gui1 mi4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "闺蜜"
+  },
+  {
+    "gloss" : "partner; boyfriend; girlfriend",
+    "note" : "A boyfriend or girlfriend, usually with marriage in view. Relatives ask 有对象了吗 at New Year, and it isn't small talk.",
+    "pinyin" : "dui4 xiang4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "对象"
+  },
+  {
+    "gloss" : "arranged interview to evaluate a proposed marriage partner (Taiwan pr. [xiang4 qin1])",
+    "note" : "A meeting arranged to size up a possible spouse. You picture a stiff coffee with a stranger your aunt found, each side checking job, flat and family.",
+    "pinyin" : "xiang1 qin1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "相亲"
+  },
+  {
+    "gloss" : "(coll.) \"leftover woman\" – a woman who remains single beyond the typical marrying age",
+    "note" : "A \"leftover woman\": single and over about 27. The label stings, and many women have taken it back with defiant humour.",
+    "pinyin" : "sheng4 nu:3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "剩女"
+  },
+  {
+    "gloss" : "bride price",
+    "note" : "Money or gifts the groom's family pays the bride's family. In some regions the sum can be enormous, and haggling over it can sink an engagement.",
+    "pinyin" : "cai3 li3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "彩礼"
+  },
+  {
+    "gloss" : "husband's mother",
+    "note" : "Your husband's mother. You picture the classic tension of a new wife living under her mother-in-law's eye.",
+    "pinyin" : "po2 po5",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "婆婆"
+  },
+  {
+    "gloss" : "wife's mother; mother-in-law",
+    "note" : "Your wife's mother, the person a groom must win over. Jokes say a man needs a flat and a car before the 丈母娘 will even meet him.",
+    "pinyin" : "zhang4 mu3 niang2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "丈母娘"
+  },
+  {
+    "gloss" : "(of a prospective marriage partner) an appropriate match",
+    "note" : "A match between families of equal standing. Parents still weigh jobs, wealth and background, and a mismatch can end a romance.",
+    "pinyin" : "men2 dang1 hu4 dui4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "门当户对"
+  },
+  {
+    "gloss" : "to carry on one's ancestral line",
+    "note" : "To carry on the family line, traditionally through a son. You feel the quiet pressure from grandparents who want a grandson to keep the surname going.",
+    "pinyin" : "chuan2 zong1 jie1 dai4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "传宗接代"
+  },
+  {
+    "gloss" : "(of parents) to bring up children for the purpose of being looked after in old age",
+    "note" : "Raising children so they'll look after you in old age. It's the old social contract: no pension, but your son will take you in.",
+    "pinyin" : "yang3 er2 fang2 lao3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "养儿防老"
+  },
+  {
+    "gloss" : "to bring honor to one's ancestors",
+    "note" : "To bring glory to your ancestors. Passing the exam or getting rich is a win for the whole family line, not just you.",
+    "pinyin" : "guang1 zong1 yao4 zu3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "光宗耀祖"
+  },
+  {
+    "gloss" : "lit. to hope one's son becomes a dragon (idiom); fig. to long for one' s child to succeed in life",
+    "note" : "Hoping your child will become a dragon. You picture parents spending everything on tutoring so their child can rise above them.",
+    "pinyin" : "wang4 zi3 cheng2 long2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "望子成龙"
+  },
+  {
+    "gloss" : "college entrance exam (especially as abbr. for 普通高等學校招生全國統一考試|普通高等学校招生全国统一考试[Pu3 tong1 Gao1 deng3 Xue2 xiao4 Zhao1 sheng1 Quan2 guo2 Tong3 yi1 Kao3 shi4])",
+    "note" : "The national university entrance exam. It's two days in June that can decide a teenager's whole future, and the country goes quiet around exam halls.",
+    "pinyin" : "gao1 kao3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "高考"
+  },
+  {
+    "gloss" : "top scorer in college entrance examination 高考[gao1 kao3]",
+    "note" : "The top scorer in a province's 高考. The 状元 is celebrated in the news, a name echoing the old imperial exam champions.",
+    "pinyin" : "zhuang4 yuan2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "状元"
+  },
+  {
+    "gloss" : "to sit an entrance exam for a graduate program",
+    "note" : "To sit the national exam for postgraduate study. You picture a year of library mornings, flashcards and anxiety among millions of rivals.",
+    "pinyin" : "kao3 yan2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "考研"
+  },
+  {
+    "gloss" : "sb who has come back to China after gaining overseas experience (a pun on 海龜|海龟[hai3 gui1])",
+    "note" : "Someone who's come back to China after studying or working abroad. The term once meant prized talent; now a foreign degree is less of a golden ticket.",
+    "pinyin" : "hai3 gui1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "海归"
+  },
+  {
+    "gloss" : "(slang) straight-A student; academic prodigy",
+    "note" : "A star student who seems to effortlessly top every exam. Everyone copies the 学霸's notes and secretly resents them a little.",
+    "pinyin" : "xue2 ba4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "学霸"
+  },
+  {
+    "gloss" : "(neologism, c. 2020) to arrange an intensive schedule of activities for one's child to maximize achievement",
+    "note" : "To push a child through an intense schedule of classes and activities. You picture a nine-year-old with Olympiad maths, piano and English on a Saturday.",
+    "pinyin" : "ji1 wa2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "鸡娃"
+  },
+  {
+    "gloss" : "cram school",
+    "note" : "A cram school for extra tutoring outside school. Evenings and weekends disappear into them, all to gain a few more exam points.",
+    "pinyin" : "bu3 xi2 ban1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "补习班"
+  },
+  {
+    "gloss" : "key (project etc)",
+    "note" : "A key school or project, ranked as top tier. A 重点 high school feeds the best universities, and parents move house to get their child in.",
+    "pinyin" : "zhong4 dian3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "重点"
+  },
+  {
+    "gloss" : "(of an education system) to be exam-oriented",
+    "note" : "Exam-oriented, as in an education built to pass tests. People say 应试教育 to complain about rote learning that kills curiosity.",
+    "pinyin" : "ying4 shi4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "应试"
+  },
+  {
+    "gloss" : "inner quality",
+    "note" : "A person's inner quality and manners. Saying someone has no 素质 for littering or queue-jumping is a sharp public judgement.",
+    "pinyin" : "su4 zhi4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "素质"
+  },
+  {
+    "gloss" : "organization",
+    "note" : "The system: the state apparatus and its jobs. Working 体制内, inside the system, means stability and rules; outside it means risk and freedom.",
+    "pinyin" : "ti3 zhi4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "体制"
+  },
+  {
+    "gloss" : "authorized staffing allocation in government or public institutions (excluding temporary or contract staff)",
+    "note" : "An official, permanent post in a government or public body. Getting 编制 is the dream of security, and young people take exam after exam for one.",
+    "pinyin" : "bian1 zhi4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "编制"
+  },
+  {
+    "gloss" : "fate",
+    "note" : "Fate, the life you were dealt. People sigh 这就是命 when hardship seems unavoidable, half acceptance, half complaint.",
+    "pinyin" : "ming4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "命"
+  },
+  {
+    "gloss" : "good fortune",
+    "note" : "Blessing and good fortune. You see the character stuck upside down on doors at New Year, because 倒 sounds like \"arrived\".",
+    "pinyin" : "fu2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "福"
+  },
+  {
+    "gloss" : "good fortune",
+    "note" : "Good fortune as something you're blessed with. Grandparents surrounded by grandchildren are said to have real 福气.",
+    "pinyin" : "fu2 qi5",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "福气"
+  },
+  {
+    "gloss" : "(Buddhism) divine retribution; karma",
+    "note" : "Karmic retribution. When a cheat finally gets caught, people say 报应 with a sense of cosmic justice.",
+    "pinyin" : "bao4 ying4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "报应"
+  },
+  {
+    "gloss" : "(Buddhism) samsara; cycle of rebirth",
+    "note" : "The Buddhist cycle of death and rebirth. You picture souls passing through lives over and over until they escape.",
+    "pinyin" : "lun2 hui2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "轮回"
+  },
+  {
+    "gloss" : "to devote oneself to spiritual development (esp. Buddhism or Daoism)",
+    "note" : "Spiritual practice, especially Buddhist or Daoist. It also means living with discipline and patience, as if daily life were a path.",
+    "pinyin" : "xiu1 xing2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "修行"
+  },
+  {
+    "gloss" : "achievements and virtue",
+    "note" : "Merit earned through good deeds, in Buddhist belief. Donating to a temple or freeing captive fish is said to add 功德.",
+    "pinyin" : "gong1 de2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "功德"
+  },
+  {
+    "gloss" : "strength of character",
+    "note" : "Strength of character with a certain dignity. You picture a scholar who stays upright and refuses to flatter power.",
+    "pinyin" : "feng1 gu3",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "风骨"
+  },
+  {
+    "gloss" : "moral integrity",
+    "note" : "Moral integrity under pressure. It's the official who would rather die than serve an invader.",
+    "pinyin" : "qi4 jie2",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "气节"
+  },
+  {
+    "gloss" : "moral backbone",
+    "note" : "Backbone: refusing to bow or beg. A poor man who won't accept charity on humiliating terms has 骨气.",
+    "pinyin" : "gu3 qi4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "骨气"
+  },
+  {
+    "gloss" : "unyielding integrity; probity",
+    "note" : "Upright moral spirit. Someone full of 正气 stands up against wrongdoing, and you can feel it in the room.",
+    "pinyin" : "zheng4 qi4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "正气"
+  },
+  {
+    "gloss" : "spirit of loyalty and self-sacrifice",
+    "note" : "Loyalty among friends that may require sacrifice. It's the code of sworn brothers who stand by each other even against the law.",
+    "pinyin" : "yi4 qi4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "义气"
+  },
+  {
+    "gloss" : "to value loyalty",
+    "note" : "To stick by your friends. A friend who 讲义气 will lend you money without asking why.",
+    "pinyin" : "jiang3 yi4 qi4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "讲义气"
+  },
+  {
+    "gloss" : "sentiment and face",
+    "note" : "The feelings and face of a relationship. Refusing a request from an old classmate is hard because you want to save 情面.",
+    "pinyin" : "qing2 mian4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "情面"
+  },
+  {
+    "gloss" : "to exchange pleasantries",
+    "note" : "To exchange polite pleasantries. Everyone knows the compliments at dinner are 客套, not meant to be taken literally.",
+    "pinyin" : "ke4 tao4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "客套"
+  },
+  {
+    "gloss" : "dinner party; banquet; social engagement",
+    "note" : "Business entertaining: banquets and drinking with clients or officials. You picture a tired husband coming home late smelling of baijiu.",
+    "pinyin" : "ying4 chou5",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "应酬"
+  },
+  {
+    "gloss" : "to toast; to propose a toast",
+    "note" : "To toast someone, especially a senior, to show respect. You stand, lower your glass below theirs and drink, round after round.",
+    "pinyin" : "jing4 jiu3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "敬酒"
+  },
+  {
+    "gloss" : "Cheers! (proposing a toast)",
+    "note" : "Cheers! Literally \"dry the cup\", and you're expected to finish it, not sip.",
+    "pinyin" : "gan1 bei1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "干杯"
+  },
+  {
+    "gloss" : "to invite to dinner",
+    "note" : "To invite someone and pay. Friends tussle at the till over who gets to 请客, because paying shows generosity and face.",
+    "pinyin" : "qing3 ke4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "请客"
+  },
+  {
+    "gloss" : "to pay the bill; to pick up the tab",
+    "note" : "To pay the bill, and by extension to take responsibility. When people ask who will 买单 for a failed policy, they mean who pays the price.",
+    "pinyin" : "mai3 dan1",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "买单"
+  },
+  {
+    "gloss" : "contacts; connections; network",
+    "note" : "Your network of connections. In business you're judged by your 人脉 as much as your skills.",
+    "pinyin" : "ren2 mai4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "人脉"
+  },
+  {
+    "gloss" : "(social) circle",
+    "note" : "Your social circle, often closed and hard to enter. Breaking into a new 圈子 means banquets, introductions and favours.",
+    "pinyin" : "quan1 zi5",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "圈子"
+  },
+  {
+    "gloss" : "to muddle along",
+    "note" : "To muddle through life, getting by. Asking 你混得怎么样 is how old friends ask how life's treating you, with a wry grin.",
+    "pinyin" : "hun4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "混"
+  },
+  {
+    "gloss" : "to lose out",
+    "note" : "To lose out, get the short end of the stick. Parents tell kids 吃亏是福, losing out now is a blessing, to teach patience.",
+    "pinyin" : "chi1 kui1",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "吃亏"
+  },
+  {
+    "gloss" : "to benefit at others' expense",
+    "note" : "To take unfair advantage. You picture someone grabbing extra free samples or never paying their share.",
+    "pinyin" : "zhan4 pian2 yi5",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "占便宜"
+  },
+  {
+    "gloss" : "to restrain oneself",
+    "note" : "To restrain yourself and endure. The character shows a knife over a heart, and swallowing your anger is seen as wisdom.",
+    "pinyin" : "ren3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "忍"
+  },
+  {
+    "gloss" : "sullen",
+    "note" : "Frustrated and holding it in. You feel it when you can't talk back to your boss, the anger stuck in your chest.",
+    "pinyin" : "bie1 qu1",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "憋屈"
+  },
+  {
+    "gloss" : "to feel vexed",
+    "note" : "Feeling helpless and humiliated. You're bullied but can't fight back, and you hate yourself a little for it.",
+    "pinyin" : "wo1 nang5",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "窝囊"
+  },
+  {
+    "gloss" : "low-profile",
+    "note" : "Keeping a low profile. A rich man who 低调 drives a plain car, and modesty is admired.",
+    "pinyin" : "di1 diao4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "低调"
+  },
+  {
+    "gloss" : "to make modest remarks",
+    "note" : "To make modest remarks, playing down your success. When praised you say 哪里哪里, and accepting praise too readily seems arrogant.",
+    "pinyin" : "qian1 xu1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "谦虚"
+  },
+  {
+    "gloss" : "(of a person or style etc) reserved",
+    "note" : "Reserved, saying things indirectly. Feelings are hinted, not declared, and a 含蓄 person might never say \"I love you\".",
+    "pinyin" : "han2 xu4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "含蓄"
+  },
+  {
+    "gloss" : "tactful",
+    "note" : "Tactful, softening things. You say 不太方便 instead of no, and everyone understands.",
+    "pinyin" : "wei3 wan3",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "委婉"
+  },
+  {
+    "gloss" : "naive; gullible",
+    "note" : "Naive, easily taken advantage of. Calling a man 老实 can be praise for honesty or a sigh that he'll be exploited.",
+    "pinyin" : "lao3 shi5",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "老实"
+  },
+  {
+    "gloss" : "smooth and evasive",
+    "note" : "Smooth and evasive. You picture someone who never offends anyone and never commits to anything.",
+    "pinyin" : "yuan2 hua2",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "圆滑"
+  },
+  {
+    "gloss" : "worldly-wise",
+    "note" : "Worldly-wise, in a calculating way. A 世故 person knows exactly whom to please, and it's not quite a compliment.",
+    "pinyin" : "shi4 gu5",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "世故"
+  },
+  {
+    "gloss" : "honest",
+    "note" : "Honest and down to earth. You trust a 实在 person: what they say is what they mean, and they'll give you a fair price.",
+    "pinyin" : "shi2 zai4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "实在"
+  },
+  {
+    "gloss" : "reliable",
+    "note" : "Reliable, sensible. A 靠谱 friend shows up on time and does what they promised.",
+    "pinyin" : "kao4 pu3",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "靠谱"
+  },
+  {
+    "gloss" : "inappropriate; improper; out of place",
+    "note" : "Absurd, way off. You hear about a crazy price or a wild rumour and say 太离谱了.",
+    "pinyin" : "li2 pu3",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "离谱"
+  },
+  {
+    "gloss" : "(slang) weirdo",
+    "note" : "A weirdo, an oddball. You call a colleague who brings a fish to the office microwave a 奇葩.",
+    "pinyin" : "qi2 pa1",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "奇葩"
+  },
+  {
+    "gloss" : "unsophisticated",
+    "note" : "Unsophisticated, uncool. Calling someone's clothes 土 means they look rural and old-fashioned.",
+    "pinyin" : "tu3",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "土"
+  },
+  {
+    "gloss" : "trendy",
+    "note" : "Trendy, with a foreign flair. Calling an outfit 洋气 is a compliment, linking stylish with Western.",
+    "pinyin" : "yang2 qi4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "洋气"
+  },
+  {
+    "gloss" : "down-to-earth",
+    "note" : "Down to earth, in touch with ordinary people. A politician eating at a street stall to look 接地气 is the image.",
+    "pinyin" : "jie1 di4 qi4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "接地气"
+  },
+  {
+    "gloss" : "to act like a spoiled child; to act coquettishly",
+    "note" : "To act cute and whiny to get your way. You picture a girl pouting and tugging her boyfriend's sleeve.",
+    "pinyin" : "sa1 jiao1",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "撒娇"
+  },
+  {
+    "gloss" : "affected",
+    "note" : "Affected, making a fuss over nothing. Complaining about a tiny inconvenience for an hour is 矫情.",
+    "pinyin" : "jiao3 qing2",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "矫情"
+  },
+  {
+    "gloss" : "(slang) troublesome; high-maintenance (person)",
+    "note" : "High-maintenance, causing drama on purpose. A girlfriend who picks fights to test her partner is 作.",
+    "pinyin" : "zuo1",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "作"
+  },
+  {
+    "gloss" : "(coll.) presenting as unfriendly and blunt, but warm and tender inside (loanword from Japanese \"tsundere\")",
+    "note" : "Acting cold while secretly caring. It's the anime-style character who blushes while saying they don't like you.",
+    "pinyin" : "ao4 jiao1",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "傲娇"
+  },
+  {
+    "gloss" : "emotionally exhausted; drained",
+    "note" : "Emotionally drained. After dealing with family drama, you just say 心累.",
+    "pinyin" : "xin1 lei4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "心累"
+  },
+  {
+    "gloss" : "(coll.) speechless",
+    "note" : "Speechless, exasperated. When a friend does something ridiculous, you just type 无语.",
+    "pinyin" : "wu2 yu3",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "无语"
+  },
+  {
+    "gloss" : "to struggle (mentally) with (sth); to overthink; to feel conflicted",
+    "note" : "Torn, overthinking a decision. You go back and forth between two flats for weeks, completely 纠结.",
+    "pinyin" : "jiu1 jie2",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "纠结"
+  },
+  {
+    "gloss" : "(neologism c. 2020) (slang) to die of embarrassment (figuratively)",
+    "note" : "To die of embarrassment in public. You trip on stage at graduation and know you've had a 社死 moment.",
+    "pinyin" : "she4 si3",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "社死"
+  },
+  {
+    "gloss" : "(slang) to break through sb's emotional defenses; to get to sb emotionally",
+    "note" : "To have your emotional guard broken. A touching video makes you suddenly tear up, and you say 我破防了.",
+    "pinyin" : "po4 fang2",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "破防"
+  },
+  {
+    "gloss" : "(slang) to compete to an unhealthy degree; hypercompetitive",
+    "note" : "To compete to an unhealthy degree. If colleagues stay until midnight, you're all being 卷.",
+    "pinyin" : "juan3",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "卷"
+  },
+  {
+    "gloss" : "(neologism, attested by 2014) (slang) to stop striving (esp. when one knows one cannot succeed); to let it all go to hell; (sports) to tank",
+    "note" : "To stop trying because it's hopeless anyway. A student who gives up on exams and plays games is 摆烂.",
+    "pinyin" : "bai3 lan4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "摆烂"
+  },
+  {
+    "gloss" : "(slang) awesome",
+    "note" : "Awesome, impressive. You say 太牛了 when a friend pulls off something amazing.",
+    "pinyin" : "niu2",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "牛"
+  },
+  {
+    "gloss" : "Northeast China; Manchuria",
+    "note" : "Northeast China, the old industrial heartland. It brings to mind snow, plain-spoken humour and the decline of state factories.",
+    "pinyin" : "Dong1 bei3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "东北"
+  },
+  {
+    "gloss" : "court eunuch",
+    "note" : "A court eunuch in imperial China. You picture powerful palace insiders, often hated, who served the emperor up close.",
+    "pinyin" : "tai4 jian4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "太监"
+  },
+  {
+    "gloss" : "imperial examination",
+    "note" : "The imperial civil service exams, used for over a thousand years. Passing them could lift a family from poverty into the ruling class.",
+    "pinyin" : "ke1 ju3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "科举"
+  },
+  {
+    "gloss" : "a person who has passed the county level imperial exam (historical)",
+    "note" : "Someone who passed the county-level imperial exam. It meant scholarly status, and today calls up a bookish, impractical young man.",
+    "pinyin" : "xiu4 cai5",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "秀才"
+  },
+  {
+    "gloss" : "yamen, government office in dynastic China",
+    "note" : "The government office of imperial China, where the magistrate held court. People still say it sarcastically about bureaucratic offices.",
+    "pinyin" : "ya2 men5",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "衙门"
+  },
+  {
+    "gloss" : "upright and honorable (official)",
+    "note" : "An upright, incorruptible official. People longed for a 青天 like Judge Bao who would right injustices against the powerful.",
+    "pinyin" : "qing1 tian1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "青天"
+  },
+  {
+    "gloss" : "knight-errant",
+    "note" : "A knight-errant who defends the weak. You picture a wandering swordsman who rights wrongs outside the law.",
+    "pinyin" : "xia2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "侠"
+  },
+  {
+    "gloss" : "martial arts chivalry (Chinese literary, theatrical and cinema genre)",
+    "note" : "The martial arts genre of fiction and film. You picture flying swordsmen, secret techniques and codes of honour.",
+    "pinyin" : "wu3 xia2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "武侠"
+  },
+  {
+    "gloss" : "strong and courageous person",
+    "note" : "A brave, upstanding man. Calling someone a 好汉 echoes the outlaw heroes of the Water Margin.",
+    "pinyin" : "hao3 han4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "好汉"
+  },
+  {
+    "gloss" : "to plunder",
+    "note" : "To plunder. It carries a sense of organised, violent seizure, the way an army strips a land.",
+    "pinyin" : "lu:e4 duo2",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "掠夺"
+  },
+  {
+    "gloss" : "colony",
+    "note" : "Colonial rule. It brings up foreign powers carving up China, a wound in the national memory.",
+    "pinyin" : "zhi2 min2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "殖民"
+  },
+  {
+    "gloss" : "humiliating",
+    "note" : "Humiliating, a deep wound to pride. You feel the national shame of past defeats taught in history class.",
+    "pinyin" : "qu1 ru3",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "屈辱"
+  },
+  {
+    "gloss" : "national humiliation, refers to Japanese incursions into China in the 1930s and 40s, and more especially to Mukden railway incident of 18th September 1931 九一八事變|九一八事变 and subsequent Japanese annexation of Manchuria",
+    "note" : "National humiliation, especially at the hands of Japan and the West. It's a lesson repeated in schools so the past is never forgotten.",
+    "pinyin" : "guo2 chi3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "国耻"
+  },
+  {
+    "gloss" : "war of resistance, especially the war against Japan (1937-1945)",
+    "note" : "The War of Resistance against Japan, 1937 to 1945. It's the war of family stories, films and memorial days.",
+    "pinyin" : "kang4 zhan4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "抗战"
+  },
+  {
+    "gloss" : "refers to the Communists' victory over the Nationalists in 1949",
+    "note" : "Liberation: the Communist victory in 1949. People date things 解放前 or 解放后, before or after it.",
+    "pinyin" : "jie3 fang4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "解放"
+  },
+  {
+    "gloss" : "to unify; to integrate",
+    "note" : "To unify. In politics it carries the national goal of bringing Taiwan under Beijing.",
+    "pinyin" : "tong3 yi1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "统一"
+  },
+  {
+    "gloss" : "to revive",
+    "note" : "To revive, as in the great national rejuvenation. You hear it in slogans about China returning to its rightful greatness.",
+    "pinyin" : "fu4 xing1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "复兴"
+  },
+  {
+    "gloss" : "the emergence (e.g. of a power)",
+    "note" : "The rise of a power. China's 崛起 is spoken of with pride, a nation standing up after a century of weakness.",
+    "pinyin" : "jue2 qi3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "崛起"
+  },
+  {
+    "gloss" : "(euphemism) to censor",
+    "note" : "To censor, in slang. A post that gets 被和谐了 has been quietly deleted.",
+    "pinyin" : "he2 xie2",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "和谐"
+  },
+  {
+    "gloss" : "stability",
+    "note" : "Stability, as a political priority. Leaders say 稳定压倒一切: stability above all else.",
+    "pinyin" : "wen3 ding4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "稳定"
+  },
+  {
+    "gloss" : "to maintain social stability",
+    "note" : "Maintaining social stability. It means the state apparatus that heads off protests before they start.",
+    "pinyin" : "wei2 wen3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "维稳"
+  },
+  {
+    "gloss" : "sensitive",
+    "note" : "Politically sensitive, in news and online talk. A 敏感 topic is one you sense might get a post deleted, so people talk around it.",
+    "pinyin" : "min3 gan3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "敏感"
+  },
+  {
+    "gloss" : "positivity",
+    "note" : "Positivity, especially the upbeat content officials and media promote. Calling a story 正能量 can be sincere praise or a wink at propaganda.",
+    "pinyin" : "zheng4 neng2 liang4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "正能量"
+  },
+  {
+    "gloss" : "(of a movie) created with the purpose of promoting Party values and point of view",
+    "note" : "A film or show made to promote the Party line. You expect patriotic heroes, a stirring score and a predictable ending.",
+    "pinyin" : "zhu3 xuan2 lu:4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "主旋律"
+  },
+  {
+    "gloss" : "propaganda",
+    "note" : "Propaganda or publicity, without the sinister edge it has elsewhere. A 宣传部 is a normal publicity department, and posters on every street are 宣传.",
+    "pinyin" : "xuan1 chuan2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "宣传"
+  },
+  {
+    "gloss" : "collective (decision)",
+    "note" : "The collective, valued above the individual. From school onward you're taught to put the group first, and 集体荣誉 is a real feeling.",
+    "pinyin" : "ji2 ti3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "集体"
+  },
+  {
+    "gloss" : "to close a country to exclude foreign contact",
+    "note" : "To close the country to foreign contact. It brings up the Ming and Qing sea bans, a shorthand for how China fell behind the West.",
+    "pinyin" : "bi4 guan1 suo3 guo2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "闭关锁国"
+  },
+  {
+    "gloss" : "a person with knowledge and experience (idiom)",
+    "note" : "People of insight and conscience. It implies a duty: if you see clearly, you are bound to speak up.",
+    "pinyin" : "you3 shi2 zhi1 shi4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "有识之士"
+  },
+  {
+    "gloss" : "so-so",
+    "note" : "So-so, passable. Asked how your exam went, you say 马马虎虎 with a shrug, which might mean anything from fine to bad.",
+    "pinyin" : "ma3 ma5 hu1 hu1",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "马马虎虎"
+  },
+  {
+    "gloss" : "lit. draw legs on a snake (idiom); fig. to ruin the effect by adding sth superfluous",
+    "note" : "To ruin something by adding unnecessary details. It comes from a story about a man who lost a bet by drawing feet on his snake.",
+    "pinyin" : "hua4 she2 tian1 zu2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "画蛇添足"
+  },
+  {
+    "gloss" : "to wait idly for opportunities",
+    "note" : "To wait passively for good luck. From the farmer who saw a rabbit break its neck on a stump and then waited by it forever.",
+    "pinyin" : "shou3 zhu1 dai4 tu4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "守株待兔"
+  },
+  {
+    "gloss" : "better late than never",
+    "note" : "To fix things after the damage is done, but better late than never. From the shepherd who mended his pen after losing a sheep, to save the rest.",
+    "pinyin" : "wang2 yang2 bu3 lao2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "亡羊补牢"
+  },
+  {
+    "gloss" : "to contradict oneself",
+    "note" : "To contradict yourself. From the merchant who claimed his spear could pierce anything and his shield could stop anything.",
+    "pinyin" : "zi4 xiang1 mao2 dun4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "自相矛盾"
+  },
+  {
+    "gloss" : "fig. offering a treat to an unappreciative audience",
+    "note" : "To waste your words on someone who can't appreciate them. You picture a musician serenading a cow that just keeps chewing.",
+    "pinyin" : "dui4 niu2 tan2 qin2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "对牛弹琴"
+  },
+  {
+    "gloss" : "(fig.) a person of limited outlook and experience",
+    "note" : "Someone with a narrow view of the world. From a frog at the bottom of a well who thinks the sky is the size of the opening.",
+    "pinyin" : "jing3 di3 zhi1 wa1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "井底之蛙"
+  },
+  {
+    "gloss" : "fig. a blessing in disguise",
+    "note" : "A blessing in disguise. From the old man who lost his horse, which came back leading another, a story about fortune's twists.",
+    "pinyin" : "sai4 weng1 shi1 ma3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "塞翁失马"
+  },
+  {
+    "gloss" : "(fig.) to maintain one's resolve for revenge",
+    "note" : "To endure hardship while nursing your resolve for revenge. From a defeated king who slept on brushwood and licked bitter gall to remember his shame.",
+    "pinyin" : "wo4 xin1 chang2 dan3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "卧薪尝胆"
+  },
+  {
+    "gloss" : "to burn one's boats",
+    "note" : "To burn your bridges and commit completely. From a general who smashed his cooking pots and sank his boats so his army had to win.",
+    "pinyin" : "po4 fu3 chen2 zhou1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "破釜沉舟"
+  },
+  {
+    "gloss" : "fig. to console oneself with illusions",
+    "note" : "To console yourself with an illusion. From soldiers who stopped feeling thirsty when told of a plum grove ahead.",
+    "pinyin" : "wang4 mei2 zhi3 ke3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "望梅止渴"
+  },
+  {
+    "gloss" : "lit. the fox exploits the tiger's might (idiom); fig. to use powerful connections to intimidate people",
+    "note" : "To bully people by borrowing someone else's power. From the fox who walked in front of a tiger so the animals would flee.",
+    "pinyin" : "hu2 jia3 hu3 wei1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "狐假虎威"
+  },
+  {
+    "gloss" : "to deceive oneself",
+    "note" : "To fool yourself. From the thief who covered his own ears while stealing a bell, thinking no one would hear.",
+    "pinyin" : "yan3 er3 dao4 ling2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "掩耳盗铃"
+  },
+  {
+    "gloss" : "overly fearful",
+    "note" : "Imagining danger where there's none. From a man who saw a bow's reflection in his wine and fell ill thinking he'd swallowed a snake.",
+    "pinyin" : "bei1 gong1 she2 ying3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "杯弓蛇影"
+  },
+  {
+    "gloss" : "lit. a notch on the side of a boat to locate a sword dropped overboard (idiom); fig. an action made pointless by changed circumstances",
+    "note" : "To stick to a rigid method that no longer fits. From the man who marked his boat where his sword fell overboard, to find it later.",
+    "pinyin" : "ke4 zhou1 qiu2 jian4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "刻舟求剑"
+  },
+  {
+    "gloss" : "to spoil things through excessive enthusiasm (idiom)",
+    "note" : "To spoil something by rushing it. From a farmer who pulled on his seedlings to help them grow, and killed them all.",
+    "pinyin" : "ba2 miao2 zhu4 zhang3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "拔苗助长"
+  },
+  {
+    "gloss" : "a crane in a flock of chicken (idiom); way above the common",
+    "note" : "To stand out far above the crowd. You picture a crane among chickens, obviously from another class.",
+    "pinyin" : "he4 li4 ji1 qun2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "鹤立鸡群"
+  },
+  {
+    "gloss" : "to give up halfway (idiom); leave sth unfinished",
+    "note" : "To give up halfway. Parents say it to children who quit piano after a month, a mild reproach.",
+    "pinyin" : "ban4 tu2 er2 fei4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "半途而废"
+  },
+  {
+    "gloss" : "fig. to be practical and realistic",
+    "note" : "To seek truth from facts. It's also a famous Party slogan, so you hear it in official speeches about being practical.",
+    "pinyin" : "shi2 shi4 qiu2 shi4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "实事求是"
+  },
+  {
+    "gloss" : "as it should be by rights (idiom); proper and to be expected as a matter of course",
+    "note" : "Taken for granted as right. It's often used to criticise people who see others' help as their due.",
+    "pinyin" : "li3 suo3 dang1 ran2",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "理所当然"
+  },
+  {
+    "gloss" : "(idiom) baffling; bizarre; without rhyme or reason; inexplicable",
+    "note" : "Baffling, makes no sense. You say it when a colleague snaps at you for no reason.",
+    "pinyin" : "mo4 ming2 qi2 miao4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "莫名其妙"
+  },
+  {
+    "gloss" : "May you have a prosperous New Year! (New Year's greeting)",
+    "note" : "The New Year greeting wishing wealth. Children reply 红包拿来, give me a red envelope, as a joke.",
+    "pinyin" : "gong1 xi3 fa1 cai2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "恭喜发财"
+  },
+  {
+    "gloss" : "(idiom) when in Rome, do as the Romans do",
+    "note" : "When in a new place, follow local customs. You say it when trying strange food on a trip.",
+    "pinyin" : "ru4 xiang1 sui2 su2",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "入乡随俗"
+  },
+  {
+    "gloss" : "perturbed state of mind",
+    "note" : "A heart in turmoil, anxious. Before exam results, your heart is 七上八下.",
+    "pinyin" : "qi1 shang4 ba1 xia4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "七上八下"
+  },
+  {
+    "gloss" : "(fig.) a drop in the ocean",
+    "note" : "A drop in the ocean. For a billionaire, the fine is 九牛一毛.",
+    "pinyin" : "jiu3 niu2 yi1 mao2",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "九牛一毛"
+  },
+  {
+    "gloss" : "to fall in love at first sight (idiom)",
+    "note" : "Love at first sight. It carries the romance of fate, as if the heart has already decided.",
+    "pinyin" : "yi1 jian4 zhong1 qing2",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "一见钟情"
+  },
+  {
+    "gloss" : "shared delights and common hardships (idiom); to share life's joys and sorrows",
+    "note" : "To share joys and hardships. It's the bond of a couple or friends who've been through poverty together.",
+    "pinyin" : "tong2 gan1 gong4 ku3",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "同甘共苦"
+  },
+  {
+    "gloss" : "to have a whole new level of respect for sb or sth",
+    "note" : "To see someone in a new light. A struggling student who suddenly aces exams makes everyone 刮目相看.",
+    "pinyin" : "gua1 mu4 xiang1 kan4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "刮目相看"
+  },
+  {
+    "gloss" : "to review the old and know the new (idiom, from the Analects)",
+    "note" : "To review the old and learn the new. From Confucius, it's the classic advice to students revising for exams.",
+    "pinyin" : "wen1 gu4 zhi1 xin1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "温故知新"
+  },
+  {
+    "gloss" : "with familiarity you learn the trick (idiom); practice makes perfect",
+    "note" : "Practice makes perfect. A teacher says it to a student repeating characters over and over.",
+    "pinyin" : "shu2 neng2 sheng1 qiao3",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "熟能生巧"
+  },
+  {
+    "gloss" : "(idiom) wide-ranging and profound",
+    "note" : "Vast and profound. You hear it in praise of Chinese culture, said with pride.",
+    "pinyin" : "bo2 da4 jing1 shen1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "博大精深"
+  },
+  {
+    "gloss" : "(idiom) of long standing; with a long history; stretching back to ancient times",
+    "note" : "Long-standing, with deep roots. It's a set phrase about Chinese civilisation's continuous history.",
+    "pinyin" : "yuan2 yuan3 liu2 chang2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "源远流长"
+  },
+  {
+    "gloss" : "oneness of heaven and humanity",
+    "note" : "The oneness of heaven and humanity. It's a classical ideal of living in harmony with nature.",
+    "pinyin" : "tian1 ren2 he2 yi1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "天人合一"
+  },
+  {
+    "gloss" : "to endure humiliation as part of an important mission (idiom); to suffer in silence",
+    "note" : "To bear humiliation for an important mission. You picture someone swallowing insults to protect a greater cause.",
+    "pinyin" : "ren3 ru3 fu4 zhong4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "忍辱负重"
+  },
+  {
+    "gloss" : "to abandon self for others (idiom, from Analects); to sacrifice one's own interest for other people",
+    "note" : "To sacrifice yourself for others. It's a classic virtue held up in model hero stories.",
+    "pinyin" : "she3 ji3 wei4 ren2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "舍己为人"
+  },
+  {
+    "gloss" : "selfless",
+    "note" : "Selfless and impartial. It's a virtue from revolutionary slogans praising officials who serve the people.",
+    "pinyin" : "da4 gong1 wu2 si1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "大公无私"
+  },
+  {
+    "gloss" : "to struggle arduously",
+    "note" : "To struggle hard and live frugally. It's a revolutionary spirit taught to every generation.",
+    "pinyin" : "jian1 ku3 fen4 dou4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "艰苦奋斗"
+  },
+  {
+    "gloss" : "self-reliance",
+    "note" : "Self-reliance. It's a slogan from Mao's era urging China to depend on no one.",
+    "pinyin" : "zi4 li4 geng1 sheng1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "自力更生"
+  },
+  {
+    "gloss" : "a hundred schools of thought contend (idiom); refers to the classical philosophic schools of the Warring States period 475-221 BC",
+    "note" : "A hundred schools of thought contending. It names the great flowering of ideas before China's first empire, and you can feel the pride in a time when thinkers argued freely.",
+    "pinyin" : "bai3 jia1 zheng1 ming2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "百家争鸣"
+  },
+  {
+    "gloss" : "a hundred flowers bloom (idiom); let the arts have free expression",
+    "note" : "Let a hundred flowers bloom. It recalls Mao's 1956 invitation to free debate that ended in a crackdown on critics.",
+    "pinyin" : "bai3 hua1 qi2 fang4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "百花齐放"
+  },
+  {
+    "gloss" : "to keep up with the times",
+    "note" : "To keep up with the times. It's an official slogan, so it can sound earnest or bureaucratic.",
+    "pinyin" : "yu3 shi2 ju4 jin4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "与时俱进"
+  },
+  {
+    "gloss" : "making a deer out to be a horse (idiom); deliberate misrepresentation",
+    "note" : "To deliberately call black white, as an act of power. From a minister who presented a deer as a horse to see who dared contradict him.",
+    "pinyin" : "zhi3 lu4 wei2 ma3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "指鹿为马"
+  },
+  {
+    "gloss" : "fig. theoretical discussion that is worse than useless in practice",
+    "note" : "All theory, no practice. From a general who knew military books by heart but lost his army in battle.",
+    "pinyin" : "zhi3 shang4 tan2 bing1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "纸上谈兵"
+  },
+  {
+    "gloss" : "fig. to return home after making good",
+    "note" : "To return home after making good. You picture the successful son driving back to the village in a new car.",
+    "pinyin" : "yi1 jin3 huan2 xiang1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "衣锦还乡"
+  },
+  {
+    "gloss" : "In old age, an expatriate longs to return home.",
+    "note" : "In old age, to return to your roots. You picture an emigrant who wants to die in their home village.",
+    "pinyin" : "ye4 luo4 gui1 gen1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "叶落归根"
+  },
+  {
+    "gloss" : "to live in peace and work happily (idiom)",
+    "note" : "To live in peace and work happily. It's the old ideal of a well-governed land.",
+    "pinyin" : "an1 ju1 le4 ye4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "安居乐业"
+  },
+  {
+    "gloss" : "the country prospers, the people at peace (idiom); peace and prosperity",
+    "note" : "A prosperous nation and a peaceful people. It's a wish written on New Year banners.",
+    "pinyin" : "guo2 tai4 min2 an1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "国泰民安"
+  },
+  {
+    "gloss" : "a matter of course",
+    "note" : "Right and unquestionable. Children repaying their parents is seen as 天经地义.",
+    "pinyin" : "tian1 jing1 di4 yi4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "天经地义"
+  },
+  {
+    "gloss" : "fig. to fail an exam",
+    "note" : "To fail an exam. From a scholar who came last on the pass list, his name just after Sun Shan's.",
+    "pinyin" : "ming2 luo4 Sun1 Shan1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "名落孙山"
+  },
+  {
+    "gloss" : "to win top marks in the imperial examinations",
+    "note" : "To pass the imperial exam with honours. Today it's a wish for success in the 高考.",
+    "pinyin" : "jin1 bang3 ti2 ming2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "金榜题名"
+  },
+  {
+    "gloss" : "fig. to study diligently in the face of hardship",
+    "note" : "To study despite hardship. From a poor boy who drilled a hole in the wall to read by his neighbour's light.",
+    "pinyin" : "zao2 bi4 tou1 guang1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "凿壁偷光"
+  },
+  {
+    "gloss" : "to study assiduously and tirelessly (idiom)",
+    "note" : "To study with fierce determination. From scholars who tied their hair to a beam and jabbed their thigh to stay awake.",
+    "pinyin" : "xuan2 liang2 ci4 gu3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "悬梁刺股"
+  },
+  {
+    "gloss" : "to start practicing at the first crow of the cock (idiom)",
+    "note" : "To get up at dawn to practise. From a general who drilled with his sword at the first cock crow.",
+    "pinyin" : "wen2 ji1 qi3 wu3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "闻鸡起舞"
+  },
+  {
+    "gloss" : "lit. every tree or bush an enemy soldier (idiom); fig. to panic and treat everyone as an enemy",
+    "note" : "To be so jumpy you see enemies everywhere. From a defeated army who mistook every tree for an enemy soldier.",
+    "pinyin" : "cao3 mu4 jie1 bing1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "草木皆兵"
+  },
+  {
+    "gloss" : "fig. surrounded by enemies, isolated and without help",
+    "note" : "Surrounded by enemies with no help. From a besieged general who heard his homeland's songs from the enemy camp.",
+    "pinyin" : "si4 mian4 Chu3 ge1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "四面楚歌"
+  },
+  {
+    "gloss" : "fig. to regroup and come back even stronger",
+    "note" : "To come back stronger after defeat. You picture a defeated army gathering its dust to return.",
+    "pinyin" : "juan3 tu3 chong2 lai2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "卷土重来"
+  },
+  {
+    "gloss" : "lit. fight with one's back to the river (idiom); fig. to fight to win or die",
+    "note" : "To fight with your back to the river: no way out but to win. From a general who camped his army there on purpose.",
+    "pinyin" : "bei4 shui3 yi1 zhan4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "背水一战"
+  },
+  {
+    "gloss" : "(fig.) to shun; to assiduously avoid",
+    "note" : "To keep well clear of something. You 退避三舍 from a difficult relative at family gatherings.",
+    "pinyin" : "tui4 bi4 san1 she4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "退避三舍"
+  },
+  {
+    "gloss" : "lit. to return the jade annulus to Zhao (idiom); fig. to return something intact to its rightful owner",
+    "note" : "To return something intact to its owner. From the minister who safely brought a precious jade back to the state of Zhao.",
+    "pinyin" : "wan2 bi4 gui1 Zhao4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "完璧归赵"
+  },
+  {
+    "gloss" : "fig. to offer sb a humble apology",
+    "note" : "To offer a humble apology. From a general who carried thorns on his back to beg forgiveness from a minister.",
+    "pinyin" : "fu4 jing1 qing3 zui4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "负荆请罪"
+  },
+  {
+    "gloss" : "fig. to make earnest and repeated requests of sb",
+    "note" : "To repeatedly and sincerely invite someone. From Liu Bei visiting Zhuge Liang's hut three times to win him over.",
+    "pinyin" : "san1 gu4 mao2 lu2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "三顾茅庐"
+  },
+  {
+    "gloss" : "lit. fish sink, goose alights (idiom, from Zhuangzi 莊子|庄子[Zhuang1 zi3]); fig. female beauty captivating even the birds and beasts",
+    "note" : "Beauty so stunning fish sink and geese fall. It's a classical compliment from the stories of ancient beauties.",
+    "pinyin" : "chen2 yu2 luo4 yan4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "沉鱼落雁"
+  },
+  {
+    "gloss" : "fig. (of a woman) devastatingly beautiful",
+    "note" : "Beauty that could topple a kingdom. You picture a woman whose looks made rulers neglect their states.",
+    "pinyin" : "qing1 guo2 qing1 cheng2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "倾国倾城"
+  },
+  {
+    "gloss" : "beautiful women suffer unhappy fates (idiom)",
+    "note" : "Beautiful women suffer unhappy fates. It's a sigh from old stories of beauties who died young.",
+    "pinyin" : "hong2 yan2 bo2 ming4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "红颜薄命"
+  },
+  {
+    "gloss" : "(idiom) multitude; vast crowd",
+    "note" : "A sea of people. You picture the West Lake on a public holiday, packed shoulder to shoulder.",
+    "pinyin" : "ren2 shan1 ren2 hai3",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "人山人海"
+  },
+  {
+    "gloss" : "to amaze the world with a single brilliant feat (idiom); an overnight celebrity",
+    "note" : "To amaze everyone with one brilliant feat. From a bird that hadn't sung for years and then sang to astonish the world.",
+    "pinyin" : "yi1 ming2 jing1 ren2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "一鸣惊人"
+  },
+  {
+    "gloss" : "not feel ashamed to ask and learn from one's subordinates",
+    "note" : "Not ashamed to learn from those below you. It's praise from Confucius for humble learning.",
+    "pinyin" : "bu4 chi3 xia4 wen4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "不耻下问"
+  },
+  {
+    "gloss" : "the old man moves mountains (idiom); fig. where there's a will, there's a way",
+    "note" : "Where there's a will, there's a way. From the old man who set out to move a mountain, shovel by shovel.",
+    "pinyin" : "yu2 gong1 yi2 shan1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "愚公移山"
+  }
+]
