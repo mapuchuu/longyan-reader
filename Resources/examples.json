@@ -6,12 +6,33 @@
     "最近吃太多辣的，上火了，嘴里长了个泡。",
     "天气干燥容易上火，多喝点菊花茶。"
   ],
+  "下岗|xia4 gang3|(of a guard, sentry etc) to come off duty" : [
+    "哨兵十二点下岗，换另一个人站岗。"
+  ],
+  "下岗|xia4 gang3|(of a worker) be to laid off" : [
+    "九十年代工厂倒闭，我爸妈都下岗了。",
+    "下岗以后，他在街边摆摊卖早点。"
+  ],
   "下海|xia4 hai3|(fig.) to take the plunge (e.g. leave a secure job, or enter prostitution etc)" : [
     "九十年代他辞掉了铁饭碗，下海经商。",
     "很多老师当年都下海做生意了。"
   ],
   "下海|xia4 hai3|to enter the sea (to swim etc)" : [
     "天气太热了，我们下海游泳吧。"
+  ],
+  "世故|shi4 gu4|the ways of the world" : [
+    "他还年轻，不懂人情世故。"
+  ],
+  "世故|shi4 gu5|worldly-wise" : [
+    "他太世故了，跟谁都说好话，却从不说真心话。",
+    "在社会上待久了，人变得越来越世故。"
+  ],
+  "东北|Dong1 bei3|Northeast China; Manchuria" : [
+    "东北的冬天零下三十度，雪下得特别大。",
+    "东北人说话特别幽默，喜欢开玩笑。"
+  ],
+  "东北|dong1 bei3|northeast" : [
+    "风从东北方向吹来。"
   ],
   "东西|dong1 xi5|person" : [
     "他真不是东西，连自己的父母都骗。",
@@ -21,12 +42,58 @@
     "我去超市买点东西。",
     "你的东西都收拾好了吗？"
   ],
+  "主旋律|zhu3 xuan2 lu:4|(fig.) central theme; main idea" : [
+    "和平与发展是时代的主旋律。"
+  ],
+  "主旋律|zhu3 xuan2 lu:4|(of a movie) created with the purpose of promoting Party values and point of view" : [
+    "这部电影是主旋律作品，讲的是建党的故事。",
+    "国庆档总有几部主旋律电影。"
+  ],
+  "义|yi4|meaning" : [
+    "这个字的本义和引申义不一样。"
+  ],
+  "义|yi4|righteousness" : [
+    "他为了朋友不顾生命危险，真是有情有义。",
+    "见义勇为，帮助被抢劫的人。"
+  ],
+  "人情|ren2 qing2|favor; a good turn" : [
+    "他上次帮了我大忙，这个人情我一定要还。",
+    "欠了别人的人情，心里总觉得不安。",
+    "找他办事就得欠他一个人情。"
+  ],
+  "人情|ren2 qing2|human emotions" : [
+    "人情冷暖，只有经历过才知道。"
+  ],
+  "人情|ren2 qing2|social relationship; friendship" : [
+    "结婚的时候，亲戚朋友送的礼都是人情往来。"
+  ],
+  "仁|ren2|humane" : [
+    "孔子说，仁者爱人。",
+    "为政以德，施行仁政。"
+  ],
+  "仁|ren2|kernel" : [
+    "把核桃敲开，取出里面的核桃仁。"
+  ],
+  "低调|di1 diao4|low-profile" : [
+    "他虽然很有钱，但做人很低调。",
+    "这次活动我们低调处理，不要宣传。"
+  ],
+  "低调|di1 diao4|quiet (voice)" : [
+    "她说话低调，声音很轻。"
+  ],
   "作|zuo1|(slang) troublesome; high-maintenance (person)" : [
     "她特别作，一点小事就要闹分手。",
     "别作了，好好过日子吧。"
   ],
   "作|zuo4|to write; to compose" : [
     "这首诗是李白作的。"
+  ],
+  "修行|xiu1 xing2|to devote oneself to perfecting one's art or craft" : [
+    "他在厨房修行了二十年，才成了名厨。"
+  ],
+  "修行|xiu1 xing2|to devote oneself to spiritual development (esp. Buddhism or Daoism)" : [
+    "他出家修行，每天念经打坐。",
+    "师父领进门，修行在个人。"
   ],
   "先生|xian1 sheng5|gentleman; sir; mister (Mr.)" : [
     "李先生，您的电话。",
@@ -51,12 +118,33 @@
   "关系|guan1 xi5|to concern; to involve; to affect" : [
     "这次考试关系到你能不能上大学。"
   ],
+  "内卷|nei4 juan3|(embryology) to involute; involution" : [
+    "这是胚胎发育过程中的内卷现象。"
+  ],
+  "内卷|nei4 juan3|(neologism, attested by 2017) (of a society) to become more and more of a rat race; to become increasingly competitive (due to limited resources)" : [
+    "大家都在加班，不加班就落后，这就是内卷。",
+    "教育内卷越来越严重，孩子们从小就上各种补习班。"
+  ],
+  "凑合|cou4 he5|to bring together" : [
+    "大家凑合在一起，商量一下明天的事。"
+  ],
+  "凑合|cou4 he5|to just get by" : [
+    "最近怎么样？还凑合吧。",
+    "饭菜不太好吃，凑合着吃吧。"
+  ],
   "单位|dan1 wei4|unit (of measure)" : [
     "米是长度单位。"
   ],
   "单位|dan1 wei4|work unit (place of employment, esp. in the PRC prior to economic reform)" : [
     "他在一个事业单位上班，工作很稳定。",
     "以前结婚要单位开介绍信。"
+  ],
+  "占便宜|zhan4 pian2 yi5|advantageous" : [
+    "他个子高，打篮球占便宜。"
+  ],
+  "占便宜|zhan4 pian2 yi5|to benefit at others' expense" : [
+    "他总想占别人便宜，吃饭从来不付钱。",
+    "超市搞活动，大妈们都去占便宜了。"
   ],
   "卷|juan3|(slang) to compete to an unhealthy degree; hypercompetitive" : [
     "现在的年轻人太卷了，下班了还在学习。",
@@ -75,12 +163,26 @@
     "小朋友，谢谢叔叔帮你捡球。",
     "快叫叔叔好！"
   ],
+  "吃亏|chi1 kui1|to lose out" : [
+    "你太老实了，这样会吃亏的。",
+    "跟他做生意，我从来没吃过亏。"
+  ],
+  "吃亏|chi1 kui1|unfortunately" : [
+    "他吃亏在没有学历，所以升不上去。"
+  ],
   "同志|tong2 zhi4|(slang) homosexual" : [
     "他是同志，最近刚和男朋友出柜。"
   ],
   "同志|tong2 zhi4|comrade" : [
     "同志们，我们要坚持到底！",
     "这位同志，请出示一下你的证件。"
+  ],
+  "含蓄|han2 xu4|(of a person or style etc) reserved" : [
+    "中国人表达感情比较含蓄，很少直接说爱。",
+    "她含蓄地拒绝了他的邀请。"
+  ],
+  "含蓄|han2 xu4|to contain" : [
+    "这首诗含蓄着深刻的哲理。"
   ],
   "命|ming4|fate" : [
     "这都是命，没办法。",
@@ -96,12 +198,41 @@
   "和谐|he2 xie2|harmonious" : [
     "他们一家人生活得很和谐。"
   ],
+  "圈子|quan1 zi5|(social) circle" : [
+    "他不在我们这个圈子里，大家都不太熟。",
+    "娱乐圈的圈子很小，谁和谁都认识。"
+  ],
+  "圈子|quan1 zi5|circle" : [
+    "孩子们围成一个圈子做游戏。"
+  ],
   "土|tu3|earth" : [
     "下雨以后，路上全是泥土。"
   ],
   "土|tu3|unsophisticated" : [
     "你这身衣服太土了，像我爸年轻时候穿的。",
     "他觉得自己的名字太土，想改个洋气点的。"
+  ],
+  "奇葩|qi2 pa1|(slang) weirdo" : [
+    "我们公司有个奇葩，上班穿睡衣。",
+    "这个规定太奇葩了，谁想出来的？"
+  ],
+  "奇葩|qi2 pa1|exotic flower" : [
+    "这朵奇葩只在高山上开放。"
+  ],
+  "委屈|wei3 qu5|to inconvenience; to put (sb) at a disadvantage; to do sb wrong" : [
+    "这么小的房间，委屈你了，先将就住几天。",
+    "让您跑这么远，真是委屈您了。"
+  ],
+  "委屈|wei3 qu5|wronged; aggrieved" : [
+    "明明不是我的错，老师却批评我，我觉得特别委屈。",
+    "她委屈地哭了，说没人相信她。"
+  ],
+  "婆婆|po2 po5|grandma" : [
+    "村口坐着一位白发婆婆，正在晒太阳。"
+  ],
+  "婆婆|po2 po5|husband's mother" : [
+    "婆婆每天帮我们带孩子，我很感激她。",
+    "她和婆婆的关系一直不太好。"
   ],
   "媳妇|xi2 fu4|daughter-in-law" : [
     "婆婆和儿媳妇住在一起，难免会有矛盾。",
@@ -110,6 +241,13 @@
   "媳妇|xi2 fu5|(dialect) wife" : [
     "我媳妇做的饺子最好吃。",
     "下班了，赶紧回家陪媳妇。"
+  ],
+  "孝|xiao4|filial piety or obedience" : [
+    "百善孝为先，孝顺父母是做人的根本。",
+    "他对父母很孝，每周都回家看望。"
+  ],
+  "孝|xiao4|mourning apparel" : [
+    "家里有人去世，晚辈们都穿着孝。"
   ],
   "实在|shi2 zai4|honest" : [
     "他这个人很实在，从不说空话。",
@@ -126,6 +264,13 @@
   "对象|dui4 xiang4|target; object" : [
     "这次调查的对象是大学生。"
   ],
+  "小人|xiao3 ren2|I, me (used to refer humbly to oneself)" : [
+    "小人不敢，请大人明察。"
+  ],
+  "小人|xiao3 ren2|nasty person" : [
+    "他表面上对你好，背后却说你坏话，是个小人。",
+    "宁可得罪君子，不可得罪小人。"
+  ],
   "小姐|xiao3 jie5|(slang) prostitute" : [
     "那家夜总会里有很多小姐，警察经常去查。",
     "他在酒店里找小姐，被抓了现行。"
@@ -136,6 +281,13 @@
   "小姐|xiao3 jie5|young lady" : [
     "她是大户人家的小姐，从小什么活都没干过。"
   ],
+  "崛起|jue2 qi3|the emergence (e.g. of a power)" : [
+    "中国的崛起改变了世界格局。",
+    "一个大国的崛起需要几十年的努力。"
+  ],
+  "崛起|jue2 qi3|to spring up" : [
+    "城市边上崛起了一片高楼。"
+  ],
   "差不多|cha4 bu5 duo1|about the same" : [
     "这两件衣服的颜色差不多。"
   ],
@@ -145,6 +297,28 @@
   "差不多|cha4 bu5 duo1|good enough" : [
     "做事别总是差不多就行，要认真一点。",
     "差不多得了，别那么较真。"
+  ],
+  "帅哥|shuai4 ge1|handsome (form of address)" : [
+    "帅哥，你的东西掉了。",
+    "帅哥，要不要看看我们的新款手机？"
+  ],
+  "帅哥|shuai4 ge1|handsome guy" : [
+    "她男朋友是个大帅哥，个子高，长得也好看。"
+  ],
+  "师傅|shi1 fu5|master" : [
+    "他跟着师傅学了三年木匠。",
+    "徒弟要听师傅的话。"
+  ],
+  "师傅|shi1 fu5|respectful form of address for older men" : [
+    "师傅，到火车站多少钱？",
+    "师傅，我家的水管漏水了，您能来修一下吗？"
+  ],
+  "应试|ying4 shi4|(of an education system) to be exam-oriented" : [
+    "应试教育让学生只会背书，不会思考。",
+    "这种应试的学习方法，考完就全忘了。"
+  ],
+  "应试|ying4 shi4|to take an exam" : [
+    "他明天要去应试，今晚在复习。"
   ],
   "心疼|xin1 teng2|to feel sorry for sb" : [
     "看你每天加班到半夜，妈妈真心疼你。",
@@ -171,12 +345,34 @@
     "这是我的一点心意，一点小意思，您别嫌少。",
     "逢年过节总得意思意思，送点东西给领导。"
   ],
+  "户口|hu4 kou3|(in Hong Kong and Macau) bank account" : [
+    "我在香港开了一个银行户口。"
+  ],
+  "户口|hu4 kou3|registered residence" : [
+    "他在北京工作十年了，还是没有北京户口。",
+    "孩子的户口不在本地，不能在这里上学。",
+    "结婚以后，她把户口迁到了丈夫家。"
+  ],
+  "折腾|zhe1 teng5|to repeat sth over and over again" : [
+    "他这一年换了三份工作，真能折腾。",
+    "别再折腾了，好好过日子吧。"
+  ],
+  "折腾|zhe1 teng5|to toss from side to side (e.g. sleeplessly)" : [
+    "他昨晚翻来覆去地折腾，一夜没睡着。"
+  ],
   "摸鱼|mo1 yu2|(fig.) to loaf on the job; to be slack; to take it easy" : [
     "今天老板不在，大家都在摸鱼。",
     "上班摸鱼刷手机，被领导抓到了。"
   ],
   "摸鱼|mo1 yu2|to catch fish" : [
     "小时候我们常在小河里摸鱼。"
+  ],
+  "无语|wu2 yu3|(coll.) speechless" : [
+    "他又迟到了一个小时，我真是无语了。",
+    "听到这个理由，大家都无语了。"
+  ],
+  "无语|wu2 yu3|to remain silent" : [
+    "两人相对无语，坐了很久。"
   ],
   "机场|ji1 chang3|(slang) service provider for Shadowsocks or similar software for circumventing Internet censorship" : [
     "我的机场又被封了，翻不了墙了。",
@@ -185,6 +381,13 @@
   "机场|ji1 chang3|airport; airfield" : [
     "我们提前两个小时到了机场。",
     "机场离市区有四十公里。"
+  ],
+  "正气|zheng4 qi4|(TCM) vital energy (resistance to diseases)" : [
+    "中医认为正气不足，人就容易生病。"
+  ],
+  "正气|zheng4 qi4|unyielding integrity; probity" : [
+    "他一身正气，从不收别人的好处。",
+    "我们要弘扬社会正气，打击歪风邪气。"
   ],
   "气|qi4|gas; air" : [
     "轮胎没气了，得去打打气。"
@@ -218,6 +421,16 @@
     "他大学毕业以后一直在北京混。",
     "这些年你混得怎么样？"
   ],
+  "清明|Qing1 ming2|Pure Brightness Festival or Tomb Sweeping Day (in early April)" : [
+    "清明节我们回老家给爷爷扫墓。",
+    "清明时节雨纷纷，路上行人欲断魂。"
+  ],
+  "清明|qing1 ming2|(of a government or administration) well ordered" : [
+    "百姓都希望政治清明，官员清廉。"
+  ],
+  "清明|qing1 ming2|clear and bright" : [
+    "雨后的天空格外清明。"
+  ],
   "牛|niu2|(slang) awesome" : [
     "他一个人做完了整个项目，太牛了！",
     "你连这个都会，真牛。"
@@ -225,12 +438,69 @@
   "牛|niu2|cow" : [
     "农民在田里赶着牛耕地。"
   ],
+  "状元|zhuang4 yuan2|(fig.) the most brilliantly talented person in the field" : [
+    "三百六十行，行行出状元。"
+  ],
+  "状元|zhuang4 yuan2|top scorer in college entrance examination 高考[gao1 kao3]" : [
+    "今年我们省的高考状元考了七百多分。",
+    "高考状元被北大录取了，媒体都来采访。"
+  ],
+  "相亲|xiang1 qin1|arranged interview to evaluate a proposed marriage partner (Taiwan pr. [xiang4 qin1])" : [
+    "妈妈又给她安排了一次相亲，对方是个公务员。",
+    "每个周末他都要去相亲，已经见了二十多个人。"
+  ],
+  "相亲|xiang1 qin1|to be deeply attached to each other" : [
+    "一家人相亲相爱，和和睦睦。"
+  ],
+  "矫情|jiao2 qing5|(Beijing dialect) argumentative; unreasonable" : [
+    "他这个人特别矫情，什么事都要跟你争。"
+  ],
+  "矫情|jiao3 qing2|affected" : [
+    "一点小伤就哭个不停，太矫情了。",
+    "别矫情了，有什么话直说。"
+  ],
+  "破防|po4 fang2|(slang) to break through sb's emotional defenses; to get to sb emotionally" : [
+    "看到妈妈的白头发，我一下子破防了。",
+    "这首歌一响起，好多人都破防了。"
+  ],
+  "破防|po4 fang2|(video games) to break through an opponent's defenses" : [
+    "他一招就破防了对手，赢得了比赛。"
+  ],
   "礼|li3|gift" : [
     "去别人家做客，要带点礼。"
   ],
   "礼|li3|propriety" : [
     "中国人讲究礼尚往来，吃饭时长辈先动筷子。",
     "孔子认为，人要知礼，懂得长幼尊卑。"
+  ],
+  "秀才|xiu4 cai5|a person who has passed the county level imperial exam (historical)" : [
+    "他十八岁就考中了秀才，全村人都来祝贺。",
+    "秀才遇到兵，有理说不清。"
+  ],
+  "秀才|xiu4 cai5|skillful writer" : [
+    "他是我们班的秀才，作文写得最好。"
+  ],
+  "稳定|wen3 ding4|stability" : [
+    "稳定压倒一切，这是政府的头等大事。",
+    "维护社会稳定是地方官员的重要任务。"
+  ],
+  "稳定|wen3 ding4|stable" : [
+    "他想找一份稳定的工作，不想再换了。",
+    "病人的情况已经稳定了。"
+  ],
+  "窝囊|wo1 nang5|good-for-nothing" : [
+    "他是个窝囊废，什么事都办不成。"
+  ],
+  "窝囊|wo1 nang5|to feel vexed" : [
+    "被老板骂了也不敢还嘴，真窝囊。",
+    "受了这么大的委屈却不能说，心里很窝囊。"
+  ],
+  "纠结|jiu1 jie2|to intertwine; to band together (with); to link up (with)" : [
+    "各种势力纠结在一起，形势很复杂。"
+  ],
+  "纠结|jiu1 jie2|to struggle (mentally) with (sth); to overthink; to feel conflicted" : [
+    "去北京还是去上海？我纠结了好几天。",
+    "买哪个手机好呢？真纠结。"
   ],
   "红|hong2|popular" : [
     "这个歌手这两年特别红。"
@@ -262,6 +532,13 @@
   "编制|bian1 zhi4|to compile; to put together (a lesson plan, budget etc)" : [
     "财务部正在编制明年的预算。"
   ],
+  "群众|qun2 zhong4|mass" : [
+    "广场上聚集了大量群众观看烟花。"
+  ],
+  "群众|qun2 zhong4|the masses" : [
+    "干部要深入群众，听听老百姓的意见。",
+    "一切为了群众，一切依靠群众。"
+  ],
   "老实|lao3 shi5|honest; sincere" : [
     "他是个老实人，说话从来不骗人。"
   ],
@@ -273,6 +550,14 @@
   "老实|lao3 shi5|well-behaved" : [
     "上课的时候孩子们都老老实实地坐着。"
   ],
+  "舍不得|she3 bu5 de5|to hate to do sth" : [
+    "这件衣服太贵了，我舍不得买。",
+    "他舍不得花钱，一件外套穿了十年。"
+  ],
+  "舍不得|she3 bu5 de5|to hate to part with" : [
+    "要搬家了，我真舍不得这些老邻居。",
+    "毕业的时候，大家都舍不得分开。"
+  ],
   "补|bu3|to make up for" : [
     "我上周请假了，这周要把课补上。"
   ],
@@ -282,6 +567,14 @@
   "补|bu3|to supplement" : [
     "她刚生完孩子，要多喝鸡汤补一补。",
     "冬天进补，吃点羊肉暖暖身子。"
+  ],
+  "解放|jie3 fang4|refers to the Communists' victory over the Nationalists in 1949" : [
+    "解放前，这里是一片荒地。",
+    "我爷爷是解放后参加工作的。"
+  ],
+  "解放|jie3 fang4|to liberate" : [
+    "考完试了，终于解放了！",
+    "妇女解放运动争取男女平等。"
   ],
   "走|zou3|to die (euph.)" : [
     "外公是在睡梦中走的，很安详。",
@@ -299,6 +592,27 @@
   "走|zou3|to walk" : [
     "他每天走路上班，大概要二十分钟。",
     "我们慢慢走，看看路边的风景。"
+  ],
+  "走后门|zou3 hou4 men2|(fig.) to pull strings; to use connections" : [
+    "他没考上，是他爸走后门把他弄进去的。",
+    "现在办事不走后门几乎不可能。"
+  ],
+  "走后门|zou3 hou4 men2|(lit.) to enter through the back door" : [
+    "前门锁了，我们从后门走吧。"
+  ],
+  "躺平|tang3 ping2|(neologism, attested by 2021) to opt out of the rat race" : [
+    "房价太高了，买不起，干脆躺平吧。",
+    "不想再拼了，我决定躺平，过简单的生活。"
+  ],
+  "躺平|tang3 ping2|to lie stretched out" : [
+    "他累得一回家就躺平在沙发上。"
+  ],
+  "轮回|lun2 hui2|(Buddhism) samsara; cycle of rebirth" : [
+    "佛教认为人死后会进入轮回，转世投胎。",
+    "他相信因果轮回，所以从不做坏事。"
+  ],
+  "轮回|lun2 hui2|to recur cyclically; to succeed one another in cycles" : [
+    "四季轮回，春去秋来。"
   ],
   "辛苦|xin1 ku3|exhausting" : [
     "做护士很辛苦，经常要上夜班。",
@@ -343,12 +657,48 @@
   "随便|sui2 bian4|negligent" : [
     "他做事太随便了，经常出错。"
   ],
+  "青天|qing1 tian1|clear sky" : [
+    "白日青天，万里无云。"
+  ],
+  "青天|qing1 tian1|upright and honorable (official)" : [
+    "老百姓盼着来一个青天大老爷，为他们申冤。",
+    "包公被称为包青天，铁面无私。"
+  ],
+  "面子|mian4 zi5|outer surface; the outside of sth" : [
+    "这床被子的面子是丝绸的，里子是棉布的。"
+  ],
+  "面子|mian4 zi5|social prestige; face" : [
+    "当着那么多人的面批评他，太不给他面子了。",
+    "他请客吃饭就是为了要面子。",
+    "中国人很看重面子，不愿意在别人面前丢脸。"
+  ],
+  "革命|ge2 ming4|revolution" : [
+    "辛亥革命推翻了清朝的统治。",
+    "他爷爷年轻时参加了革命，后来当了干部。"
+  ],
+  "革命|ge2 ming4|to revolutionize (sth)" : [
+    "智能手机彻底革命了人们的生活方式。"
+  ],
   "领导|ling3 dao3|leader" : [
     "领导说明天要开会，大家准备一下材料。",
     "酒桌上要先给领导敬酒。"
   ],
   "领导|ling3 dao3|to lead" : [
     "他领导这个团队完成了任务。"
+  ],
+  "风骨|feng1 gu3|strength of character" : [
+    "他宁可饿死也不向权贵低头，很有文人风骨。",
+    "这位老教授一身风骨，令人敬佩。"
+  ],
+  "风骨|feng1 gu3|vigorous style (of calligraphy)" : [
+    "他的书法很有风骨，笔力遒劲。"
+  ],
+  "鸡娃|ji1 wa2|(dialect) chick" : [
+    "农村院子里养着一群小鸡娃。"
+  ],
+  "鸡娃|ji1 wa2|(neologism, c. 2020) to arrange an intensive schedule of activities for one's child to maximize achievement" : [
+    "为了鸡娃，她给孩子报了七个兴趣班。",
+    "现在的父母都在鸡娃，孩子连周末都没有。"
   ],
   "麻烦|ma2 fan5|inconvenient; troublesome; annoying" : [
     "办签证的手续太麻烦了。"

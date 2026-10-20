@@ -76,7 +76,12 @@ enum CLI {
         case "--notes-review" where args.count >= 6:
             // --notes-review selection.json annotations.tsv notes.json review.md
             let words = try JSONDecoder().decode([NotesBuilder.PilotWord].self, from: Data(contentsOf: URL(fileURLWithPath: args[2])))
-            let report = NotesBuilder.fromTSV(try String(contentsOfFile: args[3], encoding: .utf8), words: words)
+            var report = NotesBuilder.fromTSV(try String(contentsOfFile: args[3], encoding: .utf8), words: words)
+            let written = report.notes.count
+            if args.count >= 7 {
+                NotesBuilder.applyCovers(try String(contentsOfFile: args[6], encoding: .utf8), to: &report, words: words)
+                print("covers: \(report.notes.count - written) paraphrase senses share an existing note")
+            }
             let enc = JSONEncoder(); enc.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes, .sortedKeys]
             try enc.encode(report.notes.filter { $0.problems.isEmpty }).write(to: URL(fileURLWithPath: args[4]))
             try NotesBuilder.review(report, words: words).write(to: URL(fileURLWithPath: args[5]), atomically: true, encoding: .utf8)
@@ -280,6 +285,29 @@ enum CLI {
         ("他为这件事上火，跟老婆吵了一架。", "上火", "angry", false),
         ("你这身打扮太土了。", "土", "unsophisticated", true),
         ("花盆里的土太干了。", "土", "earth", false),
+        // Second batch: words given examples later, plus paraphrase coverage.
+        ("他在会上被领导当众批评，一点面子都没有。", "面子", "prestige", true),
+        ("这个沙发的面子破了，得换一块布。", "面子", "surface", false),
+        ("这次他帮我搬家，我欠他一个人情。", "人情", "favor", true),
+        ("没有北京户口，买房要交五年社保。", "户口", "registered residence", true),
+        ("工作太累了，我只想躺平。", "躺平", "opt out", true),
+        ("他一进门就躺平在床上睡着了。", "躺平", "lie stretched out", false),
+        ("清明那天，我们全家去给外婆扫墓。", "清明", "Tomb Sweeping", true),
+        ("小时候她和婆婆住在一起，婆媳关系很紧张。", "婆婆", "husband's mother", true),
+        ("师傅，麻烦在前面路口停一下。", "师傅", "form of address", true),
+        ("他在店里跟着师傅学做面包。", "师傅", "master", false),
+        ("别跟这种小人计较。", "小人", "nasty person", true),
+        ("考了三年，他终于不纠结了，决定出国。", "纠结", "struggle", true),
+        ("他是东北人，特别能喝酒。", "东北", "Manchuria", true),
+        ("飞机朝东北方向飞去。", "东北", "northeast", false),
+        ("我妈看了那段视频，当场就破防了。", "破防", "emotional defenses", true),
+        ("解放以后，他家分到了土地。", "解放", "Communists' victory", true),
+        ("周末终于不用上班，感觉整个人都解放了。", "解放", "to liberate", false),
+        ("这家公司有很多奇葩规定。", "奇葩", "outlandish", true),
+        ("他这人太世故，说话从不得罪人。", "世故", "worldly-wise", true),
+        ("饺子是北方人过年必吃的。", "饺子", "dumpling", true),
+        ("他请大家吃饭，说今天他请客。", "请客", "invite", true),
+        ("开会的时候，他总是很低调，不多说话。", "低调", "low-key", true),
     ]
 
     static func evalNotes(dict: CEDict) async throws {
@@ -293,11 +321,14 @@ enum CLI {
                 continue
             }
             let sense = senses[c.senseNumber - 1]
-            let shownNote = NotesStore.hasExactNote(word, sense)
-            let ok = want.isEmpty ? !shownNote : sense.gloss.localizedCaseInsensitiveContains(want)
+            // Judge by the note shown: the expected sense's note (or none), whichever paraphrase carried it.
+            let shown = NotesStore.hasExactNote(word, sense) ? NotesStore.note(word, sense)?.note : nil
+            let expectedSense = want.isEmpty ? nil : senses.first { $0.gloss.localizedCaseInsensitiveContains(want) }
+            let expectedNote = expectedSense.flatMap { NotesStore.hasExactNote(word, $0) ? NotesStore.note(word, $0)?.note : nil }
+            let ok = shown == expectedNote && (noted ? shown != nil : true)
             if ok { right += 1 }
-            if shownNote && !noted { falseNotes += 1 }
-            print("\(ok ? "✓" : "✗") \(passage)  → \(sense.gloss.prefix(45))\(shownNote ? "  [NOTE]" : "")")
+            if let shown, shown != expectedNote { falseNotes += 1 }
+            print("\(ok ? "✓" : "✗") \(passage)  → \(sense.gloss.prefix(45))\(shown != nil ? "  [NOTE]" : "")")
         }
         print("\nright \(right)/\(noteCases.count), wrong notes shown \(falseNotes)")
     }

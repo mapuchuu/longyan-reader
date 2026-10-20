@@ -174,6 +174,10 @@ enum SenseChooser {
     /// as the model's pick, show that sense, so its note appears.
     static func preferNoted(_ choice: SenseChoice, context: WordInContext, senses: [Sense]) async -> SenseChoice {
         let chosen = choice.senseNumber - 1
+        if NotesStore.hasExactNote(context.word, senses[chosen]),
+           let away = await checkNotedPick(chosen, context: context, senses: senses) {
+            return away
+        }
         let noted = senses.indices.filter { $0 != chosen && NotesStore.hasExactNote(context.word, senses[$0]) }
         let chosenHasNote = NotesStore.hasExactNote(context.word, senses[chosen])
         guard !noted.isEmpty, let translation = try? await Translator.translate(context.sentence) else { return choice }
@@ -201,6 +205,32 @@ enum SenseChooser {
         switched.senseNumber = pick + 1
         switched.meaningHere = shortGloss([senses[pick]])
         return switched
+    }
+
+    /// The reverse check: the model picked a noted sense, but a plain sense with examples
+    /// may fit better (沙发的面子 is the sofa's cover, not "face"). Same rules as switching
+    /// toward a note: the competitor must win both orders, and the translation must not
+    /// side with the noted pick. Returns the switched choice, or nil to keep the pick.
+    static func checkNotedPick(_ chosen: Int, context: WordInContext, senses: [Sense]) async -> SenseChoice? {
+        let rivals = senses.indices.filter {
+            $0 != chosen && !NotesStore.hasExactNote(context.word, senses[$0])
+                && !ExamplesStore.examples(context.word, senses[$0]).isEmpty
+        }
+        guard !rivals.isEmpty else { return nil }
+        let translation = try? await Translator.translate(context.sentence)
+        let scores = translation.map { overlapScores(translation: $0, senses: senses) } ?? senses.map { _ in 0 }
+        // The translation names the plain sense at least as clearly ("lay down on the bed").
+        if let best = rivals.max(by: { scores[$0] < scores[$1] }), scores[best] > 0, scores[best] >= scores[chosen] {
+            trace("translation sides with \(senses[best].gloss.prefix(30)) over the noted sense")
+            return SenseChoice(senseNumber: best + 1, meaningHere: shortGloss([senses[best]]))
+        }
+        for r in rivals.prefix(2) where !(scores[chosen] > 0 && scores[r] == 0) {
+            if await prefersNoted(senses[r], over: senses[chosen], context: context) {
+                trace("model picked \(senses[r].gloss.prefix(30)) twice over the noted sense")
+                return SenseChoice(senseNumber: r + 1, meaningHere: shortGloss([senses[r]]))
+            }
+        }
+        return nil
     }
 
     /// A yes/no question invites agreement (the 3B model says yes to "died" for 我们走吧),

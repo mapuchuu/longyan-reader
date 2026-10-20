@@ -280,6 +280,27 @@ enum NotesBuilder {
         return report
     }
 
+    /// Copies each note onto the senses that are paraphrases of it (note-covers.tsv:
+    /// word, noted sense, covered senses), so it shows whichever paraphrase is picked.
+    static func applyCovers(_ text: String, to report: inout FetchReport, words: [PilotWord]) {
+        let byWord = Dictionary(words.map { ($0.word, $0) }, uniquingKeysWith: { a, _ in a })
+        for line in text.split(whereSeparator: \.isNewline) where !line.hasPrefix("#") {
+            let cols = line.split(separator: "\t").map(String.init)
+            guard cols.count == 3, let w = byWord[cols[0]], let i = Int(cols[1]),
+                  let noted = w.senses.first(where: { $0.index == i }),
+                  let note = report.notes.first(where: { $0.word == w.word && $0.gloss == noted.gloss }) else {
+                report.errored.append("unmatched cover: \(line.prefix(30))")
+                continue
+            }
+            for j in cols[2].split(separator: ",").compactMap({ Int($0) }) {
+                guard let sense = w.senses.first(where: { $0.index == j }),
+                      !report.notes.contains(where: { $0.word == w.word && $0.gloss == sense.gloss }) else { continue }
+                report.notes.append(Note(word: w.word, pinyin: sense.pinyin, gloss: sense.gloss, tag: note.tag,
+                                         note: note.note, problems: note.problems))
+            }
+        }
+    }
+
     /// Mechanical checks on a note; anything flagged is held back from the app.
     static func problems(in note: String) -> [String] {
         var out: [String] = []

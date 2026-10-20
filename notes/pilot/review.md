@@ -2,7 +2,7 @@
 
 - Written by: Claude in a Claude Code session (no API calls)
 - Words: 502 (95 idioms), senses judged: 1434
-- Notes written: 267 across 263 words; 267 pass the checks, 0 flagged
+- Notes written: 382 across 260 words; 382 pass the checks, 0 flagged
 - Failed requests: 0
 
 ## Notes
@@ -379,10 +379,6 @@
   The War of Resistance against Japan, 1937 to 1945. It's the war of family stories, films and memorial days.
 - **解放** [jiě fàng] *refers to the Communists' victory over the Nationalists in 1949* · cultural context  
   Liberation: the Communist victory in 1949. People date things 解放前 or 解放后, before or after it.
-- **统一** [tǒng yī] *to unify; to integrate* · cultural context  
-  To unify. In politics it carries the national goal of bringing Taiwan under Beijing.
-- **复兴** [fù xīng] *to revive* · cultural context  
-  To revive, as in the great national rejuvenation. You hear it in slogans about China returning to its rightful greatness.
 - **崛起** [jué qǐ] *the emergence (e.g. of a power)* · cultural context  
   The rise of a power. China's 崛起 is spoken of with pride, a nation standing up after a century of weakness.
 - **和谐** [hé xié] *(euphemism) to censor* · lost in translation  
@@ -391,8 +387,6 @@
   Stability, as a political priority. Leaders say 稳定压倒一切: stability above all else.
 - **维稳** [wéi wěn] *to maintain social stability* · cultural context  
   Maintaining social stability. It means the state apparatus that heads off protests before they start.
-- **敏感** [mǐn gǎn] *sensitive* · cultural context  
-  Politically sensitive, in news and online talk. A 敏感 topic is one you sense might get a post deleted, so people talk around it.
 - **正能量** [zhèng néng liàng] *positivity* · cultural context  
   Positivity, especially the upbeat content officials and media promote. Calling a story 正能量 can be sincere praise or a wink at propaganda.
 - **主旋律** [zhǔ xuán lǜ] *(of a movie) created with the purpose of promoting Party values and point of view* · cultural context  
@@ -541,7 +535,243 @@
   Not ashamed to learn from those below you. It's praise from Confucius for humble learning.
 - **愚公移山** [yú gōng yí shān] *the old man moves mountains (idiom); fig. where there's a will, there's a way* · cultural context  
   Where there's a will, there's a way. From the old man who set out to move a mountain, shovel by shovel.
+- **饺子** [jiǎo zi] *pot-sticker* · cultural context  
+  A crescent dumpling folded around a minced filling. You picture the whole family around the table on New Year's Eve, pinching edges, someone hiding a coin in one for luck.
+- **农村** [nóng cūn] *village* · cultural context  
+  The countryside, as the half of China outside city life and city registration. Saying someone grew up in 农村 quietly places them: you hear dirt roads, farm chores and fewer chances, not pretty scenery.
+- **同学** [tóng xué] *fellow student* · cultural context  
+  A classmate, and also the polite way to hail any student you don't know. The tie lasts, so decades later being someone's 同学 is still a reason to do them a favour.
+- **客气** [kè qi] *courteous* · lost in translation  
+  Polite in a holding-back way. When a friend says 别客气 they mean drop the ceremony, because being too 客气 with someone close feels cold.
+- **客气** [kè qi] *formal* · lost in translation  
+  Polite in a holding-back way. When a friend says 别客气 they mean drop the ceremony, because being too 客气 with someone close feels cold.
+- **热闹** [rè nao] *to make things lively; to have a good time* · lost in translation  
+  Lively in the good, crowded, noisy way. You picture a packed restaurant, firecrackers and everyone talking at once, and that's exactly what makes it feel happy.
+- **热闹** [rè nao] *a scene of bustling activity; excitement* · lost in translation  
+  Lively in the good, crowded, noisy way. You picture a packed restaurant, firecrackers and everyone talking at once, and that's exactly what makes it feel happy.
+- **委屈** [wěi qu] *sense of being wronged* · lost in translation  
+  Wronged, and having to swallow it. You picture a child with trembling lips who did nothing wrong but got blamed anyway.
+- **孝顺** [xiào shùn] *filial* · cultural context  
+  Devoted and obedient to your parents, as a moral duty. It's not just loving them; you're expected to support them, defer to them and give them grandchildren.
+- **孝顺** [xiào shùn] *dutiful* · cultural context  
+  Devoted and obedient to your parents, as a moral duty. It's not just loving them; you're expected to support them, defer to them and give them grandchildren.
+- **孝顺** [xiào shùn] *to show filial piety towards (an older family member)* · cultural context  
+  Devoted and obedient to your parents, as a moral duty. It's not just loving them; you're expected to support them, defer to them and give them grandchildren.
+- **孝顺** [xiào shùn] *filial piety* · cultural context  
+  Devoted and obedient to your parents, as a moral duty. It's not just loving them; you're expected to support them, defer to them and give them grandchildren.
+- **缘分** [yuán fèn] *predestined affinity or relationship* · lost in translation  
+  The pull of fate that brings two people together. Running into an old friend in a foreign city, you smile and say it's 缘分.
+- **缘分** [yuán fèn] *(Budd.) destiny* · lost in translation  
+  The pull of fate that brings two people together. Running into an old friend in a foreign city, you smile and say it's 缘分.
+- **户口** [hù kǒu] *residence permit* · cultural context  
+  Your household registration, tied to where your family is officially from. It decides which school your child can attend and whether a city ever fully counts you as its own.
+- **老百姓** [lǎo bǎi xìng] *the "person in the street"* · cultural context  
+  Ordinary people, as opposed to officials. You mean the folks who just get on with their lives while decisions are made above them.
+- **干部** [gàn bù] *official* · cultural context  
+  A Party or state cadre: someone with a position in the system. You picture the official in a work unit or village whose signature gets things done.
+- **干部** [gàn bù] *officer* · cultural context  
+  A Party or state cadre: someone with a position in the system. You picture the official in a work unit or village whose signature gets things done.
+- **干部** [gàn bù] *manager* · cultural context  
+  A Party or state cadre: someone with a position in the system. You picture the official in a work unit or village whose signature gets things done.
+- **革命** [gé mìng] *revolutionary* · cultural context  
+  Revolution, above all the Communist one. The word carries a heroic, almost sacred glow from decades of Party history and textbooks.
+- **打工** [dǎ gōng] *(of students) to have a job outside of class time, or during vacation* · cultural context  
+  To work for someone else, especially a casual or migrant job. Every year young people from the countryside 出去打工, leaving villages to the old and the very young.
+- **清明** [Qīng míng] *Qingming or Pure Brightness, 5th of the 24 solar terms 二十四節氣|二十四节气[er4 shi2 si4 jie2 qi5] 5th-19th April* · cultural context  
+  Tomb Sweeping Day in early April. Families visit graves, tidy them and burn paper offerings for the dead.
+- **祖宗** [zǔ zōng] *forebear* · cultural context  
+  Ancestors, as a family line owed respect. Shaming yourself shames the 祖宗, whose graves and tablets are tended for generations.
+- **老家** [lǎo jiā] *place of origin* · lost in translation  
+  Your family's place of origin, where your roots are. Even if you grew up in Shanghai, your 老家 might be a village you visit once a year.
+- **老家** [lǎo jiā] *home state or region* · lost in translation  
+  Your family's place of origin, where your roots are. Even if you grew up in Shanghai, your 老家 might be a village you visit once a year.
+- **乡愁** [xiāng chóu] *nostalgia* · lost in translation  
+  Homesickness and longing for the place you came from. It's the ache of an emigrant looking at the moon and thinking of a village far away.
+- **义** [yì] *justice* · cultural context  
+  Righteousness: doing what's right even when it costs you. It's the loyalty of sworn brothers in old novels who'd die for each other.
+- **小人** [xiǎo rén] *vile character* · lost in translation  
+  A petty, scheming person. You picture a coworker who smiles to your face and undermines you behind your back.
+- **天下** [tiān xià] *the whole world* · cultural context  
+  All under heaven: the whole world as one realm under a ruler. It carries the ancient sense of China as the civilised centre of everything.
+- **天下** [tiān xià] *the whole of China* · cultural context  
+  All under heaven: the whole world as one realm under a ruler. It carries the ancient sense of China as the civilised centre of everything.
+- **天下** [tiān xià] *realm* · cultural context  
+  All under heaven: the whole world as one realm under a ruler. It carries the ancient sense of China as the civilised centre of everything.
+- **爱国** [ài guó] *patriotic* · cultural context  
+  To love one's country. It's taught as a core duty from school onward, and can feel both heartfelt and expected.
+- **讲究** [jiǎng jiu] *carefully selected for quality* · lost in translation  
+  To be particular about doing things properly. A family that 讲究 about food cares about season, region and how it's served; it reads as refinement, not fussiness.
+- **讲究** [jiǎng jiu] *tastefully chosen* · lost in translation  
+  To be particular about doing things properly. A family that 讲究 about food cares about season, region and how it's served; it reads as refinement, not fussiness.
+- **将就** [jiāng jiu] *to put up with* · lost in translation  
+  To make do with less than you'd like. You squeeze into a small flat and tell yourself it will do for now.
+- **凑合** [còu he] *to make do in a bad situation* · lost in translation  
+  To just about get by. Asked how life is, you say 凑合 with a shrug: not great, not terrible.
+- **凑合** [còu he] *passable* · lost in translation  
+  To just about get by. Asked how life is, you say 凑合 with a shrug: not great, not terrible.
+- **凑合** [còu he] *not too bad* · lost in translation  
+  To just about get by. Asked how life is, you say 凑合 with a shrug: not great, not terrible.
+- **闺蜜** [guī mì] *(originally written 閨密|闺密[gui1 mi4], an abbr. for 閨中密友|闺中密友[gui1 zhong1 mi4 you3])* · lost in translation  
+  A woman's closest female friend. She's the one who hears everything first and judges your boyfriends ruthlessly.
+- **相亲** [xiāng qīn] *blind date* · cultural context  
+  A meeting arranged to size up a possible spouse. You picture a stiff coffee with a stranger your aunt found, each side checking job, flat and family.
+- **彩礼** [cǎi lǐ] *betrothal gift* · cultural context  
+  Money or gifts the groom's family pays the bride's family. In some regions the sum can be enormous, and haggling over it can sink an engagement.
+- **婆婆** [pó po] *mother-in-law* · cultural context  
+  Your husband's mother. You picture the classic tension of a new wife living under her mother-in-law's eye.
+- **海归** [hǎi guī] *to return to China after a period of study or work overseas* · cultural context  
+  Someone who's come back to China after studying or working abroad. The term once meant prized talent; now a foreign degree is less of a golden ticket.
+- **鸡娃** [jī wá] *a child subjected to such a regimen* · cultural context  
+  To push a child through an intense schedule of classes and activities. You picture a nine-year-old with Olympiad maths, piano and English on a Saturday.
+- **补习班** [bǔ xí bān] *cram class* · cultural context  
+  A cram school for extra tutoring outside school. Evenings and weekends disappear into them, all to gain a few more exam points.
+- **补习班** [bǔ xí bān] *evening classes* · cultural context  
+  A cram school for extra tutoring outside school. Evenings and weekends disappear into them, all to gain a few more exam points.
+- **素质** [sù zhì] *basic essence* · cultural context  
+  A person's inner quality and manners. Saying someone has no 素质 for littering or queue-jumping is a sharp public judgement.
+- **体制** [tǐ zhì] *system* · cultural context  
+  The system: the state apparatus and its jobs. Working 体制内, inside the system, means stability and rules; outside it means risk and freedom.
+- **福** [fú] *happiness* · cultural context  
+  Blessing and good fortune. You see the character stuck upside down on doors at New Year, because 倒 sounds like "arrived".
+- **福** [fú] *luck* · cultural context  
+  Blessing and good fortune. You see the character stuck upside down on doors at New Year, because 倒 sounds like "arrived".
+- **福气** [fú qi] *a blessing* · lost in translation  
+  Good fortune as something you're blessed with. Grandparents surrounded by grandchildren are said to have real 福气.
+- **气节** [qì jié] *unflinching righteousness* · lost in translation  
+  Moral integrity under pressure. It's the official who would rather die than serve an invader.
+- **骨气** [gǔ qì] *unyielding character* · lost in translation  
+  Backbone: refusing to bow or beg. A poor man who won't accept charity on humiliating terms has 骨气.
+- **骨气** [gǔ qì] *courageous spirit* · lost in translation  
+  Backbone: refusing to bow or beg. A poor man who won't accept charity on humiliating terms has 骨气.
+- **骨气** [gǔ qì] *integrity* · lost in translation  
+  Backbone: refusing to bow or beg. A poor man who won't accept charity on humiliating terms has 骨气.
+- **正气** [zhèng qì] *healthy atmosphere; moral spirit* · lost in translation  
+  Upright moral spirit. Someone full of 正气 stands up against wrongdoing, and you can feel it in the room.
+- **义气** [yì qì] *code of brotherhood* · cultural context  
+  Loyalty among friends that may require sacrifice. It's the code of sworn brothers who stand by each other even against the law.
+- **义气** [yì qì] *also pr. [yi4 qi5]* · cultural context  
+  Loyalty among friends that may require sacrifice. It's the code of sworn brothers who stand by each other even against the law.
+- **讲义气** [jiǎng yì qì] *to be loyal (to one's friends)* · lost in translation  
+  To stick by your friends. A friend who 讲义气 will lend you money without asking why.
+- **情面** [qíng miàn] *feelings and sensibilities* · cultural context  
+  The feelings and face of a relationship. Refusing a request from an old classmate is hard because you want to save 情面.
+- **情面** [qíng miàn] *sensitivity to other's feelings* · cultural context  
+  The feelings and face of a relationship. Refusing a request from an old classmate is hard because you want to save 情面.
+- **客套** [kè tào] *polite greeting* · lost in translation  
+  To exchange polite pleasantries. Everyone knows the compliments at dinner are 客套, not meant to be taken literally.
+- **客套** [kè tào] *civilities* · lost in translation  
+  To exchange polite pleasantries. Everyone knows the compliments at dinner are 客套, not meant to be taken literally.
+- **应酬** [yìng chou] *to engage in social activities; to socialize* · cultural context  
+  Business entertaining: banquets and drinking with clients or officials. You picture a tired husband coming home late smelling of baijiu.
+- **干杯** [gān bēi] *to drink a toast* · cultural context  
+  Cheers! Literally "dry the cup", and you're expected to finish it, not sip.
+- **干杯** [gān bēi] *Here's to you!* · cultural context  
+  Cheers! Literally "dry the cup", and you're expected to finish it, not sip.
+- **干杯** [gān bēi] *Bottoms up!* · cultural context  
+  Cheers! Literally "dry the cup", and you're expected to finish it, not sip.
+- **干杯** [gān bēi] *lit. dry cup* · cultural context  
+  Cheers! Literally "dry the cup", and you're expected to finish it, not sip.
+- **请客** [qǐng kè] *to give a dinner party* · lost in translation  
+  To invite someone and pay. Friends tussle at the till over who gets to 请客, because paying shows generosity and face.
+- **请客** [qǐng kè] *to entertain guests* · lost in translation  
+  To invite someone and pay. Friends tussle at the till over who gets to 请客, because paying shows generosity and face.
+- **吃亏** [chī kuī] *to suffer losses* · lost in translation  
+  To lose out, get the short end of the stick. Parents tell kids 吃亏是福, losing out now is a blessing, to teach patience.
+- **吃亏** [chī kuī] *to come to grief* · lost in translation  
+  To lose out, get the short end of the stick. Parents tell kids 吃亏是福, losing out now is a blessing, to teach patience.
+- **吃亏** [chī kuī] *to get the worst of it* · lost in translation  
+  To lose out, get the short end of the stick. Parents tell kids 吃亏是福, losing out now is a blessing, to teach patience.
+- **吃亏** [chī kuī] *to be at a disadvantage* · lost in translation  
+  To lose out, get the short end of the stick. Parents tell kids 吃亏是福, losing out now is a blessing, to teach patience.
+- **占便宜** [zhàn pián yi] *to take unfair advantage* · lost in translation  
+  To take unfair advantage. You picture someone grabbing extra free samples or never paying their share.
+- **忍** [rěn] *to bear* · cultural context  
+  To restrain yourself and endure. The character shows a knife over a heart, and swallowing your anger is seen as wisdom.
+- **忍** [rěn] *to endure* · cultural context  
+  To restrain yourself and endure. The character shows a knife over a heart, and swallowing your anger is seen as wisdom.
+- **忍** [rěn] *to tolerate* · cultural context  
+  To restrain yourself and endure. The character shows a knife over a heart, and swallowing your anger is seen as wisdom.
+- **窝囊** [wō nang] *annoyed* · lost in translation  
+  Feeling helpless and humiliated. You're bullied but can't fight back, and you hate yourself a little for it.
+- **低调** [dī diào] *subdued* · lost in translation  
+  Keeping a low profile. A rich man who 低调 drives a plain car, and modesty is admired.
+- **低调** [dī diào] *low-key* · lost in translation  
+  Keeping a low profile. A rich man who 低调 drives a plain car, and modesty is admired.
+- **谦虚** [qiān xū] *modest* · cultural context  
+  To make modest remarks, playing down your success. When praised you say 哪里哪里, and accepting praise too readily seems arrogant.
+- **谦虚** [qiān xū] *self-effacing* · cultural context  
+  To make modest remarks, playing down your success. When praised you say 哪里哪里, and accepting praise too readily seems arrogant.
+- **含蓄** [hán xù] *restrained* · cultural context  
+  Reserved, saying things indirectly. Feelings are hinted, not declared, and a 含蓄 person might never say "I love you".
+- **含蓄** [hán xù] *(of words, writings) full of hidden meaning* · cultural context  
+  Reserved, saying things indirectly. Feelings are hinted, not declared, and a 含蓄 person might never say "I love you".
+- **含蓄** [hán xù] *implicit* · cultural context  
+  Reserved, saying things indirectly. Feelings are hinted, not declared, and a 含蓄 person might never say "I love you".
+- **含蓄** [hán xù] *veiled (criticism)* · cultural context  
+  Reserved, saying things indirectly. Feelings are hinted, not declared, and a 含蓄 person might never say "I love you".
+- **委婉** [wěi wǎn] *euphemistic* · lost in translation  
+  Tactful, softening things. You say 不太方便 instead of no, and everyone understands.
+- **委婉** [wěi wǎn] *soft* · lost in translation  
+  Tactful, softening things. You say 不太方便 instead of no, and everyone understands.
+- **圆滑** [yuán huá] *slick and sly* · lost in translation  
+  Smooth and evasive. You picture someone who never offends anyone and never commits to anything.
+- **世故** [shì gu] *sophisticated* · lost in translation  
+  Worldly-wise, in a calculating way. A 世故 person knows exactly whom to please, and it's not quite a compliment.
+- **靠谱** [kào pǔ] *reasonable* · lost in translation  
+  Reliable, sensible. A 靠谱 friend shows up on time and does what they promised.
+- **奇葩** [qí pā] *outlandish* · lost in translation  
+  A weirdo, an oddball. You call a colleague who brings a fish to the office microwave a 奇葩.
+- **洋气** [yáng qì] *Western style* · lost in translation  
+  Trendy, with a foreign flair. Calling an outfit 洋气 is a compliment, linking stylish with Western.
+- **洋气** [yáng qì] *foreign flavor* · lost in translation  
+  Trendy, with a foreign flair. Calling an outfit 洋气 is a compliment, linking stylish with Western.
+- **洋气** [yáng qì] *fashionable* · lost in translation  
+  Trendy, with a foreign flair. Calling an outfit 洋气 is a compliment, linking stylish with Western.
+- **接地气** [jiē dì qì] *in touch with the common people* · lost in translation  
+  Down to earth, in touch with ordinary people. A politician eating at a street stall to look 接地气 is the image.
+- **矫情** [jiǎo qíng] *unnatural* · lost in translation  
+  Affected, making a fuss over nothing. Complaining about a tiny inconvenience for an hour is 矫情.
+- **矫情** [jiǎo qíng] *pretentious* · lost in translation  
+  Affected, making a fuss over nothing. Complaining about a tiny inconvenience for an hour is 矫情.
+- **无语** [wú yǔ] *dumbfounded* · lost in translation  
+  Speechless, exasperated. When a friend does something ridiculous, you just type 无语.
+- **纠结** [jiū jié] *confused; to be at a loss* · lost in translation  
+  Torn, overthinking a decision. You go back and forth between two flats for weeks, completely 纠结.
+- **太监** [tài jiàn] *palace eunuch* · cultural context  
+  A court eunuch in imperial China. You picture powerful palace insiders, often hated, who served the emperor up close.
+- **侠** [xiá] *brave and chivalrous* · cultural context  
+  A knight-errant who defends the weak. You picture a wandering swordsman who rights wrongs outside the law.
+- **侠** [xiá] *hero* · cultural context  
+  A knight-errant who defends the weak. You picture a wandering swordsman who rights wrongs outside the law.
+- **侠** [xiá] *heroic* · cultural context  
+  A knight-errant who defends the weak. You picture a wandering swordsman who rights wrongs outside the law.
+- **武侠** [wǔ xiá] *knight-errant* · cultural context  
+  The martial arts genre of fiction and film. You picture flying swordsmen, secret techniques and codes of honour.
+- **好汉** [hǎo hàn] *hero* · lost in translation  
+  A brave, upstanding man. Calling someone a 好汉 echoes the outlaw heroes of the Water Margin.
+- **掠夺** [lüè duó] *to rob* · lost in translation  
+  To plunder. It carries a sense of organised, violent seizure, the way an army strips a land.
+- **殖民** [zhí mín] *colonial* · cultural context  
+  Colonial rule. It brings up foreign powers carving up China, a wound in the national memory.
+- **屈辱** [qū rǔ] *to humiliate* · lost in translation  
+  Humiliating, a deep wound to pride. You feel the national shame of past defeats taught in history class.
+- **正能量** [zhèng néng liàng] *positive energy* · cultural context  
+  Positivity, especially the upbeat content officials and media promote. Calling a story 正能量 can be sincere praise or a wink at propaganda.
+- **宣传** [xuān chuán] *to disseminate* · cultural context  
+  Propaganda or publicity, without the sinister edge it has elsewhere. A 宣传部 is a normal publicity department, and posters on every street are 宣传.
+- **宣传** [xuān chuán] *to give publicity to* · cultural context  
+  Propaganda or publicity, without the sinister edge it has elsewhere. A 宣传部 is a normal publicity department, and posters on every street are 宣传.
+- **集体** [jí tǐ] *joint (effort)* · cultural context  
+  The collective, valued above the individual. From school onward you're taught to put the group first, and 集体荣誉 is a real feeling.
+- **集体** [jí tǐ] *a group* · cultural context  
+  The collective, valued above the individual. From school onward you're taught to put the group first, and 集体荣誉 is a real feeling.
+- **集体** [jí tǐ] *a team* · cultural context  
+  The collective, valued above the individual. From school onward you're taught to put the group first, and 集体荣誉 is a real feeling.
+- **集体** [jí tǐ] *en masse* · cultural context  
+  The collective, valued above the individual. From school onward you're taught to put the group first, and 集体荣誉 is a real feeling.
+- **集体** [jí tǐ] *as a group* · cultural context  
+  The collective, valued above the individual. From school onward you're taught to put the group first, and 集体荣誉 is a real feeling.
 
-## Words with no note (239)
+## Words with no note (242)
 
-桌子 椅子 苹果 电脑 手机 汽车 窗户 衣服 鞋子 杯子 水果 米饭 面条 豆腐 茶 酒 咖啡 牛奶 鸡蛋 医院 学校 银行 超市 公园 车站 厨房 卧室 办公室 城市 乡下 邻居 同事 朋友 家人 孩子 父母 爷爷 奶奶 外婆 舅舅 哥哥 姐姐 弟弟 妹妹 丈夫 妻子 老婆 老公 儿子 女儿 孙子 宝宝 吃 喝 跑 坐 站 看 听 说 写 读 买 卖 找 等 送 拿 放 开 关 大 小 多 少 好 坏 高 低 长 短 快 慢 新 旧 热 冷 远 近 白 天气 时间 地方 事情 问题 办法 感觉 习惯 机会 经验 能力 水平 条件 环境 情况 影响 作用 工作 生活 学习 发展 改变 解决 决定 打算 准备 开始 结束 继续 坚持 放弃 努力 认真 马虎 小心 喜欢 讨厌 害怕 担心 放心 关心 照顾 方便 安静 舒服 难受 没关系 觉得 希望 明白 知道 认识 了解 理解 同意 反对 支持 相信 怀疑 后悔 羡慕 嫉妒 佩服 尊重 欣赏 原谅 感激 打 上 下 过 把 让 给 算 搞 弄 行 看法 说法 熬夜 上班 丢脸 风水 阴阳 家乡 故乡 德 老师 大人 嫁妆 留学 学渣 宿命 运气 因果 志气 寒暄 吃香 让步 忍耐 高调 直爽 憨厚 机灵 精明 时髦 郁闷 崩溃 尴尬 躺 狗 绝 北方 南方 京城 皇帝 宰相 举人 进士 县官 侵略 舆论 群体 一石二鸟 一举两得 不可思议 不知不觉 千方百计 与众不同 全力以赴 津津有味 乱七八糟 一路平安 一帆风顺 万事如意 心想事成 名副其实 自言自语 三心二意 四面八方 五花八门 十全十美 爱屋及乌 学以致用 精益求精 循序渐进 丰衣足食 车水马龙
+桌子 椅子 苹果 电脑 手机 汽车 窗户 衣服 鞋子 杯子 水果 米饭 面条 豆腐 茶 酒 咖啡 牛奶 鸡蛋 医院 学校 银行 超市 公园 车站 厨房 卧室 办公室 城市 乡下 邻居 同事 朋友 家人 孩子 父母 爷爷 奶奶 外婆 舅舅 哥哥 姐姐 弟弟 妹妹 丈夫 妻子 老婆 老公 儿子 女儿 孙子 宝宝 吃 喝 跑 坐 站 看 听 说 写 读 买 卖 找 等 送 拿 放 开 关 大 小 多 少 好 坏 高 低 长 短 快 慢 新 旧 热 冷 远 近 白 天气 时间 地方 事情 问题 办法 感觉 习惯 机会 经验 能力 水平 条件 环境 情况 影响 作用 工作 生活 学习 发展 改变 解决 决定 打算 准备 开始 结束 继续 坚持 放弃 努力 认真 马虎 小心 喜欢 讨厌 害怕 担心 放心 关心 照顾 方便 安静 舒服 难受 没关系 觉得 希望 明白 知道 认识 了解 理解 同意 反对 支持 相信 怀疑 后悔 羡慕 嫉妒 佩服 尊重 欣赏 原谅 感激 打 上 下 过 把 让 给 算 搞 弄 行 看法 说法 熬夜 上班 丢脸 风水 阴阳 家乡 故乡 德 老师 大人 嫁妆 留学 学渣 宿命 运气 因果 志气 寒暄 吃香 让步 忍耐 高调 直爽 憨厚 机灵 精明 时髦 郁闷 崩溃 尴尬 躺 狗 绝 北方 南方 京城 皇帝 宰相 举人 进士 县官 侵略 统一 复兴 敏感 舆论 群体 一石二鸟 一举两得 不可思议 不知不觉 千方百计 与众不同 全力以赴 津津有味 乱七八糟 一路平安 一帆风顺 万事如意 心想事成 名副其实 自言自语 三心二意 四面八方 五花八门 十全十美 爱屋及乌 学以致用 精益求精 循序渐进 丰衣足食 车水马龙
