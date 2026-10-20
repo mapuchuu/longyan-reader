@@ -91,13 +91,14 @@ enum SenseChooser {
             ? [] : [context.markedPassage, context.markedSentence]
         for passage in passages {
             do {
-                return try await respond(prompt(passage, word: context.word, senses: senses), senses: senses, nuance: false)
+                let choice = try await respond(prompt(passage, word: context.word, senses: senses), senses: senses, nuance: false)
+                return await preferNoted(choice, context: context, senses: senses)
             } catch {
                 lastError = error
             }
         }
         if let translation = try? await Translator.translate(context.sentence),
-           let i = senseMatching(translation: translation, senses: senses) {
+           let i = senseMatching(translation: translation, senses: senses, word: context.word) {
             return SenseChoice(senseNumber: i + 1, meaningHere: shortGloss([senses[i]]), viaTranslation: true)
         }
         throw lastError ?? NSError(domain: "LongyanReader", code: 2,
@@ -152,10 +153,62 @@ enum SenseChooser {
 
     /// The sense whose gloss shares the most words with an English translation of the
     /// passage, or nil when none does. Instant; used for a phrase's first-pass glosses.
-    static func senseMatching(translation: String, senses: [Sense]) -> Int? {
-        let words = glossWords(translation)
-        let scores = senses.map { glossWords($0.gloss).intersection(words).count }
+    /// On a tie, a sense with a prewritten note wins, so its note gets shown.
+    static func senseMatching(translation: String, senses: [Sense], word: String? = nil) -> Int? {
+        let scores = overlapScores(translation: translation, senses: senses)
         guard let best = scores.max(), best > 0 else { return nil }
-        return scores.firstIndex(of: best)
+        let tied = scores.indices.filter { scores[$0] == best }
+        if let word, let noted = tied.first(where: { NotesStore.note(word, senses[$0]) != nil }) { return noted }
+        return tied.first
+    }
+
+    static func overlapScores(translation: String, senses: [Sense]) -> [Int] {
+        let words = glossWords(translation)
+        return senses.map { glossWords($0.gloss).intersection(words).count }
+    }
+
+    /// The 3B model tends to pick the plainest sense (关系 "relationship" in 他靠关系找到了工作).
+    /// When a sense with a prewritten note fits the sentence's translation at least as well
+    /// as the model's pick, show that sense, so its note appears.
+    static func preferNoted(_ choice: SenseChoice, context: WordInContext, senses: [Sense]) async -> SenseChoice {
+        let chosen = choice.senseNumber - 1
+        let noted = senses.indices.filter { $0 != chosen && NotesStore.note(context.word, senses[$0]) != nil }
+        let chosenHasNote = NotesStore.note(context.word, senses[chosen]) != nil
+        guard !noted.isEmpty, let translation = try? await Translator.translate(context.sentence) else { return choice }
+        let scores = overlapScores(translation: translation, senses: senses)
+        var pick: Int?
+        if !chosenHasNote, let best = noted.max(by: { scores[$0] < scores[$1] }), scores[best] > 0, scores[best] >= scores[chosen] {
+            pick = best
+        } else {
+            // Word overlap can't see synonyms, so ask the model to choose between its own pick
+            // and the noted sense, in both orders; switch only if it picks the noted sense twice.
+            for i in noted.prefix(2) where await prefersNoted(senses[i], over: senses[chosen], context: context) {
+                pick = i
+                break
+            }
+        }
+        guard let pick else { return choice }
+        var switched = choice
+        switched.senseNumber = pick + 1
+        switched.meaningHere = shortGloss([senses[pick]])
+        return switched
+    }
+
+    /// A yes/no question invites agreement (the 3B model says yes to "died" for 我们走吧),
+    /// so offer exactly two meanings and ask in both orders. Unanimous or no switch:
+    /// a missing note is fine, a wrong one is not.
+    static func prefersNoted(_ noted: Sense, over current: Sense, context: WordInContext) async -> Bool {
+        typealias S = DynamicGenerationSchema
+        for (x, y) in [(current.gloss, noted.gloss), (noted.gloss, current.gloss)] {
+            guard x != y, let schema = try? GenerationSchema(root: S(name: "Answer", properties: [
+                S.Property(name: "meaning", description: "the meaning the marked word has in this passage",
+                           schema: S(name: "Choice", anyOf: [x, y])),
+            ]), dependencies: []) else { return false }
+            let session = LanguageModelSession(instructions: "You help an English speaker read Chinese.")
+            let prompt = "Passage: \(context.markedSentence)\nWhich meaning does the marked word \(context.word) have here: \"\(x)\" or \"\(y)\"?"
+            guard let r = try? await session.respond(to: prompt, schema: schema, options: GenerationOptions(sampling: .greedy)),
+                  (try? r.content.value(String.self, forProperty: "meaning")) == noted.gloss else { return false }
+        }
+        return true
     }
 }

@@ -31,7 +31,7 @@ final class PhraseState: ObservableObject {
     private func alignToTranslation() {
         guard let translation else { return }
         for t in tokens {
-            if let list = senses[t.id], let i = SenseChooser.senseMatching(translation: translation, senses: list) {
+            if let list = senses[t.id], let i = SenseChooser.senseMatching(translation: translation, senses: list, word: t.text) {
                 translationSense[t.id] = i
             }
         }

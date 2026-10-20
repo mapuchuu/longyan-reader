@@ -139,6 +139,21 @@ enum CLI {
         ("这本书很有意思。", "意思", "有意思", "interesting", nil),
         ("你这是什么意思？", "意思", "意思", "meaning", nil),
         ("春节的时候大家都回家过年。", "过年", "过年", "New Year", .culturalContext),
+        // Senses that carry a prewritten note: the note only shows if the right sense is chosen.
+        ("他靠关系找到了工作。", "关系", "关系", "guanxi", .culturalContext),
+        ("这是一点小意思，请收下。", "意思", "小意思", "token", nil),
+        ("他给医生塞了一个红包。", "红包", "红包", "bribe", .culturalContext),
+        ("奶奶上个月走了，全家人都很难过。", "走", "走", "to die", .lostInTranslation),
+        ("我这个人比较佛系，不想跟别人争。", "佛系", "佛系", "chill", .lostInTranslation),
+        ("这条新闻太离谱了。", "离谱", "离谱", "inappropriate", .lostInTranslation),
+        ("他上班的时候经常摸鱼。", "摸鱼", "摸鱼", "loaf", .lostInTranslation),
+        // The noted sense is wrong here: the tie-break must not switch to it.
+        ("时间不早了，我们走吧。", "走", "走", "to go", nil),
+        ("他每天走路去学校。", "走", "走路", "to walk", nil),
+        ("这件事跟你没关系。", "关系", "没关系", "doesn't matter", nil),
+        ("我们周末去河边摸鱼。", "摸鱼", "摸鱼", "catch fish", nil),
+        ("这个人很老实，从来不说谎。", "老实", "老实", "honest", nil),
+        ("他太老实了，总是被人骗。", "老实", "老实", "gullible", .lostInTranslation),
     ]
 
     static func eval(dict: CEDict) async throws {
@@ -157,7 +172,8 @@ enum CLI {
                 let gloss = senses[c.senseNumber - 1].gloss
                 let s = wantSense.isEmpty || gloss.localizedCaseInsensitiveContains(wantSense)
                 if s { senseOK += 1 }
-                line += "  sense \(s ? "✓" : "✗") [\(Pinyin.marked(senses[c.senseNumber - 1].pinyin))] \(gloss)  | here: \(c.meaningHere)\(c.viaTranslation ? " (via translation)" : "")"
+                let hasNote = NotesStore.note(ctx.word, senses[c.senseNumber - 1]) != nil
+                line += "  sense \(s ? "✓" : "✗") [\(Pinyin.marked(senses[c.senseNumber - 1].pinyin))] \(gloss)  | here: \(c.meaningHere)\(c.viaTranslation ? " (via translation)" : "")\(hasNote ? " | NOTE" : "")"
                 if !c.note.isEmpty { line += "\n      note: \(c.note)" }
             } catch {
                 failures += 1

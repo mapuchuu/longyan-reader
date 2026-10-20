@@ -51,7 +51,7 @@ Each lookup appends a line to `~/Library/Logs/LongyanReader/lookups.jsonl`, a fe
 
 ## Status
 
-Current `--eval` score: words 15/16, senses 13/16, no errors, about 0.35 s per lookup on an M5 Pro. When the model refuses a sentence, the sense is matched to an on-device translation of it instead.
+Current `--eval` score (29 cases, including 7 where a noted sense is right and 5 where it is wrong): words 27/29, senses 22/29, no errors, about 0.5 s per lookup on an M5 Pro. When the model refuses a sentence, the sense is matched to an on-device translation of it instead.
 
 The on-device model is about 3B parameters. It's decent at saying what a word means in context. It was confidently wrong when writing nuance notes (熟练 "skilled" tagged as cultural context), so it no longer writes them.
 
