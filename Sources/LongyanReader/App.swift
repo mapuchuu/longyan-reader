@@ -101,6 +101,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(withTitle: "Sense chooser: " + (localModelReady ? "\(LocalModel.name) (local, via Ollama)"
                                                      : "Apple on-device model, " + SenseChooser.unavailableReason),
                      action: nil, keyEquivalent: "")
+        let pickerMenu = NSMenu()
+        for choice in LocalModel.choices {
+            let item = pickerMenu.addItem(withTitle: choice.label, action: #selector(selectModel(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = choice.id
+            item.state = LocalModel.name == choice.id ? .on : .off
+        }
+        let pickerItem = menu.addItem(withTitle: "Sense Picker", action: nil, keyEquivalent: "")
+        menu.setSubmenu(pickerMenu, for: pickerItem)
         menu.addItem(withTitle: "Accessibility: " + (AXIsProcessTrusted() ? "allowed" : "not allowed"), action: nil, keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Open Accessibility Settings…", action: #selector(openAccessibility), keyEquivalent: "").target = self
@@ -111,6 +120,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func toggleChip() { chip.isEnabled.toggle(); rebuildMenu() }
+    @objc private func selectModel(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? String else { return }
+        LocalModel.select(id)
+        refresh()
+    }
     @objc private func openAccessibility() {
         NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
     }

@@ -4,11 +4,22 @@ import Foundation
 /// Stronger than Apple's on-device 3B model at telling close senses apart; used when
 /// Ollama is running and the model is installed, otherwise the app falls back.
 enum LocalModel {
-    /// Which model to use: LONGYAN_MODEL, else the "senseModel" default, else qwen3.5:9b.
-    /// "apple" turns it off.
+    /// Which model to use: LONGYAN_MODEL, else the "senseModel" default, else qwen3.5:4b.
+    /// "apple" turns it off. On the tests the 4B matched the 9B (51/52) with one wrong note
+    /// to the 9B's none, at ~0.4 s and 2.9 GB instead of ~0.6 s and 4.5 GB.
     static var name: String {
         ProcessInfo.processInfo.environment["LONGYAN_MODEL"]
-            ?? UserDefaults.standard.string(forKey: "senseModel") ?? "qwen3.5:9b"
+            ?? UserDefaults.standard.string(forKey: "senseModel") ?? "qwen3.5:4b"
+    }
+    static let choices: [(id: String, label: String)] = [
+        ("qwen3.5:4b", "Qwen 3.5 4B: lighter (2.9 GB, ~0.4 s)"),
+        ("qwen3.5:9b", "Qwen 3.5 9B: most accurate (4.5 GB, ~0.6 s)"),
+        ("apple", "Apple on-device model only"),
+    ]
+
+    static func select(_ id: String) {
+        UserDefaults.standard.set(id, forKey: "senseModel")
+        lastCheck = nil
     }
     static var enabled: Bool { name != "apple" }
 
@@ -58,8 +69,10 @@ enum LocalModel {
             "stream": false,
             "think": false,
             "format": schema,
-            "options": ["temperature": 0],
-            "keep_alive": "30m",
+            // Prompts are under 1k tokens: a small context window keeps memory down, and the
+            // model is unloaded after five idle minutes (the next lookup reloads it in seconds).
+            "options": ["temperature": 0, "num_ctx": 2048],
+            "keep_alive": "5m",
             "messages": [
                 ["role": "system", "content": instructions],
                 ["role": "user", "content": prompt(context, senses: senses)],

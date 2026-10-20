@@ -51,17 +51,19 @@ Each lookup appends a line to `~/Library/Logs/LongyanReader/lookups.jsonl`, a fe
 
 ## Status
 
-The sense picker uses a local model through [Ollama](https://ollama.com) when it is running (default `qwen3.5:9b`; set the `senseModel` default or `LONGYAN_MODEL`, or `apple` to turn it off), and falls back to Apple's on-device model otherwise. The 龍 menu shows which one is active.
+The sense picker uses a local model through [Ollama](https://ollama.com) when it is running (default `qwen3.5:4b`; choose it in the menu under Sense Picker, or set `LONGYAN_MODEL`, or `apple` to turn it off), and falls back to Apple's on-device model otherwise. The model gets a 2,048-token context and is unloaded after five idle minutes.
 
-| Sense picker | Note test (52 held-out) | Wrong notes | Main test senses (29) | Per lookup |
-|---|---|---|---|---|
-| Apple 3B + tie-break rules | 38 | 5 | 22 | ~0.55 s |
-| Qwen3.5 9B + tie-break rules | 39 | 4 | 22 | ~0.9 s |
-| **Qwen3.5 9B alone (default)** | **51** | **0** | **25** | **~0.6 s** |
+| Sense picker | Note test (52 held-out) | Wrong notes | Main test senses (29) | Per lookup | Memory in use |
+|---|---|---|---|---|---|
+| Apple 3B + tie-break rules | 38 | 5 | 22 | ~0.55 s | (system model) |
+| **Qwen3.5 4B (default)** | **51** | **1** | **25** | **~0.39 s** | **2.9 GB** |
+| Qwen3.5 9B | 51 | 0 | 25 | ~0.62 s | 4.5 GB |
+
+Rephrasing the question for Apple's model (meanings by name, examples in the prompt) did not help: 33–38/52 in every variant.
 
 The tie-break rules (translation matching, a two-option question in both orders) only run with Apple's model; with Qwen they overrode correct answers.
 
-To set up Qwen without Ollama's downloader (for example behind a fake-IP proxy), download `Qwen3.5-9B-Q4_K_M.gguf` from the `unsloth/Qwen3.5-9B-GGUF` repo (hf-mirror.com works in China) and run `ollama create qwen3.5:9b -f Modelfile` with `FROM ./Qwen3.5-9B-Q4_K_M.gguf`.
+To set up Qwen without Ollama's downloader (for example behind a fake-IP proxy), download `Qwen3.5-4B-Q4_K_M.gguf` (2.74 GB) from the `unsloth/Qwen3.5-4B-GGUF` repo (hf-mirror.com works in China) and run `ollama create qwen3.5:4b -f Modelfile` with `FROM ./Qwen3.5-4B-Q4_K_M.gguf`.
 
 Nuance notes are written ahead of time, one per dictionary sense that needs one, and shipped in `Resources/notes.json`. The pilot covers 502 words (95 idioms), written by Claude in a Claude Code session; see `notes/pilot/review.md`. Example sentences (`notes/pilot/examples.tsv`, 315 sentences for 198 senses) go into the local model's prompt, and `notes/pilot/note-covers.tsv` lets one note cover its paraphrase senses. For a full build, `NotesBuilder.swift` can also run the job through the Message Batches API (`--notes-submit`, `--notes-status`, `--notes-fetch`).
 
