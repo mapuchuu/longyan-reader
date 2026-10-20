@@ -57,7 +57,7 @@ The sense picker uses a local model through [Ollama](https://ollama.com) when it
 |---|---|---|---|---|---|
 | Apple 3B + tie-break rules | 38 | 5 | 22 | ~0.55 s | (system model) |
 | **Qwen3.5 4B (default)** | **51** | **1** | **25** | **~0.39 s** | **2.9 GB** |
-| Qwen3.5 9B | 51 | 0 | 25 | ~0.62 s | 4.5 GB |
+| Qwen3.5 9B (measured, not installed) | 51 | 0 | 25 | ~0.62 s | 4.5 GB |
 
 Rephrasing the question for Apple's model (meanings by name, examples in the prompt) did not help: 33–38/52 in every variant.
 

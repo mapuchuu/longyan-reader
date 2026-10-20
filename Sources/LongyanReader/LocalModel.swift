@@ -13,7 +13,6 @@ enum LocalModel {
     }
     static let choices: [(id: String, label: String)] = [
         ("qwen3.5:4b", "Qwen 3.5 4B: lighter (2.9 GB, ~0.4 s)"),
-        ("qwen3.5:9b", "Qwen 3.5 9B: most accurate (4.5 GB, ~0.6 s)"),
         ("apple", "Apple on-device model only"),
     ]
 
