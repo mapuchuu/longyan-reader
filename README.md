@@ -51,11 +51,19 @@ Each lookup appends a line to `~/Library/Logs/LongyanReader/lookups.jsonl`, a fe
 
 ## Status
 
-Current `--eval` score (29 cases, including 7 where a noted sense is right and 5 where it is wrong): words 27/29, senses 22/29, no errors, about 0.5 s per lookup on an M5 Pro. When the model refuses a sentence, the sense is matched to an on-device translation of it instead.
+The sense picker uses a local model through [Ollama](https://ollama.com) when it is running (default `qwen3.5:9b`; set the `senseModel` default or `LONGYAN_MODEL`, or `apple` to turn it off), and falls back to Apple's on-device model otherwise. The 龍 menu shows which one is active.
 
-The on-device model is about 3B parameters. It's decent at saying what a word means in context. It was confidently wrong when writing nuance notes (熟练 "skilled" tagged as cultural context), so it no longer writes them.
+| Sense picker | Note test (52 held-out) | Wrong notes | Main test senses (29) | Per lookup |
+|---|---|---|---|---|
+| Apple 3B + tie-break rules | 38 | 5 | 22 | ~0.55 s |
+| Qwen3.5 9B + tie-break rules | 39 | 4 | 22 | ~0.9 s |
+| **Qwen3.5 9B alone (default)** | **51** | **0** | **25** | **~0.6 s** |
 
-Nuance notes are written ahead of time, one per dictionary sense that needs one, and shipped in `Resources/notes.json`. The on-device model only picks the sense. The pilot covers 502 words (95 idioms): 267 notes across 1,434 senses, written by Claude in a Claude Code session. See `notes/pilot/review.md`. Example sentences (`notes/pilot/examples.tsv` → `Resources/examples.json`, 315 sentences for 198 senses) help the on-device model decide between its pick and a noted sense, in both directions. Where senses are only paraphrases of each other, `notes/pilot/note-covers.tsv` lets one note cover them all (118 senses). `--eval-notes` checks 52 held-out sentences: 38/52 show the right note (or correctly none), and 5 show a wrong one. In the word card you can also click any sense to use it. For a full build, `NotesBuilder.swift` can also run the same job through the Message Batches API (`--notes-submit`, `--notes-status`, `--notes-fetch`).
+The tie-break rules (translation matching, a two-option question in both orders) only run with Apple's model; with Qwen they overrode correct answers.
+
+To set up Qwen without Ollama's downloader (for example behind a fake-IP proxy), download `Qwen3.5-9B-Q4_K_M.gguf` from the `unsloth/Qwen3.5-9B-GGUF` repo (hf-mirror.com works in China) and run `ollama create qwen3.5:9b -f Modelfile` with `FROM ./Qwen3.5-9B-Q4_K_M.gguf`.
+
+Nuance notes are written ahead of time, one per dictionary sense that needs one, and shipped in `Resources/notes.json`. The pilot covers 502 words (95 idioms), written by Claude in a Claude Code session; see `notes/pilot/review.md`. Example sentences (`notes/pilot/examples.tsv`, 315 sentences for 198 senses) go into the local model's prompt, and `notes/pilot/note-covers.tsv` lets one note cover its paraphrase senses. For a full build, `NotesBuilder.swift` can also run the job through the Message Batches API (`--notes-submit`, `--notes-status`, `--notes-fetch`).
 
 ## Licences
 

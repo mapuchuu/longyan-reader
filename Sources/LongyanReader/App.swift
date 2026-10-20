@@ -27,6 +27,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let popup = PopupController()
     private let chip = SelectionChip()
     private var lookupTask: Task<Void, Never>?
+    private var localModelReady = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -47,6 +48,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Task { @MainActor in await self?.chipClicked(selection, chipFrame: chipFrame) }
         }
         chip.start()
+        refresh()   // also checks whether the local model is running
 
         // Switch on Chromium's page accessibility as soon as a browser comes to the front.
         NSWorkspace.shared.notificationCenter.addObserver(
@@ -96,7 +98,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         chipItem.state = chip.isEnabled ? .on : .off
         menu.addItem(.separator())
         menu.addItem(withTitle: "Dictionary: " + (dict.map { "\($0.entryCount) entries" } ?? "loading…"), action: nil, keyEquivalent: "")
-        menu.addItem(withTitle: "Sense chooser: " + SenseChooser.unavailableReason, action: nil, keyEquivalent: "")
+        menu.addItem(withTitle: "Sense chooser: " + (localModelReady ? "\(LocalModel.name) (local, via Ollama)"
+                                                     : "Apple on-device model, " + SenseChooser.unavailableReason),
+                     action: nil, keyEquivalent: "")
         menu.addItem(withTitle: "Accessibility: " + (AXIsProcessTrusted() ? "allowed" : "not allowed"), action: nil, keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Open Accessibility Settings…", action: #selector(openAccessibility), keyEquivalent: "").target = self
@@ -110,7 +114,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func openAccessibility() {
         NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
     }
-    @objc private func refresh() { rebuildMenu() }
+    @objc private func refresh() {
+        Task {
+            localModelReady = await LocalModel.isAvailable()
+            rebuildMenu()
+        }
+    }
 
     // MARK: Triggers
 
