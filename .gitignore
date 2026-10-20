@@ -1,3 +1,5 @@
 .build/
 build/
 Resources/cedict_ts.u8
+notes/pilot/batch.json
+Resources/jieba-dict.txt

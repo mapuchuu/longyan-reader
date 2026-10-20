@@ -59,6 +59,31 @@ enum CLI {
             print("found at \(r): …" + String(text[lo..<r.lowerBound]) + "【" + String(text[r]) + "】" + String(text[r.upperBound..<hi]) + "…")
         case "--render" where args.count >= 5:
             try await render(passage: args[2], click: args[3], to: URL(fileURLWithPath: args[4]))
+        case "--notes-select" where args.count >= 4:
+            let words = try NotesBuilder.select(frequencyFile: URL(fileURLWithPath: args[2]), dict: try CEDict.load(),
+                                                count: args.count >= 5 ? Int(args[4]) ?? 500 : 500)
+            let enc = JSONEncoder(); enc.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
+            try enc.encode(words).write(to: URL(fileURLWithPath: args[3]))
+            let senses = words.map(\.senses.count).reduce(0, +)
+            print("selected \(words.count) words (\(words.filter { $0.kind == "idiom" }.count) idioms), \(senses) senses")
+            print("sample: " + words.prefix(40).map(\.word).joined(separator: " "))
+        case "--notes-submit" where args.count >= 4:
+            let words = try JSONDecoder().decode([NotesBuilder.PilotWord].self, from: Data(contentsOf: URL(fileURLWithPath: args[2])))
+            let batch = try await NotesBuilder.submit(words)
+            try JSONSerialization.data(withJSONObject: batch, options: .prettyPrinted).write(to: URL(fileURLWithPath: args[3]))
+            print("batch \(batch["id"] ?? "?"): \(batch["processing_status"] ?? "?"), \(words.count) requests")
+        case "--notes-status" where args.count >= 3:
+            let saved = try JSONSerialization.jsonObject(with: Data(contentsOf: URL(fileURLWithPath: args[2]))) as? [String: Any] ?? [:]
+            let batch = try await NotesBuilder.status(id: saved["id"] as? String ?? "")
+            print("\(batch["processing_status"] ?? "?") \(batch["request_counts"] ?? "")")
+        case "--notes-fetch" where args.count >= 6:
+            let saved = try JSONSerialization.jsonObject(with: Data(contentsOf: URL(fileURLWithPath: args[2]))) as? [String: Any] ?? [:]
+            let words = try JSONDecoder().decode([NotesBuilder.PilotWord].self, from: Data(contentsOf: URL(fileURLWithPath: args[3])))
+            let report = try await NotesBuilder.fetch(id: saved["id"] as? String ?? "", words: words)
+            let enc = JSONEncoder(); enc.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
+            try enc.encode(report.notes).write(to: URL(fileURLWithPath: args[4]))
+            try NotesBuilder.review(report, words: words).write(to: URL(fileURLWithPath: args[5]), atomically: true, encoding: .utf8)
+            print("notes \(report.notes.count), flagged \(report.notes.filter { !$0.problems.isEmpty }.count), failed \(report.errored.count)")
         case "--eval":
             try await eval(dict: try CEDict.load())
         default:
