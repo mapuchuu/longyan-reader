@@ -100,6 +100,26 @@ extension View {
     }
 }
 
+/// The light/dark choice from the menu: nil follows the system.
+enum CardAppearance {
+    static var current: NSAppearance? {
+        switch UserDefaults.standard.string(forKey: "appearance") {
+        case "light": return NSAppearance(named: .aqua)
+        case "dark": return NSAppearance(named: .darkAqua)
+        default: return nil
+        }
+    }
+}
+
+/// The card's surface over the material: near-white in light mode, near-black in dark.
+func cardSurface(opaque: Bool) -> Color {
+    Color(nsColor: NSColor(name: nil) { appearance in
+        appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+            ? NSColor(srgbRed: 0.12, green: 0.12, blue: 0.13, alpha: opaque ? 1 : 0.78)
+            : NSColor(srgbRed: 1, green: 1, blue: 1, alpha: opaque ? 1 : 0.80)
+    })
+}
+
 /// Set when drawing a card to a PNG: the translucent material doesn't render offscreen.
 private struct SnapshotKey: EnvironmentKey { static let defaultValue = false }
 extension EnvironmentValues {
@@ -189,9 +209,14 @@ struct CardChrome<Content: View>: View {
         view
         .background {
             if snapshot {
-                RoundedRectangle(cornerRadius: Self.radius, style: .continuous).fill(Color(nsColor: .windowBackgroundColor))
+                RoundedRectangle(cornerRadius: Self.radius, style: .continuous).fill(cardSurface(opaque: true))
             } else {
-                MaterialBackground(radius: Self.radius)
+                // The popover material alone reads grey; a soft white (near-black in dark
+                // mode) wash over it keeps a little translucency but looks clean.
+                ZStack {
+                    MaterialBackground(radius: Self.radius)
+                    RoundedRectangle(cornerRadius: Self.radius, style: .continuous).fill(cardSurface(opaque: false))
+                }
             }
         }
         .overlay(RoundedRectangle(cornerRadius: Self.radius, style: .continuous)

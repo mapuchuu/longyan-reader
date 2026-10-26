@@ -57,6 +57,8 @@ enum CLI {
             guard let r = SelectionReader.find(args[4], in: text) else { print("selection not found"); return }
             let lo = max(0, r.lowerBound - 40), hi = min(text.count, r.upperBound + 40)
             print("found at \(r): …" + String(text[lo..<r.lowerBound]) + "【" + String(text[r]) + "】" + String(text[r.upperBound..<hi]) + "…")
+        case "--render-chip" where args.count >= 3:
+            try await writePNG(ChipButtonView {}.frame(width: 30, height: 30), to: URL(fileURLWithPath: args[2]))
         case "--render" where args.count >= 5:
             try await render(passage: args[2], click: args[3], to: URL(fileURLWithPath: args[4]))
         case "--notes-select" where args.count >= 4:

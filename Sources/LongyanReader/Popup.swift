@@ -251,6 +251,7 @@ final class PopupController {
         panel.level = .popUpMenu
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
         panel.contentView = host
+        panel.appearance = CardAppearance.current
         self.panel = panel
         self.hosting = host
         self.layout = layout
@@ -310,6 +311,11 @@ final class PopupController {
             panel.setFrame(frame, display: true)
             panel.invalidateShadow()
         }
+    }
+
+    /// Switches an open card to the chosen appearance straight away.
+    func setAppearance(_ appearance: NSAppearance?) {
+        panel?.appearance = appearance
     }
 
     /// Kept for callers that changed content: the card follows its own size now.

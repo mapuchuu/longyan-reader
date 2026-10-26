@@ -33,6 +33,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Saved card widths now mean a zoom level; sizes saved by the box-resizing
         // version would open cards shrunk, so start those fresh once.
         let defaults = UserDefaults.standard
+        applyAppearance()
         if defaults.integer(forKey: "cardSizeVersion") < 2 {
             for key in defaults.dictionaryRepresentation().keys where key.hasPrefix("card.") { defaults.removeObject(forKey: key) }
             defaults.set(2, forKey: "cardSizeVersion")
@@ -139,6 +140,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         let pickerItem = menu.addItem(withTitle: "Sense Picker", action: nil, keyEquivalent: "")
         menu.setSubmenu(pickerMenu, for: pickerItem)
+
+        let appearanceMenu = NSMenu()
+        for (id, label) in [("system", "Match System"), ("light", "Light"), ("dark", "Dark")] {
+            let item = appearanceMenu.addItem(withTitle: label, action: #selector(selectAppearance(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = id
+            item.state = currentAppearance == id ? .on : .off
+        }
+        let appearanceItem = menu.addItem(withTitle: "Appearance", action: nil, keyEquivalent: "")
+        menu.setSubmenu(appearanceMenu, for: appearanceItem)
         menu.addItem(withTitle: "Accessibility: " + (AXIsProcessTrusted() ? "allowed" : "not allowed"), action: nil, keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Open Accessibility Settings…", action: #selector(openAccessibility), keyEquivalent: "").target = self
@@ -149,6 +160,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func toggleChip() { chip.isEnabled.toggle(); rebuildMenu() }
+    // MARK: Appearance
+
+    /// "system", "light" or "dark"; applies to the cards and the selection button.
+    private var currentAppearance: String { UserDefaults.standard.string(forKey: "appearance") ?? "system" }
+
+    /// Applied to the card and selection-button windows only, so the menu-bar icon keeps
+    /// following the menu bar.
+    private func applyAppearance() {
+        popup.setAppearance(CardAppearance.current)
+    }
+
+    @objc private func selectAppearance(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? String else { return }
+        UserDefaults.standard.set(id, forKey: "appearance")
+        applyAppearance()
+        rebuildMenu()
+    }
+
     @objc private func selectModel(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? String else { return }
         LocalModel.select(id)

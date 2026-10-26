@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 
 /// The small Longyan button that appears next to a fresh selection.
 /// Clicking it opens the lookup; it disappears on the next click, key press or scroll.
@@ -55,7 +56,8 @@ final class SelectionChip {
         }
     }
 
-    private static let size: CGFloat = 20
+    /// The window is a little larger than the button so its hover growth and shadow fit.
+    private static let size: CGFloat = 30
 
     /// Sits just after the end of a one-line selection; for longer selections,
     /// just above and right of where the mouse was released.
@@ -75,15 +77,9 @@ final class SelectionChip {
         panel.hasShadow = true
         panel.level = .popUpMenu
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
-        let chip = ChipView(frame: NSRect(x: 0, y: 0, width: size, height: size))
-        chip.onClick = { [weak self] in self?.clicked() }
-        panel.contentView = chip
-        panel.alphaValue = 0
+        panel.contentView = FirstMouseHostingView(rootView: ChipButtonView { [weak self] in self?.clicked() })
+        panel.appearance = CardAppearance.current
         panel.orderFrontRegardless()
-        NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = 0.12
-            panel.animator().alphaValue = 1
-        }
         self.panel = panel
 
         let work = DispatchWorkItem { [weak self] in self?.hide() }
@@ -100,47 +96,52 @@ final class SelectionChip {
 
     func hide() {
         hideWork?.cancel()
-        panel?.orderOut(nil)
+        if let old = panel {
+            NSAnimationContext.runAnimationGroup({ ctx in
+                ctx.duration = 0.1
+                old.animator().alphaValue = 0
+            }, completionHandler: { old.orderOut(nil) })
+        }
         panel = nil
     }
 }
 
-/// A small translucent circle with the Longyan eye: quiet until hovered.
-final class ChipView: NSView {
-    var onClick: () -> Void = {}
-    private let background = NSVisualEffectView()
-    private let icon = NSImageView()
+/// The selection button, in the cards' style: popover material under a clean surface,
+/// hairline border, a muted eye that brightens on hover, and a small spring on appear.
+struct ChipButtonView: View {
+    var action: () -> Void
+    @State private var appeared = false
+    @State private var hovering = false
+    @State private var pressed = false
+    @Environment(\.renderingSnapshot) private var snapshot
+    private let diameter: CGFloat = 24
 
-    override init(frame: NSRect) {
-        super.init(frame: frame)
-        wantsLayer = true
-        background.frame = bounds
-        background.material = .popover
-        background.blendingMode = .behindWindow
-        background.state = .active
-        background.wantsLayer = true
-        background.layer?.cornerRadius = frame.height / 2
-        background.layer?.masksToBounds = true
-        background.layer?.borderWidth = 0.5
-        background.layer?.borderColor = NSColor.separatorColor.cgColor
-        addSubview(background)
-
-        let inset = (frame.width - 12) / 2
-        icon.frame = bounds.insetBy(dx: inset, dy: inset)
-        icon.image = Icons.mark(size: 12)
-        icon.imageScaling = .scaleProportionallyUpOrDown
-        icon.contentTintColor = .secondaryLabelColor
-        addSubview(icon)
-        toolTip = "Look up in Longyan"
-        addTrackingArea(NSTrackingArea(rect: bounds, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
-                                       owner: self, userInfo: nil))
+    var body: some View {
+        ZStack {
+            if !snapshot { MaterialBackground(radius: diameter / 2) }
+            Circle().fill(cardSurface(opaque: snapshot))
+            if let mark = Icons.mark(size: 13) {
+                Image(nsImage: mark)
+                    .renderingMode(.template)
+                    .foregroundStyle(hovering ? Color.primary : Color.secondary)
+            }
+        }
+        .frame(width: diameter, height: diameter)
+        .clipShape(Circle())
+        .overlay(Circle().strokeBorder(Color.primary.opacity(0.10), lineWidth: 0.5))
+        .scaleEffect(appeared || snapshot ? (pressed ? 0.92 : hovering ? 1.08 : 1) : 0.6)
+        .opacity(appeared || snapshot ? 1 : 0)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .contentShape(Circle())
+        .onHover { hovering = $0 }
+        .gesture(DragGesture(minimumDistance: 0)
+            .onChanged { _ in pressed = true }
+            .onEnded { _ in pressed = false; action() })
+        .help("Look up in Longyan")
+        .animation(.spring(response: 0.25, dampingFraction: 0.7), value: hovering)
+        .animation(.spring(response: 0.2, dampingFraction: 0.7), value: pressed)
+        .onAppear { withAnimation(.spring(response: 0.3, dampingFraction: 0.68)) { appeared = true } }
     }
-    required init?(coder: NSCoder) { fatalError() }
-
-    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
-    override func mouseEntered(with event: NSEvent) { icon.contentTintColor = .labelColor }
-    override func mouseExited(with event: NSEvent) { icon.contentTintColor = .secondaryLabelColor }
-    override func mouseDown(with event: NSEvent) { onClick() }
 }
 
 /// The Longyan eye from the Chrome extension, as a template image.
