@@ -100,6 +100,12 @@ extension View {
     }
 }
 
+/// Classic (material with a clean surface) or Liquid Glass, chosen in the menu.
+enum CardStyle: String {
+    case classic, glass
+    static var current: CardStyle { CardStyle(rawValue: UserDefaults.standard.string(forKey: "cardStyle") ?? "") ?? .classic }
+}
+
 /// The light/dark choice from the menu: nil follows the system.
 enum CardAppearance {
     static var current: NSAppearance? {
@@ -205,7 +211,28 @@ struct CardChrome<Content: View>: View {
         }
     }
 
-    private func decorate(_ view: some View) -> some View {
+    @ViewBuilder private func decorate(_ view: some View) -> some View {
+        if CardStyle.current == .glass && !snapshot {
+            glass(view)
+        } else {
+            classic(view)
+        }
+    }
+
+    /// Liquid Glass: the system glass, a little rounder, no hairline (the glass draws its own edge).
+    private func glass(_ view: some View) -> some View {
+        let shape = RoundedRectangle(cornerRadius: Self.radius + 4, style: .continuous)
+        return view
+            .glassEffect(.regular, in: shape)
+            .overlay(alignment: .bottomTrailing) {
+                if layout.kind != .hint { ResizeGrip(layout: layout).padding(5) }
+            }
+            .scaleEffect(layout.appeared ? 1 : 0.96, anchor: .top)
+            .opacity(layout.appeared ? 1 : 0)
+            .offset(y: layout.appeared ? 0 : -4)
+    }
+
+    private func classic(_ view: some View) -> some View {
         view
         .background {
             if snapshot {

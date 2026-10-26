@@ -148,6 +148,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             item.representedObject = id
             item.state = currentAppearance == id ? .on : .off
         }
+        appearanceMenu.addItem(.separator())
+        for (id, label) in [("classic", "Classic"), ("glass", "Liquid Glass")] {
+            let item = appearanceMenu.addItem(withTitle: label, action: #selector(selectStyle(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = id
+            item.state = CardStyle.current.rawValue == id ? .on : .off
+        }
         let appearanceItem = menu.addItem(withTitle: "Appearance", action: nil, keyEquivalent: "")
         menu.setSubmenu(appearanceMenu, for: appearanceItem)
         menu.addItem(withTitle: "Accessibility: " + (AXIsProcessTrusted() ? "allowed" : "not allowed"), action: nil, keyEquivalent: "")
@@ -169,6 +176,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// following the menu bar.
     private func applyAppearance() {
         popup.setAppearance(CardAppearance.current)
+    }
+
+    @objc private func selectStyle(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? String else { return }
+        UserDefaults.standard.set(id, forKey: "cardStyle")
+        rebuildMenu()
     }
 
     @objc private func selectAppearance(_ sender: NSMenuItem) {

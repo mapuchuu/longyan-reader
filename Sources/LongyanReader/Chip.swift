@@ -117,18 +117,7 @@ struct ChipButtonView: View {
     private let diameter: CGFloat = 24
 
     var body: some View {
-        ZStack {
-            if !snapshot { MaterialBackground(radius: diameter / 2) }
-            Circle().fill(cardSurface(opaque: snapshot))
-            if let mark = Icons.mark(size: 13) {
-                Image(nsImage: mark)
-                    .renderingMode(.template)
-                    .foregroundStyle(hovering ? Color.primary : Color.secondary)
-            }
-        }
-        .frame(width: diameter, height: diameter)
-        .clipShape(Circle())
-        .overlay(Circle().strokeBorder(Color.primary.opacity(0.10), lineWidth: 0.5))
+        styled
         .scaleEffect(appeared || snapshot ? (pressed ? 0.92 : hovering ? 1.08 : 1) : 0.6)
         .opacity(appeared || snapshot ? 1 : 0)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -141,6 +130,33 @@ struct ChipButtonView: View {
         .animation(.spring(response: 0.25, dampingFraction: 0.7), value: hovering)
         .animation(.spring(response: 0.2, dampingFraction: 0.7), value: pressed)
         .onAppear { withAnimation(.spring(response: 0.3, dampingFraction: 0.68)) { appeared = true } }
+    }
+
+    private var eye: some View {
+        Group {
+            if let mark = Icons.mark(size: 13) {
+                Image(nsImage: mark)
+                    .renderingMode(.template)
+                    .foregroundStyle(hovering ? Color.primary : Color.secondary)
+            }
+        }
+    }
+
+    @ViewBuilder private var styled: some View {
+        if CardStyle.current == .glass && !snapshot {
+            eye
+                .frame(width: diameter, height: diameter)
+                .glassEffect(.regular.interactive(), in: Circle())
+        } else {
+            ZStack {
+                if !snapshot { MaterialBackground(radius: diameter / 2) }
+                Circle().fill(cardSurface(opaque: snapshot))
+                eye
+            }
+            .frame(width: diameter, height: diameter)
+            .clipShape(Circle())
+            .overlay(Circle().strokeBorder(Color.primary.opacity(0.10), lineWidth: 0.5))
+        }
     }
 }
 
