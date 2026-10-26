@@ -66,6 +66,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ) { note in
             let arg = note.object as? String ?? ""
             var report: String
+            if arg == "demo" {
+                // Debug: open a word card mid-screen, log its sizing, then drag the corner.
+                Task { @MainActor in
+                    var lines: [String] = []
+                    let screen = NSScreen.main?.visibleFrame ?? .zero
+                    let anchor = NSRect(x: screen.midX - 180, y: screen.midY + 200, width: 60, height: 20)
+                    let passage = Array("奶奶上个月走了，全家人都很难过。")
+                    let selection = Selection(passage: passage, range: 5..<6, bounds: nil, source: .accessibility, appName: "Demo")
+                    self.show(selection, near: anchor)
+                    for (label, wait) in [("after 0.1 s", 0.1), ("after 0.5 s", 0.4), ("after 2.5 s (answer in)", 2.0)] {
+                        try? await Task.sleep(for: .seconds(wait))
+                        lines.append("\(label): " + self.popup.debugState)
+                    }
+                    self.popup.debugDrag(dx: 120, dy: -150)
+                    try? await Task.sleep(for: .seconds(0.3))
+                    lines.append("after dragging corner +120, +150 down: " + self.popup.debugState)
+                    lines.append("saved size: " + "\(UserDefaults.standard.double(forKey: "card.word.width")) x \(UserDefaults.standard.double(forKey: "card.word.height"))")
+                    self.popup.close()
+                    try? lines.joined(separator: "\n").write(to: Log.directory.appendingPathComponent("ax-probe.txt"), atomically: true, encoding: .utf8)
+                }
+                return
+            }
             if arg.hasSuffix("|read"), let app = NSRunningApplication.runningApplications(
                 withBundleIdentifier: String(arg.dropLast(5))).first {
                 // Run the real selection reader against that app; log shape, not content.
@@ -213,7 +235,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let state = LookupState(context: context, senses: senses, sourceNote: sourceNote, appName: appName,
                                 phase: modelReady ? .choosing : .dictionaryOnly(senses.isEmpty ? "not in dictionary" : SenseChooser.unavailableReason))
         state.onLayoutChange = { [weak self] in Task { await self?.relayout() } }
-        popup.show(LookupView(state: state), near: anchor)
+        popup.show(LookupView(state: state), kind: .word, near: anchor)
         var record: [String: Any] = ["event": "word", "word": context.word, "sentence": context.sentence,
                                      "app": appName ?? "", "senses": senses.count]
         lookupTask = Task {
@@ -222,8 +244,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 do {
                     let choice = try await SenseChooser.choose(for: context, senses: senses)
                     guard !Task.isCancelled else { return }
-                    state.choice = choice
-                    state.phase = .chosen
+                    withAnimation(.smooth(duration: 0.3)) {
+                        state.choice = choice
+                        state.phase = .chosen
+                    }
                     record["meaningHere"] = choice.meaningHere
                     record["tag"] = choice.tag.rawValue
                 } catch {
@@ -241,11 +265,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         lookupTask?.cancel()
         let state = PhraseState(selection: selection, dict: dict, sourceNote: sourceNote)
         state.onLayoutChange = { [weak self] in Task { await self?.relayout() } }
-        popup.show(PhraseView(state: state), near: anchor)
+        popup.show(PhraseView(state: state), kind: .phrase, near: anchor)
         lookupTask = Task {
             let started = Date()
-            do { state.translation = try await Translator.translate(selection.text) }
-            catch { state.translationError = String(describing: error).prefix(60).description }
+            do {
+                let t = try await Translator.translate(selection.text)
+                withAnimation(.smooth(duration: 0.3)) { state.translation = t }
+            } catch { state.translationError = String(describing: error).prefix(60).description }
             await relayout()
             Log.write(["event": "phrase", "text": selection.text, "words": state.tokens.map(\.text),
                        "translation": state.translation ?? "", "app": selection.appName ?? "",
@@ -260,7 +286,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func hint(_ text: String, near anchor: NSRect) {
-        popup.show(HintView(text: text), near: anchor)
+        popup.show(HintView(text: text), kind: .hint, near: anchor)
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) { [weak self] in self?.popup.close() }
     }
 }

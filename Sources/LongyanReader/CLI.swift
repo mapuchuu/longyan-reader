@@ -221,7 +221,7 @@ enum CLI {
             state.choice = try await SenseChooser.choose(for: ctx, senses: senses)
             state.phase = .chosen
         }
-        try await writePNG(LookupView(state: state), to: url)
+        try await writePNG(CardChrome(layout: CardLayout(kind: .word)) { LookupView(state: state) }, to: url)
         print("wrote \(url.path)")
     }
 
@@ -236,7 +236,7 @@ enum CLI {
             state.toggle(token)
             while state.choosing.contains(token.id) { try await Task.sleep(for: .milliseconds(50)) }
         }
-        try await writePNG(PhraseView(state: state), to: url)
+        try await writePNG(CardChrome(layout: CardLayout(kind: .phrase)) { PhraseView(state: state) }, to: url)
         print("wrote \(url.path)")
     }
 
@@ -244,7 +244,11 @@ enum CLI {
     @MainActor
     static func writePNG<V: View>(_ view: V, to url: URL) async throws {
         _ = NSApplication.shared
-        let host = NSHostingView(rootView: view.padding(12).background(Color(nsColor: .underPageBackgroundColor)))
+        let host = NSHostingView(rootView: view.environment(\.renderingSnapshot, true)
+            .padding(12).background(Color(nsColor: .underPageBackgroundColor)))
+        if let mode = ProcessInfo.processInfo.environment["LONGYAN_APPEARANCE"] {
+            host.appearance = NSAppearance(named: mode == "dark" ? .darkAqua : .aqua)
+        }
         host.frame = NSRect(origin: .zero, size: host.fittingSize)
         host.layoutSubtreeIfNeeded()
         guard let rep = host.bitmapImageRepForCachingDisplay(in: host.bounds) else { return }

@@ -56,14 +56,17 @@ struct NuanceView: View {
     let note: StoredNote
     var body: some View {
         let lost = note.tag == "lost_in_translation"
-        VStack(alignment: .leading, spacing: 4) {
-            Text(lost ? "LOST IN TRANSLATION" : "CULTURAL CONTEXT")
-                .font(.system(size: 10, weight: .semibold)).tracking(0.6)
-                .foregroundStyle(lost ? Color.orange : Color.teal)
+        let tint = lost ? Color.orange : Color.teal
+        VStack(alignment: .leading, spacing: 5) {
+            Label(lost ? "Lost in translation" : "Cultural context",
+                  systemImage: lost ? "text.bubble" : "building.columns")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(tint)
             Text(note.note).font(.system(size: 13)).fixedSize(horizontal: false, vertical: true)
+                .lineSpacing(1.5)
         }
-        .padding(8)
+        .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.05)))
+        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(tint.opacity(0.10)))
     }
 }

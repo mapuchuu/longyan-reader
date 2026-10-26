@@ -1,0 +1,251 @@
+import AppKit
+import SwiftUI
+
+/// Size and appearance state for one popup card. The window follows it.
+@MainActor
+final class CardLayout: ObservableObject {
+    enum Kind: String { case word, phrase, hint }
+
+    let kind: Kind
+    /// Width chosen by the reader (persisted per kind), else the default.
+    @Published var width: CGFloat
+    /// Height chosen by the reader; nil means "fit the content".
+    @Published var userHeight: CGFloat?
+    /// Natural height of the content at the current width.
+    @Published var contentHeight: CGFloat = 0
+    @Published var appeared = false
+
+    var maxHeight: CGFloat = 640
+    var onChange: (_ animated: Bool) -> Void = { _ in }
+    private(set) var isResizing = false
+
+    static let defaultWidth: [Kind: CGFloat] = [.word: 360, .phrase: 390, .hint: 260]
+    static let minSize = CGSize(width: 280, height: 140)
+    static let maxWidth: CGFloat = 760
+
+    init(kind: Kind) {
+        self.kind = kind
+        let saved = UserDefaults.standard.double(forKey: "card.\(kind.rawValue).width")
+        width = saved > 0 ? saved : (Self.defaultWidth[kind] ?? 360)
+        let savedHeight = UserDefaults.standard.double(forKey: "card.\(kind.rawValue).height")
+        userHeight = savedHeight > 0 ? savedHeight : nil
+    }
+
+    /// The height the window should have right now.
+    var height: CGFloat { min(userHeight ?? contentHeight, maxHeight) }
+
+    func reportContentHeight(_ h: CGFloat) {
+        guard abs(h - contentHeight) > 0.5 else { return }
+        contentHeight = h
+        if userHeight == nil, !isResizing { onChange(appeared) }
+    }
+
+    // MARK: Resizing from the corner grip
+
+    private var dragStart: (mouse: NSPoint, size: CGSize)?
+
+    func resize(to mouse: NSPoint) {
+        if dragStart == nil {
+            dragStart = (mouse, CGSize(width: width, height: height))
+            isResizing = true
+        }
+        guard let start = dragStart else { return }
+        // Screen y grows upward; dragging down makes the card taller.
+        width = min(max(start.size.width + mouse.x - start.mouse.x, Self.minSize.width), Self.maxWidth)
+        userHeight = min(max(start.size.height - (mouse.y - start.mouse.y), Self.minSize.height), maxHeight)
+        onChange(false)
+    }
+
+    func endResize() {
+        dragStart = nil
+        isResizing = false
+        UserDefaults.standard.set(Double(width), forKey: "card.\(kind.rawValue).width")
+        if let userHeight { UserDefaults.standard.set(Double(userHeight), forKey: "card.\(kind.rawValue).height") }
+    }
+
+    /// Double-click on the grip: back to the default width and a fitted height.
+    func resetSize() {
+        width = Self.defaultWidth[kind] ?? 360
+        userHeight = nil
+        UserDefaults.standard.removeObject(forKey: "card.\(kind.rawValue).width")
+        UserDefaults.standard.removeObject(forKey: "card.\(kind.rawValue).height")
+        onChange(true)
+    }
+}
+
+/// Set when drawing a card to a PNG: the translucent material doesn't render offscreen.
+private struct SnapshotKey: EnvironmentKey { static let defaultValue = false }
+extension EnvironmentValues {
+    var renderingSnapshot: Bool {
+        get { self[SnapshotKey.self] }
+        set { self[SnapshotKey.self] = newValue }
+    }
+}
+
+/// The translucent popover material, masked to a continuous rounded rectangle so the
+/// window shadow follows the corners.
+struct MaterialBackground: NSViewRepresentable {
+    var radius: CGFloat
+
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.material = .popover
+        view.blendingMode = .behindWindow
+        view.state = .active
+        view.maskImage = Self.mask(radius: radius)
+        return view
+    }
+
+    func updateNSView(_ view: NSVisualEffectView, context: Context) {}
+
+    static func mask(radius: CGFloat) -> NSImage {
+        let edge = radius * 2 + 1
+        let image = NSImage(size: NSSize(width: edge, height: edge), flipped: false) { rect in
+            NSColor.black.setFill()
+            NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius).fill()
+            return true
+        }
+        image.capInsets = NSEdgeInsets(top: radius, left: radius, bottom: radius, right: radius)
+        image.resizingMode = .stretch
+        return image
+    }
+}
+
+private struct HeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
+}
+
+/// The frame every card sits in: material, hairline border, scrolling when the card is
+/// smaller than its content, the corner grip, and the spring-in on appear.
+struct CardChrome<Content: View>: View {
+    @ObservedObject var layout: CardLayout
+    @Environment(\.renderingSnapshot) private var snapshot
+    let content: Content
+    static var radius: CGFloat { 14 }
+
+    init(layout: CardLayout, @ViewBuilder content: () -> Content) {
+        self.layout = layout
+        self.content = content()
+    }
+
+    var body: some View {
+        body(for: padded)
+    }
+
+    private var padded: some View {
+        content
+            .padding(16)
+            .frame(width: layout.width, alignment: .leading)
+    }
+
+    @ViewBuilder private func body(for inner: some View) -> some View {
+        if snapshot {
+            decorate(inner)
+        } else {
+            decorate(
+                ScrollView(.vertical) {
+                    inner.background(GeometryReader { g in Color.clear.preference(key: HeightKey.self, value: g.size.height) })
+                }
+                .scrollIndicators(layout.userHeight == nil ? .never : .automatic)
+                .scrollBounceBehavior(.basedOnSize)
+                .onPreferenceChange(HeightKey.self) { h in
+                    MainActor.assumeIsolated { layout.reportContentHeight(h) }
+                }
+                .frame(width: layout.width, height: max(layout.height, 1))
+            )
+        }
+    }
+
+    private func decorate(_ view: some View) -> some View {
+        view
+        .background {
+            if snapshot {
+                RoundedRectangle(cornerRadius: Self.radius, style: .continuous).fill(Color(nsColor: .windowBackgroundColor))
+            } else {
+                MaterialBackground(radius: Self.radius)
+            }
+        }
+        .overlay(RoundedRectangle(cornerRadius: Self.radius, style: .continuous)
+            .strokeBorder(Color.primary.opacity(0.10), lineWidth: 0.5))
+        .overlay(alignment: .bottomTrailing) {
+            if layout.kind != .hint { ResizeGrip(layout: layout).padding(3) }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: Self.radius, style: .continuous))
+        .scaleEffect(layout.appeared || snapshot ? 1 : 0.96, anchor: .top)
+        .opacity(layout.appeared || snapshot ? 1 : 0)
+        .offset(y: layout.appeared || snapshot ? 0 : -4)
+    }
+}
+
+/// The corner handle: drag to resize, double-click to reset.
+struct ResizeGrip: View {
+    @ObservedObject var layout: CardLayout
+    @State private var hovering = false
+
+    var body: some View {
+        Canvas { ctx, size in
+            for i in 0..<3 {
+                let inset = CGFloat(i) * 3.5 + 2
+                var line = Path()
+                line.move(to: CGPoint(x: size.width - 2, y: inset))
+                line.addLine(to: CGPoint(x: inset, y: size.height - 2))
+                ctx.stroke(line, with: .color(.primary.opacity(hovering ? 0.45 : 0.22)), lineWidth: 1)
+            }
+        }
+        .frame(width: 13, height: 13)
+        .contentShape(Rectangle().inset(by: -4))
+        .onHover { inside in
+            hovering = inside
+            if inside { NSCursor.frameResize(position: .bottomRight, directions: .all).push() } else { NSCursor.pop() }
+        }
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in layout.resize(to: NSEvent.mouseLocation) }
+                .onEnded { _ in layout.endResize() }
+        )
+        .simultaneousGesture(TapGesture(count: 2).onEnded { layout.resetSize() })
+        .help("Drag to resize · double-click to reset")
+        .animation(.easeOut(duration: 0.15), value: hovering)
+    }
+}
+
+/// A full-width row that highlights on hover and press, the way macOS lists do.
+struct CardRowStyle: ButtonStyle {
+    var selected = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        Row(configuration: configuration, selected: selected)
+    }
+
+    private struct Row: View {
+        let configuration: ButtonStyleConfiguration
+        let selected: Bool
+        @State private var hovering = false
+
+        var body: some View {
+            configuration.label
+                .padding(.vertical, 5).padding(.horizontal, 8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .fill(selected ? Color.accentColor.opacity(0.16)
+                              : Color.primary.opacity(configuration.isPressed ? 0.10 : hovering ? 0.05 : 0))
+                )
+                .contentShape(Rectangle())
+                .onHover { hovering = $0 }
+                .animation(.easeOut(duration: 0.12), value: hovering)
+                .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
+        }
+    }
+}
+
+/// A small uppercase section label.
+struct SectionLabel: View {
+    let text: String
+    var body: some View {
+        Text(text.uppercased())
+            .font(.system(size: 10, weight: .semibold)).tracking(0.5)
+            .foregroundStyle(.secondary)
+    }
+}

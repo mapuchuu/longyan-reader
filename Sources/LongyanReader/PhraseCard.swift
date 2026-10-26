@@ -61,8 +61,9 @@ final class PhraseState: ObservableObject {
         choosing.insert(token.id)
         Task {
             do {
-                choices[token.id] = try await SenseChooser.choose(
+                let choice = try await SenseChooser.choose(
                     for: Segmenter.context(for: token.range, in: selection.passage), senses: list)
+                withAnimation(.smooth(duration: 0.3)) { choices[token.id] = choice }
             } catch {
                 failures[token.id] = "Dictionary order: couldn't place this word in the sentence"
             }
@@ -94,35 +95,46 @@ struct PhraseView: View {
     private let maxRows = 24
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(state.selection.text)
-                .font(.system(size: 15))
-                .lineLimit(4)
-                .fixedSize(horizontal: false, vertical: true)
-            translation
-            Divider()
-            VStack(alignment: .leading, spacing: 2) {
-                ForEach(state.tokens.prefix(maxRows)) { token in row(token) }
-                if state.tokens.count > maxRows {
-                    Text("+\(state.tokens.count - maxRows) more words").font(.system(size: 11)).foregroundStyle(.tertiary)
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 6) {
+                translation
+                Text(state.selection.text)
+                    .font(.system(size: 14))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(4)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                SectionLabel(text: "Words")
+                VStack(alignment: .leading, spacing: 1) {
+                    ForEach(state.tokens.prefix(maxRows)) { token in row(token) }
+                    if state.tokens.count > maxRows {
+                        Text("+\(state.tokens.count - maxRows) more words")
+                            .font(.system(size: 11)).foregroundStyle(.tertiary).padding(.horizontal, 8).padding(.vertical, 4)
+                    }
                 }
+                .padding(3)
+                .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.primary.opacity(0.04)))
             }
             footer
         }
-        .padding(14)
-        .frame(width: 380, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 12).fill(Color(nsColor: .windowBackgroundColor)))
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.primary.opacity(0.12)))
+        .animation(.smooth(duration: 0.25), value: state.expanded)
+        .animation(.smooth(duration: 0.25), value: state.translation)
+        .animation(.smooth(duration: 0.25), value: state.choices.count)
+        .animation(.smooth(duration: 0.25), value: state.choosing)
     }
 
     @ViewBuilder private var translation: some View {
         if let t = state.translation {
-            Text(t).font(.system(size: 15, weight: .semibold)).fixedSize(horizontal: false, vertical: true)
+            Text(t).font(.system(size: 17, weight: .semibold))
+                .fixedSize(horizontal: false, vertical: true)
+                .transition(.opacity)
         } else if let e = state.translationError {
-            Text("No translation (\(e))").font(.system(size: 11)).foregroundStyle(.secondary)
+            Text("No translation · \(e)").font(.system(size: 11)).foregroundStyle(.secondary)
         } else {
-            HStack(spacing: 6) { ProgressView().controlSize(.small); Text("Translating…") }
+            HStack(spacing: 6) { ProgressView().controlSize(.mini); Text("Translating…") }
                 .font(.system(size: 12)).foregroundStyle(.secondary)
+                .transition(.opacity)
         }
     }
 
@@ -132,64 +144,78 @@ struct PhraseView: View {
         let syllables = Pinyin.syllables(senses[safe: shown]?.pinyin ?? "")
         let isOpen = state.expanded == token.id
         let dim = particleWords.contains(token.text)
-        return VStack(alignment: .leading, spacing: 6) {
-            Button { state.toggle(token) } label: {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
+        return VStack(alignment: .leading, spacing: 0) {
+            Button { withAnimation(.smooth(duration: 0.25)) { state.toggle(token) } } label: {
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
                     HStack(spacing: 0) {
                         ForEach(Array(token.text.enumerated()), id: \.offset) { i, ch in
                             Text(String(ch)).foregroundStyle(toneColor(syllables[safe: i]?.tone ?? 5))
                         }
                     }
                     .font(.system(size: 17, weight: .medium))
-                    .frame(minWidth: 44, alignment: .leading)
+                    .frame(minWidth: 46, alignment: .leading)
                     Text(syllables.map(\.text).joined(separator: " "))
                         .font(.system(size: 11)).foregroundStyle(.secondary)
                         .frame(minWidth: 70, alignment: .leading)
-                    if let note = state.note(token) {
-                        Circle().fill(note.tag == "lost_in_translation" ? Color.orange : Color.teal)
-                            .frame(width: 5, height: 5).alignmentGuide(.firstTextBaseline) { $0[.bottom] + 3 }
-                    }
                     Text(state.gloss(token))
                         .font(.system(size: 13, weight: state.choices[token.id] == nil ? .regular : .semibold))
                         .foregroundStyle(dim ? .secondary : .primary)
                         .lineLimit(1)
-                    Spacer(minLength: 0)
+                        .contentTransition(.opacity)
+                    Spacer(minLength: 4)
+                    if let note = state.note(token) {
+                        Circle().fill(note.tag == "lost_in_translation" ? Color.orange : Color.teal)
+                            .frame(width: 6, height: 6)
+                    }
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.tertiary)
+                        .rotationEffect(.degrees(isOpen ? 90 : 0))
                 }
-                .contentShape(Rectangle())
-                .padding(.vertical, 3).padding(.horizontal, 6)
-                .background(RoundedRectangle(cornerRadius: 6).fill(isOpen ? Color.accentColor.opacity(0.12) : .clear))
             }
-            .buttonStyle(.plain)
-            if isOpen { detail(token, senses: senses) }
+            .buttonStyle(CardRowStyle(selected: isOpen))
+            if isOpen {
+                detail(token, senses: senses)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
         }
+        .clipped()
     }
 
     @ViewBuilder private func detail(_ token: PhraseToken, senses: [Sense]) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 7) {
             if state.choosing.contains(token.id) {
-                HStack(spacing: 6) { ProgressView().controlSize(.small); Text("Reading the sentence…") }
+                HStack(spacing: 6) { ProgressView().controlSize(.mini); Text("Reading the sentence…") }
                     .font(.system(size: 12)).foregroundStyle(.secondary)
             } else if let f = state.failures[token.id] {
                 Text(f).font(.system(size: 11)).foregroundStyle(.secondary)
             } else if state.choices[token.id]?.viaTranslation == true {
                 Text("Matched to the sentence translation").font(.system(size: 11)).foregroundStyle(.secondary)
             }
-            if let note = state.note(token) { NuanceView(note: note) }
-            ForEach(Array(senses.prefix(5).enumerated()), id: \.offset) { i, sense in
-                let chosen = state.choices[token.id].map { $0.senseNumber == i + 1 } ?? (state.translationSense[token.id] == i)
-                Text(sense.gloss)
-                    .font(.system(size: 12, weight: chosen ? .semibold : .regular))
-                    .foregroundStyle(chosen ? .primary : .secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+            if let note = state.note(token) {
+                NuanceView(note: note).transition(.opacity)
+            }
+            VStack(alignment: .leading, spacing: 3) {
+                ForEach(Array(senses.prefix(5).enumerated()), id: \.offset) { i, sense in
+                    let chosen = state.choices[token.id].map { $0.senseNumber == i + 1 } ?? (state.translationSense[token.id] == i)
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Image(systemName: "checkmark").font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(Color.accentColor).opacity(chosen ? 1 : 0)
+                        Text(sense.gloss)
+                            .font(.system(size: 12, weight: chosen ? .semibold : .regular))
+                            .foregroundStyle(chosen ? .primary : .secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
             }
             if senses.isEmpty { Text("Not in the dictionary").font(.system(size: 12)).foregroundStyle(.secondary) }
         }
-        .padding(.leading, 14).padding(.bottom, 4)
+        .padding(.leading, 12).padding(.trailing, 8).padding(.top, 6).padding(.bottom, 10)
     }
 
     private var footer: some View {
-        let parts = [state.selection.appName, state.sourceNote].compactMap { $0 }
-        return Text(parts.joined(separator: " · ") + (parts.isEmpty ? "" : " · ") + "click a word for its meaning here")
+        let parts = [state.selection.appName, state.sourceNote].compactMap { $0 } + ["Click a word for its meaning here"]
+        return Text(parts.joined(separator: " · "))
             .font(.system(size: 10)).foregroundStyle(.tertiary)
     }
 }
