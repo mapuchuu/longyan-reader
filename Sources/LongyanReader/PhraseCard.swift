@@ -92,14 +92,15 @@ let particleWords: Set<String> = ["的", "了", "和", "是", "在", "也", "都
 
 struct PhraseView: View {
     @ObservedObject var state: PhraseState
+    @Environment(\.cardScale) private var scale
     private let maxRows = 24
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 14 * scale) {
+            VStack(alignment: .leading, spacing: 6 * scale) {
                 translation
                 Text(state.selection.text)
-                    .font(.system(size: 14))
+                    .cardFont(14)
                     .foregroundStyle(.secondary)
                     .lineLimit(4)
                     .fixedSize(horizontal: false, vertical: true)
@@ -110,11 +111,11 @@ struct PhraseView: View {
                     ForEach(state.tokens.prefix(maxRows)) { token in row(token) }
                     if state.tokens.count > maxRows {
                         Text("+\(state.tokens.count - maxRows) more words")
-                            .font(.system(size: 11)).foregroundStyle(.tertiary).padding(.horizontal, 8).padding(.vertical, 4)
+                            .cardFont(11).foregroundStyle(.tertiary).padding(.horizontal, 8).padding(.vertical, 4)
                     }
                 }
                 .padding(3)
-                .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.primary.opacity(0.04)))
+                .background(RoundedRectangle(cornerRadius: 10 * scale, style: .continuous).fill(Color.primary.opacity(0.04)))
             }
             footer
         }
@@ -126,14 +127,14 @@ struct PhraseView: View {
 
     @ViewBuilder private var translation: some View {
         if let t = state.translation {
-            Text(t).font(.system(size: 17, weight: .semibold))
+            Text(t).cardFont(17, .semibold)
                 .fixedSize(horizontal: false, vertical: true)
                 .transition(.opacity)
         } else if let e = state.translationError {
-            Text("No translation · \(e)").font(.system(size: 11)).foregroundStyle(.secondary)
+            Text("No translation · \(e)").cardFont(11).foregroundStyle(.secondary)
         } else {
             HStack(spacing: 6) { ProgressView().controlSize(.mini); Text("Translating…") }
-                .font(.system(size: 12)).foregroundStyle(.secondary)
+                .cardFont(12).foregroundStyle(.secondary)
                 .transition(.opacity)
         }
     }
@@ -152,23 +153,23 @@ struct PhraseView: View {
                             Text(String(ch)).foregroundStyle(toneColor(syllables[safe: i]?.tone ?? 5))
                         }
                     }
-                    .font(.system(size: 17, weight: .medium))
-                    .frame(minWidth: 46, alignment: .leading)
+                    .cardFont(17, .medium)
+                    .frame(minWidth: 46 * scale, alignment: .leading)
                     Text(syllables.map(\.text).joined(separator: " "))
-                        .font(.system(size: 11)).foregroundStyle(.secondary)
-                        .frame(minWidth: 70, alignment: .leading)
+                        .cardFont(11).foregroundStyle(.secondary)
+                        .frame(minWidth: 70 * scale, alignment: .leading)
                     Text(state.gloss(token))
-                        .font(.system(size: 13, weight: state.choices[token.id] == nil ? .regular : .semibold))
+                        .cardFont(13, state.choices[token.id] == nil ? .regular : .semibold)
                         .foregroundStyle(dim ? .secondary : .primary)
                         .lineLimit(1)
                         .contentTransition(.opacity)
                     Spacer(minLength: 4)
                     if let note = state.note(token) {
-                        Circle().fill(note.tag == "lost_in_translation" ? Color.orange : Color.teal)
-                            .frame(width: 6, height: 6)
+                        Circle().fill(noteTint(note.tag))
+                            .frame(width: 6 * scale, height: 6 * scale)
                     }
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 10, weight: .semibold))
+                        .cardFont(10, .semibold)
                         .foregroundStyle(.tertiary)
                         .rotationEffect(.degrees(isOpen ? 90 : 0))
                 }
@@ -186,11 +187,11 @@ struct PhraseView: View {
         VStack(alignment: .leading, spacing: 7) {
             if state.choosing.contains(token.id) {
                 HStack(spacing: 6) { ProgressView().controlSize(.mini); Text("Reading the sentence…") }
-                    .font(.system(size: 12)).foregroundStyle(.secondary)
+                    .cardFont(12).foregroundStyle(.secondary)
             } else if let f = state.failures[token.id] {
-                Text(f).font(.system(size: 11)).foregroundStyle(.secondary)
+                Text(f).cardFont(11).foregroundStyle(.secondary)
             } else if state.choices[token.id]?.viaTranslation == true {
-                Text("Matched to the sentence translation").font(.system(size: 11)).foregroundStyle(.secondary)
+                Text("Matched to the sentence translation").cardFont(11).foregroundStyle(.secondary)
             }
             if let note = state.note(token) {
                 NuanceView(note: note).transition(.opacity)
@@ -199,23 +200,23 @@ struct PhraseView: View {
                 ForEach(Array(senses.prefix(5).enumerated()), id: \.offset) { i, sense in
                     let chosen = state.choices[token.id].map { $0.senseNumber == i + 1 } ?? (state.translationSense[token.id] == i)
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Image(systemName: "checkmark").font(.system(size: 9, weight: .bold))
+                        Image(systemName: "checkmark").cardFont(9, .bold)
                             .foregroundStyle(Color.accentColor).opacity(chosen ? 1 : 0)
                         Text(sense.gloss)
-                            .font(.system(size: 12, weight: chosen ? .semibold : .regular))
+                            .cardFont(12, chosen ? .semibold : .regular)
                             .foregroundStyle(chosen ? .primary : .secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }
-            if senses.isEmpty { Text("Not in the dictionary").font(.system(size: 12)).foregroundStyle(.secondary) }
+            if senses.isEmpty { Text("Not in the dictionary").cardFont(12).foregroundStyle(.secondary) }
         }
-        .padding(.leading, 12).padding(.trailing, 8).padding(.top, 6).padding(.bottom, 10)
+        .padding(.leading, 12 * scale).padding(.trailing, 8 * scale).padding(.top, 6 * scale).padding(.bottom, 10 * scale)
     }
 
     private var footer: some View {
         let parts = [state.selection.appName, state.sourceNote].compactMap { $0 } + ["Click a word for its meaning here"]
         return Text(parts.joined(separator: " · "))
-            .font(.system(size: 10)).foregroundStyle(.tertiary)
+            .cardFont(10).foregroundStyle(.tertiary)
     }
 }

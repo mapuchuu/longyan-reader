@@ -40,19 +40,34 @@ extension Array {
     subscript(safe i: Int) -> Element? { indices.contains(i) ? self[i] : nil }
 }
 
-/// Tone colours, from the system palette so they sit right in light and dark mode.
+/// Tone colours, muted so they sit quietly on the card: dusty brick, sage, slate and
+/// violet in light mode, soft pastels in dark mode. Neutral tone uses the secondary label.
+private func tone(light: (CGFloat, CGFloat, CGFloat), dark: (CGFloat, CGFloat, CGFloat)) -> Color {
+    Color(nsColor: NSColor(name: nil) { appearance in
+        let c = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? dark : light
+        return NSColor(srgbRed: c.0, green: c.1, blue: c.2, alpha: 1)
+    })
+}
 let toneColors: [Int: Color] = [
-    1: Color(nsColor: .systemRed), 2: Color(nsColor: .systemGreen),
-    3: Color(nsColor: .systemBlue), 4: Color(nsColor: .systemPurple),
+    1: tone(light: (0.66, 0.33, 0.30), dark: (0.89, 0.62, 0.58)),
+    2: tone(light: (0.29, 0.53, 0.38), dark: (0.62, 0.80, 0.66)),
+    3: tone(light: (0.29, 0.45, 0.65), dark: (0.63, 0.74, 0.89)),
+    4: tone(light: (0.50, 0.38, 0.64), dark: (0.76, 0.67, 0.88)),
 ]
 func toneColor(_ t: Int) -> Color { toneColors[t] ?? Color.secondary }
 
+/// Note colours in the same muted family: amber for lost in translation, teal for cultural context.
+let lostTint = tone(light: (0.66, 0.44, 0.20), dark: (0.91, 0.74, 0.52))
+let cultureTint = tone(light: (0.22, 0.50, 0.52), dark: (0.58, 0.80, 0.80))
+func noteTint(_ tag: String) -> Color { tag == "lost_in_translation" ? lostTint : cultureTint }
+
 struct LookupView: View {
     @ObservedObject var state: LookupState
+    @Environment(\.cardScale) private var scale
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 14 * scale) {
+            VStack(alignment: .leading, spacing: 6 * scale) {
                 header
                 meaning
                 status
@@ -79,13 +94,13 @@ struct LookupView: View {
                     Text(String(ch)).foregroundStyle(toneColor(syllables[safe: i]?.tone ?? 5))
                 }
             }
-            .font(.system(size: 30, weight: .semibold))
+            .cardFont(30, .medium)
             HStack(spacing: 4) {
                 ForEach(Array(syllables.enumerated()), id: \.offset) { _, s in
                     Text(s.text).foregroundStyle(toneColor(s.tone))
                 }
             }
-            .font(.system(size: 15, weight: .medium))
+            .cardFont(15, .medium)
             .contentTransition(.opacity)
         }
     }
@@ -93,7 +108,7 @@ struct LookupView: View {
     @ViewBuilder private var meaning: some View {
         if let choice = state.choice {
             Text(choice.meaningHere)
-                .font(.system(size: 17, weight: .semibold))
+                .cardFont(17, .semibold)
                 .fixedSize(horizontal: false, vertical: true)
                 .contentTransition(.opacity)
                 .transition(.opacity)
@@ -104,16 +119,16 @@ struct LookupView: View {
         switch state.phase {
         case .choosing:
             HStack(spacing: 6) { ProgressView().controlSize(.mini); Text("Reading the sentence…") }
-                .font(.system(size: 12)).foregroundStyle(.secondary)
+                .cardFont(12).foregroundStyle(.secondary)
                 .transition(.opacity)
         case .dictionaryOnly(let why):
-            Text("Dictionary order · \(why)").font(.system(size: 11)).foregroundStyle(.secondary)
+            Text("Dictionary order · \(why)").cardFont(11).foregroundStyle(.secondary)
         case .failed(let why):
-            Text("Dictionary order · couldn't place this word in the sentence").font(.system(size: 11)).foregroundStyle(.secondary)
+            Text("Dictionary order · couldn't place this word in the sentence").cardFont(11).foregroundStyle(.secondary)
                 .help(why)
         case .chosen:
             if state.choice?.viaTranslation == true {
-                Text("Matched to the sentence translation").font(.system(size: 11)).foregroundStyle(.secondary)
+                Text("Matched to the sentence translation").cardFont(11).foregroundStyle(.secondary)
             }
         }
     }
@@ -133,24 +148,24 @@ struct LookupView: View {
                         ? NotesStore.note(state.context.word, sense) : nil
                     Button { withAnimation(.smooth(duration: 0.25)) { state.pick(i) } } label: {
                         HStack(alignment: .firstTextBaseline, spacing: 8) {
-                            Text("\(i + 1)").font(.system(size: 11).monospacedDigit()).foregroundStyle(.tertiary)
-                                .frame(width: 14, alignment: .trailing)
+                            Text("\(i + 1)").cardFont(11, monospacedDigit: true).foregroundStyle(.tertiary)
+                                .frame(width: 14 * scale, alignment: .trailing)
                             VStack(alignment: .leading, spacing: 1) {
                                 if showReading {
-                                    Text(Pinyin.marked(sense.pinyin)).font(.system(size: 11)).foregroundStyle(.secondary)
+                                    Text(Pinyin.marked(sense.pinyin)).cardFont(11).foregroundStyle(.secondary)
                                 }
                                 Text(sense.gloss)
-                                    .font(.system(size: 13, weight: chosen ? .semibold : .regular))
+                                    .cardFont(13, chosen ? .semibold : .regular)
                                     .foregroundStyle(chosen || state.choice == nil ? .primary : .secondary)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
                             Spacer(minLength: 4)
                             if let note {
-                                Circle().fill(note.tag == "lost_in_translation" ? Color.orange : Color.teal)
-                                    .frame(width: 6, height: 6)
+                                Circle().fill(noteTint(note.tag))
+                                    .frame(width: 6 * scale, height: 6 * scale)
                             }
                             if chosen {
-                                Image(systemName: "checkmark").font(.system(size: 11, weight: .semibold))
+                                Image(systemName: "checkmark").cardFont(11, .semibold)
                                     .foregroundStyle(Color.accentColor)
                                     .transition(.scale.combined(with: .opacity))
                             }
@@ -165,16 +180,16 @@ struct LookupView: View {
                         state.onLayoutChange()
                     } label: {
                         Text("Show \(state.senses.count - shown.count) more")
-                            .font(.system(size: 12)).foregroundStyle(Color.accentColor)
+                            .cardFont(12).foregroundStyle(Color.accentColor)
                     }
                     .buttonStyle(CardRowStyle())
                 }
             }
-            .padding(3)
-            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.primary.opacity(0.04)))
+            .padding(3 * scale)
+            .background(RoundedRectangle(cornerRadius: 10 * scale, style: .continuous).fill(Color.primary.opacity(0.04)))
             if !state.context.alternatives.isEmpty {
                 Text("Also here: " + state.context.alternatives.joined(separator: " · "))
-                    .font(.system(size: 11)).foregroundStyle(.tertiary)
+                    .cardFont(11).foregroundStyle(.tertiary)
             }
         }
     }
@@ -191,8 +206,8 @@ struct LookupView: View {
         return HStack(alignment: .top, spacing: 8) {
             RoundedRectangle(cornerRadius: 1).fill(Color.primary.opacity(0.15)).frame(width: 2)
             VStack(alignment: .leading, spacing: 3) {
-                text.font(.system(size: 12)).foregroundColor(.secondary).lineLimit(4)
-                if !where_.isEmpty { Text(where_).font(.system(size: 10)).foregroundStyle(.tertiary) }
+                text.cardFont(12).foregroundColor(.secondary).lineLimit(4)
+                if !where_.isEmpty { Text(where_).cardFont(10).foregroundStyle(.tertiary) }
             }
         }
         .fixedSize(horizontal: false, vertical: true)
@@ -226,7 +241,7 @@ final class PopupController {
         self.anchor = anchor
         let layout = CardLayout(kind: kind)
         let visible = visibleFrame()
-        layout.maxHeight = max(CardLayout.minSize.height, visible.height * 0.8)
+        layout.maxHeight = max(140, visible.height * 0.8)
         let host = FirstMouseHostingView(rootView: CardChrome(layout: layout) { view })
         let panel = PopupPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel],
                                backing: .buffered, defer: false)
@@ -302,6 +317,10 @@ final class PopupController {
 
     /// Fades the card out, then removes it.
     func close() {
+        if ProcessInfo.processInfo.environment["LONGYAN_TRACE_CLOSE"] != nil || UserDefaults.standard.bool(forKey: "traceClose"), panel != nil {
+            let trace = Thread.callStackSymbols.prefix(8).joined(separator: "\n")
+            try? trace.write(to: Log.directory.appendingPathComponent("close-trace.txt"), atomically: true, encoding: .utf8)
+        }
         monitors.forEach(NSEvent.removeMonitor)
         monitors = []
         if let old = panel {
@@ -318,7 +337,7 @@ final class PopupController {
     /// Debug: the current window frame and card layout, for checking sizing headlessly.
     var debugState: String {
         guard let panel, let layout else { return "no card" }
-        return "frame \(Int(panel.frame.width))x\(Int(panel.frame.height)) at (\(Int(panel.frame.minX)),\(Int(panel.frame.minY))) · card width \(Int(layout.width)) content \(Int(layout.contentHeight)) userHeight \(layout.userHeight.map { "\(Int($0))" } ?? "auto") appeared \(layout.appeared)"
+        return "frame \(Int(panel.frame.width))x\(Int(panel.frame.height)) at (\(Int(panel.frame.minX)),\(Int(panel.frame.minY))) · card width \(Int(layout.width)) content \(Int(layout.contentHeight)) scale \(String(format: "%.2f", layout.scale)) appeared \(layout.appeared)"
     }
 
     /// Debug: drive the corner grip as if dragged by (dx, dy) screen points.
@@ -344,6 +363,6 @@ final class PopupController {
 struct HintView: View {
     let text: String
     var body: some View {
-        Text(text).font(.system(size: 12)).foregroundStyle(.secondary)
+        Text(text).cardFont(12).foregroundStyle(.secondary)
     }
 }

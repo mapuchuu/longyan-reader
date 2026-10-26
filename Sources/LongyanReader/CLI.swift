@@ -221,7 +221,7 @@ enum CLI {
             state.choice = try await SenseChooser.choose(for: ctx, senses: senses)
             state.phase = .chosen
         }
-        try await writePNG(CardChrome(layout: CardLayout(kind: .word)) { LookupView(state: state) }, to: url)
+        try await writePNG(CardChrome(layout: renderLayout(.word)) { LookupView(state: state) }, to: url)
         print("wrote \(url.path)")
     }
 
@@ -236,7 +236,7 @@ enum CLI {
             state.toggle(token)
             while state.choosing.contains(token.id) { try await Task.sleep(for: .milliseconds(50)) }
         }
-        try await writePNG(CardChrome(layout: CardLayout(kind: .phrase)) { PhraseView(state: state) }, to: url)
+        try await writePNG(CardChrome(layout: renderLayout(.phrase)) { PhraseView(state: state) }, to: url)
         print("wrote \(url.path)")
     }
 
@@ -335,5 +335,14 @@ enum CLI {
             print("\(ok ? "✓" : "✗") \(passage)  → \(sense.gloss.prefix(45))\(shown != nil ? "  [NOTE]" : "")")
         }
         print("\nright \(right)/\(noteCases.count), wrong notes shown \(falseNotes)")
+    }
+
+    /// A card layout for test renders; LONGYAN_CARD_SCALE sets the zoom (default 1).
+    @MainActor
+    static func renderLayout(_ kind: CardLayout.Kind) -> CardLayout {
+        let layout = CardLayout(kind: kind)
+        let scale = Double(ProcessInfo.processInfo.environment["LONGYAN_CARD_SCALE"] ?? "") ?? 1
+        layout.width = layout.baseWidth * scale
+        return layout
     }
 }

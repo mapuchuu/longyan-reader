@@ -2,16 +2,16 @@ import AppKit
 import SwiftUI
 
 /// Size and appearance state for one popup card. The window follows it.
+/// Dragging the corner zooms the card: width sets the scale of the text and spacing,
+/// and the height always fits the content (scrolling only past the screen limit).
 @MainActor
 final class CardLayout: ObservableObject {
     enum Kind: String { case word, phrase, hint }
 
     let kind: Kind
-    /// Width chosen by the reader (persisted per kind), else the default.
+    /// Card width; the zoom is this over the default width (persisted per kind).
     @Published var width: CGFloat
-    /// Height chosen by the reader; nil means "fit the content".
-    @Published var userHeight: CGFloat?
-    /// Natural height of the content at the current width.
+    /// Natural height of the content at the current width and zoom.
     @Published var contentHeight: CGFloat = 0
     @Published var appeared = false
 
@@ -20,39 +20,41 @@ final class CardLayout: ObservableObject {
     private(set) var isResizing = false
 
     static let defaultWidth: [Kind: CGFloat] = [.word: 360, .phrase: 390, .hint: 260]
-    static let minSize = CGSize(width: 280, height: 140)
-    static let maxWidth: CGFloat = 760
+    static let scaleRange: ClosedRange<CGFloat> = 0.8...2.2
+
+    var baseWidth: CGFloat { Self.defaultWidth[kind] ?? 360 }
+    var scale: CGFloat { kind == .hint ? 1 : width / baseWidth }
 
     init(kind: Kind) {
         self.kind = kind
+        let base = Self.defaultWidth[kind] ?? 360
         let saved = UserDefaults.standard.double(forKey: "card.\(kind.rawValue).width")
-        width = saved > 0 ? saved : (Self.defaultWidth[kind] ?? 360)
-        let savedHeight = UserDefaults.standard.double(forKey: "card.\(kind.rawValue).height")
-        userHeight = savedHeight > 0 ? savedHeight : nil
+        width = saved > 0 ? min(max(saved, base * Self.scaleRange.lowerBound), base * Self.scaleRange.upperBound) : base
     }
 
-    /// The height the window should have right now.
-    var height: CGFloat { min(userHeight ?? contentHeight, maxHeight) }
+    var height: CGFloat { min(contentHeight, maxHeight) }
 
     func reportContentHeight(_ h: CGFloat) {
         guard abs(h - contentHeight) > 0.5 else { return }
         contentHeight = h
-        if userHeight == nil, !isResizing { onChange(appeared) }
+        onChange(appeared && !isResizing)
     }
 
-    // MARK: Resizing from the corner grip
+    // MARK: Zooming from the corner grip
 
-    private var dragStart: (mouse: NSPoint, size: CGSize)?
+    private var dragStart: (mouse: NSPoint, width: CGFloat, height: CGFloat)?
 
     func resize(to mouse: NSPoint) {
         if dragStart == nil {
-            dragStart = (mouse, CGSize(width: width, height: height))
+            dragStart = (mouse, width, max(height, 1))
             isResizing = true
         }
         guard let start = dragStart else { return }
-        // Screen y grows upward; dragging down makes the card taller.
-        width = min(max(start.size.width + mouse.x - start.mouse.x, Self.minSize.width), Self.maxWidth)
-        userHeight = min(max(start.size.height - (mouse.y - start.mouse.y), Self.minSize.height), maxHeight)
+        // Right or down both zoom in. Screen y grows upward, so down is negative.
+        let dx = mouse.x - start.mouse.x
+        let dy = -(mouse.y - start.mouse.y) * (start.width / start.height)
+        let proposed = start.width + (dx + dy) / 2
+        width = min(max(proposed, baseWidth * Self.scaleRange.lowerBound), baseWidth * Self.scaleRange.upperBound)
         onChange(false)
     }
 
@@ -60,16 +62,41 @@ final class CardLayout: ObservableObject {
         dragStart = nil
         isResizing = false
         UserDefaults.standard.set(Double(width), forKey: "card.\(kind.rawValue).width")
-        if let userHeight { UserDefaults.standard.set(Double(userHeight), forKey: "card.\(kind.rawValue).height") }
+        onChange(false)
     }
 
-    /// Double-click on the grip: back to the default width and a fitted height.
+    /// Double-click on the grip: back to 1×.
     func resetSize() {
-        width = Self.defaultWidth[kind] ?? 360
-        userHeight = nil
+        width = baseWidth
         UserDefaults.standard.removeObject(forKey: "card.\(kind.rawValue).width")
-        UserDefaults.standard.removeObject(forKey: "card.\(kind.rawValue).height")
         onChange(true)
+    }
+}
+
+/// How much the card is zoomed; every card font and fixed size multiplies by it.
+private struct CardScaleKey: EnvironmentKey { static let defaultValue: CGFloat = 1 }
+extension EnvironmentValues {
+    var cardScale: CGFloat {
+        get { self[CardScaleKey.self] }
+        set { self[CardScaleKey.self] = newValue }
+    }
+}
+
+/// A system font sized for the card's zoom.
+struct CardFont: ViewModifier {
+    @Environment(\.cardScale) private var scale
+    let size: CGFloat
+    let weight: Font.Weight
+    let monospacedDigit: Bool
+    func body(content: Content) -> some View {
+        let font = Font.system(size: size * scale, weight: weight)
+        return content.font(monospacedDigit ? font.monospacedDigit() : font)
+    }
+}
+
+extension View {
+    func cardFont(_ size: CGFloat, _ weight: Font.Weight = .regular, monospacedDigit: Bool = false) -> some View {
+        modifier(CardFont(size: size, weight: weight, monospacedDigit: monospacedDigit))
     }
 }
 
@@ -135,7 +162,8 @@ struct CardChrome<Content: View>: View {
 
     private var padded: some View {
         content
-            .padding(16)
+            .environment(\.cardScale, layout.scale)
+            .padding(16 * layout.scale)
             .frame(width: layout.width, alignment: .leading)
     }
 
@@ -147,7 +175,7 @@ struct CardChrome<Content: View>: View {
                 ScrollView(.vertical) {
                     inner.background(GeometryReader { g in Color.clear.preference(key: HeightKey.self, value: g.size.height) })
                 }
-                .scrollIndicators(layout.userHeight == nil ? .never : .automatic)
+                .scrollIndicators(layout.contentHeight > layout.maxHeight ? .automatic : .never)
                 .scrollBounceBehavior(.basedOnSize)
                 .onPreferenceChange(HeightKey.self) { h in
                     MainActor.assumeIsolated { layout.reportContentHeight(h) }
@@ -205,7 +233,7 @@ struct ResizeGrip: View {
                 .onEnded { _ in layout.endResize() }
         )
         .simultaneousGesture(TapGesture(count: 2).onEnded { layout.resetSize() })
-        .help("Drag to resize · double-click to reset")
+        .help("Drag to zoom the card · double-click to reset")
         .animation(.easeOut(duration: 0.15), value: hovering)
     }
 }
@@ -222,13 +250,14 @@ struct CardRowStyle: ButtonStyle {
         let configuration: ButtonStyleConfiguration
         let selected: Bool
         @State private var hovering = false
+        @Environment(\.cardScale) private var scale
 
         var body: some View {
             configuration.label
-                .padding(.vertical, 5).padding(.horizontal, 8)
+                .padding(.vertical, 5 * scale).padding(.horizontal, 8 * scale)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    RoundedRectangle(cornerRadius: 7 * scale, style: .continuous)
                         .fill(selected ? Color.accentColor.opacity(0.16)
                               : Color.primary.opacity(configuration.isPressed ? 0.10 : hovering ? 0.05 : 0))
                 )
@@ -245,7 +274,7 @@ struct SectionLabel: View {
     let text: String
     var body: some View {
         Text(text.uppercased())
-            .font(.system(size: 10, weight: .semibold)).tracking(0.5)
+            .cardFont(10, .semibold).tracking(0.5)
             .foregroundStyle(.secondary)
     }
 }

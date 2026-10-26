@@ -54,19 +54,20 @@ enum ExamplesStore {
 /// The tag label and note, shared by both cards.
 struct NuanceView: View {
     let note: StoredNote
+    @Environment(\.cardScale) private var scale
     var body: some View {
         let lost = note.tag == "lost_in_translation"
-        let tint = lost ? Color.orange : Color.teal
+        let tint = noteTint(note.tag)
         VStack(alignment: .leading, spacing: 5) {
             Label(lost ? "Lost in translation" : "Cultural context",
                   systemImage: lost ? "text.bubble" : "building.columns")
-                .font(.system(size: 11, weight: .semibold))
+                .cardFont(11, .semibold)
                 .foregroundStyle(tint)
-            Text(note.note).font(.system(size: 13)).fixedSize(horizontal: false, vertical: true)
+            Text(note.note).cardFont(13).fixedSize(horizontal: false, vertical: true)
                 .lineSpacing(1.5)
         }
-        .padding(10)
+        .padding(10 * scale)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(tint.opacity(0.10)))
+        .background(RoundedRectangle(cornerRadius: 10 * scale, style: .continuous).fill(tint.opacity(0.10)))
     }
 }

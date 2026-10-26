@@ -22,7 +22,7 @@ It's a sibling of [Longyan](https://github.com/mapuchuu/longyan), the Chrome ext
 
 If the model is unavailable or rejects a prompt, the cards still show the dictionary senses in their usual order.
 
-**Cards.** Both cards sit on the translucent popover material with continuous rounded corners. They spring in once measured, cross-fade the model's answer and notes, slide rows open, resize smoothly as content changes (keeping the edge nearest the selection fixed), and fade out on close. Drag the bottom-right corner to resize. The size is remembered separately for word and phrase cards, content scrolls when the card is smaller, and double-clicking the grip resets it.
+**Cards.** Both cards sit on the translucent popover material with continuous rounded corners. They spring in once measured, cross-fade the model's answer and notes, slide rows open, resize smoothly as content changes (keeping the edge nearest the selection fixed), and fade out on close. Drag the bottom-right corner to zoom the card: text, spacing and dots scale together (0.8× to 2.2×) and the height follows the content. The zoom is remembered separately for word and phrase cards, and double-clicking the grip resets it to 1×. Tone and note colours are muted, appearance-aware tones rather than the bright system colours.
 
 ## Build and run
 

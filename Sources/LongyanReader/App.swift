@@ -30,6 +30,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var localModelReady = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Saved card widths now mean a zoom level; sizes saved by the box-resizing
+        // version would open cards shrunk, so start those fresh once.
+        let defaults = UserDefaults.standard
+        if defaults.integer(forKey: "cardSizeVersion") < 2 {
+            for key in defaults.dictionaryRepresentation().keys where key.hasPrefix("card.") { defaults.removeObject(forKey: key) }
+            defaults.set(2, forKey: "cardSizeVersion")
+        }
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let mark = Icons.mark(size: 18) { statusItem.button?.image = mark } else { statusItem.button?.title = "龙" }
         rebuildMenu()
