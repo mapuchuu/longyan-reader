@@ -58,7 +58,8 @@ enum LocalModel {
         let schema: [String: Any] = [
             "type": "object",
             "properties": [
-                "meaningHere": ["type": "string", "description": "English for the marked word alone in this passage, 1 to 5 words"],
+                "meaningHere": ["type": "string", "maxLength": 50,
+                                "description": "In English only: what the marked word alone means here, 1 to 5 words. Never Chinese, never a translation or description of the sentence."],
                 "senseNumber": ["type": "integer"],
             ],
             "required": ["meaningHere", "senseNumber"],

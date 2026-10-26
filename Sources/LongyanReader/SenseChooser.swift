@@ -63,7 +63,7 @@ enum SenseChooser {
         typealias S = DynamicGenerationSchema
         let root = S(name: "SenseChoice", properties: [
             S.Property(name: "meaningHere",
-                       description: "English for the marked word alone as used in this passage, 1 to 5 words. Not a translation of the sentence.",
+                       description: "In English only: what the marked word alone means here, 1 to 5 words. Never Chinese, never a translation or description of the sentence.",
                        schema: S(type: String.self)),
             S.Property(name: "senseNumber",
                        description: "The sense that matches meaningHere.",
@@ -85,6 +85,28 @@ enum SenseChooser {
     /// or a guardrail violation). Retry with just the sentence; if it still refuses,
     /// translate the sentence on-device and take the sense that matches the translation.
     static func choose(for context: WordInContext, senses: [Sense]) async throws -> SenseChoice {
+        cleaned(try await chooseRaw(for: context, senses: senses), senses: senses)
+    }
+
+    /// The model's "meaning here" line is meant to be a few English words for the word
+    /// itself. Models sometimes answer in Chinese (退休金 → "退休金") or describe the
+    /// whole sentence; both read wrong on the card, so fall back to the chosen sense's gloss.
+    static func cleaned(_ choice: SenseChoice, senses: [Sense]) -> SenseChoice {
+        var c = choice
+        let meaning = c.meaningHere.trimmingCharacters(in: .whitespacesAndNewlines.union(CharacterSet(charactersIn: ".")))
+        let wordCount = meaning.split(whereSeparator: { $0 == " " || $0 == "/" }).count
+        // Over six words, or long enough to have hit the output cap (and been cut off), is
+        // a definition or a sentence rather than a gloss.
+        if meaning.isEmpty || meaning.contains(where: isCJK) || wordCount > 6 || meaning.count >= 45,
+           let sense = senses[safe: c.senseNumber - 1] {
+            c.meaningHere = headlineGloss(sense)
+        } else {
+            c.meaningHere = meaning
+        }
+        return c
+    }
+
+    private static func chooseRaw(for context: WordInContext, senses: [Sense]) async throws -> SenseChoice {
         // A stronger local model (Ollama), when running, picks on its own: on the held-out
         // note test Qwen3.5 9B alone got 51/52 with no wrong notes, and the tie-break rules
         // (built around the 3B model's habits) pulled it down to 39/52. LONGYAN_TIEBREAK=1

@@ -87,6 +87,17 @@ func shortGloss(_ senses: [Sense]?) -> String {
     return first.count > 42 ? String(first.prefix(40)) + "…" : first
 }
 
+/// A sense's first meaning, untruncated, for the word card's headline.
+func headlineGloss(_ sense: Sense) -> String {
+    var text = sense.gloss
+    while text.hasPrefix("("), let close = text.firstIndex(of: ")") {
+        let rest = text[text.index(after: close)...].trimmingCharacters(in: .whitespaces)
+        if rest.isEmpty { break }
+        text = rest
+    }
+    return text.split(separator: ";").first.map { $0.trimmingCharacters(in: .whitespaces) } ?? text
+}
+
 let particleWords: Set<String> = ["的", "了", "和", "是", "在", "也", "都", "就", "与", "或", "但", "而", "对", "于",
                                   "把", "被", "让", "给", "从", "到", "着", "过", "吗", "呢", "吧", "啊", "嗯", "呀", "地", "得"]
 
