@@ -121,13 +121,37 @@ extension AppDelegate {
         }
         if let phrase = lastPhraseState, phrase.tokens.count > 4 {
             let a = phrase.tokens[3], b = phrase.tokens[1]
+            // Opening a row: the gloss stays unless the model picks a different sense.
+            var rowsChecked = 0, rowsStable = 0
+            for t in phrase.tokens.prefix(6) {
+                let before = phrase.gloss(t), senseBefore = phrase.shownSense(t)
+                withAnimation(.smooth(duration: 0.25)) { phrase.toggle(t) }
+                var waited = 0.0
+                while phrase.choosing.contains(t.id) || (phrase.choices[t.id] == nil && waited < 0.4), waited < 8 {
+                    await wait(0.1); waited += 0.1
+                }
+                rowsChecked += 1
+                if phrase.shownSense(t) != senseBefore || phrase.gloss(t) == before { rowsStable += 1 }
+                lines.append("  row \(t.text): \(before) → \(phrase.gloss(t))\(phrase.meaningHere(t).map { " (here: \($0))" } ?? "")")
+            }
+            check(rowsStable == rowsChecked, "opening phrase rows keeps each gloss unless the sense changes (\(rowsStable)/\(rowsChecked))")
+            if phrase.expanded != nil, let open = phrase.tokens.first(where: { $0.id == phrase.expanded }) {
+                withAnimation(.smooth(duration: 0.25)) { phrase.toggle(open) }
+                await wait(0.4)
+            }
             withAnimation(.smooth(duration: 0.25)) { phrase.toggle(a) }
             await watch(2.5)
-            withAnimation(.smooth(duration: 0.25)) { phrase.pick(a, sense: 0) }
+            let target = phrase.shownSense(a) == 0 ? 1 : 0
+            let glossBefore = phrase.gloss(a)
+            withAnimation(.smooth(duration: 0.25)) { phrase.pick(a, sense: target) }
             await watch(0.6)
-            check(phrase.choices[a.id]?.senseNumber == 1, "picking a meaning inside a phrase row works")
+            check(phrase.choices[a.id]?.senseNumber == target + 1 && phrase.gloss(a) != glossBefore,
+                  "picking another meaning inside a phrase row updates that row")
+            withAnimation(.smooth(duration: 0.25)) { phrase.pick(a, sense: target) }
+            await watch(0.3)
+            check(phrase.choices[a.id]?.senseNumber == target + 1, "clicking the shown meaning again changes nothing")
             await watch(3)
-            check(phrase.choices[a.id]?.senseNumber == 1, "that pick isn't overwritten by a late model answer")
+            check(phrase.choices[a.id]?.senseNumber == target + 1, "that pick isn't overwritten by a late model answer")
             withAnimation(.smooth(duration: 0.25)) { phrase.toggle(b) }
             await watch(2.5)
             check(phrase.expanded == b.id, "opening another row switches rows")

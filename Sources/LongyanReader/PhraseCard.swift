@@ -23,8 +23,7 @@ final class PhraseState: ObservableObject {
     func pick(_ token: PhraseToken, sense index: Int) {
         guard let list = senses[token.id], list.indices.contains(index) else { return }
         // Clicking the meaning already shown changes nothing.
-        let shown = choices[token.id].map { $0.senseNumber - 1 } ?? translationSense[token.id] ?? 0
-        guard shown != index else { return }
+        guard shownSense(token) != index else { return }
         userPicked.insert(token.id)
         choices[token.id] = SenseChoice(senseNumber: index + 1, meaningHere: headlineGloss(list[index]))
         onLayoutChange()
@@ -51,18 +50,42 @@ final class PhraseState: ObservableObject {
 
     /// The gloss to show on a word's row: the model's meaning, else the sense that
     /// fits the translation, else the first dictionary sense.
+    /// The row's gloss is always the dictionary wording of the meaning the row shows, so it
+    /// only changes when that meaning changes (a pick, or the model choosing a different
+    /// sense), never just because the row was opened. The model's own in-context wording is
+    /// shown inside the open row instead (`meaningHere`).
     func gloss(_ token: PhraseToken) -> String {
-        if let c = choices[token.id] { return c.meaningHere }
         let list = senses[token.id] ?? []
-        if let i = translationSense[token.id], list.indices.contains(i) { return shortGloss([list[i]]) }
-        return shortGloss(list)
+        guard let i = shownSense(token), list.indices.contains(i) else { return shortGloss(list) }
+        return shortGloss([list[i]])
+    }
+
+    /// Index of the sense the row shows: the reader's or model's choice, else the one that
+    /// fits the translation, else the first.
+    func shownSense(_ token: PhraseToken) -> Int? {
+        if let c = choices[token.id] { return c.senseNumber - 1 }
+        if let i = translationSense[token.id] { return i }
+        return (senses[token.id] ?? []).isEmpty ? nil : 0
+    }
+
+    /// The model's wording for this word in this passage, when it adds something to the gloss.
+    func meaningHere(_ token: PhraseToken) -> String? {
+        guard let c = choices[token.id], !userPicked.contains(token.id), !c.viaTranslation else { return nil }
+        let text = c.meaningHere.lowercased()
+        // Only when it says something the dictionary wording doesn't already
+        // ("Ming Dynasty" adds nothing to "Ming Dynasty (1368-1644)").
+        let list = senses[token.id] ?? []
+        let full = shownSense(token).flatMap { list[safe: $0] }.map { $0.gloss.lowercased() } ?? ""
+        if full.contains(text) || text.contains(headlineGloss(list[safe: shownSense(token) ?? 0] ?? Sense(pinyin: "", gloss: "")).lowercased()) {
+            return nil
+        }
+        return c.meaningHere
     }
 
     /// The prewritten note for the sense this word currently shows, if any.
     func note(_ token: PhraseToken) -> StoredNote? {
         let list = senses[token.id] ?? []
-        let shown = choices[token.id].map { $0.senseNumber - 1 } ?? translationSense[token.id] ?? 0
-        return NotesStore.note(token.text, list[safe: shown])
+        return NotesStore.note(token.text, shownSense(token).flatMap { list[safe: $0] })
     }
 
     func toggle(_ token: PhraseToken) {
@@ -166,8 +189,7 @@ struct PhraseView: View {
 
     private func row(_ token: PhraseToken) -> some View {
         let senses = state.senses[token.id] ?? []
-        let shown = state.choices[token.id].map { $0.senseNumber - 1 } ?? state.translationSense[token.id] ?? 0
-        let syllables = Pinyin.syllables(senses[safe: shown]?.pinyin ?? "")
+        let syllables = Pinyin.syllables(senses[safe: state.shownSense(token) ?? 0]?.pinyin ?? "")
         let isOpen = state.expanded == token.id
         let dim = particleWords.contains(token.text)
         return VStack(alignment: .leading, spacing: 0) {
@@ -184,7 +206,7 @@ struct PhraseView: View {
                         .cardFont(11).foregroundStyle(.secondary)
                         .frame(minWidth: 70 * scale, alignment: .leading)
                     Text(state.gloss(token))
-                        .cardFont(13, state.choices[token.id] == nil ? .regular : .semibold)
+                        .cardFont(13)
                         .foregroundStyle(dim ? .secondary : .primary)
                         .lineLimit(1)
                         .contentTransition(.opacity)
@@ -217,13 +239,18 @@ struct PhraseView: View {
                 Text(f).cardFont(11).foregroundStyle(.secondary)
             } else if state.choices[token.id]?.viaTranslation == true {
                 Text("Matched to the sentence translation").cardFont(11).foregroundStyle(.secondary)
+            } else if let here = state.meaningHere(token) {
+                (Text("Here: ").foregroundColor(.secondary) + Text(here).fontWeight(.medium))
+                    .cardFont(12)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .transition(.opacity)
             }
             if let note = state.note(token) {
                 NuanceView(note: note).transition(.opacity)
             }
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(senses.prefix(5).enumerated()), id: \.offset) { i, sense in
-                    let chosen = state.choices[token.id].map { $0.senseNumber == i + 1 } ?? (state.translationSense[token.id] == i)
+                    let chosen = state.shownSense(token) == i
                     Button { withAnimation(.smooth(duration: 0.25)) { state.pick(token, sense: i) } } label: {
                         HStack(alignment: .firstTextBaseline, spacing: 6) {
                             Image(systemName: "checkmark").cardFont(9, .bold)
