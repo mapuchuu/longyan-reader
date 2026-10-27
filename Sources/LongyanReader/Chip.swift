@@ -13,6 +13,8 @@ final class SelectionChip {
     /// Called with the selection when it could be read, or nil when the app hides it
     /// (then the click falls back to copying).
     var onClick: (Selection?, NSRect) -> Void = { _, _ in }
+    /// Called when the button appears for a readable selection, so work can start early.
+    var onShow: (Selection) -> Void = { _ in }
 
     private var panel: NSPanel?
     private var pending: Selection?
@@ -65,6 +67,7 @@ final class SelectionChip {
         hide()
         pending = selection
         LocalModel.warmUp()
+        if let selection { onShow(selection) }
         let size = Self.size
         var origin = NSPoint(x: point.x + 6, y: point.y + 6)
         if let b = selectionBounds, b.height > 0, b.height < 40 {

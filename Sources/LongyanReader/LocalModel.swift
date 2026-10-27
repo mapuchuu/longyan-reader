@@ -74,8 +74,60 @@ enum LocalModel {
         return "Passage: \(context.markedPassage)\nMarked word: \(context.word)\nSenses:\n" + list.joined(separator: "\n")
     }
 
-    static func choose(_ context: WordInContext, senses: [Sense]) async throws -> SenseChoice {
-        let schema: [String: Any] = [
+    /// Picks the sense of several words in one passage with a single request. Ollama serves
+    /// one request at a time, so this is much quicker than asking word by word; the answer is
+    /// just the sense numbers, in order. Returns 1-based numbers keyed by position in `words`.
+    static func chooseAll(passage: String, words: [(word: String, senses: [Sense])]) async throws -> [Int] {
+        guard !words.isEmpty else { return [] }
+        let keys = words.indices.map { "w\($0 + 1)" }
+        let blocks = words.enumerated().map { n, w -> String in
+            let list = w.senses.enumerated().map { i, s -> String in
+                var line = "  \(i + 1). [\(Pinyin.marked(s.pinyin))] \(s.gloss)"
+                let ex = ExamplesStore.examples(w.word, s).prefix(1)
+                if !ex.isEmpty { line += "  e.g. " + ex.joined(separator: " ") }
+                return line
+            }
+            return "\(keys[n]): \(w.word)\n" + list.joined(separator: "\n")
+        }
+        let user = "Passage: \(passage)\nFor each word, give the number of the sense it has in this passage.\n\n"
+            + blocks.joined(separator: "\n\n")
+        var props: [String: Any] = [:]
+        for k in keys { props[k] = ["type": "integer"] }
+        let body: [String: Any] = [
+            "model": name, "stream": false, "think": false,
+            "format": ["type": "object", "properties": props, "required": keys],
+            "options": ["temperature": 0, "num_ctx": 2048],
+            "keep_alive": "5m",
+            "messages": [
+                ["role": "system", "content": """
+                You help an English speaker read Chinese. You get a Chinese passage and some of its words, each with numbered dictionary senses. \
+                For each word, decide what it means in this passage and give the number of the matching sense. Never invent a sense.
+                """],
+                ["role": "user", "content": user],
+            ],
+        ]
+        var req = URLRequest(url: endpoint)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "content-type")
+        req.httpBody = try JSONSerialization.data(withJSONObject: body)
+        req.timeoutInterval = 60
+        let (data, response) = try await URLSession.shared.data(for: req)
+        guard (response as? HTTPURLResponse)?.statusCode == 200,
+              let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let content = (json["message"] as? [String: Any])?["content"] as? String,
+              let parsed = try JSONSerialization.jsonObject(with: Data(content.utf8)) as? [String: Any] else {
+            throw NSError(domain: "LongyanReader", code: 5, userInfo: [NSLocalizedDescriptionKey:
+                "local model: unexpected reply \(String(decoding: data.prefix(200), as: UTF8.self))"])
+        }
+        if ProcessInfo.processInfo.environment["LONGYAN_DEBUG_BATCH"] == "1" {
+            print("  [batch] prompt tokens \(json["prompt_eval_count"] ?? "?"), output \(json["eval_count"] ?? "?")")
+        }
+        return words.indices.map { i in min(max(parsed[keys[i]] as? Int ?? 1, 1), words[i].senses.count) }
+    }
+
+    static func choose(_ context: WordInContext, senses: [Sense], brief: Bool = false) async throws -> SenseChoice {
+        let brief = brief || ProcessInfo.processInfo.environment["LONGYAN_SENSE_ONLY"] == "1"
+        let full: [String: Any] = [
             "type": "object",
             "properties": [
                 "meaningHere": ["type": "string", "maxLength": 50,
@@ -84,6 +136,9 @@ enum LocalModel {
             ],
             "required": ["meaningHere", "senseNumber"],
         ]
+        let schema: [String: Any] = brief
+            ? ["type": "object", "properties": ["senseNumber": ["type": "integer"]], "required": ["senseNumber"]]
+            : full
         let body: [String: Any] = [
             "model": name,
             "stream": false,

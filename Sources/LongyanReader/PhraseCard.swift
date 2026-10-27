@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// A highlighted phrase: a translation on top, then each word with a quick gloss.
-/// Clicking a word asks the sense chooser what it means in this passage.
+/// A highlighted phrase: a translation on top, then each word with its meaning in this
+/// passage, chosen for every word before the card opens (see `PhrasePrep`).
 @MainActor
 final class PhraseState: ObservableObject {
     let selection: Selection
@@ -16,6 +16,8 @@ final class PhraseState: ObservableObject {
     @Published var choices: [Int: SenseChoice] = [:]
     @Published var choosing: Set<Int> = []
     @Published var failures: [Int: String] = [:]
+    /// True while the model is still picking the words' senses; those rows show a placeholder.
+    @Published var resolving = false
     /// Words whose meaning the reader picked; a model answer arriving later doesn't replace it.
     private(set) var userPicked: Set<Int> = []
     var onLayoutChange: () -> Void = {}
@@ -37,6 +39,59 @@ final class PhraseState: ObservableObject {
         var senses: [Int: [Sense]] = [:]
         for t in tokens { senses[t.id] = dict.senses(for: t.text) }
         self.senses = senses
+    }
+
+    /// Takes the senses chosen up front; the reader's own picks stay.
+    func apply(_ picks: [Int: SenseChoice]) {
+        for (id, choice) in picks where !userPicked.contains(id) { choices[id] = choice }
+        resolving = false
+        onLayoutChange()
+    }
+
+    /// Whether this row is still waiting for its sense (its gloss and pinyin aren't final yet).
+    func pending(_ token: PhraseToken) -> Bool {
+        resolving && choices[token.id] == nil && (senses[token.id]?.count ?? 0) > 1
+    }
+
+    /// Words worth asking the model about: those with more than one dictionary sense
+    /// (particles included: 了 is "le" here, not "liǎo").
+    static func ambiguous(_ tokens: [PhraseToken], dict: CEDict) -> [PhraseToken] {
+        tokens.filter { dict.senses(for: $0.text).count > 1 }
+    }
+
+    /// Chooses the in-context sense of every ambiguous word at once, so the card opens with
+    /// each row already resolved instead of changing when the reader opens it.
+    static func resolve(_ tokens: [PhraseToken], in passage: [Character], dict: CEDict) async -> [Int: SenseChoice] {
+        let words = ambiguous(tokens, dict: dict)
+        guard SenseChooser.isAvailable, let lo = words.first?.range.lowerBound, let hi = words.last?.range.upperBound else { return [:] }
+        var out: [Int: SenseChoice] = [:]
+        // The local model takes them all in one request (in chunks, to stay inside its
+        // context window): Ollama answers one request at a time, so word-by-word calls queue.
+        if await LocalModel.isAvailable() {
+            let sentence = Segmenter.context(for: lo..<hi, in: passage).sentence
+            var start = 0
+            while start < words.count {
+                let chunk = Array(words[start..<min(start + 8, words.count)])
+                start += chunk.count
+                let lists = chunk.map { (word: $0.text, senses: dict.senses(for: $0.text)) }
+                guard let picks = try? await LocalModel.chooseAll(passage: sentence, words: lists) else { continue }
+                for (t, n) in zip(chunk, picks) {
+                    out[t.id] = SenseChoice(senseNumber: n, meaningHere: headlineGloss(dict.senses(for: t.text)[n - 1]))
+                }
+            }
+            if !out.isEmpty || ProcessInfo.processInfo.environment["LONGYAN_BATCH_ONLY"] == "1" { return out }
+        }
+        // Apple's model: one word at a time, concurrently.
+        return await withTaskGroup(of: (Int, SenseChoice?).self) { group in
+            for t in words {
+                let list = dict.senses(for: t.text)
+                group.addTask {
+                    (t.id, try? await SenseChooser.choose(for: Segmenter.context(for: t.range, in: passage), senses: list))
+                }
+            }
+            for await (id, choice) in group { if let choice { out[id] = choice } }
+            return out
+        }
     }
 
     private func alignToTranslation() {
@@ -91,7 +146,7 @@ final class PhraseState: ObservableObject {
     func toggle(_ token: PhraseToken) {
         expanded = expanded == token.id ? nil : token.id
         defer { onLayoutChange() }
-        guard expanded == token.id, choices[token.id] == nil, !choosing.contains(token.id),
+        guard expanded == token.id, !resolving, choices[token.id] == nil, !choosing.contains(token.id),
               let list = senses[token.id], !list.isEmpty, SenseChooser.isAvailable else { return }
         choosing.insert(token.id)
         Task {
@@ -171,6 +226,7 @@ struct PhraseView: View {
         .animation(.smooth(duration: 0.25), value: state.translation)
         .animation(.smooth(duration: 0.25), value: state.choices.count)
         .animation(.smooth(duration: 0.25), value: state.choosing)
+        .animation(.smooth(duration: 0.3), value: state.resolving)
     }
 
     @ViewBuilder private var translation: some View {
@@ -192,12 +248,13 @@ struct PhraseView: View {
         let syllables = Pinyin.syllables(senses[safe: state.shownSense(token) ?? 0]?.pinyin ?? "")
         let isOpen = state.expanded == token.id
         let dim = particleWords.contains(token.text)
+        let pending = state.pending(token)
         return VStack(alignment: .leading, spacing: 0) {
             Button { withAnimation(.smooth(duration: 0.25)) { state.toggle(token) } } label: {
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
                     HStack(spacing: 0) {
                         ForEach(Array(token.text.enumerated()), id: \.offset) { i, ch in
-                            Text(String(ch)).foregroundStyle(toneColor(syllables[safe: i]?.tone ?? 5))
+                            Text(String(ch)).foregroundStyle(pending ? Color.secondary : toneColor(syllables[safe: i]?.tone ?? 5))
                         }
                     }
                     .cardFont(17, .medium)
@@ -205,13 +262,16 @@ struct PhraseView: View {
                     Text(syllables.map(\.text).joined(separator: " "))
                         .cardFont(11).foregroundStyle(.secondary)
                         .frame(minWidth: 70 * scale, alignment: .leading)
+                        .redacted(reason: pending ? .placeholder : [])
                     Text(state.gloss(token))
                         .cardFont(13)
                         .foregroundStyle(dim ? .secondary : .primary)
                         .lineLimit(1)
+                        .redacted(reason: pending ? .placeholder : [])
+                        .opacity(pending ? 0.6 : 1)
                         .contentTransition(.opacity)
                     Spacer(minLength: 4)
-                    if let note = state.note(token) {
+                    if !pending, let note = state.note(token) {
                         Circle().fill(noteTint(note.tag))
                             .frame(width: 6 * scale, height: 6 * scale)
                     }
@@ -232,7 +292,10 @@ struct PhraseView: View {
 
     @ViewBuilder private func detail(_ token: PhraseToken, senses: [Sense]) -> some View {
         VStack(alignment: .leading, spacing: 7) {
-            if state.choosing.contains(token.id) {
+            if state.pending(token) {
+                HStack(spacing: 6) { ProgressView().controlSize(.mini); Text("Reading the sentence…") }
+                    .cardFont(12).foregroundStyle(.secondary)
+            } else if state.choosing.contains(token.id) {
                 HStack(spacing: 6) { ProgressView().controlSize(.mini); Text("Reading the sentence…") }
                     .cardFont(12).foregroundStyle(.secondary)
             } else if let f = state.failures[token.id] {
@@ -271,8 +334,51 @@ struct PhraseView: View {
     }
 
     private var footer: some View {
-        let parts = [state.selection.appName, state.sourceNote].compactMap { $0 } + ["Click a word for its meaning here"]
+        let parts = [state.selection.appName, state.sourceNote].compactMap { $0 } + [state.choices.isEmpty ? "Click a word for its meaning here" : "Click a word for its other meanings"]
         return Text(parts.joined(separator: " · "))
             .cardFont(10).foregroundStyle(.tertiary)
     }
+}
+
+/// The work behind a phrase card (the translation and every word's sense), started as soon
+/// as the text is selected so it's usually finished by the time the reader clicks.
+@MainActor
+final class PhrasePrep {
+    let text: String
+    let passage: [Character]
+    private(set) var translation: String?
+    private(set) var translationError: String?
+    private(set) var picks: [Int: SenseChoice]?
+    private var tasks: [Task<Void, Never>] = []
+
+    var done: Bool { (translation != nil || translationError != nil) && picks != nil }
+
+    init(_ selection: Selection, dict: CEDict) {
+        text = selection.text
+        passage = selection.passage
+        let tokens = Segmenter.phrase(selection.range, in: selection.passage, dict: dict)
+        let passage = selection.passage
+        tasks = [
+            Task { [weak self] in
+                do {
+                    let t = try await Translator.translate(selection.text)
+                    self?.translation = t
+                } catch { self?.translationError = String(describing: error).prefix(60).description }
+            },
+            Task { [weak self] in
+                let picks = await PhraseState.resolve(tokens, in: passage, dict: dict)
+                self?.picks = picks
+            },
+        ]
+    }
+
+    func matches(_ selection: Selection) -> Bool { selection.text == text && selection.passage == passage }
+
+    /// Waits until everything is ready or `seconds` have passed.
+    func wait(upTo seconds: Double) async {
+        let deadline = Date().addingTimeInterval(seconds)
+        while !done, Date() < deadline, !Task.isCancelled { try? await Task.sleep(for: .milliseconds(30)) }
+    }
+
+    func cancel() { tasks.forEach { $0.cancel() } }
 }

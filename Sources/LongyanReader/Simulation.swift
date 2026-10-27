@@ -112,8 +112,27 @@ extension AppDelegate {
 
         // 4. Phrase card: open rows, pick a meaning inside one, switch rows; the window must
         //    always hold the whole card while it animates.
-        show(word("明朝实行海禁，闭关锁国，导致中国错过了工业革命。", 0, 23), near: anchor)
-        await wait(1.5)
+        //    Every word's sense is chosen before the card opens; when the text was selected a
+        //    moment earlier (the button appearing), the card should open at once.
+        let phraseSelection = word("明朝实行海禁，闭关锁国，导致中国错过了工业革命。", 0, 23)
+        prepare(phraseSelection)
+        await wait(2.5)
+        let clicked = Date()
+        show(phraseSelection, near: anchor)
+        var opened = 0.0
+        while popup.kind != .phrase || lastPhraseState?.selection.text != phraseSelection.text, opened < 3 { await wait(0.02); opened += 0.02 }
+        lines.append("  card opened \(Int(Date().timeIntervalSince(clicked) * 1000)) ms after the click (prepared while selecting)")
+        check(opened < 0.3, "a phrase prepared while selecting opens at once")
+        var settle = 0.0
+        while lastPhraseState?.resolving == true, settle < 8 { await wait(0.05); settle += 0.05 }
+        if let phrase = lastPhraseState {
+            let dict = self.dict!
+            let ambiguous = PhraseState.ambiguous(phrase.tokens, dict: dict)
+            let resolved = ambiguous.filter { phrase.choices[$0.id] != nil }.count
+            lines.append("  resolved before opening: " + ambiguous.map { "\($0.text)=\(phrase.gloss($0))" }.joined(separator: " / "))
+            check(resolved == ambiguous.count && !phrase.resolving, "every ambiguous word resolved (\(resolved)/\(ambiguous.count))")
+        }
+        await wait(0.4)
         var alwaysFits = true
         func watch(_ seconds: Double) async {
             var t = 0.0
@@ -121,7 +140,7 @@ extension AppDelegate {
         }
         if let phrase = lastPhraseState, phrase.tokens.count > 4 {
             let a = phrase.tokens[3], b = phrase.tokens[1]
-            // Opening a row: the gloss stays unless the model picks a different sense.
+            // Opening a row never changes it: the senses were chosen before the card opened.
             var rowsChecked = 0, rowsStable = 0
             for t in phrase.tokens.prefix(6) {
                 let before = phrase.gloss(t), senseBefore = phrase.shownSense(t)
@@ -131,10 +150,10 @@ extension AppDelegate {
                     await wait(0.1); waited += 0.1
                 }
                 rowsChecked += 1
-                if phrase.shownSense(t) != senseBefore || phrase.gloss(t) == before { rowsStable += 1 }
+                if phrase.shownSense(t) == senseBefore && phrase.gloss(t) == before { rowsStable += 1 }
                 lines.append("  row \(t.text): \(before) → \(phrase.gloss(t))\(phrase.meaningHere(t).map { " (here: \($0))" } ?? "")")
             }
-            check(rowsStable == rowsChecked, "opening phrase rows keeps each gloss unless the sense changes (\(rowsStable)/\(rowsChecked))")
+            check(rowsStable == rowsChecked, "opening phrase rows never changes their gloss (\(rowsStable)/\(rowsChecked))")
             if phrase.expanded != nil, let open = phrase.tokens.first(where: { $0.id == phrase.expanded }) {
                 withAnimation(.smooth(duration: 0.25)) { phrase.toggle(open) }
                 await wait(0.4)

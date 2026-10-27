@@ -47,6 +47,12 @@ enum CLI {
                 let i = SenseChooser.senseMatching(translation: translation, senses: senses)
                 return "\(token.text) (\(shortGloss(i.map { [senses[$0]] } ?? senses)))"
             }.joined(separator: " / "))
+            // Every ambiguous word resolved up front, all at once, as the card does before opening.
+            let r = Date()
+            let picks = await PhraseState.resolve(tokens, in: passage, dict: dict)
+            print("resolved \(picks.count) ambiguous words in \(Int(Date().timeIntervalSince(r) * 1000)) ms: " + tokens.compactMap { t in
+                picks[t.id].map { "\(t.text)=\(headlineGloss(dict.senses(for: t.text)[$0.senseNumber - 1]))" }
+            }.joined(separator: " / "))
         case "--render-phrase" where args.count >= 4:
             try await renderPhrase(args[2], expand: args.count >= 5 ? args[4] : nil, to: URL(fileURLWithPath: args[3]))
         case "--pdf-context" where args.count >= 5:
@@ -234,6 +240,9 @@ enum CLI {
         let selection = Selection(passage: passage, range: 0..<passage.count, bounds: nil, source: .accessibility, appName: "Safari")
         let state = PhraseState(selection: selection, dict: dict, sourceNote: nil)
         state.translation = try? await Translator.translate(text)
+        // LONGYAN_RENDER_PENDING=1 draws the card as it looks while senses are still being chosen.
+        if ProcessInfo.processInfo.environment["LONGYAN_RENDER_PENDING"] == "1" { state.resolving = true }
+        else { state.apply(await PhraseState.resolve(state.tokens, in: passage, dict: dict)) }
         if let expand, let token = state.tokens.first(where: { $0.text == expand }) {
             state.toggle(token)
             while state.choosing.contains(token.id) { try await Task.sleep(for: .milliseconds(50)) }
@@ -322,7 +331,17 @@ enum CLI {
             let index = passage.distance(from: passage.startIndex, to: passage.range(of: word)!.lowerBound)
             let ctx = Segmenter.context(for: index..<(index + word.count), in: Array(passage))
             let senses = dict.senses(for: word)
-            guard let c = try? await SenseChooser.choose(for: ctx, senses: senses) else {
+            var batched: SenseChoice?
+            if ProcessInfo.processInfo.environment["LONGYAN_BATCH"] == "1" {
+                // As in a phrase card: every ambiguous word of the sentence picked in one request.
+                let chars = Array(passage)
+                let tokens = Segmenter.phrase(0..<chars.count, in: chars, dict: dict)
+                let picks = await PhraseState.resolve(tokens, in: chars, dict: dict)
+                batched = tokens.first { $0.range.lowerBound == index && $0.text == word }.flatMap { picks[$0.id] }
+                if batched == nil { print("- \(passage)  (\(word) not a phrase token)"); continue }
+            }
+            let c: SenseChoice? = if let batched { batched } else { try? await SenseChooser.choose(for: ctx, senses: senses) }
+            guard let c else {
                 print("? \(passage)  → model refused; dictionary order")
                 continue
             }

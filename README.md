@@ -17,8 +17,9 @@ It's a sibling of [Longyan](https://github.com/mapuchuu/longyan), the Chrome ext
    - **A single dictionary word** gets the word card. Apple's on-device model (FoundationModels) picks the [CC-CEDICT](https://cc-cedict.org/) sense that fits the passage, says what the word means here, and can add a *lost in translation* or *cultural context* note. It picks from the dictionary list and never writes definitions of its own.
    - **Anything longer** gets the phrase card:
      - a translation from Apple's on-device Translation framework;
-     - each word with a quick gloss, using the sense that agrees with the translation;
-     - click a word to have the model choose its sense in this passage.
+     - each word with its meaning in this passage, chosen for every word before the card opens, so opening a row never changes it; click a word for its other meanings or to pick one yourself.
+
+     That work starts as soon as the selection button appears, while you move to click it, so the card usually opens at once. The local model picks all the words in one request (Ollama answers one request at a time, so word-by-word calls queue up): about 0.6–1.6 s for a sentence. If it isn't done 1.2 s after the click, the card opens anyway and the rows still being picked show a placeholder until they fill in.
 
 If the model is unavailable or rejects a prompt, the cards still show the dictionary senses in their usual order.
 
@@ -45,7 +46,7 @@ The eye icon in the menu bar shows the status of the dictionary, the model and t
 B=".build/release/LongyanReader"
 $B --status                                         # dictionary and model availability
 $B --lookup "他长得很高。" 长                        # segment, list senses, choose one
-$B --phrase "快递员每天晚上都要上夜班分拣包裹。"       # phrase words, translation, translation-aligned glosses
+$B --phrase "快递员每天晚上都要上夜班分拣包裹。"       # phrase words, translation, and every word's sense in one request
 $B --eval                                           # labelled cases: word, sense and tag accuracy
 $B --render "明朝实行海禁，闭关锁国。" 锁 out.png       # draw the word card to a PNG
 $B --render-phrase "明朝实行海禁，闭关锁国。" out.png 闭关锁国   # draw the phrase card, one word expanded

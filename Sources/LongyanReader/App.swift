@@ -23,13 +23,14 @@ enum Main {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var hotKey: HotKey?
-    private var dict: CEDict?
+    private(set) var dict: CEDict?
     let popup = PopupController()
     private let chip = SelectionChip()
     private var lookupTask: Task<Void, Never>?
     /// The most recent cards' state, for the usage simulation.
     private(set) var lastLookupState: LookupState?
     private(set) var lastPhraseState: PhraseState?
+    private var phrasePrep: PhrasePrep?
     private var localModelReady = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -55,6 +56,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Task { @MainActor in self?.hotKeyPressed() }
         }
 
+        chip.onShow = { [weak self] selection in self?.prepare(selection) }
         chip.onClick = { [weak self] selection, chipFrame in
             Task { @MainActor in await self?.chipClicked(selection, chipFrame: chipFrame) }
         }
@@ -277,8 +279,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func show(_ selection: Selection, near anchor: NSRect) {
         guard let dict else { hint("Dictionary still loading…", near: anchor); return }
         let note = selection.source == .clipboard ? "copied, no surrounding text" : nil
-        let text = selection.text
-        if text.count == 1 || (text.allSatisfy(isCJK) && dict.contains(text)) {
+        if isSingleWord(selection, dict: dict) {
             let context = Segmenter.context(for: selection.range, in: selection.passage)
             showWord(context, sourceNote: note, appName: selection.appName, near: anchor)
         } else {
@@ -326,21 +327,51 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func showPhrase(_ selection: Selection, dict: CEDict, sourceNote: String?, near anchor: NSRect) {
         lookupTask?.cancel()
+        // Usually started when the text was selected (see `prepare`); otherwise start now.
+        let prep = phrasePrep.flatMap { $0.matches(selection) ? $0 : nil } ?? PhrasePrep(selection, dict: dict)
+        phrasePrep = nil
         let state = PhraseState(selection: selection, dict: dict, sourceNote: sourceNote)
         state.onLayoutChange = { [weak self] in Task { await self?.relayout() } }
         lastPhraseState = state
-        popup.show(PhraseView(state: state), kind: .phrase, near: anchor)
         lookupTask = Task {
             let started = Date()
-            do {
-                let t = try await Translator.translate(selection.text)
-                withAnimation(.smooth(duration: 0.3)) { state.translation = t }
-            } catch { state.translationError = String(describing: error).prefix(60).description }
-            await relayout()
+            // Open with every word already resolved, waiting a little if need be; past that
+            // the card opens anyway and the unresolved rows show a placeholder until they're in.
+            await prep.wait(upTo: 1.2)
+            guard !Task.isCancelled else { return }
+            state.translation = prep.translation
+            state.translationError = prep.translationError
+            if let picks = prep.picks { state.apply(picks) } else { state.resolving = true }
+            popup.show(PhraseView(state: state), kind: .phrase, near: anchor)
+            let waited = Int(Date().timeIntervalSince(started) * 1000)
+            if !prep.done {
+                await prep.wait(upTo: 60)
+                guard !Task.isCancelled else { return }
+                withAnimation(.smooth(duration: 0.3)) {
+                    if state.translation == nil { state.translation = prep.translation }
+                    state.translationError = state.translation == nil ? prep.translationError : nil
+                    state.apply(prep.picks ?? [:])
+                }
+                await relayout()
+            }
             Log.write(["event": "phrase", "text": selection.text, "words": state.tokens.map(\.text),
                        "translation": state.translation ?? "", "app": selection.appName ?? "",
-                       "source": selection.source.rawValue, "ms": Int(Date().timeIntervalSince(started) * 1000)])
+                       "source": selection.source.rawValue, "resolved": state.choices.count,
+                       "waitedMs": waited, "ms": Int(Date().timeIntervalSince(started) * 1000)])
         }
+    }
+
+    /// Starts a phrase card's work for a fresh selection, before the reader clicks.
+    func prepare(_ selection: Selection) {
+        guard let dict, !isSingleWord(selection, dict: dict) else { return }
+        if phrasePrep?.matches(selection) == true { return }
+        phrasePrep?.cancel()
+        phrasePrep = PhrasePrep(selection, dict: dict)
+    }
+
+    private func isSingleWord(_ selection: Selection, dict: CEDict) -> Bool {
+        let text = selection.text
+        return text.count == 1 || (text.allSatisfy(isCJK) && dict.contains(text))
     }
 
     /// Let SwiftUI lay out new content, then resize the popup around it.
