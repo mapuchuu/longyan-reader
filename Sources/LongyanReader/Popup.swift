@@ -247,7 +247,7 @@ final class PopupController {
                                backing: .buffered, defer: false)
         panel.isOpaque = false
         panel.backgroundColor = .clear
-        panel.hasShadow = true
+        panel.hasShadow = false        // the card draws its own shadow, shaped like the card
         panel.level = .popUpMenu
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
         panel.contentView = host
@@ -258,6 +258,7 @@ final class PopupController {
         layout.onChange = { [weak self] animated in self?.applySize(animated: animated) }
 
         placedBelow = anchor.minY - 8 - 200 >= visible.minY
+        layout.placedBelow = placedBelow
         applySize(animated: false)
         panel.orderFrontRegardless()
 
@@ -285,32 +286,50 @@ final class PopupController {
         (NSScreen.screens.first { $0.frame.intersects(anchor) } ?? NSScreen.main)?.visibleFrame ?? .zero
     }
 
-    /// Sizes the window to the card. The edge nearest the selection stays put, so the
-    /// card grows away from the text; size changes animate unless the reader is dragging.
+    private var shrinkWork: DispatchWorkItem?
+
+    /// Fits the transparent window around the card plus its shadow margin. The card animates
+    /// its own size; the window only changes instantly, growing before an expansion and
+    /// shrinking once a contraction has finished, so it never clips the animation and
+    /// never animates itself. The edge nearest the selection stays put.
     func applySize(animated: Bool) {
-        guard let panel, let layout else { return }
-        let visible = visibleFrame()
-        let size = CGSize(width: layout.width, height: max(layout.height, 1))
-        var x = anchor.minX
-        var y = placedBelow ? anchor.minY - 8 - size.height : anchor.maxY + 8
-        if placedBelow, y < visible.minY + 8 {
-            // Grown past the bottom of the screen: slide up rather than flip sides.
-            y = visible.minY + 8
-        }
-        x = min(max(x, visible.minX + 8), visible.maxX - size.width - 8)
-        y = min(max(y, visible.minY + 8), visible.maxY - size.height - 8)
-        let frame = NSRect(x: x, y: y, width: size.width, height: size.height)
-        guard frame != panel.frame else { return }
-        if animated {
-            NSAnimationContext.runAnimationGroup({ ctx in
-                ctx.duration = 0.22
-                ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-                panel.animator().setFrame(frame, display: true)
-            }, completionHandler: { [weak panel] in panel?.invalidateShadow() })
+        guard let panel, layout != nil else { return }
+        let needed = windowSize()
+        let current = panel.frame.size
+        shrinkWork?.cancel()
+        if animated, needed.height < current.height || needed.width < current.width {
+            // Hold the larger window until the card has finished shrinking.
+            setWindow(CGSize(width: max(needed.width, current.width), height: max(needed.height, current.height)))
+            let work = DispatchWorkItem { [weak self] in
+                guard let self, self.panel === panel else { return }
+                self.setWindow(self.windowSize())
+            }
+            shrinkWork = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.32, execute: work)
         } else {
-            panel.setFrame(frame, display: true)
-            panel.invalidateShadow()
+            setWindow(needed)
         }
+    }
+
+    private func windowSize() -> CGSize {
+        guard let layout else { return .zero }
+        let m = CardChrome<EmptyView>.margin
+        return CGSize(width: layout.width + 2 * m, height: max(layout.height, 1) + 2 * m)
+    }
+
+    /// Places the window so the card sits 8 pt from the selection, inside the screen.
+    private func setWindow(_ size: CGSize) {
+        guard let panel else { return }
+        let visible = visibleFrame()
+        let m = CardChrome<EmptyView>.margin
+        var x = anchor.minX - m
+        // Below: the card's top edge is fixed 8 pt under the selection; the window grows down.
+        // Above: the card's bottom edge is fixed 8 pt over it; the window grows up.
+        var y = placedBelow ? anchor.minY - 8 + m - size.height : anchor.maxY + 8 - m
+        x = min(max(x, visible.minX + 8 - m), visible.maxX - size.width + m - 8)
+        y = min(max(y, visible.minY + 8 - m), visible.maxY - size.height + m - 8)
+        let frame = NSRect(x: x, y: y, width: size.width, height: size.height)
+        if frame != panel.frame { panel.setFrame(frame, display: true) }
     }
 
     /// Switches an open card to the chosen appearance straight away.

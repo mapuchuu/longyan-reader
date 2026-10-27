@@ -146,7 +146,7 @@ struct ChipButtonView: View {
         if CardStyle.current == .glass && !snapshot {
             eye
                 .frame(width: diameter, height: diameter)
-                .glassEffect(.regular.interactive(), in: Circle())
+                .glassEffect(.regular.tint(glassTint).interactive(), in: Circle())
         } else {
             ZStack {
                 if !snapshot { MaterialBackground(radius: diameter / 2) }

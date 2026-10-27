@@ -17,7 +17,10 @@ final class CardLayout: ObservableObject {
 
     var maxHeight: CGFloat = 640
     var onChange: (_ animated: Bool) -> Void = { _ in }
-    private(set) var isResizing = false
+    /// While the corner is dragged, size changes follow the pointer with no animation.
+    @Published private(set) var isResizing = false
+    /// Whether the card hangs below the selection (top edge fixed) or sits above it.
+    @Published var placedBelow = true
 
     static let defaultWidth: [Kind: CGFloat] = [.word: 360, .phrase: 390, .hint: 260]
     static let scaleRange: ClosedRange<CGFloat> = 0.8...2.2
@@ -169,21 +172,49 @@ private struct HeightKey: PreferenceKey {
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
 }
 
-/// The frame every card sits in: material, hairline border, scrolling when the card is
-/// smaller than its content, the corner grip, and the spring-in on appear.
+/// The frame every card sits in: background (classic material or Liquid Glass), scrolling
+/// when the card is smaller than its content, the corner grip, a shadow drawn with the
+/// card's own shape, and the spring-in on appear.
+///
+/// Size changes animate here, in SwiftUI, never by animating the window: the window is
+/// a transparent frame with room for the shadow, resized instantly around the card
+/// (growing before an expansion, shrinking after a contraction), so no rectangular
+/// window edge or stale window shadow can flash during a change.
 struct CardChrome<Content: View>: View {
     @ObservedObject var layout: CardLayout
     @Environment(\.renderingSnapshot) private var snapshot
     let content: Content
     static var radius: CGFloat { 14 }
+    /// Transparent space around the card for its shadow.
+    static var margin: CGFloat { 28 }
+    static var sizeAnimation: Animation { .smooth(duration: 0.28) }
 
     init(layout: CardLayout, @ViewBuilder content: () -> Content) {
         self.layout = layout
         self.content = content()
     }
 
+    private var glassStyle: Bool { CardStyle.current == .glass && !snapshot }
+    private var shape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: glassStyle ? Self.radius + 4 : Self.radius, style: .continuous)
+    }
+
     var body: some View {
-        body(for: padded)
+        if snapshot {
+            card(padded)
+        } else {
+            card(scrolling)
+                .frame(width: layout.width, height: max(layout.height, 1), alignment: .top)
+                .animation(layout.isResizing ? nil : Self.sizeAnimation, value: layout.height)
+                .shadow(color: .black.opacity(0.16), radius: 16, y: 8)
+                .shadow(color: .black.opacity(0.08), radius: 1.5, y: 0.5)
+                .scaleEffect(layout.appeared ? 1 : 0.96, anchor: layout.placedBelow ? .top : .bottom)
+                .opacity(layout.appeared ? 1 : 0)
+                .offset(y: layout.appeared ? 0 : (layout.placedBelow ? -4 : 4))
+                .padding(Self.margin)
+                .frame(maxWidth: .infinity, maxHeight: .infinity,
+                       alignment: layout.placedBelow ? .topLeading : .bottomLeading)
+        }
     }
 
     private var padded: some View {
@@ -193,70 +224,57 @@ struct CardChrome<Content: View>: View {
             .frame(width: layout.width, alignment: .leading)
     }
 
-    @ViewBuilder private func body(for inner: some View) -> some View {
-        if snapshot {
-            decorate(inner)
+    private var scrolling: some View {
+        ScrollView(.vertical) {
+            padded.background(GeometryReader { g in Color.clear.preference(key: HeightKey.self, value: g.size.height) })
+        }
+        .scrollIndicators(layout.contentHeight > layout.maxHeight ? .automatic : .never)
+        .scrollBounceBehavior(.basedOnSize)
+        .onPreferenceChange(HeightKey.self) { h in
+            MainActor.assumeIsolated { layout.reportContentHeight(h) }
+        }
+    }
+
+    /// Background, clipping and grip. Everything is clipped to the rounded shape, so no
+    /// row highlight or scrolling content can show past the corners mid-animation.
+    @ViewBuilder private func card(_ view: some View) -> some View {
+        if glassStyle {
+            view
+                .clipShape(shape)
+                .glassEffect(.regular.tint(glassTint), in: shape)
+                .overlay(alignment: .bottomTrailing) { grip.padding(5) }
         } else {
-            decorate(
-                ScrollView(.vertical) {
-                    inner.background(GeometryReader { g in Color.clear.preference(key: HeightKey.self, value: g.size.height) })
+            view
+                .background {
+                    if snapshot {
+                        shape.fill(cardSurface(opaque: true))
+                    } else {
+                        // The popover material alone reads grey; a soft white (near-black in
+                        // dark mode) wash over it keeps a little translucency but looks clean.
+                        ZStack {
+                            MaterialBackground(radius: Self.radius)
+                            shape.fill(cardSurface(opaque: false))
+                        }
+                    }
                 }
-                .scrollIndicators(layout.contentHeight > layout.maxHeight ? .automatic : .never)
-                .scrollBounceBehavior(.basedOnSize)
-                .onPreferenceChange(HeightKey.self) { h in
-                    MainActor.assumeIsolated { layout.reportContentHeight(h) }
-                }
-                .frame(width: layout.width, height: max(layout.height, 1))
-            )
+                .overlay(shape.strokeBorder(Color.primary.opacity(0.10), lineWidth: 0.5))
+                .overlay(alignment: .bottomTrailing) { grip.padding(3) }
+                .clipShape(shape)
         }
     }
 
-    @ViewBuilder private func decorate(_ view: some View) -> some View {
-        if CardStyle.current == .glass && !snapshot {
-            glass(view)
-        } else {
-            classic(view)
-        }
-    }
-
-    /// Liquid Glass: the system glass, a little rounder, no hairline (the glass draws its own edge).
-    private func glass(_ view: some View) -> some View {
-        let shape = RoundedRectangle(cornerRadius: Self.radius + 4, style: .continuous)
-        return view
-            .glassEffect(.regular, in: shape)
-            .overlay(alignment: .bottomTrailing) {
-                if layout.kind != .hint { ResizeGrip(layout: layout).padding(5) }
-            }
-            .scaleEffect(layout.appeared ? 1 : 0.96, anchor: .top)
-            .opacity(layout.appeared ? 1 : 0)
-            .offset(y: layout.appeared ? 0 : -4)
-    }
-
-    private func classic(_ view: some View) -> some View {
-        view
-        .background {
-            if snapshot {
-                RoundedRectangle(cornerRadius: Self.radius, style: .continuous).fill(cardSurface(opaque: true))
-            } else {
-                // The popover material alone reads grey; a soft white (near-black in dark
-                // mode) wash over it keeps a little translucency but looks clean.
-                ZStack {
-                    MaterialBackground(radius: Self.radius)
-                    RoundedRectangle(cornerRadius: Self.radius, style: .continuous).fill(cardSurface(opaque: false))
-                }
-            }
-        }
-        .overlay(RoundedRectangle(cornerRadius: Self.radius, style: .continuous)
-            .strokeBorder(Color.primary.opacity(0.10), lineWidth: 0.5))
-        .overlay(alignment: .bottomTrailing) {
-            if layout.kind != .hint { ResizeGrip(layout: layout).padding(3) }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: Self.radius, style: .continuous))
-        .scaleEffect(layout.appeared || snapshot ? 1 : 0.96, anchor: .top)
-        .opacity(layout.appeared || snapshot ? 1 : 0)
-        .offset(y: layout.appeared || snapshot ? 0 : -4)
+    @ViewBuilder private var grip: some View {
+        if layout.kind != .hint { ResizeGrip(layout: layout) }
     }
 }
+
+/// A light tint behind the glass, so it stays readable over busy pages:
+/// frosted white in light mode, smoky dark in dark mode.
+let glassTint = Color(nsColor: NSColor(name: nil) { appearance in
+    appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        ? NSColor(srgbRed: 0.08, green: 0.08, blue: 0.09, alpha: 0.38)
+        : NSColor(srgbRed: 1, green: 1, blue: 1, alpha: 0.55)
+})
 
 /// The corner handle: drag to resize, double-click to reset.
 struct ResizeGrip: View {

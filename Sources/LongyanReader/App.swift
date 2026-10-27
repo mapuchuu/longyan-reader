@@ -83,14 +83,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     let passage = Array("奶奶上个月走了，全家人都很难过。")
                     let selection = Selection(passage: passage, range: 5..<6, bounds: nil, source: .accessibility, appName: "Demo")
                     self.show(selection, near: anchor)
-                    for (label, wait) in [("after 0.1 s", 0.1), ("after 0.5 s", 0.4), ("after 2.5 s (answer in)", 2.0)] {
+                    for (label, wait) in [("after 0.1 s", 0.1), ("after 0.3 s", 0.2), ("after 0.6 s", 0.3), ("after 1.0 s", 0.4), ("after 2.5 s (answer in)", 1.5)] {
                         try? await Task.sleep(for: .seconds(wait))
                         lines.append("\(label): " + self.popup.debugState)
                     }
+                    let savedZoom = UserDefaults.standard.object(forKey: "card.word.width")
                     self.popup.debugDrag(dx: 120, dy: -150)
                     try? await Task.sleep(for: .seconds(0.3))
                     lines.append("after dragging corner +120, +150 down: " + self.popup.debugState)
                     lines.append("saved size: " + "\(UserDefaults.standard.double(forKey: "card.word.width")) x \(UserDefaults.standard.double(forKey: "card.word.height"))")
+                    if let savedZoom { UserDefaults.standard.set(savedZoom, forKey: "card.word.width") }
+                    else { UserDefaults.standard.removeObject(forKey: "card.word.width") }
                     self.popup.close()
                     try? lines.joined(separator: "\n").write(to: Log.directory.appendingPathComponent("ax-probe.txt"), atomically: true, encoding: .utf8)
                 }
