@@ -24,7 +24,9 @@ extension AppDelegate {
         let savedPhraseZoom = UserDefaults.standard.object(forKey: "card.phrase.width")
         UserDefaults.standard.removeObject(forKey: "card.word.width")
         UserDefaults.standard.removeObject(forKey: "card.phrase.width")
+        popup.ignoresOutsideInput = true
         defer {
+            popup.ignoresOutsideInput = false
             UserDefaults.standard.set(savedStyle, forKey: "cardStyle")
             UserDefaults.standard.set(savedAppearance, forKey: "appearance")
             if let savedZoom { UserDefaults.standard.set(savedZoom, forKey: "card.word.width") }
@@ -77,6 +79,29 @@ extension AppDelegate {
         await waitForAnswer(early)
         await wait(3)
         check(early?.chosenIndex == 1, "an early pick isn't overwritten by the model's later answer")
+
+        // 2b. Clicking the meaning already chosen leaves the headline alone; picking another
+        //     and then "use suggested" brings the model's wording back.
+        show(word("我很理解你的想法。", 2, 2), near: anchor)
+        let single = lastLookupState
+        await waitForAnswer(single)
+        let headline = single?.choice?.meaningHere
+        if let i = single?.chosenIndex { single?.pick(i) }
+        await wait(0.3)
+        check(single?.choice?.meaningHere == headline && headline != nil,
+              "clicking the chosen meaning keeps the headline (\(headline ?? "none"))")
+        show(word("奶奶上个月走了，全家人都很难过。", 5), near: anchor)
+        let multi = lastLookupState
+        await waitForAnswer(multi)
+        let suggestedText = multi?.choice?.meaningHere
+        let firstChoice = multi?.chosenIndex ?? 0
+        multi?.pick(firstChoice == 0 ? 1 : 0)
+        await wait(0.3)
+        check(multi?.choice?.meaningHere != suggestedText, "picking another meaning updates the headline")
+        multi?.useSuggested()
+        await wait(0.3)
+        check(multi?.choice?.meaningHere == suggestedText && multi?.chosenIndex == firstChoice,
+              "'use suggested meaning' restores the model's answer and wording")
 
         // 3. A hint followed quickly by a lookup: the hint's timer must not close the lookup.
         hint("Highlight some Chinese text first", near: anchor)

@@ -17,15 +17,40 @@ final class LookupState: ObservableObject {
     var onLayoutChange: () -> Void = {}
 
     /// Set once the reader picks a meaning; a model answer arriving later doesn't replace it.
-    private(set) var userPicked = false
+    @Published private(set) var userPicked = false
+    /// The model's own answer, kept so the reader can go back to it.
+    @Published var suggested: SenseChoice?
 
-    /// The reader overrides the chosen sense by clicking it.
+    /// The reader picks a meaning. Clicking the one already chosen changes nothing (it used
+    /// to rewrite the headline from the dictionary gloss, e.g. 理解's "to comprehend;
+    /// to understand" became "to comprehend").
     func pick(_ index: Int) {
-        guard senses.indices.contains(index) else { return }
+        guard senses.indices.contains(index), choice?.senseNumber != index + 1 else { return }
+        if let suggested, suggested.senseNumber == index + 1 {
+            useSuggested()
+            return
+        }
         userPicked = true
         choice = SenseChoice(senseNumber: index + 1, meaningHere: headlineGloss(senses[index]))
         phase = .chosen
         onLayoutChange()
+    }
+
+    /// Back to the model's answer, with its own wording.
+    func useSuggested() {
+        guard let suggested else { return }
+        userPicked = false
+        choice = suggested
+        phase = .chosen
+        onLayoutChange()
+    }
+
+    /// The model's answer arrived: show it unless the reader has already chosen.
+    func receive(_ answer: SenseChoice) {
+        suggested = answer
+        guard !userPicked else { return }
+        choice = answer
+        phase = .chosen
     }
 
     init(context: WordInContext, senses: [Sense], sourceNote: String? = nil, appName: String?, phase: Phase) {
@@ -88,6 +113,7 @@ struct LookupView: View {
         .animation(.smooth(duration: 0.25), value: state.choice?.senseNumber)
         .animation(.smooth(duration: 0.25), value: state.phase)
         .animation(.smooth(duration: 0.25), value: state.showAllSenses)
+        .animation(.smooth(duration: 0.25), value: state.userPicked)
     }
 
     private var header: some View {
@@ -120,6 +146,16 @@ struct LookupView: View {
     }
 
     @ViewBuilder private var status: some View {
+        if state.userPicked, let suggested = state.suggested, suggested.senseNumber != state.choice?.senseNumber {
+            Button { withAnimation(.smooth(duration: 0.25)) { state.useSuggested() } } label: {
+                Label("Use suggested meaning: \(suggested.meaningHere)", systemImage: "arrow.uturn.backward")
+                    .cardFont(11)
+                    .lineLimit(1)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(Color.accentColor)
+            .transition(.opacity)
+        }
         switch state.phase {
         case .choosing:
             HStack(spacing: 6) { ProgressView().controlSize(.mini); Text("Reading the sentence…") }
@@ -237,6 +273,9 @@ final class PopupController {
     private var placedBelow = true
     private var monitors: [Any] = []
     var isShowing: Bool { panel != nil }
+    /// Set by the usage simulation so the reader's own clicks and typing elsewhere don't
+    /// close its cards mid-check.
+    var ignoresOutsideInput = false
     /// Which kind of card is open, and a token that changes with every new card.
     private(set) var kind: CardLayout.Kind?
     private(set) var generation = 0
@@ -281,9 +320,13 @@ final class PopupController {
         // Close on a click elsewhere, scrolling, or Esc. Global monitors only see
         // events for other apps, so clicks and drags inside the card are unaffected.
         if let m = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .scrollWheel],
-                                                     handler: { [weak self] _ in self?.close() }) { monitors.append(m) }
+                                                     handler: { [weak self] _ in
+            guard let self, !self.ignoresOutsideInput else { return }
+            self.close()
+        }) { monitors.append(m) }
         if let m = NSEvent.addGlobalMonitorForEvents(matching: [.keyDown], handler: { [weak self] e in
-            if e.keyCode == 53 { self?.close() }
+            guard let self, !self.ignoresOutsideInput else { return }
+            if e.keyCode == 53 { self.close() }
         }) { monitors.append(m) }
         if let m = NSEvent.addLocalMonitorForEvents(matching: [.keyDown], handler: { [weak self] e in
             if e.keyCode == 53 { self?.close(); return nil }

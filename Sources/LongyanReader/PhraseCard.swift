@@ -22,6 +22,9 @@ final class PhraseState: ObservableObject {
 
     func pick(_ token: PhraseToken, sense index: Int) {
         guard let list = senses[token.id], list.indices.contains(index) else { return }
+        // Clicking the meaning already shown changes nothing.
+        let shown = choices[token.id].map { $0.senseNumber - 1 } ?? translationSense[token.id] ?? 0
+        guard shown != index else { return }
         userPicked.insert(token.id)
         choices[token.id] = SenseChoice(senseNumber: index + 1, meaningHere: headlineGloss(list[index]))
         onLayoutChange()

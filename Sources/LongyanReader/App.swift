@@ -309,14 +309,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 do {
                     let choice = try await SenseChooser.choose(for: context, senses: senses)
                     guard !Task.isCancelled else { return }
-                    if state.userPicked {
-                        record["userPickedFirst"] = true    // the reader's choice stands
-                    } else {
-                        withAnimation(.smooth(duration: 0.3)) {
-                            state.choice = choice
-                            state.phase = .chosen
-                        }
-                    }
+                    if state.userPicked { record["userPickedFirst"] = true }   // the reader's choice stands
+                    withAnimation(.smooth(duration: 0.3)) { state.receive(choice) }
                     record["meaningHere"] = choice.meaningHere
                     record["tag"] = choice.tag.rawValue
                 } catch {
