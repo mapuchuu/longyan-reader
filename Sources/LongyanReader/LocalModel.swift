@@ -76,10 +76,13 @@ enum LocalModel {
 
     /// Picks the sense of several words in one passage with a single request. Ollama serves
     /// one request at a time, so this is much quicker than asking word by word; the answer is
-    /// just the sense numbers, in order. Returns 1-based numbers keyed by position in `words`.
-    static func chooseAll(passage: String, words: [(word: String, senses: [Sense])]) async throws -> [Int] {
+    /// just the sense numbers, in order, streamed so each word can be shown as soon as it's
+    /// picked (`onPick` gets the word's position in `words` and its 1-based sense number).
+    static func chooseAll(passage: String, words: [(word: String, senses: [Sense])],
+                          onPick: @MainActor (Int, Int) -> Void = { _, _ in }) async throws -> [Int] {
         guard !words.isEmpty else { return [] }
-        let keys = words.indices.map { "w\($0 + 1)" }
+        // Zero-padded so that sorted keys (below) keep the words in order: w01, w02, … w10.
+        let keys = words.indices.map { String(format: "w%02d", $0 + 1) }
         let blocks = words.enumerated().map { n, w -> String in
             let list = w.senses.enumerated().map { i, s -> String in
                 var line = "  \(i + 1). [\(Pinyin.marked(s.pinyin))] \(s.gloss)"
@@ -89,12 +92,13 @@ enum LocalModel {
             }
             return "\(keys[n]): \(w.word)\n" + list.joined(separator: "\n")
         }
-        let user = "Passage: \(passage)\nFor each word, give the number of the sense it has in this passage.\n\n"
-            + blocks.joined(separator: "\n\n")
+        let user = "Passage: \(passage)\n" + "For each word, give the number of the sense it has in this passage.\n\n" + blocks.joined(separator: "\n\n")
+        // Just the numbers: asking for a short meaning before each one (as the single-word
+        // request does) made a sentence take twice as long and scored no better.
         var props: [String: Any] = [:]
         for k in keys { props[k] = ["type": "integer"] }
         let body: [String: Any] = [
-            "model": name, "stream": false, "think": false,
+            "model": name, "think": false,
             "format": ["type": "object", "properties": props, "required": keys],
             "options": ["temperature": 0, "num_ctx": 2048],
             "keep_alive": "5m",
@@ -106,23 +110,76 @@ enum LocalModel {
                 ["role": "user", "content": user],
             ],
         ]
+        var picks = [Int?](repeating: nil, count: words.count)
+        let text = try await stream(body) { text in
+            // A number is complete once something follows it.
+            let pattern = #/"w(\d+)"\s*:\s*(\d+)\s*[,}\s]/#
+            for m in text.matches(of: pattern) {
+                guard let k = Int(m.1), let n = Int(m.2), words.indices.contains(k - 1), picks[k - 1] == nil else { continue }
+                let pick = min(max(n, 1), words[k - 1].senses.count)
+                picks[k - 1] = pick
+                onPick(k - 1, pick)
+            }
+        }
+        guard let parsed = try? JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any] else {
+            throw NSError(domain: "LongyanReader", code: 5, userInfo: [NSLocalizedDescriptionKey:
+                "local model: unexpected reply \(text.prefix(200))"])
+        }
+        return words.indices.map { i in
+            picks[i] ?? min(max(parsed[keys[i]] as? Int ?? 1, 1), words[i].senses.count)
+        }
+    }
+
+    static let translationInstructions = """
+    You translate Chinese into natural, idiomatic English for a learner. Keep the meaning, tone and any slang or idiom \
+    (translate its sense, not its characters). Reply with the English translation only.
+    """
+
+    /// A natural English translation, streamed: `partial` gets the text so far. Better than
+    /// Apple's translator on slang and idioms (内卷 "involution", not "internal entanglement";
+    /// 小意思 "a small token", not "a little interesting").
+    static func translate(_ text: String, partial: @MainActor (String) -> Void = { _ in }) async throws -> String {
+        let body: [String: Any] = [
+            "model": name, "think": false,
+            "options": ["temperature": 0, "num_ctx": 2048],
+            "keep_alive": "5m",
+            "messages": [
+                ["role": "system", "content": translationInstructions],
+                ["role": "user", "content": text],
+            ],
+        ]
+        let out = try await stream(body) { partial($0.trimmingCharacters(in: .whitespacesAndNewlines)) }
+        let t = out.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !t.isEmpty else { throw NSError(domain: "LongyanReader", code: 6, userInfo: [NSLocalizedDescriptionKey: "empty translation"]) }
+        return t
+    }
+
+    /// Runs a chat request with streaming on; `onText` gets the reply so far after each piece.
+    private static func stream(_ body: [String: Any], onText: @MainActor (String) -> Void) async throws -> String {
+        var body = body
+        body["stream"] = true
         var req = URLRequest(url: endpoint)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "content-type")
-        req.httpBody = try JSONSerialization.data(withJSONObject: body)
+        // Sorted keys keep schema properties in order, so the model answers them in order.
+        req.httpBody = try JSONSerialization.data(withJSONObject: body, options: [.sortedKeys])
         req.timeoutInterval = 60
-        let (data, response) = try await URLSession.shared.data(for: req)
-        guard (response as? HTTPURLResponse)?.statusCode == 200,
-              let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let content = (json["message"] as? [String: Any])?["content"] as? String,
-              let parsed = try JSONSerialization.jsonObject(with: Data(content.utf8)) as? [String: Any] else {
+        let (bytes, response) = try await URLSession.shared.bytes(for: req)
+        guard (response as? HTTPURLResponse)?.statusCode == 200 else {
             throw NSError(domain: "LongyanReader", code: 5, userInfo: [NSLocalizedDescriptionKey:
-                "local model: unexpected reply \(String(decoding: data.prefix(200), as: UTF8.self))"])
+                "local model: HTTP \((response as? HTTPURLResponse)?.statusCode ?? 0)"])
         }
-        if ProcessInfo.processInfo.environment["LONGYAN_DEBUG_BATCH"] == "1" {
-            print("  [batch] prompt tokens \(json["prompt_eval_count"] ?? "?"), output \(json["eval_count"] ?? "?")")
+        var text = ""
+        for try await line in bytes.lines {
+            try Task.checkCancellation()
+            guard let obj = try? JSONSerialization.jsonObject(with: Data(line.utf8)) as? [String: Any] else { continue }
+            if let piece = (obj["message"] as? [String: Any])?["content"] as? String, !piece.isEmpty {
+                text += piece
+                await onText(text)
+            }
+            if obj["done"] as? Bool == true { break }
         }
-        return words.indices.map { i in min(max(parsed[keys[i]] as? Int ?? 1, 1), words[i].senses.count) }
+        return text
     }
 
     static func choose(_ context: WordInContext, senses: [Sense], brief: Bool = false) async throws -> SenseChoice {

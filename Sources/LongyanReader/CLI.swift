@@ -35,23 +35,31 @@ enum CLI {
             else if let r = args[2].range(of: args[3]) { index = args[2].distance(from: args[2].startIndex, to: r.lowerBound) }
             else { print("word not in passage"); return }
             try await lookup(passage: passage, index: index, dict: dict)
+        case "--segment-file" where args.count >= 3:
+            // One sentence per line: prints each line's phrase-card split, for comparing segmenter changes.
+            let dict = try CEDict.load()
+            for line in try String(contentsOfFile: args[2], encoding: .utf8).split(separator: "\n") {
+                let passage = Array(String(line))
+                print(Segmenter.phrase(0..<passage.count, in: passage, dict: dict).map(\.text).joined(separator: " "))
+            }
         case "--phrase" where args.count >= 3:
             let dict = try CEDict.load()
             let passage = Array(args[2])
             let tokens = Segmenter.phrase(0..<passage.count, in: passage, dict: dict)
+            // The phrase card's pipeline: translation first, then every word's sense, streamed.
             let t = Date()
-            let translation = try await Translator.translate(args[2])
-            print("translation: \(translation)  [\(Int(Date().timeIntervalSince(t) * 1000)) ms]")
-            print("words: " + tokens.map { token -> String in
-                let senses = dict.senses(for: token.text)
-                let i = SenseChooser.senseMatching(translation: translation, senses: senses)
-                return "\(token.text) (\(shortGloss(i.map { [senses[$0]] } ?? senses)))"
-            }.joined(separator: " / "))
-            // Every ambiguous word resolved up front, all at once, as the card does before opening.
+            let local = await LocalModel.isAvailable()
+            let translation = local ? try await LocalModel.translate(args[2]) : try await Translator.translate(args[2])
+            let apple = ProcessInfo.processInfo.environment["LONGYAN_COMPARE_APPLE"] == "1" ? try? await Translator.translate(args[2]) : nil
+            print("translation: \(translation)  [\(local ? "local" : "Apple"), \(Int(Date().timeIntervalSince(t) * 1000)) ms]")
+            if let apple { print("Apple:       \(apple)") }
             let r = Date()
-            let picks = await PhraseState.resolve(tokens, in: passage, dict: dict)
-            print("resolved \(picks.count) ambiguous words in \(Int(Date().timeIntervalSince(r) * 1000)) ms: " + tokens.compactMap { t in
-                picks[t.id].map { "\(t.text)=\(headlineGloss(dict.senses(for: t.text)[$0.senseNumber - 1]))" }
+            var firstPick: Int?
+            let picks = await PhraseState.resolve(tokens, in: passage, dict: dict) { _, _ in
+                if firstPick == nil { firstPick = Int(Date().timeIntervalSince(r) * 1000) }
+            }
+            print("senses: first in \(firstPick ?? 0) ms, all \(picks.count) in \(Int(Date().timeIntervalSince(r) * 1000)) ms: " + tokens.map { t in
+                picks[t.id].map { "\(t.text)=\(headlineGloss(dict.senses(for: t.text)[$0.senseNumber - 1]))" } ?? t.text
             }.joined(separator: " / "))
         case "--render-phrase" where args.count >= 4:
             try await renderPhrase(args[2], expand: args.count >= 5 ? args[4] : nil, to: URL(fileURLWithPath: args[3]))
@@ -239,7 +247,7 @@ enum CLI {
         let passage = Array(text)
         let selection = Selection(passage: passage, range: 0..<passage.count, bounds: nil, source: .accessibility, appName: "Safari")
         let state = PhraseState(selection: selection, dict: dict, sourceNote: nil)
-        state.translation = try? await Translator.translate(text)
+        state.translation = await LocalModel.isAvailable() ? try? await LocalModel.translate(text) : try? await Translator.translate(text)
         // LONGYAN_RENDER_PENDING=1 draws the card as it looks while senses are still being chosen.
         if ProcessInfo.processInfo.environment["LONGYAN_RENDER_PENDING"] == "1" { state.resolving = true }
         else { state.apply(await PhraseState.resolve(state.tokens, in: passage, dict: dict)) }

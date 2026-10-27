@@ -15,11 +15,13 @@ It's a sibling of [Longyan](https://github.com/mapuchuu/longyan), the Chrome ext
    If an app won't report its selection, clicking the eye sends ⌘C, reads the clipboard, and puts your previous clipboard back. That route has no surrounding context.
 3. **One word or a phrase.**
    - **A single dictionary word** gets the word card. Apple's on-device model (FoundationModels) picks the [CC-CEDICT](https://cc-cedict.org/) sense that fits the passage, says what the word means here, and can add a *lost in translation* or *cultural context* note. It picks from the dictionary list and never writes definitions of its own.
-   - **Anything longer** gets the phrase card:
-     - a translation from Apple's on-device Translation framework;
-     - each word with its meaning in this passage, chosen for every word before the card opens, so opening a row never changes it; click a word for its other meanings or to pick one yourself.
+   - **Anything longer** gets the phrase card. It opens at once and fills in from the top:
+     - a translation, typed in as it's written. With the local model it comes from Qwen, which handles slang and idioms far better than Apple's Translation framework (内卷 "involution" rather than "internal entanglement", 小意思 "a small token" rather than "a little interesting", 佛系 "laid-back" rather than "Buddhist"). Apple's translator is the fallback;
+     - then each word with its meaning in this passage, the rows filling in top to bottom as the model picks them. Opening a row never changes it; click a word for its other meanings or to pick one yourself.
 
-     That work starts as soon as the selection button appears, while you move to click it, so the card usually opens at once. The local model picks all the words in one request (Ollama answers one request at a time, so word-by-word calls queue up): about 0.6–1.6 s for a sentence. If it isn't done 1.2 s after the click, the card opens anyway and the rows still being picked show a placeholder until they fill in.
+     The work starts as soon as the selection button appears, while you move to click it, so it's often finished by the time the card opens. The local model picks all the words in one streamed request (Ollama answers one request at a time, so word-by-word calls queue up): the translation starts in about 0.15 s and a sentence's words are done in about 1–2 s. With Apple's model the words are picked separately, a few seconds per sentence, and still shown in reading order.
+
+     Words are split by the system tokenizer plus dictionary rules: neighbouring single characters that make a dictionary word are joined (slang the tokenizer doesn't know: 躺平, 摸鱼, 破防, 内卷), and a degree adverb is split off a word it was glued to (真心|疼 → 真|心疼).
 
 If the model is unavailable or rejects a prompt, the cards still show the dictionary senses in their usual order.
 
@@ -46,7 +48,8 @@ The eye icon in the menu bar shows the status of the dictionary, the model and t
 B=".build/release/LongyanReader"
 $B --status                                         # dictionary and model availability
 $B --lookup "他长得很高。" 长                        # segment, list senses, choose one
-$B --phrase "快递员每天晚上都要上夜班分拣包裹。"       # phrase words, translation, and every word's sense in one request
+$B --phrase "快递员每天晚上都要上夜班分拣包裹。"       # the phrase card's pipeline: translation, then every word's sense
+$B --segment-file sentences.txt                     # each line's word split, for comparing segmenter changes
 $B --eval                                           # labelled cases: word, sense and tag accuracy
 $B --render "明朝实行海禁，闭关锁国。" 锁 out.png       # draw the word card to a PNG
 $B --render-phrase "明朝实行海禁，闭关锁国。" out.png 闭关锁国   # draw the phrase card, one word expanded

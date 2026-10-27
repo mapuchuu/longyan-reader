@@ -333,31 +333,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let state = PhraseState(selection: selection, dict: dict, sourceNote: sourceNote)
         state.onLayoutChange = { [weak self] in Task { await self?.relayout() } }
         lastPhraseState = state
+        // The card opens at once with whatever is ready; the translation streams in, then the
+        // rows fill in from the top as each word's sense is chosen.
+        state.resolving = !prep.done
+        state.follow(prep)
+        popup.show(PhraseView(state: state), kind: .phrase, near: anchor)
+        let started = Date()
+        let readyAtClick = prep.done
         lookupTask = Task {
-            let started = Date()
-            // Open with every word already resolved, waiting a little if need be; past that
-            // the card opens anyway and the unresolved rows show a placeholder until they're in.
-            await prep.wait(upTo: 1.2)
+            await prep.finished()
             guard !Task.isCancelled else { return }
-            state.translation = prep.translation
-            state.translationError = prep.translationError
-            if let picks = prep.picks { state.apply(picks) } else { state.resolving = true }
-            popup.show(PhraseView(state: state), kind: .phrase, near: anchor)
-            let waited = Int(Date().timeIntervalSince(started) * 1000)
-            if !prep.done {
-                await prep.wait(upTo: 60)
-                guard !Task.isCancelled else { return }
-                withAnimation(.smooth(duration: 0.3)) {
-                    if state.translation == nil { state.translation = prep.translation }
-                    state.translationError = state.translation == nil ? prep.translationError : nil
-                    state.apply(prep.picks ?? [:])
-                }
-                await relayout()
-            }
             Log.write(["event": "phrase", "text": selection.text, "words": state.tokens.map(\.text),
                        "translation": state.translation ?? "", "app": selection.appName ?? "",
                        "source": selection.source.rawValue, "resolved": state.choices.count,
-                       "waitedMs": waited, "ms": Int(Date().timeIntervalSince(started) * 1000)])
+                       "readyAtClick": readyAtClick, "translationMs": prep.translationMs,
+                       "ms": Int(Date().timeIntervalSince(started) * 1000)])
         }
     }
 

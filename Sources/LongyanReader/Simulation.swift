@@ -18,6 +18,7 @@ extension AppDelegate {
             while let state, state.phase == .choosing, t < timeout { await wait(0.1); t += 0.1 }
         }
 
+        let savedModel = UserDefaults.standard.string(forKey: "senseModel")
         let savedStyle = UserDefaults.standard.string(forKey: "cardStyle")
         let savedAppearance = UserDefaults.standard.string(forKey: "appearance")
         let savedZoom = UserDefaults.standard.object(forKey: "card.word.width")
@@ -27,6 +28,7 @@ extension AppDelegate {
         popup.ignoresOutsideInput = true
         defer {
             popup.ignoresOutsideInput = false
+            if let savedModel { LocalModel.select(savedModel) } else { UserDefaults.standard.removeObject(forKey: "senseModel") }
             UserDefaults.standard.set(savedStyle, forKey: "cardStyle")
             UserDefaults.standard.set(savedAppearance, forKey: "appearance")
             if let savedZoom { UserDefaults.standard.set(savedZoom, forKey: "card.word.width") }
@@ -189,6 +191,42 @@ extension AppDelegate {
         await wait(0.4)
         let classic = popup.surfaceSample()
         check((classic?.alpha ?? 0) > 0.7, "switching to Classic redraws the open card (surface \(sample()))")
+
+        // 5b. A phrase that wasn't prepared, with each sense picker: the card opens at once,
+        //     the translation comes first, then the rows fill in from the top.
+        for model in ["qwen3.5:4b", "apple"] {
+            LocalModel.select(model)
+            let usable = model == "apple" ? true : await LocalModel.isAvailable()
+            guard usable else { lines.append("  (\(model) not running; skipped)"); continue }
+            lines.append("— unprepared phrase, \(model)")
+            let fresh = word("看到妈妈的白头发，我一下子破防了，真心疼她。", 0, 21)
+            let clickedFresh = Date()
+            show(fresh, near: anchor)
+            var t = 0.0
+            while popup.kind != .phrase || lastPhraseState?.selection.text != fresh.text, t < 3 { await wait(0.01); t += 0.01 }
+            let openMs = Int(Date().timeIntervalSince(clickedFresh) * 1000)
+            check(openMs < 150, "an unprepared phrase card opens at once (\(openMs) ms)")
+            guard let phrase = lastPhraseState, let dict = self.dict else { continue }
+            var order: [Int] = [], translationFirst = true, translatedAt = 0
+            t = 0
+            while phrase.resolving || phrase.translation == nil, t < 15 {
+                if translatedAt == 0, phrase.translation != nil { translatedAt = Int(Date().timeIntervalSince(clickedFresh) * 1000) }
+                for id in phrase.choices.keys.sorted() where !order.contains(id) {
+                    order.append(id)
+                    if phrase.translation == nil { translationFirst = false }
+                }
+                await wait(0.02); t += 0.02
+            }
+            let ambiguous = PhraseState.ambiguous(phrase.tokens, dict: dict).map(\.id)
+            lines.append("  translation at \(translatedAt) ms: \(phrase.translation ?? "none")")
+            lines.append("  \(order.count)/\(ambiguous.count) words by \(Int(Date().timeIntervalSince(clickedFresh) * 1000)) ms, in order: "
+                         + order.compactMap { id in phrase.tokens.first { $0.id == id }?.text }.joined(separator: " "))
+            check(translationFirst && phrase.translation != nil, "the translation arrives before the word rows")
+            check(!order.isEmpty && order == order.sorted(), "rows fill in from the top")
+            let words = phrase.tokens.map(\.text)
+            check(words.contains("破防") && words.contains("心疼"), "slang and 真|心疼 stay whole")
+        }
+        if let savedModel { LocalModel.select(savedModel) }
 
         // 6. Rapid lookups leave exactly one card on screen.
         for i in 0..<6 {

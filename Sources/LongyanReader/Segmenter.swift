@@ -129,6 +129,8 @@ extension Segmenter {
             return true
         }
 
+        pieces = rejoinSingles(resplitAdverbs(pieces, in: passage, dict: dict), in: passage, dict: dict)
+
         // Merge runs of tokens that form a dictionary word of 3+ characters.
         var merged: [Range<Int>] = []
         var i = 0
@@ -148,6 +150,57 @@ extension Segmenter {
         return merged.enumerated()
             .filter { _, r in r.contains(where: { isCJK(passage[$0]) }) }
             .map { n, r in PhraseToken(id: n, text: String(passage[r]), range: r) }
+    }
+
+    /// Degree adverbs that the tokenizer (and longest match) glue onto the next character:
+    /// 真心|疼 should be 真|心疼. (Broader sets broke 别人|家 and 好几|天.)
+    static let leadingAdverbs: Set<Character> = ["真", "很", "太", "最", "更", "挺", "超"]
+    /// Characters that don't start a rejoined pair (我去, 你好, 的话, 得很 are wrong in running text)
+    /// or end one (家的, 中的, 这不).
+    private static let noJoinFirst: Set<Character> = leadingAdverbs.union(["的", "得", "地", "了", "我", "你", "他", "她", "它"])
+    private static let noJoinSecond: Set<Character> = ["的", "得", "地", "了", "不"]
+
+    /// AB|C → A|BC when A is an adverb, BC is a dictionary word and C on its own is not
+    /// joined to anything after it.
+    private static func resplitAdverbs(_ pieces: [Range<Int>], in passage: [Character], dict: CEDict) -> [Range<Int>] {
+        var out = pieces
+        var i = 0
+        while i + 1 < out.count {
+            let ab = out[i], c = out[i + 1]
+            if ab.count == 2, c.count == 1, ab.upperBound == c.lowerBound, leadingAdverbs.contains(passage[ab.lowerBound]),
+               dict.contains(String(passage[(ab.lowerBound + 1)..<c.upperBound])) {
+                out[i] = ab.lowerBound..<(ab.lowerBound + 1)
+                out[i + 1] = (ab.lowerBound + 1)..<c.upperBound
+            }
+            i += 1
+        }
+        return out
+    }
+
+    /// The tokenizer cuts words it doesn't know (new slang like 躺平, 摸鱼, 破防) into single
+    /// characters; join two neighbouring single characters that make a dictionary word.
+    private static func rejoinSingles(_ pieces: [Range<Int>], in passage: [Character], dict: CEDict) -> [Range<Int>] {
+        func joinable(_ i: Int) -> Bool {
+            guard i + 1 < pieces.count else { return false }
+            let a = pieces[i], b = pieces[i + 1]
+            return a.count == 1 && b.count == 1 && b.lowerBound == a.upperBound && isCJK(passage[a.lowerBound])
+                && !noJoinFirst.contains(passage[a.lowerBound]) && !noJoinSecond.contains(passage[b.lowerBound])
+                && dict.contains(String(passage[a.lowerBound..<b.upperBound]))
+        }
+        var out: [Range<Int>] = []
+        var i = 0
+        while i < pieces.count {
+            let a = pieces[i]
+            // When the second character also starts a pair, that pair wins: 另|一个, not 另一|个.
+            if joinable(i), !joinable(i + 1) {
+                out.append(a.lowerBound..<pieces[i + 1].upperBound)
+                i += 2
+            } else {
+                out.append(a)
+                i += 1
+            }
+        }
+        return out
     }
 
     private static func longestMatch(_ piece: Range<Int>, in passage: [Character], dict: CEDict) -> [Range<Int>] {

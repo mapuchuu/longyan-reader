@@ -48,6 +48,32 @@ final class PhraseState: ObservableObject {
         onLayoutChange()
     }
 
+    /// Follows a phrase's prepared work as it streams in: the translation, then each word.
+    func follow(_ prep: PhrasePrep) {
+        prep.onChange = { [weak self, weak prep] in
+            guard let self, let prep else { return }
+            self.sync(prep)
+        }
+        sync(prep)
+    }
+
+    private var layoutPending = false
+    private func sync(_ prep: PhrasePrep) {
+        if translation != prep.translation { translation = prep.translation }
+        if prep.translationDone, prep.translation == nil { translationError = prep.translationError }
+        for (id, choice) in prep.picks where choices[id] == nil && !userPicked.contains(id) {
+            withAnimation(.smooth(duration: 0.25)) { choices[id] = choice }
+        }
+        if resolving != !prep.done { withAnimation(.smooth(duration: 0.25)) { resolving = !prep.done } }
+        // Streaming updates come in quickly; resize the card at most every 80 ms.
+        guard !layoutPending else { return }
+        layoutPending = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { [weak self] in
+            self?.layoutPending = false
+            self?.onLayoutChange()
+        }
+    }
+
     /// Whether this row is still waiting for its sense (its gloss and pinyin aren't final yet).
     func pending(_ token: PhraseToken) -> Bool {
         resolving && choices[token.id] == nil && (senses[token.id]?.count ?? 0) > 1
@@ -61,11 +87,12 @@ final class PhraseState: ObservableObject {
 
     /// Chooses the in-context sense of every ambiguous word at once, so the card opens with
     /// each row already resolved instead of changing when the reader opens it.
-    static func resolve(_ tokens: [PhraseToken], in passage: [Character], dict: CEDict) async -> [Int: SenseChoice] {
+    static func resolve(_ tokens: [PhraseToken], in passage: [Character], dict: CEDict,
+                        onPick: @MainActor (Int, SenseChoice) -> Void = { _, _ in }) async -> [Int: SenseChoice] {
         let words = ambiguous(tokens, dict: dict)
         guard SenseChooser.isAvailable, let lo = words.first?.range.lowerBound, let hi = words.last?.range.upperBound else { return [:] }
         var out: [Int: SenseChoice] = [:]
-        // The local model takes them all in one request (in chunks, to stay inside its
+        // The local model takes them all in one streamed request (in chunks, to stay inside its
         // context window): Ollama answers one request at a time, so word-by-word calls queue.
         if await LocalModel.isAvailable() {
             let sentence = Segmenter.context(for: lo..<hi, in: passage).sentence
@@ -74,14 +101,18 @@ final class PhraseState: ObservableObject {
                 let chunk = Array(words[start..<min(start + 8, words.count)])
                 start += chunk.count
                 let lists = chunk.map { (word: $0.text, senses: dict.senses(for: $0.text)) }
-                guard let picks = try? await LocalModel.chooseAll(passage: sentence, words: lists) else { continue }
-                for (t, n) in zip(chunk, picks) {
-                    out[t.id] = SenseChoice(senseNumber: n, meaningHere: headlineGloss(dict.senses(for: t.text)[n - 1]))
+                func choice(_ i: Int, _ n: Int) -> SenseChoice {
+                    SenseChoice(senseNumber: n, meaningHere: headlineGloss(lists[i].senses[n - 1]))
                 }
+                guard let picks = try? await LocalModel.chooseAll(passage: sentence, words: lists,
+                                                                  onPick: { i, n in onPick(chunk[i].id, choice(i, n)) })
+                else { continue }
+                for (i, n) in picks.enumerated() { out[chunk[i].id] = choice(i, n) }
             }
             if !out.isEmpty || ProcessInfo.processInfo.environment["LONGYAN_BATCH_ONLY"] == "1" { return out }
         }
-        // Apple's model: one word at a time, concurrently.
+        // Apple's model: one word at a time, concurrently. Answers are passed on in reading
+        // order (each once the words before it are in), so the rows still fill in from the top.
         return await withTaskGroup(of: (Int, SenseChoice?).self) { group in
             for t in words {
                 let list = dict.senses(for: t.text)
@@ -89,7 +120,15 @@ final class PhraseState: ObservableObject {
                     (t.id, try? await SenseChooser.choose(for: Segmenter.context(for: t.range, in: passage), senses: list))
                 }
             }
-            for await (id, choice) in group { if let choice { out[id] = choice } }
+            var arrived: [Int: SenseChoice?] = [:]
+            var next = 0
+            for await (id, choice) in group {
+                arrived[id] = .some(choice)
+                while next < words.count, let ready = arrived[words[next].id] {
+                    if let ready { out[words[next].id] = ready; onPick(words[next].id, ready) }
+                    next += 1
+                }
+            }
             return out
         }
     }
@@ -340,45 +379,58 @@ struct PhraseView: View {
     }
 }
 
-/// The work behind a phrase card (the translation and every word's sense), started as soon
-/// as the text is selected so it's usually finished by the time the reader clicks.
+/// The work behind a phrase card, started as soon as the text is selected so it's usually
+/// done or well along by the time the reader clicks: first the translation (streamed), then
+/// every word's sense, streamed in order so the rows fill in from the top.
 @MainActor
 final class PhrasePrep {
     let text: String
     let passage: [Character]
     private(set) var translation: String?
+    private(set) var translationDone = false
     private(set) var translationError: String?
-    private(set) var picks: [Int: SenseChoice]?
-    private var tasks: [Task<Void, Never>] = []
-
-    var done: Bool { (translation != nil || translationError != nil) && picks != nil }
+    private(set) var picks: [Int: SenseChoice] = [:]
+    private(set) var done = false
+    private(set) var translationMs = 0
+    /// Called after every piece of progress.
+    var onChange: () -> Void = {}
+    private var task: Task<Void, Never>?
 
     init(_ selection: Selection, dict: CEDict) {
         text = selection.text
         passage = selection.passage
         let tokens = Segmenter.phrase(selection.range, in: selection.passage, dict: dict)
-        let passage = selection.passage
-        tasks = [
-            Task { [weak self] in
-                do {
-                    let t = try await Translator.translate(selection.text)
-                    self?.translation = t
-                } catch { self?.translationError = String(describing: error).prefix(60).description }
-            },
-            Task { [weak self] in
-                let picks = await PhraseState.resolve(tokens, in: passage, dict: dict)
-                self?.picks = picks
-            },
-        ]
+        task = Task { [weak self] in await self?.run(selection, tokens: tokens, dict: dict) }
+    }
+
+    private func run(_ selection: Selection, tokens: [PhraseToken], dict: CEDict) async {
+        let started = Date()
+        // The local model translates slang and idioms far better than Apple's translator;
+        // Apple's is the fallback when Ollama isn't running.
+        if await LocalModel.isAvailable(),
+           let t = try? await LocalModel.translate(selection.text, partial: { [weak self] in self?.translation = $0; self?.onChange() }) {
+            translation = t
+        } else {
+            do { translation = try await Translator.translate(selection.text) }
+            catch { translationError = String(describing: error).prefix(60).description }
+        }
+        translationDone = true
+        translationMs = Int(Date().timeIntervalSince(started) * 1000)
+        onChange()
+        guard !Task.isCancelled else { return }
+        _ = await PhraseState.resolve(tokens, in: selection.passage, dict: dict) { [weak self] id, choice in
+            self?.picks[id] = choice
+            self?.onChange()
+        }
+        done = true
+        onChange()
     }
 
     func matches(_ selection: Selection) -> Bool { selection.text == text && selection.passage == passage }
 
-    /// Waits until everything is ready or `seconds` have passed.
-    func wait(upTo seconds: Double) async {
-        let deadline = Date().addingTimeInterval(seconds)
-        while !done, Date() < deadline, !Task.isCancelled { try? await Task.sleep(for: .milliseconds(30)) }
+    func finished() async {
+        while !done, !Task.isCancelled { try? await Task.sleep(for: .milliseconds(50)) }
     }
 
-    func cancel() { tasks.forEach { $0.cancel() } }
+    func cancel() { task?.cancel() }
 }
