@@ -51,6 +51,8 @@ $B --render "明朝实行海禁，闭关锁国。" 锁 out.png       # draw the 
 $B --render-phrase "明朝实行海禁，闭关锁国。" out.png 闭关锁国   # draw the phrase card, one word expanded
 ```
 
+A scripted usage simulation drives the real cards through the same code paths as clicks and checks the results: tint and surface before and after picking another meaning in every style and mode, early picks not overwritten by the model, hint timers not closing the next card, phrase-row picking and switching with the window always holding the card, live style switching, and rapid lookups leaving one card. Trigger it with the probe notification `simulate` (report in `~/Library/Logs/LongyanReader/simulation.txt`; it restores your settings afterwards).
+
 Each lookup appends a line to `~/Library/Logs/LongyanReader/lookups.jsonl`, a few hundred bytes each. Misses record why the selection couldn't be read.
 
 ## Status

@@ -39,6 +39,26 @@ enum LocalModel {
         return ok
     }
 
+    /// Loads the model in the background (Ollama unloads it after five idle minutes), so a
+    /// lookup that follows soon doesn't wait several seconds. Called when Chinese text is
+    /// selected, while the reader moves to click.
+    private static var lastWarmUp: Date?
+    static func warmUp() {
+        guard enabled else { return }
+        if let last = lastWarmUp, Date().timeIntervalSince(last) < 60 { return }
+        lastWarmUp = Date()
+        Task.detached(priority: .utility) {
+            guard await isAvailable() else { return }
+            var req = URLRequest(url: URL(string: "http://127.0.0.1:11434/api/generate")!)
+            req.httpMethod = "POST"
+            req.setValue("application/json", forHTTPHeaderField: "content-type")
+            req.httpBody = try? JSONSerialization.data(withJSONObject: [
+                "model": name, "keep_alive": "5m", "options": ["num_ctx": 2048],
+            ])
+            _ = try? await URLSession.shared.data(for: req)
+        }
+    }
+
     static let instructions = """
     You help an English speaker read Chinese. You get a Chinese passage with one word marked 【like this】 and that word's numbered dictionary senses, some with example sentences. \
     Decide what the marked word means in this passage, then pick the sense that matches. Never invent a sense.

@@ -16,10 +16,14 @@ final class LookupState: ObservableObject {
     @Published var showAllSenses = false
     var onLayoutChange: () -> Void = {}
 
+    /// Set once the reader picks a meaning; a model answer arriving later doesn't replace it.
+    private(set) var userPicked = false
+
     /// The reader overrides the chosen sense by clicking it.
     func pick(_ index: Int) {
         guard senses.indices.contains(index) else { return }
-        choice = SenseChoice(senseNumber: index + 1, meaningHere: shortGloss([senses[index]]))
+        userPicked = true
+        choice = SenseChoice(senseNumber: index + 1, meaningHere: headlineGloss(senses[index]))
         phase = .chosen
         onLayoutChange()
     }
@@ -233,6 +237,9 @@ final class PopupController {
     private var placedBelow = true
     private var monitors: [Any] = []
     var isShowing: Bool { panel != nil }
+    /// Which kind of card is open, and a token that changes with every new card.
+    private(set) var kind: CardLayout.Kind?
+    private(set) var generation = 0
 
     /// Shows a card just below `anchor` (the selection, or a small box at the cursor).
     /// The card fades and springs in once its content has been measured.
@@ -240,6 +247,8 @@ final class PopupController {
         close()
         self.anchor = anchor
         let layout = CardLayout(kind: kind)
+        self.kind = kind
+        generation += 1
         let visible = visibleFrame()
         layout.maxHeight = max(140, visible.height * 0.8)
         let host = FirstMouseHostingView(rootView: CardChrome(layout: layout) { view })
@@ -357,6 +366,40 @@ final class PopupController {
         panel = nil
         hosting = nil
         layout = nil
+        kind = nil
+    }
+
+    /// Redraws the open card, e.g. after switching between Classic and Liquid Glass.
+    func refreshStyle() { layout?.objectWillChange.send() }
+
+    /// Debug: the card's surface colour near its top-right corner (above the content),
+    /// read from the live view. The glass itself doesn't draw offscreen, but the tint and
+    /// the classic wash do, so this tells whether they are present.
+    func surfaceSample() -> (alpha: CGFloat, brightness: CGFloat)? {
+        guard let hosting, let layout,
+              let rep = hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds) else { return nil }
+        hosting.cacheDisplay(in: hosting.bounds, to: rep)
+        let m = CardChrome<EmptyView>.margin
+        let scale = CGFloat(rep.pixelsWide) / max(hosting.bounds.width, 1)
+        // Top-left origin in the bitmap; the card hangs from the top when placed below.
+        let x = (m + layout.width - 34) * scale
+        let y = (layout.placedBelow ? m + 8 : hosting.bounds.height - m - layout.height + 8) * scale
+        guard let c = rep.colorAt(x: Int(x), y: Int(y))?.usingColorSpace(.sRGB) else { return nil }
+        return (c.alphaComponent, c.brightnessComponent)
+    }
+
+    /// Debug: whether the window currently has room for the whole card plus its margin.
+    var windowFitsCard: Bool {
+        guard let panel, let layout else { return true }
+        let m = CardChrome<EmptyView>.margin
+        return panel.frame.height + 0.5 >= max(layout.height, 1) + 2 * m && panel.frame.width + 0.5 >= layout.width + 2 * m
+    }
+
+    var currentLayout: CardLayout? { layout }
+
+    /// Debug: card windows still on screen (should be at most one).
+    static var visibleCardWindows: Int {
+        NSApp.windows.filter { $0 is PopupPanel && $0.isVisible && $0.alphaValue > 0.01 }.count
     }
 
     /// Debug: the current window frame and card layout, for checking sizing headlessly.

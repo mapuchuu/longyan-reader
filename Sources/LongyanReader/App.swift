@@ -24,9 +24,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var hotKey: HotKey?
     private var dict: CEDict?
-    private let popup = PopupController()
+    let popup = PopupController()
     private let chip = SelectionChip()
     private var lookupTask: Task<Void, Never>?
+    /// The most recent cards' state, for the usage simulation.
+    private(set) var lastLookupState: LookupState?
+    private(set) var lastPhraseState: PhraseState?
     private var localModelReady = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -74,6 +77,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ) { note in
             let arg = note.object as? String ?? ""
             var report: String
+            if arg == "simulate" {
+                Task { @MainActor in
+                    let report = await self.runUsageSimulation()
+                    try? report.write(to: Log.directory.appendingPathComponent("simulation.txt"), atomically: true, encoding: .utf8)
+                }
+                return
+            }
             if arg == "demo" {
                 // Debug: open a word card mid-screen, log its sizing, then drag the corner.
                 Task { @MainActor in
@@ -177,13 +187,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Applied to the card and selection-button windows only, so the menu-bar icon keeps
     /// following the menu bar.
-    private func applyAppearance() {
+    func applyAppearance() {
         popup.setAppearance(CardAppearance.current)
     }
 
     @objc private func selectStyle(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? String else { return }
         UserDefaults.standard.set(id, forKey: "cardStyle")
+        popup.refreshStyle()
         rebuildMenu()
     }
 
@@ -227,6 +238,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func hotKeyPressed() {
         chip.hide()
+        LocalModel.warmUp()
         if case .selection(let s) = SelectionReader.readAccessibility(), s.trimmed().hasChinese {
             show(s.trimmed(), near: s.bounds.map(Self.appKitRect) ?? Self.mouseBox)
             return
@@ -262,7 +274,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: Lookup
 
     /// One dictionary word gets the word card; anything longer gets the phrase card.
-    private func show(_ selection: Selection, near anchor: NSRect) {
+    func show(_ selection: Selection, near anchor: NSRect) {
         guard let dict else { hint("Dictionary still loading…", near: anchor); return }
         let note = selection.source == .clipboard ? "copied, no surrounding text" : nil
         let text = selection.text
@@ -287,6 +299,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let state = LookupState(context: context, senses: senses, sourceNote: sourceNote, appName: appName,
                                 phase: modelReady ? .choosing : .dictionaryOnly(senses.isEmpty ? "not in dictionary" : SenseChooser.unavailableReason))
         state.onLayoutChange = { [weak self] in Task { await self?.relayout() } }
+        lastLookupState = state
         popup.show(LookupView(state: state), kind: .word, near: anchor)
         var record: [String: Any] = ["event": "word", "word": context.word, "sentence": context.sentence,
                                      "app": appName ?? "", "senses": senses.count]
@@ -296,9 +309,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 do {
                     let choice = try await SenseChooser.choose(for: context, senses: senses)
                     guard !Task.isCancelled else { return }
-                    withAnimation(.smooth(duration: 0.3)) {
-                        state.choice = choice
-                        state.phase = .chosen
+                    if state.userPicked {
+                        record["userPickedFirst"] = true    // the reader's choice stands
+                    } else {
+                        withAnimation(.smooth(duration: 0.3)) {
+                            state.choice = choice
+                            state.phase = .chosen
+                        }
                     }
                     record["meaningHere"] = choice.meaningHere
                     record["tag"] = choice.tag.rawValue
@@ -317,6 +334,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         lookupTask?.cancel()
         let state = PhraseState(selection: selection, dict: dict, sourceNote: sourceNote)
         state.onLayoutChange = { [weak self] in Task { await self?.relayout() } }
+        lastPhraseState = state
         popup.show(PhraseView(state: state), kind: .phrase, near: anchor)
         lookupTask = Task {
             let started = Date()
@@ -337,9 +355,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popup.reposition()
     }
 
-    private func hint(_ text: String, near anchor: NSRect) {
+    /// A short message that closes itself, but only if it's still the card on screen:
+    /// a lookup opened in the meantime stays open.
+    func hint(_ text: String, near anchor: NSRect) {
         popup.show(HintView(text: text), kind: .hint, near: anchor)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) { [weak self] in self?.popup.close() }
+        let generation = popup.generation
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) { [weak self] in
+            guard let self, self.popup.generation == generation, self.popup.kind == .hint else { return }
+            self.popup.close()
+        }
     }
 }
 

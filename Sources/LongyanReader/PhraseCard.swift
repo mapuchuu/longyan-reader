@@ -16,7 +16,16 @@ final class PhraseState: ObservableObject {
     @Published var choices: [Int: SenseChoice] = [:]
     @Published var choosing: Set<Int> = []
     @Published var failures: [Int: String] = [:]
+    /// Words whose meaning the reader picked; a model answer arriving later doesn't replace it.
+    private(set) var userPicked: Set<Int> = []
     var onLayoutChange: () -> Void = {}
+
+    func pick(_ token: PhraseToken, sense index: Int) {
+        guard let list = senses[token.id], list.indices.contains(index) else { return }
+        userPicked.insert(token.id)
+        choices[token.id] = SenseChoice(senseNumber: index + 1, meaningHere: headlineGloss(list[index]))
+        onLayoutChange()
+    }
 
     init(selection: Selection, dict: CEDict, sourceNote: String?) {
         self.selection = selection
@@ -63,7 +72,9 @@ final class PhraseState: ObservableObject {
             do {
                 let choice = try await SenseChooser.choose(
                     for: Segmenter.context(for: token.range, in: selection.passage), senses: list)
-                withAnimation(.smooth(duration: 0.3)) { choices[token.id] = choice }
+                if !userPicked.contains(token.id) {
+                    withAnimation(.smooth(duration: 0.3)) { choices[token.id] = choice }
+                }
             } catch {
                 failures[token.id] = "Dictionary order: couldn't place this word in the sentence"
             }
@@ -207,17 +218,21 @@ struct PhraseView: View {
             if let note = state.note(token) {
                 NuanceView(note: note).transition(.opacity)
             }
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(senses.prefix(5).enumerated()), id: \.offset) { i, sense in
                     let chosen = state.choices[token.id].map { $0.senseNumber == i + 1 } ?? (state.translationSense[token.id] == i)
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Image(systemName: "checkmark").cardFont(9, .bold)
-                            .foregroundStyle(Color.accentColor).opacity(chosen ? 1 : 0)
-                        Text(sense.gloss)
-                            .cardFont(12, chosen ? .semibold : .regular)
-                            .foregroundStyle(chosen ? .primary : .secondary)
-                            .fixedSize(horizontal: false, vertical: true)
+                    Button { withAnimation(.smooth(duration: 0.25)) { state.pick(token, sense: i) } } label: {
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Image(systemName: "checkmark").cardFont(9, .bold)
+                                .foregroundStyle(Color.accentColor).opacity(chosen ? 1 : 0)
+                            Text(sense.gloss)
+                                .cardFont(12, chosen ? .semibold : .regular)
+                                .foregroundStyle(chosen ? .primary : .secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
+                    .buttonStyle(CardRowStyle())
+                    .help("Use this meaning")
                 }
             }
             if senses.isEmpty { Text("Not in the dictionary").cardFont(12).foregroundStyle(.secondary) }

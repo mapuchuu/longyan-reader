@@ -64,6 +64,7 @@ final class SelectionChip {
     private func show(at point: NSPoint, selectionBounds: CGRect?, selection: Selection?) {
         hide()
         pending = selection
+        LocalModel.warmUp()
         let size = Self.size
         var origin = NSPoint(x: point.x + 6, y: point.y + 6)
         if let b = selectionBounds, b.height > 0, b.height < 40 {
@@ -114,6 +115,7 @@ struct ChipButtonView: View {
     @State private var hovering = false
     @State private var pressed = false
     @Environment(\.renderingSnapshot) private var snapshot
+    @Environment(\.colorScheme) private var colorScheme
     private let diameter: CGFloat = 24
 
     var body: some View {
@@ -146,7 +148,9 @@ struct ChipButtonView: View {
         if CardStyle.current == .glass && !snapshot {
             eye
                 .frame(width: diameter, height: diameter)
-                .glassEffect(.regular.tint(glassTint).interactive(), in: Circle())
+                .background(Circle().fill(glassTint(colorScheme)))
+                .clipShape(Circle())
+                .glassEffect(.regular.interactive(), in: Circle())
         } else {
             ZStack {
                 if !snapshot { MaterialBackground(radius: diameter / 2) }

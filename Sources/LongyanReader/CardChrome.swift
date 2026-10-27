@@ -183,6 +183,7 @@ private struct HeightKey: PreferenceKey {
 struct CardChrome<Content: View>: View {
     @ObservedObject var layout: CardLayout
     @Environment(\.renderingSnapshot) private var snapshot
+    @Environment(\.colorScheme) private var colorScheme
     let content: Content
     static var radius: CGFloat { 14 }
     /// Transparent space around the card for its shadow.
@@ -239,9 +240,13 @@ struct CardChrome<Content: View>: View {
     /// row highlight or scrolling content can show past the corners mid-animation.
     @ViewBuilder private func card(_ view: some View) -> some View {
         if glassStyle {
+            // The tint is a fill layer of the card itself, resolved for the current light or
+            // dark mode: as a tint on the glass effect it dropped out when a selection
+            // re-rendered the card.
             view
+                .background(shape.fill(glassTint(colorScheme)))
                 .clipShape(shape)
-                .glassEffect(.regular.tint(glassTint), in: shape)
+                .glassEffect(.regular, in: shape)
                 .overlay(alignment: .bottomTrailing) { grip.padding(5) }
         } else {
             view
@@ -269,12 +274,12 @@ struct CardChrome<Content: View>: View {
 }
 
 /// A light tint behind the glass, so it stays readable over busy pages:
-/// frosted white in light mode, smoky dark in dark mode.
-let glassTint = Color(nsColor: NSColor(name: nil) { appearance in
-    appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        ? NSColor(srgbRed: 0.08, green: 0.08, blue: 0.09, alpha: 0.38)
-        : NSColor(srgbRed: 1, green: 1, blue: 1, alpha: 0.55)
-})
+/// frosted white in light mode, smoky dark in dark mode. Plain colours, resolved per mode.
+func glassTint(_ scheme: ColorScheme) -> Color {
+    scheme == .dark
+        ? Color(.sRGB, red: 0.08, green: 0.08, blue: 0.09, opacity: 0.38)
+        : Color(.sRGB, red: 1, green: 1, blue: 1, opacity: 0.55)
+}
 
 /// The corner handle: drag to resize, double-click to reset.
 struct ResizeGrip: View {
