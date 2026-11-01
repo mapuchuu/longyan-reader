@@ -75,16 +75,29 @@ final class CEDict {
             }
         }
         if out.isEmpty, let first = ordered.first {
-            // Only cross-references exist; show them rather than nothing.
-            out = first.definitions.map { Sense(pinyin: first.pinyin, gloss: $0) }
+            // Only cross-references exist. Show what they point to (干活儿 → 干活), under this
+            // word's own reading; else show them rather than nothing.
+            let target = first.definitions.lazy.compactMap { CEDict.referenceTarget($0) }.first { $0 != word }
+            let followed = target.map { senses(for: $0, limit: limit) } ?? []
+            out = followed.isEmpty ? first.definitions.map { Sense(pinyin: first.pinyin, gloss: $0) }
+                                   : followed.map { Sense(pinyin: first.pinyin, gloss: $0.gloss) }
         }
         return Array(out.prefix(limit))
     }
 
     static func isCrossReference(_ def: String) -> Bool {
         let lower = def.lowercased()
-        return ["variant of", "old variant", "unofficial variant", "used in ", "see ", "cl:",
+        return ["variant of", "old variant", "unofficial variant", "erhua variant", "used in ", "see ", "cl:",
                 "taiwan pr.", "surname "].contains { lower.hasPrefix($0) }
+    }
+
+    /// The simplified word a "variant of" or "see" definition points to:
+    /// "erhua variant of 幹活|干活[gan4 huo2]" → 干活.
+    static func referenceTarget(_ def: String) -> String? {
+        let lower = def.lowercased()
+        guard lower.contains("variant of ") || lower.hasPrefix("see ") else { return nil }
+        guard let match = def.range(of: #"(\p{Han}+\|)?\p{Han}+"#, options: .regularExpression) else { return nil }
+        return def[match].split(separator: "|").last.map(String.init)
     }
 
     static func load() throws -> CEDict {

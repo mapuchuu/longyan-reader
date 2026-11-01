@@ -42,6 +42,22 @@ enum CLI {
                 let passage = Array(String(line))
                 print(Segmenter.phrase(0..<passage.count, in: passage, dict: dict).map(\.text).joined(separator: " "))
             }
+        case "--gloss-audit" where args.count >= 3:
+            // Every sense of every word in a file of sentences, with the short meaning a card
+            // would show; flags the ones that still read like a dictionary. --gloss-audit f [all]
+            let dict = try CEDict.load()
+            var seen: Set<String> = []
+            for line in try String(contentsOfFile: args[2], encoding: .utf8).split(separator: "\n") {
+                let passage = Array(String(line))
+                for t in Segmenter.phrase(0..<passage.count, in: passage, dict: dict) {
+                    for sense in dict.senses(for: t.text) where seen.insert(t.text + sense.gloss).inserted {
+                        let short = Gloss.short(sense.gloss), lower = short.lowercased()
+                        let flagged = short.count > 32 || short.contains(where: isCJK)
+                            || ["particle", "classifier", "marker", "used ", "variant", "suffix", "prefix", "structural", "modal", "(", "\""].contains { lower.contains($0) }
+                        if flagged || args.count >= 4 { print("\(t.text)\t\(short)\t<<\(sense.gloss)>>") }
+                    }
+                }
+            }
         case "--phrase" where args.count >= 3:
             let dict = try CEDict.load()
             let raw = Array(args[2])
@@ -59,6 +75,12 @@ enum CLI {
             var firstPick: Int?
             let picks = await PhraseState.resolve(tokens, in: passage, dict: dict) { _, _ in
                 if firstPick == nil { firstPick = Int(Date().timeIntervalSince(r) * 1000) }
+            }
+            // Exactly what each row of the card shows.
+            for t in tokens {
+                let list = dict.senses(for: t.text)
+                let shown = picks[t.id].map { [list[$0.senseNumber - 1]] } ?? list
+                print("  \(t.text)\t\(shortGloss(shown))")
             }
             print("senses: first in \(firstPick ?? 0) ms, all \(picks.count) in \(Int(Date().timeIntervalSince(r) * 1000)) ms: " + tokens.map { t in
                 picks[t.id].map { "\(t.text)=\(headlineGloss(dict.senses(for: t.text)[$0.senseNumber - 1]))" } ?? t.text

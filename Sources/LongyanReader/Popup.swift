@@ -194,7 +194,7 @@ struct LookupView: View {
                                 if showReading {
                                     Text(Pinyin.marked(sense.pinyin)).cardFont(11).foregroundStyle(.secondary)
                                 }
-                                Text(sense.gloss)
+                                Text(Gloss.readable(sense.gloss))
                                     .cardFont(13, chosen ? .semibold : .regular)
                                     .foregroundStyle(chosen || state.choice == nil ? .primary : .secondary)
                                     .fixedSize(horizontal: false, vertical: true)

@@ -169,7 +169,7 @@ final class PhraseState: ObservableObject {
         // Only when it says something the dictionary wording doesn't already
         // ("Ming Dynasty" adds nothing to "Ming Dynasty (1368-1644)").
         let list = senses[token.id] ?? []
-        let full = shownSense(token).flatMap { list[safe: $0] }.map { $0.gloss.lowercased() } ?? ""
+        let full = shownSense(token).flatMap { list[safe: $0] }.map { Gloss.readable($0.gloss).lowercased() } ?? ""
         if full.contains(text) || text.contains(headlineGloss(list[safe: shownSense(token) ?? 0] ?? Sense(pinyin: "", gloss: "")).lowercased()) {
             return nil
         }
@@ -204,30 +204,13 @@ final class PhraseState: ObservableObject {
     }
 }
 
-/// The first dictionary sense, shortened for a one-line gloss.
+/// The first dictionary sense, as one short meaning for a row.
 func shortGloss(_ senses: [Sense]?) -> String {
-    guard let gloss = senses?.first?.gloss else { return "—" }
-    // Drop leading notes like "(bound form)" or "(third-person singular)" when words follow.
-    var text = gloss
-    while text.hasPrefix("("), let close = text.firstIndex(of: ")") {
-        let rest = text[text.index(after: close)...].trimmingCharacters(in: .whitespaces)
-        if rest.isEmpty { break }
-        text = rest
-    }
-    let first = text.split(separator: ";").first.map(String.init) ?? text
-    return first.count > 42 ? String(first.prefix(40)) + "…" : first
+    senses?.first.map { Gloss.short($0.gloss) } ?? "—"
 }
 
-/// A sense's first meaning, untruncated, for the word card's headline.
-func headlineGloss(_ sense: Sense) -> String {
-    var text = sense.gloss
-    while text.hasPrefix("("), let close = text.firstIndex(of: ")") {
-        let rest = text[text.index(after: close)...].trimmingCharacters(in: .whitespaces)
-        if rest.isEmpty { break }
-        text = rest
-    }
-    return text.split(separator: ";").first.map { $0.trimmingCharacters(in: .whitespaces) } ?? text
-}
+/// A sense's first meaning, for the word card's headline.
+func headlineGloss(_ sense: Sense) -> String { Gloss.short(sense.gloss) }
 
 let particleWords: Set<String> = ["的", "了", "和", "是", "在", "也", "都", "就", "与", "或", "但", "而", "对", "于",
                                   "把", "被", "让", "给", "从", "到", "着", "过", "吗", "呢", "吧", "啊", "嗯", "呀", "地", "得"]
@@ -305,7 +288,8 @@ struct PhraseView: View {
                     Text(state.gloss(token))
                         .cardFont(13)
                         .foregroundStyle(dim ? .secondary : .primary)
-                        .lineLimit(1)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                         .redacted(reason: pending ? .placeholder : [])
                         .opacity(pending ? 0.6 : 1)
                         .contentTransition(.opacity)
@@ -357,7 +341,7 @@ struct PhraseView: View {
                         HStack(alignment: .firstTextBaseline, spacing: 6) {
                             Image(systemName: "checkmark").cardFont(9, .bold)
                                 .foregroundStyle(Color.accentColor).opacity(chosen ? 1 : 0)
-                            Text(sense.gloss)
+                            Text(Gloss.readable(sense.gloss))
                                 .cardFont(12, chosen ? .semibold : .regular)
                                 .foregroundStyle(chosen ? .primary : .secondary)
                                 .fixedSize(horizontal: false, vertical: true)
