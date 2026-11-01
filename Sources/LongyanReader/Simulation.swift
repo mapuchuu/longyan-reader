@@ -228,6 +228,14 @@ extension AppDelegate {
         }
         if let savedModel { LocalModel.select(savedModel) }
 
+        // 5c. Text that wraps mid-word reads as one line; a blank line stays a break.
+        let wrapped = word("是跟着师\n父看看学学", 0, 10).trimmed()
+        check(wrapped.text == "是跟着师父看看学学", "a line break inside a word is removed (\(wrapped.text))")
+        let inner = Selection(passage: Array("前面的话。跟着师\n父学，后面"), range: 5..<11, bounds: nil, source: .accessibility, appName: nil).trimmed()
+        check(inner.text == "跟着师父学", "the selection stays on the same words after unwrapping (\(inner.text))")
+        let paragraphs = word("第一段。\n\n第二段。", 0, 10).trimmed()
+        check(paragraphs.text.contains("\n\n"), "a blank line stays a paragraph break")
+
         // 6. Rapid lookups leave exactly one card on screen.
         for i in 0..<6 {
             show(word("这本书很有意思。", i % 4 + 1), near: anchor)

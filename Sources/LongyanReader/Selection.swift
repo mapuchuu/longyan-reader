@@ -17,10 +17,50 @@ struct Selection {
 
     /// Trims surrounding whitespace and punctuation so "，研究生。" looks up 研究生.
     func trimmed() -> Selection {
-        var lo = range.lowerBound, hi = range.upperBound
-        while lo < hi, !isCJK(passage[lo]), !passage[lo].isLetter { lo += 1 }
-        while hi > lo, !isCJK(passage[hi - 1]), !passage[hi - 1].isLetter { hi -= 1 }
-        return Selection(passage: passage, range: lo..<hi, bounds: bounds, source: source, appName: appName)
+        let s = unwrapped()
+        var lo = s.range.lowerBound, hi = s.range.upperBound
+        while lo < hi, !isCJK(s.passage[lo]), !s.passage[lo].isLetter { lo += 1 }
+        while hi > lo, !isCJK(s.passage[hi - 1]), !s.passage[hi - 1].isLetter { hi -= 1 }
+        return Selection(passage: s.passage, range: lo..<hi, bounds: bounds, source: source, appName: appName)
+    }
+
+    /// Text in PDFs and narrow columns wraps mid-word (跟着师⏎父), which splits words and makes
+    /// translators treat each line as its own sentence. Removes single line breaks next to
+    /// Chinese text, and the spaces around them; a blank line is a real break and stays.
+    private func unwrapped() -> Selection {
+        var out: [Character] = []
+        var lo = 0, hi = 0
+        var i = 0
+        while i <= passage.count {
+            if i == range.lowerBound { lo = out.count }
+            if i == range.upperBound { hi = out.count }
+            guard i < passage.count else { break }
+            guard passage[i].isNewline else { out.append(passage[i]); i += 1; continue }
+            // The whole run of whitespace around this line break.
+            var end = i
+            var breaks = 0
+            while end < passage.count, passage[end].isWhitespace {
+                if passage[end].isNewline { breaks += 1 }
+                end += 1
+            }
+            var kept = out.count
+            while kept > 0, out[kept - 1].isWhitespace { kept -= 1 }
+            let prev = kept > 0 ? out[kept - 1] : nil, next = end < passage.count ? passage[end] : nil
+            guard breaks == 1, let prev, let next, !prev.isASCII || !next.isASCII else {
+                out.append(contentsOf: passage[i..<end])
+                for j in i...end where j == range.lowerBound || j == range.upperBound {
+                    if j == range.lowerBound { lo = out.count }
+                    if j == range.upperBound { hi = out.count }
+                }
+                i = end
+                continue
+            }
+            out.removeSubrange(kept...)
+            if range.lowerBound >= kept, range.lowerBound <= end { lo = min(lo, kept) }
+            if range.upperBound >= kept, range.upperBound <= end { hi = min(hi, kept) }
+            i = end
+        }
+        return Selection(passage: out, range: lo..<max(lo, hi), bounds: bounds, source: source, appName: appName)
     }
 }
 

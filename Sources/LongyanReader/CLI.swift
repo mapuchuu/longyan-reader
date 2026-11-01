@@ -44,13 +44,15 @@ enum CLI {
             }
         case "--phrase" where args.count >= 3:
             let dict = try CEDict.load()
-            let passage = Array(args[2])
-            let tokens = Segmenter.phrase(0..<passage.count, in: passage, dict: dict)
+            let raw = Array(args[2])
+            let selection = Selection(passage: raw, range: 0..<raw.count, bounds: nil, source: .accessibility, appName: nil).trimmed()
+            let passage = selection.passage, text = selection.text
+            let tokens = Segmenter.phrase(selection.range, in: passage, dict: dict)
             // The phrase card's pipeline: translation first, then every word's sense, streamed.
             let t = Date()
             let local = await LocalModel.isAvailable()
-            let translation = local ? try await LocalModel.translate(args[2]) : try await Translator.translate(args[2])
-            let apple = ProcessInfo.processInfo.environment["LONGYAN_COMPARE_APPLE"] == "1" ? try? await Translator.translate(args[2]) : nil
+            let translation = local ? try await LocalModel.translate(text) : try await Translator.translate(text)
+            let apple = ProcessInfo.processInfo.environment["LONGYAN_COMPARE_APPLE"] == "1" ? try? await Translator.translate(text) : nil
             print("translation: \(translation)  [\(local ? "local" : "Apple"), \(Int(Date().timeIntervalSince(t) * 1000)) ms]")
             if let apple { print("Apple:       \(apple)") }
             let r = Date()
