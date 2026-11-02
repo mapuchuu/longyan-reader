@@ -45,6 +45,14 @@ final class LookupState: ObservableObject {
         onLayoutChange()
     }
 
+    /// True when the headline is the model's reading of this passage rather than dictionary wording.
+    var isContextual: Bool {
+        guard !userPicked, let choice, let sense = senses[safe: choice.senseNumber - 1] else { return false }
+        let text = choice.meaningHere.lowercased()
+        return !Gloss.readable(sense.gloss).lowercased().contains(text)
+            && !text.contains(headlineGloss(sense).lowercased())
+    }
+
     /// The model's answer arrived: show it unless the reader has already chosen.
     func receive(_ answer: SenseChoice) {
         suggested = answer
@@ -137,11 +145,16 @@ struct LookupView: View {
 
     @ViewBuilder private var meaning: some View {
         if let choice = state.choice {
-            Text(choice.meaningHere)
-                .cardFont(17, .semibold)
-                .fixedSize(horizontal: false, vertical: true)
-                .contentTransition(.opacity)
-                .transition(.opacity)
+            VStack(alignment: .leading, spacing: 2) {
+                if state.isContextual {
+                    Text("In this context").cardFont(11).foregroundStyle(.secondary).transition(.opacity)
+                }
+                Text(choice.meaningHere)
+                    .cardFont(17, .semibold)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .contentTransition(.opacity)
+            }
+            .transition(.opacity)
         }
     }
 

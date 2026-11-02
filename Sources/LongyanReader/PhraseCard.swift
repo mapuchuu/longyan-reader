@@ -356,7 +356,7 @@ struct PhraseView: View {
             } else if state.choices[token.id]?.viaTranslation == true {
                 Text("Matched to the sentence translation").cardFont(11).foregroundStyle(.secondary)
             } else if let here = state.meaningHere(token) {
-                (Text("Here: ").foregroundColor(.secondary) + Text(here).fontWeight(.medium))
+                (Text("In this context: ").foregroundColor(.secondary) + Text(here).fontWeight(.medium))
                     .cardFont(12)
                     .fixedSize(horizontal: false, vertical: true)
                     .transition(.opacity)

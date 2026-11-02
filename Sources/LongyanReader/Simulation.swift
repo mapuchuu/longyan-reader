@@ -100,6 +100,12 @@ extension AppDelegate {
         multi?.pick(firstChoice == 0 ? 1 : 0)
         await wait(0.3)
         check(multi?.choice?.meaningHere != suggestedText, "picking another meaning updates the headline")
+        check(multi?.isContextual == false, "a meaning the reader picked isn't labelled as contextual")
+        let labelled = LookupState(context: WordInContext(word: "紧张", passage: Array("工作太紧张了。"), wordRange: 3..<5, alternatives: []), senses: [Sense(pinyin: "jin3 zhang1", gloss: "nervous")], appName: nil, phase: .choosing)
+        labelled.receive(SenseChoice(senseNumber: 1, meaningHere: "busy"))
+        check(labelled.isContextual, "the model's own wording is labelled 'In this context'")
+        labelled.receive(SenseChoice(senseNumber: 1, meaningHere: "nervous"))
+        check(!labelled.isContextual, "dictionary wording isn't labelled")
         multi?.useSuggested()
         await wait(0.3)
         check(multi?.choice?.meaningHere == suggestedText && multi?.chosenIndex == firstChoice,

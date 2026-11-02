@@ -287,6 +287,7 @@ enum CLI {
         let state = LookupState(context: ctx, senses: senses, appName: "Preview", phase: .choosing)
         if SenseChooser.isAvailable, !senses.isEmpty {
             state.choice = try await SenseChooser.choose(for: ctx, senses: senses)
+            if let wording = ProcessInfo.processInfo.environment["LONGYAN_RENDER_MEANING"] { state.choice?.meaningHere = wording }
             state.phase = .chosen
         }
         try await writePNG(CardChrome(layout: renderLayout(.word)) { LookupView(state: state) }, to: url)
