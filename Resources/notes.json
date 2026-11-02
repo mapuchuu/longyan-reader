@@ -5328,5 +5328,275 @@
     ],
     "tag" : "cultural_context",
     "word" : "报到"
+  },
+  {
+    "gloss" : "to be a burden on",
+    "note" : "To drag someone down with your own troubles. You feel the guilt in it: 不想拖累你 is what you say when your illness or debt could sink someone you love.",
+    "pinyin" : "tuo1 lei3",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "拖累"
+  },
+  {
+    "gloss" : "in arrears",
+    "note" : "To hold back money that's owed, especially wages. You hear 拖欠工资 and picture migrant workers waiting for their pay as Spring Festival gets closer.",
+    "pinyin" : "tuo1 qian4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "拖欠"
+  },
+  {
+    "gloss" : "to respond evasively or vaguely",
+    "note" : "To hem and haw so you don't have to answer. You can hear it in 支支吾吾: the mumbling, the half sentences, the look away.",
+    "pinyin" : "zhi1 wu5",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "支吾"
+  },
+  {
+    "gloss" : "spring chill in the air",
+    "note" : "The thin, sharp chill of early spring. It's a bookish word, and in 春寒料峭 you feel a cold wind at your neck while the sun is already out.",
+    "pinyin" : "liao4 qiao4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "料峭"
+  },
+  {
+    "gloss" : "to take an indirect approach (in making inquiries) (idiom)",
+    "note" : "To get at something indirectly, through hints. You picture tapping at the side instead of knocking on the front: you ask about something nearby and watch how they react.",
+    "pinyin" : "pang2 qiao1 ce4 ji1",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "旁敲侧击"
+  },
+  {
+    "gloss" : "rather",
+    "note" : "Rather too much, said as a mild criticism. When you say 未免太贵了, you're objecting while keeping it polite, like clearing your throat.",
+    "pinyin" : "wei4 mian3",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "未免"
+  },
+  {
+    "gloss" : "to weigh (a matter)",
+    "note" : "To weigh the pros and cons. You picture an old steelyard scale, its 权 and 衡, with each side held up in your hand before you decide.",
+    "pinyin" : "quan2 heng2",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "权衡"
+  },
+  {
+    "gloss" : "data",
+    "note" : "The documents an office wants from you. When you're told to 准备材料, you picture a stack of ID copies, certificates and stamped forms, and probably a second trip.",
+    "pinyin" : "cai2 liao4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "材料"
+  },
+  {
+    "gloss" : "(fig.) person who has the potential to do the job",
+    "note" : "Someone cut out for something. You say 我不是学习的材料 with a shrug, as if you were simply the wrong stuff for it.",
+    "pinyin" : "cai2 liao4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "材料"
+  },
+  {
+    "gloss" : "flustered and exasperated",
+    "note" : "Furious and flustered, with your composure gone. You picture someone red-faced and scrambling because things have gone against them, and it's a little satisfying to watch.",
+    "pinyin" : "qi4 ji2 bai4 huai4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "气急败坏"
+  },
+  {
+    "gloss" : "according to standards",
+    "note" : "Properly run and above board, not fly-by-night. When you call a company 正规, you're reassured: there's a contract, your insurance gets paid and your wages arrive on time.",
+    "pinyin" : "zheng4 gui1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "正规"
+  },
+  {
+    "gloss" : "to obey (an order)",
+    "note" : "To obey what comes from above. You may remember ticking 服从调剂 on a university form, agreeing to go wherever you were put.",
+    "pinyin" : "fu2 cong2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "服从"
+  },
+  {
+    "gloss" : "to encumber",
+    "note" : "To drag someone down with your own troubles. You feel the guilt in it: 不想拖累你 is what you say when your illness or debt could sink someone you love.",
+    "pinyin" : "tuo1 lei3",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "拖累"
+  },
+  {
+    "gloss" : "to implicate",
+    "note" : "To drag someone down with your own troubles. You feel the guilt in it: 不想拖累你 is what you say when your illness or debt could sink someone you love.",
+    "pinyin" : "tuo1 lei3",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "拖累"
+  },
+  {
+    "gloss" : "behind in payments",
+    "note" : "To hold back money that's owed, especially wages. You hear 拖欠工资 and picture migrant workers waiting for their pay as Spring Festival gets closer.",
+    "pinyin" : "tuo1 qian4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "拖欠"
+  },
+  {
+    "gloss" : "to default on one's debts",
+    "note" : "To hold back money that's owed, especially wages. You hear 拖欠工资 and picture migrant workers waiting for their pay as Spring Festival gets closer.",
+    "pinyin" : "tuo1 qian4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "拖欠"
+  },
+  {
+    "gloss" : "to elude",
+    "note" : "To hem and haw so you don't have to answer. You can hear it in 支支吾吾: the mumbling, the half sentences, the look away.",
+    "pinyin" : "zhi1 wu5",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "支吾"
+  },
+  {
+    "gloss" : "to stall",
+    "note" : "To hem and haw so you don't have to answer. You can hear it in 支支吾吾: the mumbling, the half sentences, the look away.",
+    "pinyin" : "zhi1 wu5",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "支吾"
+  },
+  {
+    "gloss" : "cold",
+    "note" : "The thin, sharp chill of early spring. It's a bookish word, and in 春寒料峭 you feel a cold wind at your neck while the sun is already out.",
+    "pinyin" : "liao4 qiao4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "料峭"
+  },
+  {
+    "gloss" : "to make insinuations",
+    "note" : "To get at something indirectly, through hints. You picture tapping at the side instead of knocking on the front: you ask about something nearby and watch how they react.",
+    "pinyin" : "pang2 qiao1 ce4 ji1",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "旁敲侧击"
+  },
+  {
+    "gloss" : "really",
+    "note" : "Rather too much, said as a mild criticism. When you say 未免太贵了, you're objecting while keeping it polite, like clearing your throat.",
+    "pinyin" : "wei4 mian3",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "未免"
+  },
+  {
+    "gloss" : "to consider",
+    "note" : "To weigh the pros and cons. You picture an old steelyard scale, its 权 and 衡, with each side held up in your hand before you decide.",
+    "pinyin" : "quan2 heng2",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "权衡"
+  },
+  {
+    "gloss" : "to balance (pros and cons)",
+    "note" : "To weigh the pros and cons. You picture an old steelyard scale, its 权 and 衡, with each side held up in your hand before you decide.",
+    "pinyin" : "quan2 heng2",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "权衡"
+  },
+  {
+    "gloss" : "utterly discomfited",
+    "note" : "Furious and flustered, with your composure gone. You picture someone red-faced and scrambling because things have gone against them, and it's a little satisfying to watch.",
+    "pinyin" : "qi4 ji2 bai4 huai4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "气急败坏"
+  },
+  {
+    "gloss" : "regular",
+    "note" : "Properly run and above board, not fly-by-night. When you call a company 正规, you're reassured: there's a contract, your insurance gets paid and your wages arrive on time.",
+    "pinyin" : "zheng4 gui1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "正规"
+  },
+  {
+    "gloss" : "to comply",
+    "note" : "To obey what comes from above. You may remember ticking 服从调剂 on a university form, agreeing to go wherever you were put.",
+    "pinyin" : "fu2 cong2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "服从"
+  },
+  {
+    "gloss" : "to defer",
+    "note" : "To obey what comes from above. You may remember ticking 服从调剂 on a university form, agreeing to go wherever you were put.",
+    "pinyin" : "fu2 cong2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "服从"
   }
 ]

@@ -765,12 +765,39 @@
   "报告|bao4 gao4|speech" : [
     "校长在大会上作了一个报告。"
   ],
+  "拒接|ju4 jie1|to refuse to take a call" : [
+    "我给他打了三次电话，都被拒接了。"
+  ],
+  "拒接|ju4 jie1|to reject" : [
+    "这家酒店拒接没有预约的客人。"
+  ],
+  "接着|jie1 zhe5|then" : [
+    "他先去了北京，接着又去了上海。"
+  ],
+  "接着|jie1 zhe5|to catch and hold on" : [
+    "我把球扔过去，你接着！"
+  ],
+  "接着|jie1 zhe5|to continue" : [
+    "你接着说，我听着呢。"
+  ],
   "摸鱼|mo1 yu2|(fig.) to loaf on the job; to be slack; to take it easy" : [
     "今天老板不在，大家都在摸鱼。",
     "上班摸鱼刷手机，被领导抓到了。"
   ],
   "摸鱼|mo1 yu2|to catch fish" : [
     "小时候我们常在小河里摸鱼。"
+  ],
+  "文职|wen2 zhi2|administration" : [
+    "公司招一名文职，主要负责整理合同。"
+  ],
+  "文职|wen2 zhi2|civilian post (as opposed to military)" : [
+    "她在部队里是文职，不用上前线。"
+  ],
+  "方面|fang1 mian4|aspect" : [
+    "这个问题要从两个方面来看。"
+  ],
+  "方面|fang1 mian4|side" : [
+    "学校方面已经回复了家长的来信。"
   ],
   "无语|wu2 yu3|(coll.) speechless" : [
     "他又迟到了一个小时，我真是无语了。",
@@ -779,6 +806,18 @@
   "无语|wu2 yu3|to remain silent" : [
     "两人相对无语，坐了很久。"
   ],
+  "既是|ji4 shi4|is both ...(and...)" : [
+    "她既是老师，也是母亲。"
+  ],
+  "既是|ji4 shi4|since" : [
+    "既是你答应了，就别反悔。"
+  ],
+  "有些|you3 xie1|some" : [
+    "有些人喜欢吃辣，有些人不喜欢。"
+  ],
+  "有些|you3 xie1|somewhat; rather; a bit" : [
+    "听到这个消息，我有些难过。"
+  ],
   "机场|ji1 chang3|(slang) service provider for Shadowsocks or similar software for circumventing Internet censorship" : [
     "我的机场又被封了，翻不了墙了。",
     "你用的是哪个机场？速度快吗？"
@@ -786,6 +825,21 @@
   "机场|ji1 chang3|airport; airfield" : [
     "我们提前两个小时到了机场。",
     "机场离市区有四十公里。"
+  ],
+  "材料|cai2 liao4|(fig.) person who has the potential to do the job" : [
+    "他天生就是当演员的材料。"
+  ],
+  "材料|cai2 liao4|(raw) material" : [
+    "这座房子的建筑材料都是环保的。"
+  ],
+  "材料|cai2 liao4|data" : [
+    "办签证要交的材料我都准备好了。"
+  ],
+  "检查|jian3 cha2|inspection" : [
+    "安全检查要排很长的队。"
+  ],
+  "检查|jian3 cha2|to examine" : [
+    "医生仔细检查了他的眼睛。"
   ],
   "正气|zheng4 qi4|(TCM) vital energy (resistance to diseases)" : [
     "中医认为正气不足，人就容易生病。"
@@ -811,6 +865,9 @@
     "练太极拳讲究气沉丹田。",
     "中医说他气虚，要好好调理。"
   ],
+  "求证|qiu2 zheng4|to seek confirmation" : [
+    "这个说法我得跟他本人求证一下。"
+  ],
   "江山|jiang1 shan1|rivers and mountains" : [
     "江山如画，风景美不胜收。"
   ],
@@ -825,11 +882,26 @@
     "人在江湖，身不由己。",
     "武侠小说里的江湖充满了恩怨情仇。"
   ],
+  "沉重|chen2 zhong4|heavy" : [
+    "他背着沉重的行李爬上五楼。"
+  ],
+  "沉重|chen2 zhong4|serious" : [
+    "这场灾难给当地带来了沉重的打击。"
+  ],
   "沟通|gou1 tong1|to communicate" : [
     "夫妻之间要多沟通，别什么都憋在心里。"
   ],
   "沟通|gou1 tong1|to join; to connect; to link up" : [
     "这条运河沟通了南北两地。"
+  ],
+  "没事|mei2 shi4|it's nothing" : [
+    "没事，这点小伤不要紧。"
+  ],
+  "没事|mei2 shi4|to be all right (out of danger or trouble)" : [
+    "医生说他已经没事了，明天就能出院。"
+  ],
+  "没事|mei2 shi4|to have nothing to do" : [
+    "周末没事的话，来我家吃饭吧。"
   ],
   "混|hun4|to mix" : [
     "把面粉和水混在一起。"
