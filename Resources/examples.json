@@ -26,6 +26,12 @@
   "下海|xia4 hai3|to enter the sea (to swim etc)" : [
     "天气太热了，我们下海游泳吧。"
   ],
+  "不过|bu4 guo4|however" : [
+    "这件衣服很好看，不过有点贵。"
+  ],
+  "不过|bu4 guo4|merely" : [
+    "我不过随便问问，你别当真。"
+  ],
   "世故|shi4 gu4|the ways of the world" : [
     "他还年轻，不懂人情世故。"
   ],
@@ -47,6 +53,12 @@
   "东西|dong1 xi5|thing" : [
     "我去超市买点东西。",
     "你的东西都收拾好了吗？"
+  ],
+  "主动|zhu3 dong4|active" : [
+    "这种药要主动运输才能进入细胞。"
+  ],
+  "主动|zhu3 dong4|to do sth of one's own accord" : [
+    "她主动提出帮我搬家，我都没开口。"
   ],
   "主旋律|zhu3 xuan2 lu:4|(fig.) central theme; main idea" : [
     "和平与发展是时代的主旋律。"
@@ -73,6 +85,12 @@
   "人情|ren2 qing2|social relationship; friendship" : [
     "结婚的时候，亲戚朋友送的礼都是人情往来。"
   ],
+  "什么|shen2 me5|something; anything" : [
+    "冰箱里还有什么吃的吗？"
+  ],
+  "什么|shen2 me5|what?" : [
+    "你刚才说什么？"
+  ],
   "仁|ren2|humane" : [
     "孔子说，仁者爱人。",
     "为政以德，施行仁政。"
@@ -80,12 +98,24 @@
   "仁|ren2|kernel" : [
     "把核桃敲开，取出里面的核桃仁。"
   ],
+  "估计|gu1 ji4|(coll.) to reckon; to think (that ...)" : [
+    "都这么晚了，他估计不来了。"
+  ],
+  "估计|gu1 ji4|to estimate; to assess; to calculate" : [
+    "专家估计今年的产量会增加一成。"
+  ],
   "低调|di1 diao4|low-profile" : [
     "他虽然很有钱，但做人很低调。",
     "这次活动我们低调处理，不要宣传。"
   ],
   "低调|di1 diao4|quiet (voice)" : [
     "她说话低调，声音很轻。"
+  ],
+  "体会|ti3 hui4|to know from experience" : [
+    "当了爸爸才体会到父母有多不容易。"
+  ],
+  "体会|ti3 hui4|understanding" : [
+    "这次出差回来，你有什么体会？"
   ],
   "作|zuo1|(slang) troublesome; high-maintenance (person)" : [
     "她特别作，一点小事就要闹分手。",
@@ -175,6 +205,12 @@
     "小朋友，谢谢叔叔帮你捡球。",
     "快叫叔叔好！"
   ],
+  "只是|zhi3 shi4|but; however" : [
+    "这个办法不错，只是太花时间。"
+  ],
+  "只是|zhi3 shi4|merely; only; just; nothing but" : [
+    "我只是路过，顺便来看看你。"
+  ],
   "吃亏|chi1 kui1|to lose out" : [
     "你太老实了，这样会吃亏的。",
     "跟他做生意，我从来没吃过亏。"
@@ -226,6 +262,15 @@
   "土|tu3|unsophisticated" : [
     "你这身衣服太土了，像我爸年轻时候穿的。",
     "他觉得自己的名字太土，想改个洋气点的。"
+  ],
+  "基准|ji1 zhun3|standard; criterion; benchmark" : [
+    "这次考核以去年的业绩作为基准。"
+  ],
+  "大概|da4 gai4|probably" : [
+    "他还没回消息，大概是睡了。"
+  ],
+  "大概|da4 gai4|roughly" : [
+    "从这儿到车站大概要十分钟。"
   ],
   "奇葩|qi2 pa1|(slang) weirdo" : [
     "我们公司有个奇葩，上班穿睡衣。",
@@ -279,6 +324,12 @@
   "对象|dui4 xiang4|target; object" : [
     "这次调查的对象是大学生。"
   ],
+  "导游|dao3 you2|to conduct a tour" : [
+    "他在西安导游了十几年。"
+  ],
+  "导游|dao3 you2|tour guide" : [
+    "这位导游对长城的历史特别熟。"
+  ],
   "小人|xiao3 ren2|I, me (used to refer humbly to oneself)" : [
     "小人不敢，请大人明察。"
   ],
@@ -295,6 +346,15 @@
   ],
   "小姐|xiao3 jie5|young lady" : [
     "她是大户人家的小姐，从小什么活都没干过。"
+  ],
+  "就是|jiu4 shi4|(used correlatively with 也[ye3]) even; even if" : [
+    "就是下大雨，我也要去。"
+  ],
+  "就是|jiu4 shi4|exactly; precisely" : [
+    "对，就是他昨天来找你的。"
+  ],
+  "就是|jiu4 shi4|only; simply; just" : [
+    "没别的事，就是想问问你最近好不好。"
   ],
   "崛起|jue2 qi3|the emergence (e.g. of a power)" : [
     "中国的崛起改变了世界格局。",
@@ -330,6 +390,12 @@
   ],
   "师父|shi1 fu5|master" : [
     "他跟着师父学了十年木工。"
+  ],
+  "幌子|huang3 zi5|(fig.) pretense" : [
+    "他打着慈善的幌子到处骗钱。"
+  ],
+  "幌子|huang3 zi5|shop sign" : [
+    "老街上的酒馆门口还挂着布幌子。"
   ],
   "应聘|ying4 pin4|to apply for an advertised position" : [
     "她上周应聘了一家银行，正在等通知。"
@@ -627,6 +693,12 @@
   "补|bu3|to supplement" : [
     "她刚生完孩子，要多喝鸡汤补一补。",
     "冬天进补，吃点羊肉暖暖身子。"
+  ],
+  "补贴|bu3 tie1|allowance" : [
+    "公司每个月有五百块餐费补贴。"
+  ],
+  "补贴|bu3 tie1|to subsidize" : [
+    "政府每年补贴农民买农机。"
   ],
   "解放|jie3 fang4|refers to the Communists' victory over the Nationalists in 1949" : [
     "解放前，这里是一片荒地。",

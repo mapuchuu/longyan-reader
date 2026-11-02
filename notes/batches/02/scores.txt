@@ -1,0 +1,3 @@
+right 51/52, wrong notes shown 1
+words 27/29  senses 25/29  errors 0  avg 397 ms
+right 82/95, right sense not offered 0, word split differently 6, 72 s
