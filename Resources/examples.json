@@ -1,9 +1,27 @@
 {
+  "一下|yi1 xia4|(after a verb) a bit; a little (indicating brief duration, or softening the tone, or suggesting giving sth a try)" : [
+    "你等一下，我马上就来。"
+  ],
+  "一下|yi1 xia4|all at once; suddenly" : [
+    "天一下黑了下来，路都看不清。"
+  ],
   "一个|yi1 ge5|a; an; one" : [
     "桌上放着一个苹果。"
   ],
   "一个|yi1 ge5|the whole (afternoon, summer vacation etc)" : [
     "他一个下午都在睡觉。"
+  ],
+  "一定|yi1 ding4|a certain ...; a given ..." : [
+    "这件事在一定程度上影响了销量。"
+  ],
+  "一定|yi1 ding4|surely; certainly; definitely" : [
+    "明天的会你一定要来。"
+  ],
+  "一直|yi1 zhi2|continuously; always; all the way through" : [
+    "我一直想去云南看看。"
+  ],
+  "一直|yi1 zhi2|straight (in a straight line)" : [
+    "从这儿一直往前走，看到银行就到了。"
   ],
   "上火|shang4 huo3|to get angry" : [
     "别为这点小事上火，不值得。"
@@ -513,6 +531,12 @@
     "人在江湖，身不由己。",
     "武侠小说里的江湖充满了恩怨情仇。"
   ],
+  "沟通|gou1 tong1|to communicate" : [
+    "夫妻之间要多沟通，别什么都憋在心里。"
+  ],
+  "沟通|gou1 tong1|to join; to connect; to link up" : [
+    "这条运河沟通了南北两地。"
+  ],
   "混|hun4|to mix" : [
     "把面粉和水混在一起。"
   ],
@@ -529,6 +553,12 @@
   ],
   "清明|qing1 ming2|clear and bright" : [
     "雨后的天空格外清明。"
+  ],
+  "爽快|shuang3 kuai5|frank and straightforward" : [
+    "他很爽快，当场就把合同签了。"
+  ],
+  "爽快|shuang3 kuai5|refreshed" : [
+    "洗完澡出来，整个人都爽快多了。"
   ],
   "牛|niu2|(slang) awesome" : [
     "他一个人做完了整个项目，太牛了！",
@@ -551,6 +581,12 @@
   "相亲|xiang1 qin1|to be deeply attached to each other" : [
     "一家人相亲相爱，和和睦睦。"
   ],
+  "相对|xiang1 dui4|opposite" : [
+    "两个人面对面坐着，相对无言。"
+  ],
+  "相对|xiang1 dui4|relatively" : [
+    "这个小区相对安静，适合老人住。"
+  ],
   "矫情|jiao2 qing5|(Beijing dialect) argumentative; unreasonable" : [
     "他这个人特别矫情，什么事都要跟你争。"
   ],
@@ -571,6 +607,12 @@
   "礼|li3|propriety" : [
     "中国人讲究礼尚往来，吃饭时长辈先动筷子。",
     "孔子认为，人要知礼，懂得长幼尊卑。"
+  ],
+  "福利|fu2 li4|(social) welfare" : [
+    "老人的社会福利这几年提高了不少。"
+  ],
+  "福利|fu2 li4|benefit (provided by an employer or organization)" : [
+    "这家公司福利不错，过节都发购物卡。"
   ],
   "秀才|xiu4 cai5|a person who has passed the county level imperial exam (historical)" : [
     "他十八岁就考中了秀才，全村人都来祝贺。",
@@ -599,6 +641,12 @@
   ],
   "站点|zhan4 dian3|a place set up to serve a specific function (train station, bus stop, toll plaza, bike rental station, meteorological station etc)" : [
     "快递放在小区门口的站点了，下班顺路去拿。"
+  ],
+  "答应|da1 ying5|to answer positively; to agree; to accept; to promise" : [
+    "他答应下周把钱还给我。"
+  ],
+  "答应|da1 ying5|to answer; to respond" : [
+    "我敲了半天门，里面也没人答应。"
   ],
   "紧张|jin3 zhang1|in short supply" : [
     "这几年城里的学位很紧张，很多孩子排不上。"
@@ -639,6 +687,12 @@
     "婚礼上，同事们一起包了个大红包。",
     "春节在微信群里抢红包，抢到两块钱也很开心。"
   ],
+  "经历|jing1 li4|experience (CL:段[duan4],次[ci4])" : [
+    "这段留学经历对她影响很大。"
+  ],
+  "经历|jing1 li4|to experience; to go through" : [
+    "他经历过战争，什么苦都吃过。"
+  ],
   "编制|bian1 zhi4|authorized staffing allocation in government or public institutions (excluding temporary or contract staff)" : [
     "她考了三年，终于考上了有编制的老师。",
     "这个岗位没有编制，只是合同工。"
@@ -675,6 +729,12 @@
   ],
   "脾气|pi2 qi5|character; temperament; disposition" : [
     "这孩子脾气好，从来不跟人争。"
+  ],
+  "自觉|zi4 jue2|responsible; predisposed to do the right thing; considerate of others" : [
+    "没人看着，他也自觉把垃圾带走了。"
+  ],
+  "自觉|zi4 jue2|to realize; to be aware of; to feel that; to be conscious of (sth relating to oneself)" : [
+    "他病得很重，自己却并不自觉。"
   ],
   "舍不得|she3 bu5 de5|to hate to do sth" : [
     "这件衣服太贵了，我舍不得买。",
@@ -744,6 +804,12 @@
   "跟着|gen1 zhe5|to follow after" : [
     "你跟着导游走，别走丢了。"
   ],
+  "身上|shen1 shang5|at hand" : [
+    "我身上没带现金，能扫码吗？"
+  ],
+  "身上|shen1 shang5|on the body" : [
+    "雨下得太大，我身上全湿了。"
+  ],
   "躺平|tang3 ping2|(neologism, attested by 2021) to opt out of the rat race" : [
     "房价太高了，买不起，干脆躺平吧。",
     "不想再拼了，我决定躺平，过简单的生活。"
@@ -786,6 +852,12 @@
     "他考上了重点中学，全家都很高兴。",
     "为了让孩子上重点小学，他们买了学区房。"
   ],
+  "错误|cuo4 wu4|error; mistake" : [
+    "报告里有几处错误，得改一下。"
+  ],
+  "错误|cuo4 wu4|mistaken; false; wrong" : [
+    "你这种想法是错误的。"
+  ],
   "阿姨|a1 yi2|childcare worker; nanny" : [
     "家里请了个阿姨，每天来做饭打扫。",
     "我们找了个阿姨帮忙带孩子。"
@@ -806,6 +878,12 @@
   ],
   "随便|sui2 bian4|negligent" : [
     "他做事太随便了，经常出错。"
+  ],
+  "隔天|ge2 tian1|on alternate days" : [
+    "这种药要隔天吃一次。"
+  ],
+  "隔天|ge2 tian1|the next day" : [
+    "我们周一见的面，隔天他就走了。"
   ],
   "青天|qing1 tian1|clear sky" : [
     "白日青天，万里无云。"
