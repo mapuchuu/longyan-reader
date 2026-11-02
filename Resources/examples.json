@@ -458,6 +458,12 @@
   "大姐|da4 jie3|older sister (also polite term of address for a girl or woman slightly older than the speaker)" : [
     "大姐，请问去地铁站怎么走？"
   ],
+  "大家|da4 jia1|everyone" : [
+    "大家都到齐了，开始吧。"
+  ],
+  "大家|da4 jia1|great expert" : [
+    "他是当代的书法大家。"
+  ],
   "大概|da4 gai4|probably" : [
     "他还没回消息，大概是睡了。"
   ],
@@ -818,6 +824,12 @@
   "有些|you3 xie1|somewhat; rather; a bit" : [
     "听到这个消息，我有些难过。"
   ],
+  "机关|ji1 guan1|mechanism; gear" : [
+    "这只箱子有机关，一按就开。"
+  ],
+  "机关|ji1 guan1|office; agency; organ; organization; establishment; institution; body" : [
+    "他大学毕业后进了市里的机关。"
+  ],
   "机场|ji1 chang3|(slang) service provider for Shadowsocks or similar software for circumventing Internet censorship" : [
     "我的机场又被封了，翻不了墙了。",
     "你用的是哪个机场？速度快吗？"
@@ -945,6 +957,12 @@
   "状元|zhuang4 yuan2|top scorer in college entrance examination 高考[gao1 kao3]" : [
     "今年我们省的高考状元考了七百多分。",
     "高考状元被北大录取了，媒体都来采访。"
+  ],
+  "生产|sheng1 chan3|to give birth to a child" : [
+    "她下个月就要生产了。"
+  ],
+  "生产|sheng1 chan3|to produce; to manufacture" : [
+    "这家工厂生产汽车零件。"
   ],
   "生意|sheng1 yi4|life force" : [
     "春天到了，院子里一片生意。"
@@ -1103,6 +1121,12 @@
     "过年的时候，爷爷给每个孙子都发了红包。",
     "婚礼上，同事们一起包了个大红包。",
     "春节在微信群里抢红包，抢到两块钱也很开心。"
+  ],
+  "组织|zu3 zhi1|(biology) tissue" : [
+    "医生取了一点肌肉组织去化验。"
+  ],
+  "组织|zu3 zhi1|organization" : [
+    "这个组织成立于十年前。"
   ],
   "经历|jing1 li4|experience (CL:段[duan4],次[ci4])" : [
     "这段留学经历对她影响很大。"
@@ -1320,6 +1344,12 @@
   ],
   "通用|tong1 yong4|to use anywhere, anytime (card, ticket etc)" : [
     "这张卡全国通用。"
+  ],
+  "通过|tong1 guo4|by means of; through; via" : [
+    "我是通过朋友认识他的。"
+  ],
+  "通过|tong1 guo4|to pass through; to get through" : [
+    "火车通过大桥要两分钟。"
   ],
   "道|dao4|(Daoism) the Way; the Dao" : [
     "老子说，道可道，非常道。",

@@ -5928,5 +5928,175 @@
     ],
     "tag" : "lost_in_translation",
     "word" : "随和"
+  },
+  {
+    "gloss" : "not bad",
+    "note" : "Pretty good, said as a verdict. When a friend says 你可以啊, they're impressed and teasing you a little, and 还可以 just means it's fine.",
+    "pinyin" : "ke3 yi3",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "可以"
+  },
+  {
+    "gloss" : "the people",
+    "note" : "The people, as the state speaks of them. You see it on money, in 人民日报 and in 为人民服务, so it sounds solemn and official, never just a crowd.",
+    "pinyin" : "ren2 min2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "人民"
+  },
+  {
+    "gloss" : "culture",
+    "note" : "Culture, and also plain schooling. When someone says 没文化 or 文化不高, you know they mean little education, so it can sting or be a modest shrug.",
+    "pinyin" : "wen2 hua4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "文化"
+  },
+  {
+    "gloss" : "to look into",
+    "note" : "To look into something, and in an office, to put it off. 我们研究研究 can be a polite way of telling you nothing will happen soon.",
+    "pinyin" : "yan2 jiu1",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "研究"
+  },
+  {
+    "gloss" : "organization",
+    "note" : "An organisation, and in political talk the Party itself. When you hear 相信组织 or 组织上决定, you know who is meant, and it can be solemn or half a joke.",
+    "pinyin" : "zu3 zhi1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "组织"
+  },
+  {
+    "gloss" : "so-so",
+    "note" : "So-so, and often a polite way of saying not good. When you say the food is 一般, the cook should hear the disappointment.",
+    "pinyin" : "yi1 ban1",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "一般"
+  },
+  {
+    "gloss" : "office; agency; organ; organization; establishment; institution; body",
+    "note" : "A government or Party office. You picture a secure desk, tea and paperwork, and parents still hope their children will land a job in one.",
+    "pinyin" : "ji1 guan1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "机关"
+  },
+  {
+    "gloss" : "politics",
+    "note" : "Politics, and also a subject everyone is examined on at school. You remember memorising it for exams, and 讲政治 means loyalty to the line more than debate.",
+    "pinyin" : "zheng4 zhi4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "政治"
+  },
+  {
+    "gloss" : "chairman",
+    "note" : "A chairman of any body, from a student union up. Said alone, though, you hear Mao, and 毛主席 is still how most people say his name.",
+    "pinyin" : "zhu3 xi2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "主席"
+  },
+  {
+    "gloss" : "to educate",
+    "note" : "To educate, and also to give someone a talking-to. When a boss 教育 you, you're being scolded for your own good, and you're expected to take it.",
+    "pinyin" : "jiao4 yu4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "教育"
+  },
+  {
+    "gloss" : "reform",
+    "note" : "Reform, and for most people the reforms that began in 1978. You hear 改革开放 and think of how much your family's life changed.",
+    "pinyin" : "gai3 ge2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "改革"
+  },
+  {
+    "gloss" : "my country; our country",
+    "note" : "Our country, meaning China. Reports and textbooks use it as the default, so you can hear the voice of a newspaper or an official in it.",
+    "pinyin" : "wo3 guo2",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "我国"
+  },
+  {
+    "gloss" : "related to",
+    "note" : "Related or concerned. You know 有关部门 best, the \"relevant departments\" that are never named, and you shrug because nobody can tell you who decided.",
+    "pinyin" : "you3 guan1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "有关"
+  },
+  {
+    "gloss" : "pretty good",
+    "note" : "Pretty good, said as a verdict. When a friend says 你可以啊, they're impressed and teasing you a little, and 还可以 just means it's fine.",
+    "pinyin" : "ke3 yi3",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "可以"
+  },
+  {
+    "gloss" : "to teach",
+    "note" : "To educate, and also to give someone a talking-to. When a boss 教育 you, you're being scolded for your own good, and you're expected to take it.",
+    "pinyin" : "jiao4 yu4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "教育"
+  },
+  {
+    "gloss" : "to reform",
+    "note" : "Reform, and for most people the reforms that began in 1978. You hear 改革开放 and think of how much your family's life changed.",
+    "pinyin" : "gai3 ge2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "改革"
+  },
+  {
+    "gloss" : "concerning",
+    "note" : "Related or concerned. You know 有关部门 best, the \"relevant departments\" that are never named, and you shrug because nobody can tell you who decided.",
+    "pinyin" : "you3 guan1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "有关"
   }
 ]
