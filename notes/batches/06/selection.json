@@ -1,0 +1,1224 @@
+[
+  {
+    "senses" : [
+      {
+        "pinyin" : "hao3 yi4 si5",
+        "index" : 1,
+        "gloss" : "to have the nerve"
+      },
+      {
+        "pinyin" : "hao3 yi4 si5",
+        "index" : 2,
+        "gloss" : "what a cheek!"
+      },
+      {
+        "pinyin" : "hao3 yi4 si5",
+        "index" : 3,
+        "gloss" : "to feel no shame"
+      },
+      {
+        "pinyin" : "hao3 yi4 si5",
+        "index" : 4,
+        "gloss" : "to overcome the shame"
+      },
+      {
+        "pinyin" : "hao3 yi4 si5",
+        "index" : 5,
+        "gloss" : "(is it) proper? (rhetorical question)"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "好意思",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "hao3 gan3",
+        "index" : 1,
+        "gloss" : "good opinion"
+      },
+      {
+        "pinyin" : "hao3 gan3",
+        "index" : 2,
+        "gloss" : "favorable impression"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "好感",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "xian2 wu4",
+        "index" : 1,
+        "gloss" : "to loathe"
+      },
+      {
+        "pinyin" : "xian2 wu4",
+        "index" : 2,
+        "gloss" : "to abhor"
+      },
+      {
+        "pinyin" : "xian2 wu4",
+        "index" : 3,
+        "gloss" : "hatred"
+      },
+      {
+        "pinyin" : "xian2 wu4",
+        "index" : 4,
+        "gloss" : "revulsion"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "嫌恶",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "ning4 yuan4",
+        "index" : 1,
+        "gloss" : "would rather ... (than ...)"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "宁愿",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "shou3 fa3",
+        "index" : 1,
+        "gloss" : "to abide by the law"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "守法",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "an1 fu3",
+        "index" : 1,
+        "gloss" : "to placate"
+      },
+      {
+        "pinyin" : "an1 fu3",
+        "index" : 2,
+        "gloss" : "to pacify"
+      },
+      {
+        "pinyin" : "an1 fu3",
+        "index" : 3,
+        "gloss" : "to appease"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "安抚",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "an1 dun4",
+        "index" : 1,
+        "gloss" : "to find a place for"
+      },
+      {
+        "pinyin" : "an1 dun4",
+        "index" : 2,
+        "gloss" : "to help settle down"
+      },
+      {
+        "pinyin" : "an1 dun4",
+        "index" : 3,
+        "gloss" : "to arrange for"
+      },
+      {
+        "pinyin" : "an1 dun4",
+        "index" : 4,
+        "gloss" : "undisturbed"
+      },
+      {
+        "pinyin" : "an1 dun4",
+        "index" : 5,
+        "gloss" : "peaceful"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "安顿",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "wan2 quan2",
+        "index" : 1,
+        "gloss" : "complete; whole"
+      },
+      {
+        "pinyin" : "wan2 quan2",
+        "index" : 2,
+        "gloss" : "totally; entirely"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "完全",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "shi2 ji4 shang4",
+        "index" : 1,
+        "gloss" : "in fact"
+      },
+      {
+        "pinyin" : "shi2 ji4 shang4",
+        "index" : 2,
+        "gloss" : "in reality"
+      },
+      {
+        "pinyin" : "shi2 ji4 shang4",
+        "index" : 3,
+        "gloss" : "as a matter of fact"
+      },
+      {
+        "pinyin" : "shi2 ji4 shang4",
+        "index" : 4,
+        "gloss" : "in practice"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "实际上",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "ke4 hu4",
+        "index" : 1,
+        "gloss" : "client; customer"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "客户",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "jia1 li3",
+        "index" : 1,
+        "gloss" : "home"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "家里",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "dui4 yu2",
+        "index" : 1,
+        "gloss" : "regarding; as far as (sth) is concerned; with regard to"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "对于",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "xun2 qiu2",
+        "index" : 1,
+        "gloss" : "to seek; to look for"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "寻求",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "xiao3 huo3",
+        "index" : 1,
+        "gloss" : "young guy"
+      },
+      {
+        "pinyin" : "xiao3 huo3",
+        "index" : 2,
+        "gloss" : "lad"
+      },
+      {
+        "pinyin" : "xiao3 huo3",
+        "index" : 3,
+        "gloss" : "youngster"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "小伙",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "xiao3 qu1",
+        "index" : 1,
+        "gloss" : "housing estate; community; neighborhood"
+      },
+      {
+        "pinyin" : "xiao3 qu1",
+        "index" : 2,
+        "gloss" : "(telecommunications) cell"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "小区",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "xiao3 zu3",
+        "index" : 1,
+        "gloss" : "group"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "小组",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "chong2 bai4",
+        "index" : 1,
+        "gloss" : "to worship"
+      },
+      {
+        "pinyin" : "chong2 bai4",
+        "index" : 2,
+        "gloss" : "adoration"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "崇拜",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "dai4 hui2",
+        "index" : 1,
+        "gloss" : "to bring back; to take back with one"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "带回",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "bang1 zhu4",
+        "index" : 1,
+        "gloss" : "assistance; aid"
+      },
+      {
+        "pinyin" : "bang1 zhu4",
+        "index" : 2,
+        "gloss" : "to help; to assist"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "帮助",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "bang1 mang2",
+        "index" : 1,
+        "gloss" : "to help"
+      },
+      {
+        "pinyin" : "bang1 mang2",
+        "index" : 2,
+        "gloss" : "to lend a hand"
+      },
+      {
+        "pinyin" : "bang1 mang2",
+        "index" : 3,
+        "gloss" : "to do a favor"
+      },
+      {
+        "pinyin" : "bang1 mang2",
+        "index" : 4,
+        "gloss" : "to do a good turn"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "帮忙",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "chang2 gui1",
+        "index" : 1,
+        "gloss" : "code of conduct; conventions; common practice"
+      },
+      {
+        "pinyin" : "chang2 gui1",
+        "index" : 2,
+        "gloss" : "routine (medical procedure etc)"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "常规",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "gan4 huo2 r5",
+        "index" : 1,
+        "gloss" : "to work; to be employed"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "干活儿",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "ying1 gai1",
+        "index" : 1,
+        "gloss" : "ought to; should; must"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "应该",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "di3 ceng2",
+        "index" : 1,
+        "gloss" : "ground floor; first floor"
+      },
+      {
+        "pinyin" : "di3 ceng2",
+        "index" : 2,
+        "gloss" : "lowest level; lowest rung (of society etc)"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "底层",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "yan2 huan3",
+        "index" : 1,
+        "gloss" : "to defer"
+      },
+      {
+        "pinyin" : "yan2 huan3",
+        "index" : 2,
+        "gloss" : "to postpone"
+      },
+      {
+        "pinyin" : "yan2 huan3",
+        "index" : 3,
+        "gloss" : "to put off"
+      },
+      {
+        "pinyin" : "yan2 huan3",
+        "index" : 4,
+        "gloss" : "to retard"
+      },
+      {
+        "pinyin" : "yan2 huan3",
+        "index" : 5,
+        "gloss" : "to slow sth down"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "延缓",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "kai1 feng1",
+        "index" : 1,
+        "gloss" : "to open (sth that has been sealed)"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "开封",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "kai1 fang4",
+        "index" : 1,
+        "gloss" : "to bloom"
+      },
+      {
+        "pinyin" : "kai1 fang4",
+        "index" : 2,
+        "gloss" : "to open"
+      },
+      {
+        "pinyin" : "kai1 fang4",
+        "index" : 3,
+        "gloss" : "to be open (to the public)"
+      },
+      {
+        "pinyin" : "kai1 fang4",
+        "index" : 4,
+        "gloss" : "to open up (to the outside)"
+      },
+      {
+        "pinyin" : "kai1 fang4",
+        "index" : 5,
+        "gloss" : "to be open-minded"
+      },
+      {
+        "pinyin" : "kai1 fang4",
+        "index" : 6,
+        "gloss" : "unrestrained by convention"
+      },
+      {
+        "pinyin" : "kai1 fang4",
+        "index" : 7,
+        "gloss" : "unconstrained in one's sexuality"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "开放",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "kai1 wan2 xiao4",
+        "index" : 1,
+        "gloss" : "to play a joke; to make fun of; to joke"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "开玩笑",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "yin3 qi3",
+        "index" : 1,
+        "gloss" : "to give rise to; to lead to; to cause; to arouse"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "引起",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "dang1 shi2",
+        "index" : 1,
+        "gloss" : "then; at that time"
+      },
+      {
+        "pinyin" : "dang4 shi2",
+        "index" : 2,
+        "gloss" : "immediately; right then"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "当时",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "dang1 yue4",
+        "index" : 1,
+        "gloss" : "on that month"
+      },
+      {
+        "pinyin" : "dang4 yue4",
+        "index" : 2,
+        "gloss" : "the same month"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "当月",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "che4 di3",
+        "index" : 1,
+        "gloss" : "thorough"
+      },
+      {
+        "pinyin" : "che4 di3",
+        "index" : 2,
+        "gloss" : "thoroughly"
+      },
+      {
+        "pinyin" : "che4 di3",
+        "index" : 3,
+        "gloss" : "complete"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "彻底",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "dai4 yu4",
+        "index" : 1,
+        "gloss" : "treatment"
+      },
+      {
+        "pinyin" : "dai4 yu4",
+        "index" : 2,
+        "gloss" : "pay"
+      },
+      {
+        "pinyin" : "dai4 yu4",
+        "index" : 3,
+        "gloss" : "salary"
+      },
+      {
+        "pinyin" : "dai4 yu4",
+        "index" : 4,
+        "gloss" : "status"
+      },
+      {
+        "pinyin" : "dai4 yu4",
+        "index" : 5,
+        "gloss" : "rank"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "待遇",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "de2 yi4",
+        "index" : 1,
+        "gloss" : "proud of oneself"
+      },
+      {
+        "pinyin" : "de2 yi4",
+        "index" : 2,
+        "gloss" : "pleased with oneself"
+      },
+      {
+        "pinyin" : "de2 yi4",
+        "index" : 3,
+        "gloss" : "complacent"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "得意",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "de2 zui4",
+        "index" : 1,
+        "gloss" : "to commit an offense"
+      },
+      {
+        "pinyin" : "de2 zui4",
+        "index" : 2,
+        "gloss" : "to violate the law"
+      },
+      {
+        "pinyin" : "de2 zui4",
+        "index" : 3,
+        "gloss" : "excuse me! (formal)"
+      },
+      {
+        "pinyin" : "de2 zui5",
+        "index" : 4,
+        "gloss" : "to offend sb"
+      },
+      {
+        "pinyin" : "de2 zui5",
+        "index" : 5,
+        "gloss" : "to make a faux pas"
+      },
+      {
+        "pinyin" : "de2 zui5",
+        "index" : 6,
+        "gloss" : "a faux pas"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "得罪",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "wei1 xiao4",
+        "index" : 1,
+        "gloss" : "smile"
+      },
+      {
+        "pinyin" : "wei1 xiao4",
+        "index" : 2,
+        "gloss" : "to smile"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "微笑",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "xin1 xiang3",
+        "index" : 1,
+        "gloss" : "to think to oneself; to think"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "心想",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "xin1 li3",
+        "index" : 1,
+        "gloss" : "psychology; mentality"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "心理",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "xin1 xu1",
+        "index" : 1,
+        "gloss" : "lacking in confidence"
+      },
+      {
+        "pinyin" : "xin1 xu1",
+        "index" : 2,
+        "gloss" : "diffident"
+      },
+      {
+        "pinyin" : "xin1 xu1",
+        "index" : 3,
+        "gloss" : "to have a guilty conscience"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "心虚",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "kuai4 di4",
+        "index" : 1,
+        "gloss" : "express delivery"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "快递",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "zen3 me5",
+        "index" : 1,
+        "gloss" : "how?"
+      },
+      {
+        "pinyin" : "zen3 me5",
+        "index" : 2,
+        "gloss" : "what?"
+      },
+      {
+        "pinyin" : "zen3 me5",
+        "index" : 3,
+        "gloss" : "why?"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "怎么",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "xing4 ge2",
+        "index" : 1,
+        "gloss" : "nature"
+      },
+      {
+        "pinyin" : "xing4 ge2",
+        "index" : 2,
+        "gloss" : "disposition"
+      },
+      {
+        "pinyin" : "xing4 ge2",
+        "index" : 3,
+        "gloss" : "temperament"
+      },
+      {
+        "pinyin" : "xing4 ge2",
+        "index" : 4,
+        "gloss" : "character"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "性格",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "zong3 liang4",
+        "index" : 1,
+        "gloss" : "total"
+      },
+      {
+        "pinyin" : "zong3 liang4",
+        "index" : 2,
+        "gloss" : "overall amount"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "总量",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "you1 you1",
+        "index" : 1,
+        "gloss" : "lasting for ages"
+      },
+      {
+        "pinyin" : "you1 you1",
+        "index" : 2,
+        "gloss" : "long drawn out"
+      },
+      {
+        "pinyin" : "you1 you1",
+        "index" : 3,
+        "gloss" : "remote in time or space"
+      },
+      {
+        "pinyin" : "you1 you1",
+        "index" : 4,
+        "gloss" : "unhurried"
+      },
+      {
+        "pinyin" : "you1 you1",
+        "index" : 5,
+        "gloss" : "a great number (of events)"
+      },
+      {
+        "pinyin" : "you1 you1",
+        "index" : 6,
+        "gloss" : "preposterous"
+      },
+      {
+        "pinyin" : "you1 you1",
+        "index" : 7,
+        "gloss" : "pensive"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "悠悠",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "qing2 yuan4",
+        "index" : 1,
+        "gloss" : "willingness"
+      },
+      {
+        "pinyin" : "qing2 yuan4",
+        "index" : 2,
+        "gloss" : "would rather (agree to X than Y)"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "情愿",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "qing2 jing3",
+        "index" : 1,
+        "gloss" : "scene; spectacle"
+      },
+      {
+        "pinyin" : "qing2 jing3",
+        "index" : 2,
+        "gloss" : "circumstances; situation"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "情景",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "qing2 xu4",
+        "index" : 1,
+        "gloss" : "mood"
+      },
+      {
+        "pinyin" : "qing2 xu4",
+        "index" : 2,
+        "gloss" : "state of mind"
+      },
+      {
+        "pinyin" : "qing2 xu4",
+        "index" : 3,
+        "gloss" : "moodiness"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "情绪",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "guan4 li4",
+        "index" : 1,
+        "gloss" : "convention"
+      },
+      {
+        "pinyin" : "guan4 li4",
+        "index" : 2,
+        "gloss" : "usual practice"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "惯例",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "xiang3 dao4",
+        "index" : 1,
+        "gloss" : "to think of"
+      },
+      {
+        "pinyin" : "xiang3 dao4",
+        "index" : 2,
+        "gloss" : "to call to mind"
+      },
+      {
+        "pinyin" : "xiang3 dao4",
+        "index" : 3,
+        "gloss" : "to anticipate"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "想到",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "yu2 kuai4",
+        "index" : 1,
+        "gloss" : "cheerful; happy; pleasant; delighted"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "愉快",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "fang2 jian1",
+        "index" : 1,
+        "gloss" : "room"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "房间",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "suo3 wei4",
+        "index" : 1,
+        "gloss" : "what is meant by the expression ...; what is referred to as ..."
+      },
+      {
+        "pinyin" : "suo3 wei4",
+        "index" : 2,
+        "gloss" : "(derog.) so-called"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "所谓",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "da3 liang5",
+        "index" : 1,
+        "gloss" : "to size sb up"
+      },
+      {
+        "pinyin" : "da3 liang5",
+        "index" : 2,
+        "gloss" : "to look sb up and down"
+      },
+      {
+        "pinyin" : "da3 liang5",
+        "index" : 3,
+        "gloss" : "to take the measure of"
+      },
+      {
+        "pinyin" : "da3 liang5",
+        "index" : 4,
+        "gloss" : "to suppose"
+      },
+      {
+        "pinyin" : "da3 liang5",
+        "index" : 5,
+        "gloss" : "to reckon"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "打量",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "che3 pi2",
+        "index" : 1,
+        "gloss" : "to wrangle"
+      },
+      {
+        "pinyin" : "che3 pi2",
+        "index" : 2,
+        "gloss" : "wrangling"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "扯皮",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "tou2 piao4",
+        "index" : 1,
+        "gloss" : "to vote; to cast a vote"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "投票",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "bao4 dao4",
+        "index" : 1,
+        "gloss" : "to report for duty"
+      },
+      {
+        "pinyin" : "bao4 dao4",
+        "index" : 2,
+        "gloss" : "to check in"
+      },
+      {
+        "pinyin" : "bao4 dao4",
+        "index" : 3,
+        "gloss" : "to register"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "报到",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "bao4 gao4",
+        "index" : 1,
+        "gloss" : "to inform"
+      },
+      {
+        "pinyin" : "bao4 gao4",
+        "index" : 2,
+        "gloss" : "to report"
+      },
+      {
+        "pinyin" : "bao4 gao4",
+        "index" : 3,
+        "gloss" : "to make known"
+      },
+      {
+        "pinyin" : "bao4 gao4",
+        "index" : 4,
+        "gloss" : "report"
+      },
+      {
+        "pinyin" : "bao4 gao4",
+        "index" : 5,
+        "gloss" : "speech"
+      },
+      {
+        "pinyin" : "bao4 gao4",
+        "index" : 6,
+        "gloss" : "talk"
+      },
+      {
+        "pinyin" : "bao4 gao4",
+        "index" : 7,
+        "gloss" : "lecture"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "报告",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "bao4 yuan4",
+        "index" : 1,
+        "gloss" : "to complain"
+      },
+      {
+        "pinyin" : "bao4 yuan4",
+        "index" : 2,
+        "gloss" : "to grumble"
+      },
+      {
+        "pinyin" : "bao4 yuan4",
+        "index" : 3,
+        "gloss" : "to harbor a complaint"
+      },
+      {
+        "pinyin" : "bao4 yuan4",
+        "index" : 4,
+        "gloss" : "to feel dissatisfied"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "抱怨",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "bao4 qian4",
+        "index" : 1,
+        "gloss" : "to be sorry"
+      },
+      {
+        "pinyin" : "bao4 qian4",
+        "index" : 2,
+        "gloss" : "to feel apologetic"
+      },
+      {
+        "pinyin" : "bao4 qian4",
+        "index" : 3,
+        "gloss" : "sorry!"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "抱歉",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "dan1 you1",
+        "index" : 1,
+        "gloss" : "to worry; to be concerned"
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "担忧",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+
+    ],
+    "kind" : "skipped",
+    "word" : "广西",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+
+    ],
+    "kind" : "skipped",
+    "word" : "开封府",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+
+    ],
+    "kind" : "skipped",
+    "word" : "徐铉",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+
+    ],
+    "kind" : "skipped",
+    "word" : "成都",
+    "rank" : 0
+  }
+]

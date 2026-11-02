@@ -507,6 +507,18 @@
   "孝|xiao4|mourning apparel" : [
     "家里有人去世，晚辈们都穿着孝。"
   ],
+  "安顿|an1 dun4|peaceful" : [
+    "孩子这几天睡得挺安顿。"
+  ],
+  "安顿|an1 dun4|to help settle down" : [
+    "他们先把老人安顿好，才去上班。"
+  ],
+  "完全|wan2 quan2|complete; whole" : [
+    "这份资料不完全，还缺两页。"
+  ],
+  "完全|wan2 quan2|totally; entirely" : [
+    "我完全同意你的看法。"
+  ],
   "实在|shi2 zai4|honest" : [
     "他这个人很实在，从不说空话。",
     "这家店的老板很实在，东西又好又便宜。"
@@ -534,6 +546,12 @@
   "小人|xiao3 ren2|nasty person" : [
     "他表面上对你好，背后却说你坏话，是个小人。",
     "宁可得罪君子，不可得罪小人。"
+  ],
+  "小区|xiao3 qu1|(telecommunications) cell" : [
+    "手机信号要在不同的小区之间切换。"
+  ],
+  "小区|xiao3 qu1|housing estate; community; neighborhood" : [
+    "我们小区晚上八点以后不让外卖进。"
   ],
   "小姐|xiao3 jie5|(slang) prostitute" : [
     "那家夜总会里有很多小姐，警察经常去查。",
@@ -589,6 +607,18 @@
   "师父|shi1 fu5|master" : [
     "他跟着师父学了十年木工。"
   ],
+  "帮助|bang1 zhu4|assistance; aid" : [
+    "谢谢你们的帮助。"
+  ],
+  "帮助|bang1 zhu4|to help; to assist" : [
+    "老师经常帮助成绩差的学生。"
+  ],
+  "常规|chang2 gui1|code of conduct; conventions; common practice" : [
+    "这不符合常规，得先向上面请示。"
+  ],
+  "常规|chang2 gui1|routine (medical procedure etc)" : [
+    "医生让我先去做个血常规。"
+  ],
   "幌子|huang3 zi5|(fig.) pretense" : [
     "他打着慈善的幌子到处骗钱。"
   ],
@@ -605,11 +635,47 @@
   "应试|ying4 shi4|to take an exam" : [
     "他明天要去应试，今晚在复习。"
   ],
+  "底层|di3 ceng2|ground floor; first floor" : [
+    "他家住在大楼的底层，夏天很潮。"
+  ],
+  "底层|di3 ceng2|lowest level; lowest rung (of society etc)" : [
+    "他从公司的底层一步步做到了经理。"
+  ],
+  "开放|kai1 fang4|to be open (to the public)" : [
+    "博物馆周一不开放。"
+  ],
+  "开放|kai1 fang4|to bloom" : [
+    "公园里的樱花全都开放了。"
+  ],
+  "开放|kai1 fang4|to open up (to the outside)" : [
+    "这座城市很早就对外开放了。"
+  ],
+  "开放|kai1 fang4|unconstrained in one's sexuality" : [
+    "他们在性方面比较开放。"
+  ],
   "开除|kai1 chu2|to expel (a member of an organization)" : [
     "他因为打架被学校开除了。"
   ],
   "开除|kai1 chu2|to fire (an employee)" : [
     "她偷了公司的客户资料，第二天就被开除了。"
+  ],
+  "当时|dang1 shi2|then; at that time" : [
+    "当时我还在上大学，什么都不懂。"
+  ],
+  "当时|dang4 shi2|immediately; right then" : [
+    "他听完当时就翻脸了。"
+  ],
+  "待遇|dai4 yu4|pay" : [
+    "那家公司待遇高，就是经常加班。"
+  ],
+  "待遇|dai4 yu4|treatment" : [
+    "服务员对我们的待遇很差，一直不理人。"
+  ],
+  "得罪|de2 zui4|excuse me! (formal)" : [
+    "得罪了，刚才是我没看见您。"
+  ],
+  "得罪|de2 zui5|to offend sb" : [
+    "他说话太直，得罪了不少人。"
   ],
   "心疼|xin1 teng2|to feel sorry for sb" : [
     "看你每天加班到半夜，妈妈真心疼你。",
@@ -621,6 +687,36 @@
   ],
   "心疼|xin1 teng2|to love dearly" : [
     "奶奶最心疼这个小孙子了。"
+  ],
+  "心虚|xin1 xu1|lacking in confidence" : [
+    "第一次上台，他心里有点心虚，怕讲不好。"
+  ],
+  "心虚|xin1 xu1|to have a guilty conscience" : [
+    "一问起那笔钱，他就心虚了，不敢看我。"
+  ],
+  "怎么|zen3 me5|how?" : [
+    "这个字怎么读？"
+  ],
+  "怎么|zen3 me5|why?" : [
+    "你怎么还没走？"
+  ],
+  "悠悠|you1 you1|lasting for ages" : [
+    "悠悠千年的历史，都写在这些石头上。"
+  ],
+  "悠悠|you1 you1|unhurried" : [
+    "他悠悠地走着，一点也不着急。"
+  ],
+  "情愿|qing2 yuan4|willingness" : [
+    "这事我是心甘情愿的，没人逼我。"
+  ],
+  "情愿|qing2 yuan4|would rather (agree to X than Y)" : [
+    "我情愿走路，也不坐他的车。"
+  ],
+  "情绪|qing2 xu4|mood" : [
+    "比赛输了，队员们的情绪都不太高。"
+  ],
+  "情绪|qing2 xu4|moodiness" : [
+    "他被批评以后，一直闹情绪。"
   ],
   "意思|yi4 si5|fun" : [
     "这部电影挺有意思的。"
@@ -644,12 +740,30 @@
     "孩子的户口不在本地，不能在这里上学。",
     "结婚以后，她把户口迁到了丈夫家。"
   ],
+  "所谓|suo3 wei4|(derog.) so-called" : [
+    "这就是你所谓的专家？"
+  ],
+  "所谓|suo3 wei4|what is meant by the expression ...; what is referred to as ..." : [
+    "所谓朋友，就是有难时能帮你的人。"
+  ],
+  "打量|da3 liang5|to size sb up" : [
+    "门卫上下打量了我一番。"
+  ],
+  "打量|da3 liang5|to suppose" : [
+    "你打量我不知道这件事？"
+  ],
   "折腾|zhe1 teng5|to repeat sth over and over again" : [
     "他这一年换了三份工作，真能折腾。",
     "别再折腾了，好好过日子吧。"
   ],
   "折腾|zhe1 teng5|to toss from side to side (e.g. sleeplessly)" : [
     "他昨晚翻来覆去地折腾，一夜没睡着。"
+  ],
+  "报告|bao4 gao4|report" : [
+    "这份调查报告明天要交。"
+  ],
+  "报告|bao4 gao4|speech" : [
+    "校长在大会上作了一个报告。"
   ],
   "摸鱼|mo1 yu2|(fig.) to loaf on the job; to be slack; to take it easy" : [
     "今天老板不在，大家都在摸鱼。",
