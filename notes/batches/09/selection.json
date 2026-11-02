@@ -1,0 +1,1436 @@
+[
+  {
+    "senses" : [
+      {
+        "pinyin" : "jing3 ti4",
+        "gloss" : "to be on the alert",
+        "index" : 1
+      },
+      {
+        "pinyin" : "jing3 ti4",
+        "gloss" : "vigilant",
+        "index" : 2
+      },
+      {
+        "pinyin" : "jing3 ti4",
+        "gloss" : "alert",
+        "index" : 3
+      },
+      {
+        "pinyin" : "jing3 ti4",
+        "gloss" : "on guard",
+        "index" : 4
+      },
+      {
+        "pinyin" : "jing3 ti4",
+        "gloss" : "to warn",
+        "index" : 5
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "警惕",
+    "rank" : 0
+  },
+  {
+    "senses" : [
+      {
+        "pinyin" : "ji4 hua4",
+        "gloss" : "plan",
+        "index" : 1
+      },
+      {
+        "pinyin" : "ji4 hua4",
+        "gloss" : "project",
+        "index" : 2
+      },
+      {
+        "pinyin" : "ji4 hua4",
+        "gloss" : "program",
+        "index" : 3
+      },
+      {
+        "pinyin" : "ji4 hua4",
+        "gloss" : "to plan",
+        "index" : 4
+      },
+      {
+        "pinyin" : "ji4 hua4",
+        "gloss" : "to map out",
+        "index" : 5
+      }
+    ],
+    "kind" : "frequent",
+    "word" : "计划",
+    "rank" : 0
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "to calculate; to compute",
+        "pinyin" : "ji4 suan4"
+      },
+      {
+        "index" : 2,
+        "gloss" : "to consider; to think over",
+        "pinyin" : "ji4 suan4"
+      },
+      {
+        "index" : 3,
+        "gloss" : "to plot; to scheme",
+        "pinyin" : "ji4 suan4"
+      }
+    ],
+    "word" : "计算"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "to place an order",
+        "pinyin" : "ding4 gou4"
+      },
+      {
+        "index" : 2,
+        "gloss" : "to subscribe",
+        "pinyin" : "ding4 gou4"
+      }
+    ],
+    "word" : "订购"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "to elect as",
+        "pinyin" : "ping2 wei2"
+      },
+      {
+        "index" : 2,
+        "gloss" : "to choose as",
+        "pinyin" : "ping2 wei2"
+      },
+      {
+        "index" : 3,
+        "gloss" : "to consider as",
+        "pinyin" : "ping2 wei2"
+      }
+    ],
+    "word" : "评为"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "to evaluate",
+        "pinyin" : "ping2 jia4"
+      },
+      {
+        "index" : 2,
+        "gloss" : "to assess",
+        "pinyin" : "ping2 jia4"
+      }
+    ],
+    "word" : "评价"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "rating",
+        "pinyin" : "ping2 ji2"
+      }
+    ],
+    "word" : "评级"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "to select on the basis of a vote or consensus",
+        "pinyin" : "ping2 xuan3"
+      }
+    ],
+    "word" : "评选"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "sincere",
+        "pinyin" : "cheng2 ken3"
+      },
+      {
+        "index" : 2,
+        "gloss" : "honest",
+        "pinyin" : "cheng2 ken3"
+      },
+      {
+        "index" : 3,
+        "gloss" : "cordial",
+        "pinyin" : "cheng2 ken3"
+      }
+    ],
+    "word" : "诚恳"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "to induce",
+        "pinyin" : "you4 fa1"
+      },
+      {
+        "index" : 2,
+        "gloss" : "to cause",
+        "pinyin" : "you4 fa1"
+      },
+      {
+        "index" : 3,
+        "gloss" : "to elicit",
+        "pinyin" : "you4 fa1"
+      },
+      {
+        "index" : 4,
+        "gloss" : "to trigger",
+        "pinyin" : "you4 fa1"
+      }
+    ],
+    "word" : "诱发"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "acceptable",
+        "pinyin" : "shuo1 de5 guo4 qu4"
+      },
+      {
+        "index" : 2,
+        "gloss" : "passable",
+        "pinyin" : "shuo1 de5 guo4 qu4"
+      },
+      {
+        "index" : 3,
+        "gloss" : "justifiable",
+        "pinyin" : "shuo1 de5 guo4 qu4"
+      },
+      {
+        "index" : 4,
+        "gloss" : "(of a course of action) to make sense",
+        "pinyin" : "shuo1 de5 guo4 qu4"
+      }
+    ],
+    "word" : "说得过去"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "to adjust; to revise; to reorganize",
+        "pinyin" : "tiao2 zheng3"
+      }
+    ],
+    "word" : "调整"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "to bear (an expense, a responsibility etc)",
+        "pinyin" : "fu4 dan1"
+      },
+      {
+        "index" : 2,
+        "gloss" : "burden",
+        "pinyin" : "fu4 dan1"
+      }
+    ],
+    "word" : "负担"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "to ruin",
+        "pinyin" : "bai4 huai4"
+      },
+      {
+        "index" : 2,
+        "gloss" : "to corrupt",
+        "pinyin" : "bai4 huai4"
+      },
+      {
+        "index" : 3,
+        "gloss" : "to undermine",
+        "pinyin" : "bai4 huai4"
+      }
+    ],
+    "word" : "败坏"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "truck",
+        "pinyin" : "huo4 che1"
+      },
+      {
+        "index" : 2,
+        "gloss" : "van",
+        "pinyin" : "huo4 che1"
+      },
+      {
+        "index" : 3,
+        "gloss" : "freight wagon",
+        "pinyin" : "huo4 che1"
+      }
+    ],
+    "word" : "货车"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "to covet",
+        "pinyin" : "tan1 tu2"
+      },
+      {
+        "index" : 2,
+        "gloss" : "to seek (riches, fame)",
+        "pinyin" : "tan1 tu2"
+      }
+    ],
+    "word" : "贪图"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "to purchase; to buy",
+        "pinyin" : "gou4 mai3"
+      }
+    ],
+    "word" : "购买"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "natural resource (such as water or minerals)",
+        "pinyin" : "zi1 yuan2"
+      },
+      {
+        "index" : 2,
+        "gloss" : "resource (such as manpower or tourism)",
+        "pinyin" : "zi1 yuan2"
+      }
+    ],
+    "word" : "资源"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "not enough time (to do sth)",
+        "pinyin" : "gan3 bu4 ji2"
+      },
+      {
+        "index" : 2,
+        "gloss" : "too late (to do sth)",
+        "pinyin" : "gan3 bu4 ji2"
+      }
+    ],
+    "word" : "赶不及"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "enough; sufficient",
+        "pinyin" : "zu2 gou4"
+      }
+    ],
+    "word" : "足够"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "to pass on (stories)",
+        "pinyin" : "zhuan3 shu4"
+      },
+      {
+        "index" : 2,
+        "gloss" : "to relate",
+        "pinyin" : "zhuan3 shu4"
+      }
+    ],
+    "word" : "转述"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "slight",
+        "pinyin" : "qing1 wei1"
+      },
+      {
+        "index" : 2,
+        "gloss" : "light",
+        "pinyin" : "qing1 wei1"
+      },
+      {
+        "index" : 3,
+        "gloss" : "trivial",
+        "pinyin" : "qing1 wei1"
+      },
+      {
+        "index" : 4,
+        "gloss" : "to a small extent",
+        "pinyin" : "qing1 wei1"
+      }
+    ],
+    "word" : "轻微"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "lightly; softly",
+        "pinyin" : "qing1 qing1"
+      }
+    ],
+    "word" : "轻轻"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "excessively; too",
+        "pinyin" : "guo4 yu2"
+      }
+    ],
+    "word" : "过于"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "to cross a barrier",
+        "pinyin" : "guo4 guan1"
+      },
+      {
+        "index" : 2,
+        "gloss" : "to get through (an ordeal)",
+        "pinyin" : "guo4 guan1"
+      },
+      {
+        "index" : 3,
+        "gloss" : "to pass (a test)",
+        "pinyin" : "guo4 guan1"
+      },
+      {
+        "index" : 4,
+        "gloss" : "to reach (a standard)",
+        "pinyin" : "guo4 guan1"
+      }
+    ],
+    "word" : "过关"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "(in the) past; former; previous",
+        "pinyin" : "guo4 qu4"
+      },
+      {
+        "index" : 2,
+        "gloss" : "to go over; to pass by",
+        "pinyin" : "guo4 qu4"
+      },
+      {
+        "index" : 3,
+        "gloss" : "(verb suffix)",
+        "pinyin" : "guo4 qu5"
+      }
+    ],
+    "word" : "过去"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "excessive",
+        "pinyin" : "guo4 du4"
+      },
+      {
+        "index" : 2,
+        "gloss" : "over-",
+        "pinyin" : "guo4 du4"
+      },
+      {
+        "index" : 3,
+        "gloss" : "excess",
+        "pinyin" : "guo4 du4"
+      },
+      {
+        "index" : 4,
+        "gloss" : "going too far",
+        "pinyin" : "guo4 du4"
+      },
+      {
+        "index" : 5,
+        "gloss" : "extravagant",
+        "pinyin" : "guo4 du4"
+      },
+      {
+        "index" : 6,
+        "gloss" : "intemperate",
+        "pinyin" : "guo4 du4"
+      },
+      {
+        "index" : 7,
+        "gloss" : "overdue",
+        "pinyin" : "guo4 du4"
+      }
+    ],
+    "word" : "过度"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "to come over",
+        "pinyin" : "guo4 lai2"
+      },
+      {
+        "index" : 2,
+        "gloss" : "to manage",
+        "pinyin" : "guo4 lai2"
+      },
+      {
+        "index" : 3,
+        "gloss" : "to handle",
+        "pinyin" : "guo4 lai2"
+      },
+      {
+        "index" : 4,
+        "gloss" : "to be able to take care of",
+        "pinyin" : "guo4 lai2"
+      }
+    ],
+    "word" : "过来"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "to be better off ...",
+        "pinyin" : "hai2 bu4 ru2"
+      },
+      {
+        "index" : 2,
+        "gloss" : "might as well ...",
+        "pinyin" : "hai2 bu4 ru2"
+      }
+    ],
+    "word" : "还不如"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "there still remain(s); there is (or are) still",
+        "pinyin" : "hai2 you3"
+      },
+      {
+        "index" : 2,
+        "gloss" : "in addition",
+        "pinyin" : "hai2 you3"
+      }
+    ],
+    "word" : "还有"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "so much",
+        "pinyin" : "zhe4 me5"
+      },
+      {
+        "index" : 2,
+        "gloss" : "this much",
+        "pinyin" : "zhe4 me5"
+      },
+      {
+        "index" : 3,
+        "gloss" : "how much?",
+        "pinyin" : "zhe4 me5"
+      },
+      {
+        "index" : 4,
+        "gloss" : "this way",
+        "pinyin" : "zhe4 me5"
+      },
+      {
+        "index" : 5,
+        "gloss" : "like this",
+        "pinyin" : "zhe4 me5"
+      }
+    ],
+    "word" : "这么"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "(coll.) now",
+        "pinyin" : "zhe4 hui4 r5"
+      },
+      {
+        "index" : 2,
+        "gloss" : "this moment",
+        "pinyin" : "zhe4 hui4 r5"
+      },
+      {
+        "index" : 3,
+        "gloss" : "also pr. [zhe4 hui3 r5]",
+        "pinyin" : "zhe4 hui4 r5"
+      }
+    ],
+    "word" : "这会儿"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "this way; like this; so",
+        "pinyin" : "zhe4 yang4"
+      },
+      {
+        "index" : 2,
+        "gloss" : "(before a noun) this kind of; such",
+        "pinyin" : "zhe4 yang4"
+      }
+    ],
+    "word" : "这样"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "here",
+        "pinyin" : "zhe4 li3"
+      }
+    ],
+    "word" : "这里"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "to enter a door",
+        "pinyin" : "jin4 men2"
+      },
+      {
+        "index" : 2,
+        "gloss" : "to go in",
+        "pinyin" : "jin4 men2"
+      },
+      {
+        "index" : 3,
+        "gloss" : "to learn the basics of a subject",
+        "pinyin" : "jin4 men2"
+      },
+      {
+        "index" : 4,
+        "gloss" : "to join one's husband's household upon marriage",
+        "pinyin" : "jin4 men2"
+      }
+    ],
+    "word" : "进门"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "to disobey",
+        "pinyin" : "wei2 kang4"
+      }
+    ],
+    "word" : "违抗"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "slow in one's reactions",
+        "pinyin" : "chi2 dun4"
+      },
+      {
+        "index" : 2,
+        "gloss" : "sluggish (in movement or thought)",
+        "pinyin" : "chi2 dun4"
+      }
+    ],
+    "word" : "迟钝"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "to degenerate",
+        "pinyin" : "tui4 hua4"
+      },
+      {
+        "index" : 2,
+        "gloss" : "atrophy",
+        "pinyin" : "tui4 hua4"
+      }
+    ],
+    "word" : "退化"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "to hand it (i.e. the aforementioned item) to (sb)",
+        "pinyin" : "di4 gei3"
+      }
+    ],
+    "word" : "递给"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "to use anywhere, anytime (card, ticket etc)",
+        "pinyin" : "tong1 yong4"
+      },
+      {
+        "index" : 2,
+        "gloss" : "to be used by everyone (language, textbook etc)",
+        "pinyin" : "tong1 yong4"
+      },
+      {
+        "index" : 3,
+        "gloss" : "(of two or more things) interchangeable",
+        "pinyin" : "tong1 yong4"
+      }
+    ],
+    "word" : "通用"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "distant; remote",
+        "pinyin" : "yao2 yuan3"
+      }
+    ],
+    "word" : "遥远"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "to avert",
+        "pinyin" : "bi4 mian3"
+      },
+      {
+        "index" : 2,
+        "gloss" : "to prevent",
+        "pinyin" : "bi4 mian3"
+      },
+      {
+        "index" : 3,
+        "gloss" : "to avoid",
+        "pinyin" : "bi4 mian3"
+      },
+      {
+        "index" : 4,
+        "gloss" : "to refrain from",
+        "pinyin" : "bi4 mian3"
+      }
+    ],
+    "word" : "避免"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "that one",
+        "pinyin" : "na4 ge5"
+      },
+      {
+        "index" : 2,
+        "gloss" : "that thing",
+        "pinyin" : "na4 ge5"
+      },
+      {
+        "index" : 3,
+        "gloss" : "that (as opposed to this)",
+        "pinyin" : "na4 ge5"
+      },
+      {
+        "index" : 4,
+        "gloss" : "(used before a verb or adjective for emphasis)",
+        "pinyin" : "na4 ge5"
+      },
+      {
+        "index" : 5,
+        "gloss" : "(used to humorously or indirectly refer to sth embarrassing, funny etc, or when one can't think of the right word)",
+        "pinyin" : "na4 ge5"
+      },
+      {
+        "index" : 6,
+        "gloss" : "(used in speech as a filler, similar to \"umm\", \"you know\" etc)",
+        "pinyin" : "na4 ge5"
+      },
+      {
+        "index" : 7,
+        "gloss" : "(euph.) menstruation",
+        "pinyin" : "na4 ge5"
+      },
+      {
+        "index" : 8,
+        "gloss" : "sex",
+        "pinyin" : "na4 ge5"
+      },
+      {
+        "index" : 9,
+        "gloss" : "also pr. [nei4 ge5]",
+        "pinyin" : "na4 ge5"
+      }
+    ],
+    "word" : "那个"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "like that; in that way; to that extent",
+        "pinyin" : "na4 me5"
+      },
+      {
+        "index" : 2,
+        "gloss" : "(before a number) ... or so; about ...",
+        "pinyin" : "na4 me5"
+      },
+      {
+        "index" : 3,
+        "gloss" : "then; in that case",
+        "pinyin" : "na4 me5"
+      }
+    ],
+    "word" : "那么"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "neighboring",
+        "pinyin" : "lin2 jin4"
+      },
+      {
+        "index" : 2,
+        "gloss" : "adjacent",
+        "pinyin" : "lin2 jin4"
+      },
+      {
+        "index" : 3,
+        "gloss" : "near",
+        "pinyin" : "lin2 jin4"
+      },
+      {
+        "index" : 4,
+        "gloss" : "vicinity",
+        "pinyin" : "lin2 jin4"
+      }
+    ],
+    "word" : "邻近"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "to adopt or carry out (measures, policies, course of action)",
+        "pinyin" : "cai3 qu3"
+      },
+      {
+        "index" : 2,
+        "gloss" : "to take",
+        "pinyin" : "cai3 qu3"
+      }
+    ],
+    "word" : "采取"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "Alzheimer's disease",
+        "pinyin" : "a1 er3 ci2 hai3 mo4 bing4"
+      }
+    ],
+    "word" : "阿尔茨海默病"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "nearby; neighboring",
+        "pinyin" : "fu4 jin4"
+      },
+      {
+        "index" : 2,
+        "gloss" : "(in the) vicinity (of); neighborhood",
+        "pinyin" : "fu4 jin4"
+      }
+    ],
+    "word" : "附近"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "in succession",
+        "pinyin" : "lu4 lu4 xu4 xu4"
+      },
+      {
+        "index" : 2,
+        "gloss" : "one after another",
+        "pinyin" : "lu4 lu4 xu4 xu4"
+      },
+      {
+        "index" : 3,
+        "gloss" : "continuously",
+        "pinyin" : "lu4 lu4 xu4 xu4"
+      }
+    ],
+    "word" : "陆陆续续"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "immediately",
+        "pinyin" : "sui2 ji2"
+      },
+      {
+        "index" : 2,
+        "gloss" : "presently",
+        "pinyin" : "sui2 ji2"
+      },
+      {
+        "index" : 3,
+        "gloss" : "following which",
+        "pinyin" : "sui2 ji2"
+      }
+    ],
+    "word" : "随即"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "afterward; later; subsequently; following that",
+        "pinyin" : "sui2 hou4"
+      }
+    ],
+    "word" : "随后"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "amiable",
+        "pinyin" : "sui2 he2"
+      },
+      {
+        "index" : 2,
+        "gloss" : "easygoing",
+        "pinyin" : "sui2 he2"
+      }
+    ],
+    "word" : "随和"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "according to the situation",
+        "pinyin" : "sui2 ji1"
+      },
+      {
+        "index" : 2,
+        "gloss" : "pragmatic",
+        "pinyin" : "sui2 ji1"
+      },
+      {
+        "index" : 3,
+        "gloss" : "random",
+        "pinyin" : "sui2 ji1"
+      }
+    ],
+    "word" : "随机"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "faint",
+        "pinyin" : "yin3 yin3"
+      },
+      {
+        "index" : 2,
+        "gloss" : "indistinct",
+        "pinyin" : "yin3 yin3"
+      }
+    ],
+    "word" : "隐隐"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "next door",
+        "pinyin" : "ge2 bi4"
+      },
+      {
+        "index" : 2,
+        "gloss" : "neighbor",
+        "pinyin" : "ge2 bi4"
+      }
+    ],
+    "word" : "隔壁"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "soundproofing",
+        "pinyin" : "ge2 yin1"
+      }
+    ],
+    "word" : "隔音"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "barrier",
+        "pinyin" : "zhang4 ai4"
+      },
+      {
+        "index" : 2,
+        "gloss" : "obstruction",
+        "pinyin" : "zhang4 ai4"
+      },
+      {
+        "index" : 3,
+        "gloss" : "hindrance",
+        "pinyin" : "zhang4 ai4"
+      },
+      {
+        "index" : 4,
+        "gloss" : "impediment",
+        "pinyin" : "zhang4 ai4"
+      },
+      {
+        "index" : 5,
+        "gloss" : "obstacle",
+        "pinyin" : "zhang4 ai4"
+      }
+    ],
+    "word" : "障碍"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "(coll.) hard to please; high-maintenance",
+        "pinyin" : "nan2 ci4 hou5"
+      }
+    ],
+    "word" : "难伺候"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "degree of difficulty",
+        "pinyin" : "nan2 du4"
+      }
+    ],
+    "word" : "难度"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "to feel sad",
+        "pinyin" : "nan2 guo4"
+      },
+      {
+        "index" : 2,
+        "gloss" : "to feel unwell",
+        "pinyin" : "nan2 guo4"
+      },
+      {
+        "index" : 3,
+        "gloss" : "(of life) to be difficult",
+        "pinyin" : "nan2 guo4"
+      }
+    ],
+    "word" : "难过"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "to be interviewed (as a candidate)",
+        "pinyin" : "mian4 shi4"
+      },
+      {
+        "index" : 2,
+        "gloss" : "interview",
+        "pinyin" : "mian4 shi4"
+      }
+    ],
+    "word" : "面试"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "customer; client",
+        "pinyin" : "gu4 ke4"
+      }
+    ],
+    "word" : "顾客"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "to expect",
+        "pinyin" : "yu4 qi1"
+      },
+      {
+        "index" : 2,
+        "gloss" : "to anticipate",
+        "pinyin" : "yu4 qi1"
+      }
+    ],
+    "word" : "预期"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "to prevent",
+        "pinyin" : "yu4 fang2"
+      },
+      {
+        "index" : 2,
+        "gloss" : "to take precautions against",
+        "pinyin" : "yu4 fang2"
+      },
+      {
+        "index" : 3,
+        "gloss" : "to protect",
+        "pinyin" : "yu4 fang2"
+      },
+      {
+        "index" : 4,
+        "gloss" : "to guard against",
+        "pinyin" : "yu4 fang2"
+      },
+      {
+        "index" : 5,
+        "gloss" : "precautionary",
+        "pinyin" : "yu4 fang2"
+      },
+      {
+        "index" : 6,
+        "gloss" : "prophylactic",
+        "pinyin" : "yu4 fang2"
+      }
+    ],
+    "word" : "预防"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "frequently",
+        "pinyin" : "pin2 fan2"
+      },
+      {
+        "index" : 2,
+        "gloss" : "often",
+        "pinyin" : "pin2 fan2"
+      }
+    ],
+    "word" : "频繁"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "extra",
+        "pinyin" : "e2 wai4"
+      },
+      {
+        "index" : 2,
+        "gloss" : "added",
+        "pinyin" : "e2 wai4"
+      },
+      {
+        "index" : 3,
+        "gloss" : "additional",
+        "pinyin" : "e2 wai4"
+      }
+    ],
+    "word" : "额外"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "risk; hazard",
+        "pinyin" : "feng1 xian3"
+      }
+    ],
+    "word" : "风险"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "diaphysis (long segment of a bone)",
+        "pinyin" : "gu3 gan4"
+      },
+      {
+        "index" : 2,
+        "gloss" : "fig. backbone",
+        "pinyin" : "gu3 gan4"
+      }
+    ],
+    "word" : "骨干"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "greater than",
+        "pinyin" : "gao1 yu2"
+      },
+      {
+        "index" : 2,
+        "gloss" : "to exceed",
+        "pinyin" : "gao1 yu2"
+      }
+    ],
+    "word" : "高于"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "happy",
+        "pinyin" : "gao1 xing4"
+      },
+      {
+        "index" : 2,
+        "gloss" : "glad",
+        "pinyin" : "gao1 xing4"
+      },
+      {
+        "index" : 3,
+        "gloss" : "willing (to do sth)",
+        "pinyin" : "gao1 xing4"
+      },
+      {
+        "index" : 4,
+        "gloss" : "in a cheerful mood",
+        "pinyin" : "gao1 xing4"
+      }
+    ],
+    "word" : "高兴"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "high-risk",
+        "pinyin" : "gao1 wei1"
+      }
+    ],
+    "word" : "高危"
+  },
+  {
+    "rank" : 0,
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "index" : 1,
+        "gloss" : "peak",
+        "pinyin" : "gao1 feng1"
+      },
+      {
+        "index" : 2,
+        "gloss" : "summit",
+        "pinyin" : "gao1 feng1"
+      },
+      {
+        "index" : 3,
+        "gloss" : "height",
+        "pinyin" : "gao1 feng1"
+      }
+    ],
+    "word" : "高峰"
+  }
+]
