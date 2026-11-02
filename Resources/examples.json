@@ -23,6 +23,18 @@
   "一直|yi1 zhi2|straight (in a straight line)" : [
     "从这儿一直往前走，看到银行就到了。"
   ],
+  "一线|yi1 xian4|a ray of; a glimmer of (hope, light etc)" : [
+    "医生的话让她又看到了一线希望。"
+  ],
+  "一线|yi1 xian4|front line; front-line position" : [
+    "他在一线干了二十年，什么情况都见过。"
+  ],
+  "上来|shang4 lai2|(verb complement indicating success)" : [
+    "老师问的问题，他一个都答不上来。"
+  ],
+  "上来|shang4 lai2|to come up" : [
+    "你在楼下等我，还是上来坐坐？"
+  ],
   "上火|shang4 huo3|to get angry" : [
     "别为这点小事上火，不值得。"
   ],
@@ -43,6 +55,24 @@
   ],
   "下海|xia4 hai3|to enter the sea (to swim etc)" : [
     "天气太热了，我们下海游泳吧。"
+  ],
+  "不会|bu4 hui4|not having learned to do sth" : [
+    "我不会开车，只能坐地铁。"
+  ],
+  "不会|bu4 hui4|will not (act, happen etc)" : [
+    "放心，他不会告诉别人的。"
+  ],
+  "不平|bu4 ping2|indignant" : [
+    "听说这件事，大家都愤愤不平。"
+  ],
+  "不平|bu4 ping2|uneven" : [
+    "这条路坑坑洼洼，很不平。"
+  ],
+  "不是|bu4 shi4|not" : [
+    "这不是我的书，是他的。"
+  ],
+  "不是|bu4 shi5|fault; blame" : [
+    "这件事是我的不是，我向你道歉。"
   ],
   "不过|bu4 guo4|however" : [
     "这件衣服很好看，不过有点贵。"
@@ -92,6 +122,18 @@
     "他为了朋友不顾生命危险，真是有情有义。",
     "见义勇为，帮助被抢劫的人。"
   ],
+  "义务|yi4 wu4|duty; obligation (CL:項|项[xiang4])" : [
+    "赡养父母是子女应尽的义务。"
+  ],
+  "义务|yi4 wu4|volunteer (work etc)" : [
+    "周末我们去社区做义务讲解员。"
+  ],
+  "争取|zheng1 qu3|to strive for" : [
+    "这份报告我争取周五前写完。"
+  ],
+  "争取|zheng1 qu3|to win over" : [
+    "他到处做工作，想把这些客户争取过来。"
+  ],
   "人情|ren2 qing2|favor; a good turn" : [
     "他上次帮了我大忙，这个人情我一定要还。",
     "欠了别人的人情，心里总觉得不安。",
@@ -115,6 +157,24 @@
   ],
   "仁|ren2|kernel" : [
     "把核桃敲开，取出里面的核桃仁。"
+  ],
+  "介绍|jie4 shao4|introduction" : [
+    "产品介绍放在说明书的第一页。"
+  ],
+  "介绍|jie4 shao4|to introduce (sb to sb)" : [
+    "我来给你们介绍一下，这是我同学。"
+  ],
+  "仔细|zi3 xi4|careful; attentive; cautious" : [
+    "她做事很仔细，从没出过差错。"
+  ],
+  "仔细|zi3 xi4|to be careful; to look out" : [
+    "路上滑，你仔细点儿，别摔着。"
+  ],
+  "价值|jia4 zhi2|(ethical, cultural etc) values" : [
+    "两代人的价值观很不一样。"
+  ],
+  "价值|jia4 zhi2|value; worth" : [
+    "这幅画的价值超过一百万。"
   ],
   "估计|gu1 ji4|(coll.) to reckon; to think (that ...)" : [
     "都这么晚了，他估计不来了。"
@@ -142,6 +202,18 @@
   "作|zuo4|to write; to compose" : [
     "这首诗是李白作的。"
   ],
+  "便宜|bian4 yi2|convenient" : [
+    "将军在外可以便宜行事，不必事事请示。"
+  ],
+  "便宜|pian2 yi5|a petty advantage" : [
+    "他总想占别人的便宜，大家都躲着他。"
+  ],
+  "便宜|pian2 yi5|cheap; inexpensive" : [
+    "这家超市的水果又新鲜又便宜。"
+  ],
+  "便宜|pian2 yi5|to let sb off lightly" : [
+    "这次算便宜你了，下次可没这么好说话。"
+  ],
   "修行|xiu1 xing2|to devote oneself to perfecting one's art or craft" : [
     "他在厨房修行了二十年，才成了名厨。"
   ],
@@ -159,6 +231,18 @@
   "先生|xian1 sheng5|teacher" : [
     "鲁迅先生是中国现代文学的奠基人。",
     "我们都很敬重这位教了一辈子书的老先生。"
+  ],
+  "八卦|ba1 gua4|gossip" : [
+    "办公室里总有人爱聊同事的八卦。"
+  ],
+  "八卦|ba1 gua4|the eight divinatory trigrams of the Book of Changes 易經|易经[Yi4 jing1]" : [
+    "道观的门上画着一幅八卦图。"
+  ],
+  "公车|gong1 che1|bus" : [
+    "我每天坐公车上班，要四十分钟。"
+  ],
+  "公车|gong1 che1|car belonging to an organization and used by its members (government car, police car, company car etc)" : [
+    "领导的公车不能拿去接孩子。"
   ],
   "关系|guan1 xi5|guanxi (personal connections)" : [
     "他没什么本事，全靠他爸的关系才进了这家公司。",
