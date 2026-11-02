@@ -1,0 +1,100 @@
+# set	sentence	word	acceptable meanings (substring of the dictionary sense, | separated)
+D	在S公司试工是无薪的。	薪	salary
+H	薪的，要试三天，说是不用干活儿。	薪	salary
+D	他对于公车私用的福利很满意。	私	private
+H	这是他的私人问题，公私要分开，不能私用。	私	private
+D	下午则相对清闲一些。	则	contrast
+H	效率自然就上去了。	自然	naturally
+D	在一个地方待久了就想换工作。	待	to stay
+H	在一个地方待久了就想换工作。	地方	place
+D	快递员每天晚上都要上夜班。	要	need to|will
+H	只是跟着师父看看学学。	学	to learn
+D	我是学生。	是	to be
+H	他是我的老师。	是	to be
+D	今天是星期一。	是	to be
+H	这是我的书。	是	to be
+H	是，长官，我马上去！	是	very well
+D	他确实是来过这里。	是	emphatic
+H	试工是无薪的。	是	emphatic|to be
+D	我会说中文。	会	can
+H	明天会下雨。	会	likely
+D	长辈会给小孩发红包。	会	likely
+H	这个会开了三个小时。	会	meeting
+H	我弟弟今年上大学。	上	attend
+D	桌子上有一本书。	上	on; above|above
+H	他在床上睡觉。	上	on; above|above
+D	那个时候我还小。	时候	time|moment
+H	过年的时候大家都回家。	时候	time|moment
+D	我要一杯咖啡。	要	to want
+H	明天要下雨了。	要	will
+D	你要小心一点。	要	need to
+H	要下雨就别去了。	要	if
+D	我吃完饭就走。	就	as soon as
+H	如果下雨，我就不去了。	就	in that case
+D	就他一个人来了。	就	only|merely
+H	他昨天才到。	才	then and only then|just now
+D	他才三岁。	才	only
+H	这孩子很有才。	才	ability
+D	我才不去呢！	才	really
+H	我给你发邮件。	发	to send out
+D	公司每月十号发工资。	发	to issue|to send out
+H	他最近做生意发了。	发	make a bundle
+D	他说明天来。	说	to speak
+H	妈妈说了我一顿。	说	to scold
+H	我看他不会来了。	看	to consider|to feel
+D	周末我去看朋友。	看	to visit
+H	你尝尝看。	看	give it a try
+D	你说得对。	对	right
+H	他对我很好。	对	towards|to treat
+D	我对这个问题没有意见。	对	concerning
+H	他们是一对夫妻。	对	couple
+D	这本书很好。	好	good
+H	这里好漂亮啊！	好	so
+D	这个问题好回答。	好	easy to
+H	作业写好了。	好	completion
+D	他还在睡觉。	还	still
+H	我明天去还书。	还	to return|to pay back
+D	这个菜还可以。	还	fairly|passably
+H	下个月我去北京。	下	next
+D	他开了一张发票。	开	to write out
+H	水开了，可以泡茶了。	开	to boil
+D	门开了。	开	to open
+H	现在三点了。	点	o'clock
+D	我点了一杯咖啡。	点	to order
+H	多吃点东西吧。	点	small amount
+D	我家很大。	家	home|family
+H	这家餐厅很好吃。	家	classifier
+D	我去过北京。	过	experienced
+H	过春节的时候很热闹。	过	to celebrate
+H	他打了我一下。	打	to hit
+D	打今天起我不抽烟了。	打	from
+H	买一打鸡蛋。	打	dozen
+D	大家都来了。	都	all
+H	都十点了，快起床。	都	already
+D	他连这个都不懂。	都	even
+H	那个人是谁？	那个	that (as opposed
+D	这么大的房子很贵。	这么	so much|this much
+H	你不能这么做。	这么	this way|like this
+D	他在房间里看书。	里	inside|interior
+H	这里到车站有十里路。	里	li, ancient
+D	我回他一个电话。	回	to reply
+H	这件事我听了三回。	回	occurrences
+D	奶奶上个月走了。	走	to die
+H	你先走吧，我等一下。	走	to leave|to go
+D	我很想你。	想	to miss
+H	我想去北京。	想	to desire
+D	我想他是对的。	想	to think (that)
+H	他用筷子吃饭。	用	with|to use
+D	把门关上。	把	put the object
+H	买了一把刀。	把	things with handles
+D	他跑得很快。	得	structural
+H	我得走了。	得	to have to
+D	他得了感冒。	得	to catch
+H	他这次得了第一名。	得	to obtain|to gain
+D	我吃了饭。	了	completed
+H	下雨了。	了	change of state
+H	我的书在这里。	的	possessive
+D	他慢慢地走过来。	地	structural
+H	给我一本书。	给	to give
+D	他笑着说。	着	aspect
+H	他写的字很好看。	的	nominal|attribute

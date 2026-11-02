@@ -61,19 +61,26 @@ final class CEDict {
     /// Senses worth choosing between, common readings first. Cross-references
     /// ("variant of", "used in", classifiers, surnames) are dropped; proper
     /// nouns go last.
-    /// A single character standing alone can't take a "(bound form)" sense:
-    /// those only occur inside longer words (行 "row" lives in 行列, not 行不行).
+    /// Within that, senses that are rarely what's meant in running text go after the rest.
+    /// That includes a single character's "(bound form)" senses (行 "row" lives in 行列, not
+    /// 行不行), which still have to be on offer: words the dictionary lacks get split, and
+    /// 薪 in 无薪 is "salary", a bound form, not the free-standing "firewood".
     func senses(for word: String, limit: Int = 14) -> [Sense] {
         let entries = entries(for: word)
         let ordered = entries.filter { !$0.isProperNoun } + entries.filter { $0.isProperNoun }
         let standalone = word.count == 1
         var out: [Sense] = []
         for entry in ordered {
-            for def in entry.definitions where !CEDict.isCrossReference(def) && !(standalone && def.hasPrefix("(bound form)")) {
+            for def in entry.definitions where !CEDict.isCrossReference(def) {
                 let sense = Sense(pinyin: entry.pinyin, gloss: def)
                 if !out.contains(sense) { out.append(sense) }
             }
         }
+        func rank(_ s: Sense) -> Int {
+            if CEDict.rareMarkers.contains(where: { s.gloss.hasPrefix($0) }) { return 2 }
+            return standalone && s.gloss.hasPrefix("(bound form)") ? 1 : 0
+        }
+        out = [0, 1, 2].flatMap { r in out.filter { rank($0) == r } }
         if out.isEmpty, let first = ordered.first {
             // Only cross-references exist. Show what they point to (干活儿 → 干活), under this
             // word's own reading; else show them rather than nothing.
@@ -84,6 +91,8 @@ final class CEDict {
         }
         return Array(out.prefix(limit))
     }
+
+    private static let rareMarkers = ["(literary)", "(old)", "(archaic)", "(classical)", "(dialect)", "(Internet slang)", "(Tw)"]
 
     static func isCrossReference(_ def: String) -> Bool {
         let lower = def.lowercased()

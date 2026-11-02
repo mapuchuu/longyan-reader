@@ -21,6 +21,8 @@ It's a sibling of [Longyan](https://github.com/mapuchuu/longyan), the Chrome ext
 
      The work starts as soon as the selection button appears, while you move to click it, so it's often finished by the time the card opens. The local model picks all the words in one streamed request (Ollama answers one request at a time, so word-by-word calls queue up): the translation starts in about 0.15 s and a sentence's words are done in about 1–2 s. With Apple's model the words are picked separately, a few seconds per sentence, and still shown in reading order.
 
+     With Apple's model, words whose meaning is settled without it skip the model call: grammar words by position (了 at the end of a sentence, 地, 得 after a verb), then a sense the translation agrees with, except for words with notes. `notes/phrase-eval.tsv` holds labelled sentences, half for tuning (D) and half held out (H): `--eval-phrase notes/phrase-eval.tsv H` scores the current sense picker.
+
      Words are split by the system tokenizer plus dictionary rules: neighbouring single characters that make a dictionary word are joined (slang the tokenizer doesn't know: 躺平, 摸鱼, 破防, 内卷), and a degree adverb is split off a word it was glued to (真心|疼 → 真|心疼).
 
 If the model is unavailable or rejects a prompt, the cards still show the dictionary senses in their usual order.

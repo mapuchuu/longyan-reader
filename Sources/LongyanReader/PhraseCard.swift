@@ -87,7 +87,7 @@ final class PhraseState: ObservableObject {
 
     /// Chooses the in-context sense of every ambiguous word at once, so the card opens with
     /// each row already resolved instead of changing when the reader opens it.
-    static func resolve(_ tokens: [PhraseToken], in passage: [Character], dict: CEDict,
+    static func resolve(_ tokens: [PhraseToken], in passage: [Character], dict: CEDict, translation: String? = nil,
                         onPick: @MainActor (Int, SenseChoice) -> Void = { _, _ in }) async -> [Int: SenseChoice] {
         let words = ambiguous(tokens, dict: dict)
         guard SenseChooser.isAvailable, let lo = words.first?.range.lowerBound, let hi = words.last?.range.upperBound else { return [:] }
@@ -116,6 +116,18 @@ final class PhraseState: ObservableObject {
         return await withTaskGroup(of: (Int, SenseChoice?).self) { group in
             for t in words {
                 let list = dict.senses(for: t.text)
+                // This model misreads grammar words (地 "-ly", 我吃了饭 "to finish"), and their
+                // position usually settles them. Next, a sense the translation agrees with beats
+                // its guess (他才三岁 "only three years old" settles 才). Neither needs a model
+                // call. Words with notes stay with the model: "passed away" isn't 走 "to go away".
+                let settled = grammarSense(t, tokens: tokens, passage: passage, senses: list)
+                    ?? (list.contains { NotesStore.hasExactNote(t.text, $0) } ? nil
+                        : translation.flatMap { SenseChooser.senseMatching(translation: $0, senses: list, word: t.text) })
+                if let settled {
+                    let choice = SenseChoice(senseNumber: settled + 1, meaningHere: headlineGloss(list[settled]))
+                    group.addTask { (t.id, choice) }
+                    continue
+                }
                 group.addTask {
                     (t.id, try? await SenseChooser.choose(for: Segmenter.context(for: t.range, in: passage), senses: list))
                 }
@@ -130,6 +142,24 @@ final class PhraseState: ObservableObject {
                 }
             }
             return out
+        }
+    }
+
+    /// The sense of a grammar word, when its position gives it away.
+    static func grammarSense(_ t: PhraseToken, tokens: [PhraseToken], passage: [Character], senses: [Sense]) -> Int? {
+        func index(_ prefix: String) -> Int? { senses.firstIndex { $0.gloss.hasPrefix(prefix) } }
+        let i = tokens.firstIndex { $0.id == t.id } ?? 0
+        let previous = i > 0 && tokens[i - 1].range.upperBound == t.range.lowerBound ? tokens[i - 1].text : nil
+        // After a pronoun these are verbs: 他得了感冒, 我得走了, 我过春节.
+        let afterVerb = previous != nil && !["我", "你", "他", "她", "它", "我们", "你们", "他们", "她们"].contains(previous!)
+        let atEnd = t.range.upperBound >= passage.count || !(isCJK(passage[t.range.upperBound]) || passage[t.range.upperBound].isLetter)
+        switch t.text {
+        case "地": return index("structural particle")
+        case "得" where afterVerb && !atEnd && passage[t.range.upperBound] != "了": return index("structural particle")
+        case "过" where afterVerb: return index("(experienced action marker)")
+        case "着" where afterVerb: return index("aspect particle")
+        case "了": return index(atEnd ? "(modal particle indicating change" : "(completed action marker)")
+        default: return nil
         }
     }
 
@@ -402,7 +432,7 @@ final class PhrasePrep {
         translationMs = Int(Date().timeIntervalSince(started) * 1000)
         onChange()
         guard !Task.isCancelled else { return }
-        _ = await PhraseState.resolve(tokens, in: selection.passage, dict: dict) { [weak self] id, choice in
+        _ = await PhraseState.resolve(tokens, in: selection.passage, dict: dict, translation: translation) { [weak self] id, choice in
             self?.picks[id] = choice
             self?.onChange()
         }

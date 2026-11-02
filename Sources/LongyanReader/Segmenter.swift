@@ -155,9 +155,9 @@ extension Segmenter {
     /// Degree adverbs that the tokenizer (and longest match) glue onto the next character:
     /// 真心|疼 should be 真|心疼. (Broader sets broke 别人|家 and 好几|天.)
     static let leadingAdverbs: Set<Character> = ["真", "很", "太", "最", "更", "挺", "超"]
-    /// Characters that don't start a rejoined pair (我去, 你好, 的话, 得很 are wrong in running text)
+    /// Characters that don't start a rejoined pair (我去, 你好, 的话, 得很, 把门 are wrong in running text)
     /// or end one (家的, 中的, 这不).
-    private static let noJoinFirst: Set<Character> = leadingAdverbs.union(["的", "得", "地", "了", "我", "你", "他", "她", "它"])
+    private static let noJoinFirst: Set<Character> = leadingAdverbs.union(["的", "得", "地", "了", "我", "你", "他", "她", "它", "把", "被"])
     private static let noJoinSecond: Set<Character> = ["的", "得", "地", "了", "不"]
 
     /// AB|C → A|BC when A is an adverb, BC is a dictionary word and C on its own is not

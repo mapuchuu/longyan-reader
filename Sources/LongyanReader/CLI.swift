@@ -42,6 +42,34 @@ enum CLI {
                 let passage = Array(String(line))
                 print(Segmenter.phrase(0..<passage.count, in: passage, dict: dict).map(\.text).joined(separator: " "))
             }
+        case "--eval-phrase" where args.count >= 3:
+            // Word senses as a phrase card picks them, on labelled sentences.
+            // --eval-phrase notes/phrase-eval.tsv [D|H]; uses the current sense picker.
+            let dict = try CEDict.load()
+            var right = 0, total = 0, unoffered = 0, unsplit = 0
+            let started = Date()
+            for line in try String(contentsOfFile: args[2], encoding: .utf8).split(separator: "\n") where !line.hasPrefix("#") {
+                let f = line.split(separator: "\t").map(String.init)
+                guard f.count == 4, args.count < 4 || f[0] == args[3] else { continue }
+                let passage = Array(f[1]), wants = f[3].lowercased().split(separator: "|").map(String.init)
+                let tokens = Segmenter.phrase(0..<passage.count, in: passage, dict: dict)
+                total += 1
+                guard let token = tokens.first(where: { $0.text == f[2] }) else {
+                    unsplit += 1
+                    print("SPLIT \(f[1]) [\(f[2])]: \(tokens.map(\.text).joined(separator: " "))")
+                    continue
+                }
+                let senses = dict.senses(for: token.text)
+                let matches = { (s: Sense) in wants.contains { s.gloss.lowercased().contains($0) } }
+                if !senses.contains(where: matches) { unoffered += 1 }
+                let translation = await LocalModel.isAvailable() ? nil : try? await Translator.translate(f[1])
+                let picks = await PhraseState.resolve(tokens, in: passage, dict: dict, translation: translation)
+                let n = senses.count == 1 ? 1 : (picks[token.id]?.senseNumber ?? 1)
+                let got = senses[safe: n - 1]
+                if let got, matches(got) { right += 1 }
+                else { print("WRONG \(f[1]) [\(f[2])] want \(f[3]), got: \(got?.gloss.prefix(60) ?? "none")\(senses.contains(where: matches) ? "" : "  (right sense not offered)")") }
+            }
+            print("right \(right)/\(total), right sense not offered \(unoffered), word split differently \(unsplit), \(Int(Date().timeIntervalSince(started))) s")
         case "--gloss-audit" where args.count >= 3:
             // Every sense of every word in a file of sentences, with the short meaning a card
             // would show; flags the ones that still read like a dictionary. --gloss-audit f [all]
