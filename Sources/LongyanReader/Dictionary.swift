@@ -12,6 +12,19 @@ struct DictEntry {
 }
 
 /// A single meaning offered to the reader (and to the sense chooser).
+extension Array where Element == Sense {
+    /// Which meanings a list shows before "Show more": the chosen one, the first of each
+    /// reading (干 is both "dry" and "to do"), then the rest in order. In dictionary order.
+    func preview(chosen: Int?, limit: Int = 5) -> [Int] {
+        var picked: [Int] = []
+        if let chosen, indices.contains(chosen) { picked.append(chosen) }
+        var readings = Set(picked.map { self[$0].pinyin })
+        for i in indices where picked.count < limit && readings.insert(self[i].pinyin).inserted { picked.append(i) }
+        for i in indices where picked.count < limit && !picked.contains(i) { picked.append(i) }
+        return picked.sorted()
+    }
+}
+
 struct Sense: Equatable {
     let pinyin: String          // numbered
     let gloss: String
@@ -65,7 +78,7 @@ final class CEDict {
     /// That includes a single character's "(bound form)" senses (行 "row" lives in 行列, not
     /// 行不行), which still have to be on offer: words the dictionary lacks get split, and
     /// 薪 in 无薪 is "salary", a bound form, not the free-standing "firewood".
-    func senses(for word: String, limit: Int = 14) -> [Sense] {
+    func senses(for word: String, limit: Int = .max) -> [Sense] {
         let entries = entries(for: word)
         let ordered = entries.filter { !$0.isProperNoun } + entries.filter { $0.isProperNoun }
         let standalone = word.count == 1
@@ -91,6 +104,9 @@ final class CEDict {
         }
         return Array(out.prefix(limit))
     }
+
+    /// How many senses a model chooses between, to keep its prompt short. Common senses sort first.
+    static let modelSenseLimit = 14
 
     private static let rareMarkers = ["(literary)", "(old)", "(archaic)", "(classical)", "(dialect)", "(Internet slang)", "(Tw)"]
 

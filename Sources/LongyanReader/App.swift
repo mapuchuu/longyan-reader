@@ -296,7 +296,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let dict else { return }
         lookupTask?.cancel()
         let senses = dict.senses(for: context.word)
-        let modelReady = SenseChooser.isAvailable && !senses.isEmpty
+        let grammar = GrammarWords.entry(context.word, in: context.passage, at: context.wordRange.lowerBound)
+        let modelReady = SenseChooser.isAvailable && !senses.isEmpty && grammar == nil
         let state = LookupState(context: context, senses: senses, sourceNote: sourceNote, appName: appName,
                                 phase: modelReady ? .choosing : .dictionaryOnly(senses.isEmpty ? "not in dictionary" : SenseChooser.unavailableReason))
         state.onLayoutChange = { [weak self] in Task { await self?.relayout() } }

@@ -16,6 +16,9 @@ final class LookupState: ObservableObject {
     @Published var showAllSenses = false
     var onLayoutChange: () -> Void = {}
 
+    /// Set for 的 and 了, which show a fixed line instead of a chosen sense (`senseNumber` 0).
+    let grammar: GrammarWord?
+
     /// Set once the reader picks a meaning; a model answer arriving later doesn't replace it.
     @Published private(set) var userPicked = false
     /// The model's own answer, kept so the reader can go back to it.
@@ -67,10 +70,19 @@ final class LookupState: ObservableObject {
         self.sourceNote = sourceNote
         self.appName = appName
         self.phase = phase
+        grammar = GrammarWords.entry(context.word, in: context.passage, at: context.wordRange.lowerBound)
+        if let grammar, !senses.isEmpty {
+            suggested = SenseChoice(senseNumber: 0, meaningHere: grammar.summary)
+            choice = suggested
+            self.phase = .chosen
+        }
     }
 
     var chosenIndex: Int? { choice.map { $0.senseNumber - 1 } }
-    var headerPinyin: String { senses[safe: chosenIndex ?? 0]?.pinyin ?? "" }
+    var headerPinyin: String {
+        if !userPicked, let grammar { return grammar.reading }
+        return senses[safe: chosenIndex ?? 0]?.pinyin ?? ""
+    }
 }
 
 extension Array {
@@ -187,10 +199,12 @@ struct LookupView: View {
     }
 
     private var senses: some View {
-        // The first seven senses, plus the chosen one if it sits further down.
+        // A few senses, always including the chosen one; 的 and 了 list only their own reading's.
         let all = Array(state.senses.enumerated())
-        let shown = state.showAllSenses ? all
-            : all.filter { $0.offset < 7 || $0.offset == state.chosenIndex }
+        let listed = state.grammar?.listed(state.senses)
+        let preview = state.senses.preview(chosen: state.chosenIndex)
+        let collapsed = all.filter { listed?.contains($0.element) ?? preview.contains($0.offset) || $0.offset == state.chosenIndex }
+        let shown = state.showAllSenses ? all : collapsed
         let showReading = Set(state.senses.map(\.pinyin)).count > 1
         return VStack(alignment: .leading, spacing: 6) {
             SectionLabel(text: "Meanings")
@@ -204,13 +218,14 @@ struct LookupView: View {
                             Text("\(i + 1)").cardFont(11, monospacedDigit: true).foregroundStyle(.tertiary)
                                 .frame(width: 14 * scale, alignment: .trailing)
                             VStack(alignment: .leading, spacing: 1) {
-                                if showReading {
+                                if showReading && (listed == nil || state.showAllSenses) {
                                     Text(Pinyin.marked(sense.pinyin)).cardFont(11).foregroundStyle(.secondary)
                                 }
-                                Text(Gloss.readable(sense.gloss))
+                                Text(listed?.contains(sense) == true ? Gloss.short(sense.gloss) : Gloss.listed(sense.gloss))
                                     .cardFont(13, chosen ? .semibold : .regular)
                                     .foregroundStyle(chosen || state.choice == nil ? .primary : .secondary)
                                     .fixedSize(horizontal: false, vertical: true)
+                                    .help(Gloss.readable(sense.gloss))
                             }
                             Spacer(minLength: 4)
                             if let note {
@@ -227,12 +242,12 @@ struct LookupView: View {
                     .buttonStyle(CardRowStyle(selected: chosen))
                     .help("Use this meaning")
                 }
-                if state.senses.count > shown.count {
+                if state.senses.count > collapsed.count {
                     Button {
-                        withAnimation(.smooth(duration: 0.25)) { state.showAllSenses = true }
+                        withAnimation(.smooth(duration: 0.25)) { state.showAllSenses.toggle() }
                         state.onLayoutChange()
                     } label: {
-                        Text("Show \(state.senses.count - shown.count) more")
+                        Text(state.showAllSenses ? "Show less" : "Show \(state.senses.count - collapsed.count) more")
                             .cardFont(12).foregroundStyle(Color.accentColor)
                     }
                     .buttonStyle(CardRowStyle())

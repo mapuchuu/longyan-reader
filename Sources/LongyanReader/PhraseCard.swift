@@ -16,16 +16,28 @@ final class PhraseState: ObservableObject {
     @Published var choices: [Int: SenseChoice] = [:]
     @Published var choosing: Set<Int> = []
     @Published var failures: [Int: String] = [:]
+    /// Rows opened out to every meaning.
+    @Published var showingAll: Set<Int> = []
     /// True while the model is still picking the words' senses; those rows show a placeholder.
     @Published var resolving = false
     /// Words whose meaning the reader picked; a model answer arriving later doesn't replace it.
     private(set) var userPicked: Set<Int> = []
     var onLayoutChange: () -> Void = {}
 
+    /// The word's fixed line, if it has one (see `GrammarWords`).
+    func grammarEntry(_ token: PhraseToken) -> GrammarWord? {
+        (senses[token.id] ?? []).isEmpty ? nil : GrammarWords.entry(token.text, in: selection.passage, at: token.range.lowerBound)
+    }
+
+    /// The same, while the row still shows that line: picking a definition replaces it.
+    func grammar(_ token: PhraseToken) -> GrammarWord? {
+        userPicked.contains(token.id) ? nil : grammarEntry(token)
+    }
+
     func pick(_ token: PhraseToken, sense index: Int) {
         guard let list = senses[token.id], list.indices.contains(index) else { return }
         // Clicking the meaning already shown changes nothing.
-        guard shownSense(token) != index else { return }
+        guard grammar(token) != nil || shownSense(token) != index else { return }
         userPicked.insert(token.id)
         choices[token.id] = SenseChoice(senseNumber: index + 1, meaningHere: headlineGloss(list[index]))
         onLayoutChange()
@@ -76,20 +88,20 @@ final class PhraseState: ObservableObject {
 
     /// Whether this row is still waiting for its sense (its gloss and pinyin aren't final yet).
     func pending(_ token: PhraseToken) -> Bool {
-        resolving && choices[token.id] == nil && (senses[token.id]?.count ?? 0) > 1
+        resolving && choices[token.id] == nil && (senses[token.id]?.count ?? 0) > 1 && grammarEntry(token) == nil
     }
 
     /// Words worth asking the model about: those with more than one dictionary sense
-    /// (particles included: 了 is "le" here, not "liǎo").
-    static func ambiguous(_ tokens: [PhraseToken], dict: CEDict) -> [PhraseToken] {
-        tokens.filter { dict.senses(for: $0.text).count > 1 }
+    /// (other than those with a fixed line).
+    static func ambiguous(_ tokens: [PhraseToken], in passage: [Character], dict: CEDict) -> [PhraseToken] {
+        tokens.filter { dict.senses(for: $0.text).count > 1 && GrammarWords.entry($0.text, in: passage, at: $0.range.lowerBound) == nil }
     }
 
     /// Chooses the in-context sense of every ambiguous word at once, so the card opens with
     /// each row already resolved instead of changing when the reader opens it.
     static func resolve(_ tokens: [PhraseToken], in passage: [Character], dict: CEDict, translation: String? = nil,
                         onPick: @MainActor (Int, SenseChoice) -> Void = { _, _ in }) async -> [Int: SenseChoice] {
-        let words = ambiguous(tokens, dict: dict)
+        let words = ambiguous(tokens, in: passage, dict: dict)
         guard SenseChooser.isAvailable, let lo = words.first?.range.lowerBound, let hi = words.last?.range.upperBound else { return [:] }
         var out: [Int: SenseChoice] = [:]
         // The local model takes them all in one streamed request (in chunks, to stay inside its
@@ -100,7 +112,7 @@ final class PhraseState: ObservableObject {
             while start < words.count {
                 let chunk = Array(words[start..<min(start + 8, words.count)])
                 start += chunk.count
-                let lists = chunk.map { (word: $0.text, senses: dict.senses(for: $0.text)) }
+                let lists = chunk.map { (word: $0.text, senses: dict.senses(for: $0.text, limit: CEDict.modelSenseLimit)) }
                 func choice(_ i: Int, _ n: Int) -> SenseChoice {
                     SenseChoice(senseNumber: n, meaningHere: headlineGloss(lists[i].senses[n - 1]))
                 }
@@ -116,7 +128,7 @@ final class PhraseState: ObservableObject {
         return await withTaskGroup(of: (Int, SenseChoice?).self) { group in
             for t in words {
                 let list = dict.senses(for: t.text)
-                // This model misreads grammar words (地 "-ly", 我吃了饭 "to finish"), and their
+                // This model misreads grammar words (地 "-ly", 我过春节 as a past marker), and their
                 // position usually settles them. Next, a sense the translation agrees with beats
                 // its guess (他才三岁 "only three years old" settles 才). Neither needs a model
                 // call. Words with notes stay with the model: "passed away" isn't 走 "to go away".
@@ -158,14 +170,13 @@ final class PhraseState: ObservableObject {
         case "得" where afterVerb && !atEnd && passage[t.range.upperBound] != "了": return index("structural particle")
         case "过" where afterVerb: return index("(experienced action marker)")
         case "着" where afterVerb: return index("aspect particle")
-        case "了": return index(atEnd ? "(modal particle indicating change" : "(completed action marker)")
         default: return nil
         }
     }
 
     private func alignToTranslation() {
         guard let translation else { return }
-        for t in tokens {
+        for t in tokens where grammarEntry(t) == nil {
             if let list = senses[t.id], let i = SenseChooser.senseMatching(translation: translation, senses: list, word: t.text) {
                 translationSense[t.id] = i
             }
@@ -179,6 +190,7 @@ final class PhraseState: ObservableObject {
     /// sense), never just because the row was opened. The model's own in-context wording is
     /// shown inside the open row instead (`meaningHere`).
     func gloss(_ token: PhraseToken) -> String {
+        if let grammar = grammar(token) { return grammar.summary }
         let list = senses[token.id] ?? []
         guard let i = shownSense(token), list.indices.contains(i) else { return shortGloss(list) }
         return shortGloss([list[i]])
@@ -187,6 +199,7 @@ final class PhraseState: ObservableObject {
     /// Index of the sense the row shows: the reader's or model's choice, else the one that
     /// fits the translation, else the first.
     func shownSense(_ token: PhraseToken) -> Int? {
+        if let grammar = grammar(token) { return senses[token.id]?.firstIndex { $0.pinyin == grammar.reading } ?? 0 }
         if let c = choices[token.id] { return c.senseNumber - 1 }
         if let i = translationSense[token.id] { return i }
         return (senses[token.id] ?? []).isEmpty ? nil : 0
@@ -215,7 +228,7 @@ final class PhraseState: ObservableObject {
     func toggle(_ token: PhraseToken) {
         expanded = expanded == token.id ? nil : token.id
         defer { onLayoutChange() }
-        guard expanded == token.id, !resolving, choices[token.id] == nil, !choosing.contains(token.id),
+        guard expanded == token.id, grammarEntry(token) == nil, !resolving, choices[token.id] == nil, !choosing.contains(token.id),
               let list = senses[token.id], !list.isEmpty, SenseChooser.isAvailable else { return }
         choosing.insert(token.id)
         Task {
@@ -364,21 +377,42 @@ struct PhraseView: View {
             if let note = state.note(token) {
                 NuanceView(note: note).transition(.opacity)
             }
+            let listed = state.grammarEntry(token)?.listed(senses)
+            let all = state.showingAll.contains(token.id)
+            let preview = senses.preview(chosen: state.shownSense(token))
+            let collapsed = Array(senses.enumerated()).filter { (listed?.contains($0.element) ?? preview.contains($0.offset)) || (listed != nil && state.grammar(token) == nil && $0.offset == state.shownSense(token)) }
+            let shown = all ? Array(senses.enumerated()) : collapsed
+            let showReading = Set(shown.map(\.element.pinyin)).count > 1
             VStack(alignment: .leading, spacing: 0) {
-                ForEach(Array(senses.prefix(5).enumerated()), id: \.offset) { i, sense in
-                    let chosen = state.shownSense(token) == i
+                ForEach(shown, id: \.offset) { i, sense in
+                    let chosen = state.grammar(token) == nil && state.shownSense(token) == i
                     Button { withAnimation(.smooth(duration: 0.25)) { state.pick(token, sense: i) } } label: {
                         HStack(alignment: .firstTextBaseline, spacing: 6) {
                             Image(systemName: "checkmark").cardFont(9, .bold)
                                 .foregroundStyle(Color.accentColor).opacity(chosen ? 1 : 0)
-                            Text(Gloss.readable(sense.gloss))
+                            if showReading {
+                                Text(Pinyin.marked(sense.pinyin)).cardFont(11).foregroundStyle(.tertiary)
+                            }
+                            Text(listed?.contains(sense) == true ? Gloss.short(sense.gloss) : Gloss.listed(sense.gloss))
                                 .cardFont(12, chosen ? .semibold : .regular)
                                 .foregroundStyle(chosen ? .primary : .secondary)
                                 .fixedSize(horizontal: false, vertical: true)
+                                .help(Gloss.readable(sense.gloss))
                         }
                     }
                     .buttonStyle(CardRowStyle())
                     .help("Use this meaning")
+                }
+                if senses.count > collapsed.count {
+                    Button {
+                        withAnimation(.smooth(duration: 0.25)) {
+                            if all { state.showingAll.remove(token.id) } else { state.showingAll.insert(token.id) }
+                        }
+                        state.onLayoutChange()
+                    } label: {
+                        Text(all ? "Show less" : "Show \(senses.count - collapsed.count) more").cardFont(12).foregroundStyle(Color.accentColor)
+                    }
+                    .buttonStyle(CardRowStyle())
                 }
             }
             if senses.isEmpty { Text("Not in the dictionary").cardFont(12).foregroundStyle(.secondary) }

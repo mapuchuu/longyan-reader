@@ -45,7 +45,7 @@ enum NotesBuilder {
         ranked = Array(Set(ranked)).sorted { (freq[$0] ?? 0) > (freq[$1] ?? 0) }
 
         func pilot(_ word: String, rank: Int, kind: String) -> PilotWord? {
-            let senses = dict.senses(for: word)
+            let senses = dict.senses(for: word, limit: CEDict.modelSenseLimit)
             guard !senses.isEmpty, !particleWords.contains(word),
                   !(dict.entries(for: word).allSatisfy(\.isProperNoun)) else { return nil }
             return PilotWord(word: word, rank: rank, kind: kind,
@@ -82,7 +82,7 @@ enum NotesBuilder {
             if line.hasPrefix("#") { if line.contains("idiom") { kind = "idiom" }; continue }
             for w in line.split(whereSeparator: { $0 == " " || $0 == "," }).map(String.init) where !w.isEmpty && !seen.contains(w) {
                 seen.insert(w)
-                let senses = dict.senses(for: w)
+                let senses = dict.senses(for: w, limit: CEDict.modelSenseLimit)
                 guard !senses.isEmpty, !dict.entries(for: w).allSatisfy(\.isProperNoun) else { missing.append(w); continue }
                 words.append(PilotWord(word: w, rank: 0, kind: kind,
                                        senses: senses.enumerated().map { PilotSense(index: $0.offset + 1, pinyin: $0.element.pinyin, gloss: $0.element.gloss) }))

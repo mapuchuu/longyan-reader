@@ -108,7 +108,8 @@ enum CLI {
             for t in tokens {
                 let list = dict.senses(for: t.text)
                 let shown = picks[t.id].map { [list[$0.senseNumber - 1]] } ?? list
-                print("  \(t.text)\t\(shortGloss(shown))")
+                let grammar = GrammarWords.entry(t.text, in: passage, at: t.range.lowerBound)
+                print("  \(t.text)\t\(grammar?.summary ?? shortGloss(shown))")
             }
             print("senses: first in \(firstPick ?? 0) ms, all \(picks.count) in \(Int(Date().timeIntervalSince(r) * 1000)) ms: " + tokens.map { t in
                 picks[t.id].map { "\(t.text)=\(headlineGloss(dict.senses(for: t.text)[$0.senseNumber - 1]))" } ?? t.text
@@ -285,7 +286,7 @@ enum CLI {
         else { print("no word"); return }
         let senses = dict.senses(for: ctx.word)
         let state = LookupState(context: ctx, senses: senses, appName: "Preview", phase: .choosing)
-        if SenseChooser.isAvailable, !senses.isEmpty {
+        if SenseChooser.isAvailable, !senses.isEmpty, state.grammar == nil {
             state.choice = try await SenseChooser.choose(for: ctx, senses: senses)
             if let wording = ProcessInfo.processInfo.environment["LONGYAN_RENDER_MEANING"] { state.choice?.meaningHere = wording }
             state.phase = .chosen

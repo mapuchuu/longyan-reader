@@ -18,6 +18,7 @@ enum Gloss {
         var text = raw
         let range = NSRange(text.startIndex..., in: text)
         text = reference.stringByReplacingMatches(in: text, range: range, withTemplate: "$1")
+        text = spellingPronunciations(text)
         text = stray.stringByReplacingMatches(in: text, range: NSRange(text.startIndex..., in: text), withTemplate: "")
         for (pattern, plain) in words {
             text = text.replacingOccurrences(of: pattern, with: plain, options: .regularExpression)
@@ -25,6 +26,23 @@ enum Gloss {
         text = text.replacingOccurrences(of: #"^\(bound form\)\s*"#, with: "", options: .regularExpression)
         text = text.replacingOccurrences(of: #"\s{2,}"#, with: " ", options: .regularExpression)
         return text.trimmingCharacters(in: .whitespaces)
+    }
+
+    /// A definition for a list of meanings: whole unless it would run past two lines or so.
+    static func listed(_ raw: String) -> String {
+        let text = readable(raw)
+        return text.count > 80 ? short(raw) : text
+    }
+
+    /// "also pr. [di4] or [di5] in poetry": here the pinyin is the point, so it stays, with tone marks.
+    private static func spellingPronunciations(_ text: String) -> String {
+        guard text.range(of: #"\bpr\. ?\["#, options: .regularExpression) != nil else { return text }
+        var out = text
+        for match in stray.matches(in: text, range: NSRange(text.startIndex..., in: text)).reversed() {
+            guard let range = Range(match.range, in: out) else { continue }
+            out.replaceSubrange(range, with: Pinyin.marked(String(out[range].dropFirst().dropLast())))
+        }
+        return out.replacingOccurrences(of: #"\bpr\."#, with: "pronounced", options: .regularExpression)
     }
 
     /// One short meaning, for a row or a headline. Never cut mid-word or mid-bracket.

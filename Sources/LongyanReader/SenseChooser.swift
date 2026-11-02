@@ -85,7 +85,8 @@ enum SenseChooser {
     /// or a guardrail violation). Retry with just the sentence; if it still refuses,
     /// translate the sentence on-device and take the sense that matches the translation.
     static func choose(for context: WordInContext, senses: [Sense]) async throws -> SenseChoice {
-        cleaned(try await chooseRaw(for: context, senses: senses), senses: senses)
+        let senses = Array(senses.prefix(CEDict.modelSenseLimit))
+        return cleaned(try await chooseRaw(for: context, senses: senses), senses: senses)
     }
 
     /// The model's "meaning here" line is meant to be a few English words for the word

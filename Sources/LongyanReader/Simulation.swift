@@ -111,6 +111,44 @@ extension AppDelegate {
         check(multi?.choice?.meaningHere == suggestedText && multi?.chosenIndex == firstChoice,
               "'use suggested meaning' restores the model's answer and wording")
 
+        // 2b2. The full list opens and closes, and the card resizes to fit each time.
+        multi?.showAllSenses = true
+        multi?.onLayoutChange()
+        await wait(0.5)
+        check(popup.windowFitsCard, "the card fits after 'Show more'")
+        multi?.showAllSenses = false
+        multi?.onLayoutChange()
+        await wait(0.5)
+        check(popup.windowFitsCard, "the card fits after 'Show less'")
+
+        // 2c. 的 and 了 show one fixed line, with no model call; a definition can still be picked.
+        show(word("我的书很新。", 1), near: anchor)
+        let de = lastLookupState
+        check(de?.choice?.meaningHere == de?.grammar?.summary && de?.phase == .chosen && de?.headerPinyin == "de5",
+              "的 opens straight to its fixed line")
+        check(de?.isContextual == false, "的's fixed line isn't labelled as contextual")
+        de?.pick(0)
+        await wait(0.3)
+        check(de?.chosenIndex == 0 && de?.choice?.meaningHere != de?.grammar?.summary, "a definition of 的 can be picked")
+        de?.useSuggested()
+        await wait(0.3)
+        check(de?.choice?.meaningHere == de?.grammar?.summary, "'use suggested meaning' restores 的's fixed line")
+        let liao = Array("吃不了")
+        check(GrammarWords.entry("了", in: liao, at: 2)?.reading == "liao3", "了 after 不 reads liǎo")
+        check(GrammarWords.entry("了", in: Array("下雨了"), at: 2)?.reading == "le5", "了 after a verb reads le")
+        check(Gloss.readable("also pr. [di4] or [di5] in poetry and songs") == "also pronounced dì or di in poetry and songs",
+              "pronunciation notes keep their pinyin")
+
+        // 2d. Every meaning is on offer; a short list always includes the one chosen.
+        if let dict {
+            let gan = dict.senses(for: "干")
+            check(gan.count > CEDict.modelSenseLimit, "a card has all of 干's meanings (\(gan.count))")
+            let toDo = gan.firstIndex { $0.gloss == "to do" }
+            let preview = gan.preview(chosen: toDo)
+            check(preview.count == 5 && preview.contains(toDo ?? -1), "the short list has 5 meanings, with the chosen one")
+            check(Set(preview.map { gan[$0].pinyin }).count > 1, "the short list covers 干's readings")
+        }
+
         // 3. A hint followed quickly by a lookup: the hint's timer must not close the lookup.
         hint("Highlight some Chinese text first", near: anchor)
         await wait(0.3)
@@ -135,7 +173,7 @@ extension AppDelegate {
         while lastPhraseState?.resolving == true, settle < 8 { await wait(0.05); settle += 0.05 }
         if let phrase = lastPhraseState {
             let dict = self.dict!
-            let ambiguous = PhraseState.ambiguous(phrase.tokens, dict: dict)
+            let ambiguous = PhraseState.ambiguous(phrase.tokens, in: phrase.selection.passage, dict: dict)
             let resolved = ambiguous.filter { phrase.choices[$0.id] != nil }.count
             lines.append("  resolved before opening: " + ambiguous.map { "\($0.text)=\(phrase.gloss($0))" }.joined(separator: " / "))
             check(resolved == ambiguous.count && !phrase.resolving, "every ambiguous word resolved (\(resolved)/\(ambiguous.count))")
@@ -223,7 +261,7 @@ extension AppDelegate {
                 }
                 await wait(0.02); t += 0.02
             }
-            let ambiguous = PhraseState.ambiguous(phrase.tokens, dict: dict).map(\.id)
+            let ambiguous = PhraseState.ambiguous(phrase.tokens, in: phrase.selection.passage, dict: dict).map(\.id)
             lines.append("  translation at \(translatedAt) ms: \(phrase.translation ?? "none")")
             lines.append("  \(order.count)/\(ambiguous.count) words by \(Int(Date().timeIntervalSince(clickedFresh) * 1000)) ms, in order: "
                          + order.compactMap { id in phrase.tokens.first { $0.id == id }?.text }.joined(separator: " "))
