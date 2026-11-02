@@ -183,7 +183,7 @@ enum CLI {
             try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
             var words: [NotesBuilder.PilotWord] = [], names: [String] = [], skipped: [String] = []
             var context: [String: String] = [:]
-            for candidate in try NotesBuilder.unjudgedLookups() where words.count < count {
+            for candidate in try NotesBuilder.nextCandidates() where words.count < count {
                 let found = NotesBuilder.fromList(candidate.word, dict: dict).words
                 // Place names and the like have nothing to judge. They're recorded with a
                 // no-sense entry so that they don't come back in the next batch.
@@ -195,7 +195,7 @@ enum CLI {
             let skippedWords = skipped.map { NotesBuilder.PilotWord(word: $0, rank: 0, kind: "skipped", senses: []) }
             let enc = JSONEncoder(); enc.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
             try enc.encode(words + skippedWords).write(to: dir.appendingPathComponent("selection.json"))
-            try ("# Most looked-up words not yet judged.\n" + names.joined(separator: " ") + "\n")
+            try ("# Next words not yet judged: lookups first, then by frequency.\n" + names.joined(separator: " ") + "\n")
                 .write(to: dir.appendingPathComponent("words.txt"), atomically: true, encoding: .utf8)
             let headers = ["annotations.tsv": "# word\tsense\ttag (L = lost in translation, C = cultural context)\tnote\n",
                            "note-covers.tsv": "# word\tnoted sense\tother senses that mean the same thing (the note shows for them too)\n",
@@ -204,7 +204,7 @@ enum CLI {
                 try header.write(to: dir.appendingPathComponent(name), atomically: true, encoding: .utf8)
             }
             for w in words {
-                print(w.word + " | " + w.senses.map { "\($0.index)[\($0.pinyin)] \($0.gloss.prefix(80))" }.joined(separator: " / "))
+                print(w.word + " | " + w.senses.map { "\($0.index)[\($0.pinyin)] \($0.gloss.prefix(60))" }.joined(separator: " / "))
                 if let s = context[w.word], !s.isEmpty { print("    seen in: " + s) }
             }
             print("\(words.count) words, \(words.map(\.senses.count).reduce(0, +)) senses; skipped: \(skipped.joined(separator: " "))")

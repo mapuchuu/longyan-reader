@@ -124,6 +124,15 @@ enum NotesBuilder {
             .map { ($0.key, $0.value, sentences[$0.key] ?? "") }
     }
 
+    /// What the next batch draws on: the reader's unjudged lookups, then notes/frequency.txt in order.
+    static func nextCandidates() throws -> [(word: String, count: Int, sentence: String)] {
+        let lookups = try unjudgedLookups()
+        let taken = Set(try judgedWords().map(\.word)).union(lookups.map(\.word))
+        let ranked = try String(contentsOfFile: "notes/frequency.txt", encoding: .utf8)
+            .split(whereSeparator: \.isNewline).filter { !$0.hasPrefix("#") }.map(String.init)
+        return lookups + ranked.filter { !taken.contains($0) }.map { ($0, 0, "") }
+    }
+
     // MARK: Prompt
 
     /// Adapted from the Longyan Chrome extension's note prompt, judged per dictionary sense.
