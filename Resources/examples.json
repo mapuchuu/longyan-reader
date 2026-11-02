@@ -933,12 +933,36 @@
   "牛|niu2|cow" : [
     "农民在田里赶着牛耕地。"
   ],
+  "牵线|qian1 xian4|to manipulate (a puppet)" : [
+    "幕后有人牵线，他只是个傀儡。"
+  ],
+  "牵线|qian1 xian4|to mediate" : [
+    "是朋友牵线，他们才认识的。"
+  ],
   "状元|zhuang4 yuan2|(fig.) the most brilliantly talented person in the field" : [
     "三百六十行，行行出状元。"
   ],
   "状元|zhuang4 yuan2|top scorer in college entrance examination 高考[gao1 kao3]" : [
     "今年我们省的高考状元考了七百多分。",
     "高考状元被北大录取了，媒体都来采访。"
+  ],
+  "生意|sheng1 yi4|life force" : [
+    "春天到了，院子里一片生意。"
+  ],
+  "生意|sheng1 yi5|business" : [
+    "他在广州做服装生意。"
+  ],
+  "用人|yong4 ren2|servant" : [
+    "以前有钱人家都雇用人做饭打扫。"
+  ],
+  "用人|yong4 ren2|to be in need of staff" : [
+    "店里正是用人的时候，你来得正好。"
+  ],
+  "电话|dian4 hua4|phone call" : [
+    "刚才有个电话找你。"
+  ],
+  "电话|dian4 hua4|phone number" : [
+    "把你的电话留给我吧。"
   ],
   "相亲|xiang1 qin1|arranged interview to evaluate a proposed marriage partner (Taiwan pr. [xiang4 qin1])" : [
     "妈妈又给她安排了一次相亲，对方是个公务员。",
@@ -952,6 +976,18 @@
   ],
   "相对|xiang1 dui4|relatively" : [
     "这个小区相对安静，适合老人住。"
+  ],
+  "看看|kan4 kan5|(coll.) pretty soon" : [
+    "看看就要过年了，年货还没买。"
+  ],
+  "看看|kan4 kan5|to take a look at" : [
+    "你帮我看看这个字怎么读。"
+  ],
+  "眨眼|zha3 yan3|in the twinkling of an eye" : [
+    "一眨眼的工夫，他就不见了。"
+  ],
+  "眨眼|zha3 yan3|to blink" : [
+    "小孩子困得直眨眼。"
   ],
   "矫情|jiao2 qing5|(Beijing dialect) argumentative; unreasonable" : [
     "他这个人特别矫情，什么事都要跟你争。"
@@ -979,6 +1015,9 @@
   ],
   "福利|fu2 li4|benefit (provided by an employer or organization)" : [
     "这家公司福利不错，过节都发购物卡。"
+  ],
+  "离职|li2 zhi2|to leave one's job; to resign" : [
+    "她上个月从公司离职了。"
   ],
   "秀才|xiu4 cai5|a person who has passed the county level imperial exam (historical)" : [
     "他十八岁就考中了秀才，全村人都来祝贺。",
@@ -1013,6 +1052,18 @@
   ],
   "答应|da1 ying5|to answer; to respond" : [
     "我敲了半天门，里面也没人答应。"
+  ],
+  "算是|suan4 shi4|at last" : [
+    "等了三年，这回算是等到了。"
+  ],
+  "算是|suan4 shi4|considered to be" : [
+    "这家店在当地算是最好的了。"
+  ],
+  "算计|suan4 ji5|to calculate" : [
+    "她每个月都算计着怎么花钱。"
+  ],
+  "算计|suan4 ji5|to scheme" : [
+    "你小心点，别被他算计了。"
   ],
   "紧张|jin3 zhang1|in short supply" : [
     "这几年城里的学位很紧张，很多孩子排不上。"
@@ -1096,6 +1147,12 @@
   "脾气|pi2 qi5|character; temperament; disposition" : [
     "这孩子脾气好，从来不跟人争。"
   ],
+  "自然|zi4 ran2|naturally" : [
+    "你努力了，成绩自然会好的。"
+  ],
+  "自然|zi4 ran2|nature" : [
+    "他喜欢到大自然里走走。"
+  ],
   "自觉|zi4 jue2|responsible; predisposed to do the right thing; considerate of others" : [
     "没人看着，他也自觉把垃圾带走了。"
   ],
@@ -1125,6 +1182,15 @@
   ],
   "补贴|bu3 tie1|to subsidize" : [
     "政府每年补贴农民买农机。"
+  ],
+  "表现|biao3 xian4|to show off" : [
+    "他在领导面前总爱表现自己。"
+  ],
+  "规则|gui1 ze2|regular; orderly; fixed" : [
+    "这块石头的形状很规则。"
+  ],
+  "规则|gui1 ze2|rule; regulation" : [
+    "比赛规则昨天改了。"
   ],
   "解放|jie3 fang4|refers to the Communists' victory over the Nationalists in 1949" : [
     "解放前，这里是一片荒地。",
