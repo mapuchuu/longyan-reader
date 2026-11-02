@@ -86,3 +86,5 @@ The Longyan eye icon is from the Longyan Chrome extension.
 CC-CEDICT is © MDBG and contributors under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). It's downloaded by `scripts/fetch-cedict.sh` and not committed here.
 
 的 and 了 skip sense picking. They show one fixed line (`GrammarWords.swift`), and opening them lists only that reading's meanings, in short wording; 了 after 不 or 得 reads liǎo. Lists of meanings shorten any definition past about two lines, and the full text is in its tooltip.
+
+Cards can be dragged from anywhere but the resize corner. A dragged card stays open through scrolling elsewhere, and the next card opens by its word as usual.

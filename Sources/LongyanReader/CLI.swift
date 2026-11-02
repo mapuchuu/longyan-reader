@@ -285,7 +285,7 @@ enum CLI {
               let ctx = Segmenter.word(at: passage.distance(from: passage.startIndex, to: r.lowerBound), in: Array(passage), dict: dict)
         else { print("no word"); return }
         let senses = dict.senses(for: ctx.word)
-        let state = LookupState(context: ctx, senses: senses, appName: "Preview", phase: .choosing)
+        let state = LookupState(context: ctx, senses: senses, phase: .choosing)
         if SenseChooser.isAvailable, !senses.isEmpty, state.grammar == nil {
             state.choice = try await SenseChooser.choose(for: ctx, senses: senses)
             if let wording = ProcessInfo.processInfo.environment["LONGYAN_RENDER_MEANING"] { state.choice?.meaningHere = wording }
@@ -300,7 +300,7 @@ enum CLI {
         let dict = try CEDict.load()
         let passage = Array(text)
         let selection = Selection(passage: passage, range: 0..<passage.count, bounds: nil, source: .accessibility, appName: "Safari")
-        let state = PhraseState(selection: selection, dict: dict, sourceNote: nil)
+        let state = PhraseState(selection: selection, dict: dict)
         state.translation = await LocalModel.isAvailable() ? try? await LocalModel.translate(text) : try? await Translator.translate(text)
         // LONGYAN_RENDER_PENDING=1 draws the card as it looks while senses are still being chosen.
         if ProcessInfo.processInfo.environment["LONGYAN_RENDER_PENDING"] == "1" { state.resolving = true }

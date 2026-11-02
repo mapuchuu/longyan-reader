@@ -101,7 +101,7 @@ extension AppDelegate {
         await wait(0.3)
         check(multi?.choice?.meaningHere != suggestedText, "picking another meaning updates the headline")
         check(multi?.isContextual == false, "a meaning the reader picked isn't labelled as contextual")
-        let labelled = LookupState(context: WordInContext(word: "紧张", passage: Array("工作太紧张了。"), wordRange: 3..<5, alternatives: []), senses: [Sense(pinyin: "jin3 zhang1", gloss: "nervous")], appName: nil, phase: .choosing)
+        let labelled = LookupState(context: WordInContext(word: "紧张", passage: Array("工作太紧张了。"), wordRange: 3..<5, alternatives: []), senses: [Sense(pinyin: "jin3 zhang1", gloss: "nervous")], phase: .choosing)
         labelled.receive(SenseChoice(senseNumber: 1, meaningHere: "busy"))
         check(labelled.isContextual, "the model's own wording is labelled 'In this context'")
         labelled.receive(SenseChoice(senseNumber: 1, meaningHere: "nervous"))
@@ -147,6 +147,82 @@ extension AppDelegate {
             let preview = gan.preview(chosen: toDo)
             check(preview.count == 5 && preview.contains(toDo ?? -1), "the short list has 5 meanings, with the chosen one")
             check(Set(preview.map { gan[$0].pinyin }).count > 1, "the short list covers 干's readings")
+        }
+
+        // 2e. A real drag on the card moves it, and it stays there as it changes size. The next
+        //     card opens by its word again. Uses the pointer, and puts it back afterwards.
+        show(word("奶奶上个月走了，全家人都很难过。", 5), near: anchor)
+        let dragged = lastLookupState
+        await waitForAnswer(dragged)
+        await wait(0.5)
+        let home = popup.windowOrigin
+        if let from = popup.dragHandlePoint, let height = NSScreen.screens.first?.frame.height {
+            let back = NSEvent.mouseLocation
+            func post(_ type: CGEventType, _ p: NSPoint) {
+                CGEvent(mouseEventSource: nil, mouseType: type, mouseCursorPosition: CGPoint(x: p.x, y: height - p.y), mouseButton: .left)?.post(tap: .cghidEventTap)
+            }
+            post(.mouseMoved, from)
+            await wait(0.15)
+            post(.leftMouseDown, from)
+            await wait(0.1)
+            for step in 1...10 {
+                post(.leftMouseDragged, NSPoint(x: from.x - CGFloat(step) * 12, y: from.y - CGFloat(step) * 8))
+                await wait(0.02)
+            }
+            await wait(0.1)
+            post(.leftMouseUp, NSPoint(x: from.x - 120, y: from.y - 80))
+            await wait(0.2)
+            post(.mouseMoved, back)
+            let moved = popup.windowOrigin
+            lines.append("  card moved from \(home.map { "\($0)" } ?? "none") to \(moved.map { "\($0)" } ?? "none")")
+            check((home?.x ?? 0) - (moved?.x ?? 0) > 80 && (home?.y ?? 0) - (moved?.y ?? 0) > 50 && popup.kind == .word, "dragging the card moves it")
+            popup.scrolledOutside()
+            check(popup.kind == .word, "scrolling elsewhere leaves a dragged card open")
+            dragged?.showAllSenses = true
+            dragged?.onLayoutChange()
+            await wait(0.5)
+            check(popup.windowOrigin?.x == moved?.x, "a dragged card stays put when its content grows")
+            dragged?.showAllSenses = false
+            // From a row: the card moves and the row isn't picked. A plain click still picks.
+            if let frame = popup.windowFrame, let layout = popup.currentLayout {
+                let row = NSPoint(x: frame.midX, y: frame.maxY - 28 - min(layout.height, 200))
+                let start = popup.windowOrigin
+                post(.mouseMoved, row)
+                await wait(0.15)
+                post(.leftMouseDown, row)
+                await wait(0.1)
+                for step in 1...6 {
+                    post(.leftMouseDragged, NSPoint(x: row.x + CGFloat(step) * 8, y: row.y))
+                    await wait(0.02)
+                }
+                await wait(0.1)
+                let end = NSPoint(x: row.x + 48, y: row.y)
+                post(.leftMouseUp, end)
+                await wait(0.3)
+                check((popup.windowOrigin?.x ?? 0) - (start?.x ?? 0) > 30 && dragged?.userPicked == false,
+                      "a drag from a row moves the card without picking the row")
+                // Clicking the meaning already chosen does nothing, so try a few rows.
+                var tried: [String] = []
+                for offset in [0, 45, -45, 90] as [CGFloat] where dragged?.userPicked == false {
+                    let target = NSPoint(x: end.x, y: end.y + offset)
+                    post(.mouseMoved, target)
+                    await wait(0.1)
+                    post(.leftMouseDown, target)
+                    await wait(0.05)
+                    post(.leftMouseUp, target)
+                    await wait(0.4)
+                    tried.append("\(offset)")
+                }
+                check(dragged?.userPicked == true, "a plain click on a row still picks it (tried \(tried.joined(separator: ", ")))")
+                post(.mouseMoved, back)
+            }
+            popup.close()
+            await wait(0.2)
+            show(word("奶奶上个月走了，全家人都很难过。", 5), near: anchor)
+            await wait(0.4)
+            check(popup.windowOrigin?.x == home?.x, "the next card opens by its word again")
+            popup.scrolledOutside()
+            check(popup.kind == nil, "scrolling elsewhere still closes a card that wasn't dragged")
         }
 
         // 3. A hint followed quickly by a lookup: the hint's timer must not close the lookup.

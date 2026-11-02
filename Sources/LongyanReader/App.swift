@@ -278,27 +278,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// One dictionary word gets the word card; anything longer gets the phrase card.
     func show(_ selection: Selection, near anchor: NSRect) {
         guard let dict else { hint("Dictionary still loading…", near: anchor); return }
-        let note = selection.source == .clipboard ? "copied, no surrounding text" : nil
         if isSingleWord(selection, dict: dict) {
             let context = Segmenter.context(for: selection.range, in: selection.passage)
-            showWord(context, sourceNote: note, appName: selection.appName, near: anchor)
+            showWord(context, appName: selection.appName, near: anchor)
         } else {
-            showPhrase(selection, dict: dict, sourceNote: note, near: anchor)
+            showPhrase(selection, dict: dict, near: anchor)
         }
     }
 
     private func showWord(_ captured: CapturedText) {
         guard let dict, let context = Segmenter.word(at: captured.index, in: captured.passage, dict: dict) else { return }
-        showWord(context, sourceNote: nil, appName: captured.appName, near: Self.mouseBox)
+        showWord(context, appName: captured.appName, near: Self.mouseBox)
     }
 
-    private func showWord(_ context: WordInContext, sourceNote: String?, appName: String?, near anchor: NSRect) {
+    private func showWord(_ context: WordInContext, appName: String?, near anchor: NSRect) {
         guard let dict else { return }
         lookupTask?.cancel()
         let senses = dict.senses(for: context.word)
         let grammar = GrammarWords.entry(context.word, in: context.passage, at: context.wordRange.lowerBound)
         let modelReady = SenseChooser.isAvailable && !senses.isEmpty && grammar == nil
-        let state = LookupState(context: context, senses: senses, sourceNote: sourceNote, appName: appName,
+        let state = LookupState(context: context, senses: senses,
                                 phase: modelReady ? .choosing : .dictionaryOnly(senses.isEmpty ? "not in dictionary" : SenseChooser.unavailableReason))
         state.onLayoutChange = { [weak self] in Task { await self?.relayout() } }
         lastLookupState = state
@@ -326,12 +325,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func showPhrase(_ selection: Selection, dict: CEDict, sourceNote: String?, near anchor: NSRect) {
+    private func showPhrase(_ selection: Selection, dict: CEDict, near anchor: NSRect) {
         lookupTask?.cancel()
         // Usually started when the text was selected (see `prepare`); otherwise start now.
         let prep = phrasePrep.flatMap { $0.matches(selection) ? $0 : nil } ?? PhrasePrep(selection, dict: dict)
         phrasePrep = nil
-        let state = PhraseState(selection: selection, dict: dict, sourceNote: sourceNote)
+        let state = PhraseState(selection: selection, dict: dict)
         state.onLayoutChange = { [weak self] in Task { await self?.relayout() } }
         lastPhraseState = state
         // The card opens at once with whatever is ready; the translation streams in, then the

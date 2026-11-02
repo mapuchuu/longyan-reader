@@ -9,8 +9,6 @@ final class LookupState: ObservableObject {
 
     let context: WordInContext
     let senses: [Sense]
-    let sourceNote: String?        // e.g. "copied selection, no surrounding text"
-    let appName: String?
     @Published var phase: Phase
     @Published var choice: SenseChoice?
     @Published var showAllSenses = false
@@ -64,11 +62,9 @@ final class LookupState: ObservableObject {
         phase = .chosen
     }
 
-    init(context: WordInContext, senses: [Sense], sourceNote: String? = nil, appName: String?, phase: Phase) {
+    init(context: WordInContext, senses: [Sense], phase: Phase) {
         self.context = context
         self.senses = senses
-        self.sourceNote = sourceNote
-        self.appName = appName
         self.phase = phase
         grammar = GrammarWords.entry(context.word, in: context.passage, at: context.wordRange.lowerBound)
         if let grammar, !senses.isEmpty {
@@ -128,7 +124,6 @@ struct LookupView: View {
                     .id(note.note)
             }
             senses
-            passage
         }
         .animation(.smooth(duration: 0.25), value: state.choice?.senseNumber)
         .animation(.smooth(duration: 0.25), value: state.phase)
@@ -261,30 +256,53 @@ struct LookupView: View {
             }
         }
     }
-
-    private var passage: some View {
-        let sentence = state.context.sentence
-        let parts = sentence.components(separatedBy: state.context.word)
-        var text = Text("")
-        for (i, part) in parts.enumerated() {
-            text = text + Text(part)
-            if i < parts.count - 1 { text = text + Text(state.context.word).fontWeight(.semibold).foregroundColor(.primary) }
-        }
-        let where_ = [state.appName, state.sourceNote].compactMap { $0 }.joined(separator: " · ")
-        return HStack(alignment: .top, spacing: 8) {
-            RoundedRectangle(cornerRadius: 1).fill(Color.primary.opacity(0.15)).frame(width: 2)
-            VStack(alignment: .leading, spacing: 3) {
-                text.cardFont(12).foregroundColor(.secondary).lineLimit(4)
-                if !where_.isEmpty { Text(where_).cardFont(10).foregroundStyle(.tertiary) }
-            }
-        }
-        .fixedSize(horizontal: false, vertical: true)
-    }
 }
 
 /// A floating panel that never steals focus from the app being read.
 final class PopupPanel: NSPanel {
     override var canBecomeKey: Bool { true }
+
+    /// Whether a drag starting at this point (window coordinates) moves the card.
+    var canMove: (NSPoint) -> Bool = { _ in false }
+    /// The card is being dragged: the pointer's screen position, then nil when it's let go.
+    var onMove: (NSPoint?) -> Void = { _ in }
+    private var pressedAt: NSPoint?
+    private var moving = false
+
+    /// Handled here, not with a SwiftUI gesture, because the card's scroll view takes drags
+    /// before one would see them. A drag can start anywhere but the grip, rows included: past
+    /// a few points it stops being a click, so the row it started on isn't picked.
+    override func sendEvent(_ event: NSEvent) {
+        switch event.type {
+        case .leftMouseDown:
+            pressedAt = canMove(event.locationInWindow) ? NSEvent.mouseLocation : nil
+            moving = false
+        case .leftMouseDragged:
+            if let pressedAt {
+                let mouse = NSEvent.mouseLocation
+                if !moving, hypot(mouse.x - pressedAt.x, mouse.y - pressedAt.y) >= 4 {
+                    moving = true
+                    releaseOutside(event)
+                    onMove(pressedAt)
+                }
+                if moving { onMove(mouse); return }
+            }
+        case .leftMouseUp:
+            pressedAt = nil
+            if moving { moving = false; onMove(nil); return }
+        default: break
+        }
+        super.sendEvent(event)
+    }
+
+    /// Lets go of whatever was pressed, away from it, so it doesn't count as a click.
+    private func releaseOutside(_ event: NSEvent) {
+        if let up = NSEvent.mouseEvent(with: .leftMouseUp, location: NSPoint(x: -1000, y: -1000), modifierFlags: [],
+                                       timestamp: event.timestamp, windowNumber: windowNumber, context: nil,
+                                       eventNumber: event.eventNumber, clickCount: 1, pressure: 0) {
+            super.sendEvent(up)
+        }
+    }
 }
 
 /// Lets the first click land on a control instead of just focusing the panel.
@@ -312,6 +330,7 @@ final class PopupController {
     /// The card fades and springs in once its content has been measured.
     func show<V: View>(_ view: V, kind: CardLayout.Kind, near anchor: NSRect) {
         close()
+        wasMoved = false
         self.anchor = anchor
         let layout = CardLayout(kind: kind)
         self.kind = kind
@@ -332,6 +351,8 @@ final class PopupController {
         self.hosting = host
         self.layout = layout
         layout.onChange = { [weak self] animated in self?.applySize(animated: animated) }
+        panel.onMove = { [weak self] mouse in self?.move(to: mouse) }
+        panel.canMove = { [weak self] point in self?.canMove(from: point) ?? false }
 
         placedBelow = anchor.minY - 8 - 200 >= visible.minY
         layout.placedBelow = placedBelow
@@ -345,12 +366,13 @@ final class PopupController {
             withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) { layout.appeared = true }
         }
 
-        // Close on a click elsewhere, scrolling, or Esc. Global monitors only see
-        // events for other apps, so clicks and drags inside the card are unaffected.
+        // Close on a click elsewhere, scrolling (unless the card was dragged aside to read
+        // past it), or Esc. Global monitors only see events for other apps, so clicks and
+        // drags inside the card are unaffected.
         if let m = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .scrollWheel],
-                                                     handler: { [weak self] _ in
+                                                     handler: { [weak self] e in
             guard let self, !self.ignoresOutsideInput else { return }
-            self.close()
+            if e.type == .scrollWheel { self.scrolledOutside() } else { self.close() }
         }) { monitors.append(m) }
         if let m = NSEvent.addGlobalMonitorForEvents(matching: [.keyDown], handler: { [weak self] e in
             guard let self, !self.ignoresOutsideInput else { return }
@@ -410,6 +432,55 @@ final class PopupController {
         y = min(max(y, visible.minY + 8 - m), visible.maxY - size.height + m - 8)
         let frame = NSRect(x: x, y: y, width: size.width, height: size.height)
         if frame != panel.frame { panel.setFrame(frame, display: true) }
+    }
+
+    /// Anywhere on the card except the grip and, when the card scrolls, its scroll bar.
+    private func canMove(from point: NSPoint) -> Bool {
+        guard let panel, let layout, layout.kind != .hint else { return false }
+        let m = CardChrome<EmptyView>.margin
+        let card = NSRect(x: m, y: layout.placedBelow ? panel.frame.height - m - layout.height : m,
+                          width: layout.width, height: layout.height)
+        guard card.contains(point) else { return false }
+        if point.x > card.maxX - 22, point.y < card.minY + 22 { return false }
+        return layout.contentHeight <= layout.maxHeight || point.x < card.maxX - 16
+    }
+
+    private var moveStart: (mouse: NSPoint, anchor: NSRect)?
+    private var wasMoved = false
+
+    func scrolledOutside() {
+        if !wasMoved { close() }
+    }
+
+    /// Dragging the card moves its anchor, so it stays put as its content changes. The next
+    /// card gets its own anchor and opens by its word as usual. Nil ends the drag.
+    private func move(to mouse: NSPoint?) {
+        guard let panel else { return }
+        guard let mouse else {
+            // Settle on where the card actually is, which may be inside where the pointer went.
+            let m = CardChrome<EmptyView>.margin
+            anchor.origin.x = panel.frame.minX + m
+            anchor.origin.y = placedBelow ? panel.frame.maxY + 8 - m : panel.frame.minY - 8 + m - anchor.height
+            moveStart = nil
+            return
+        }
+        if moveStart == nil { moveStart = (mouse, anchor) }
+        wasMoved = true
+        guard let start = moveStart else { return }
+        anchor = start.anchor.offsetBy(dx: mouse.x - start.mouse.x, dy: mouse.y - start.mouse.y)
+        setWindow(panel.frame.size)
+    }
+
+    /// Debug: the card window's position.
+    var windowOrigin: NSPoint? { panel?.frame.origin }
+    var windowFrame: NSRect? { panel?.frame }
+
+    /// Debug: a point on the card's top padding, in screen coordinates.
+    var dragHandlePoint: NSPoint? {
+        guard let panel, let layout else { return nil }
+        let m = CardChrome<EmptyView>.margin
+        let top = layout.placedBelow ? panel.frame.maxY - m : panel.frame.minY + m + layout.height
+        return NSPoint(x: panel.frame.minX + m + layout.width / 2, y: top - 6)
     }
 
     /// Switches an open card to the chosen appearance straight away.

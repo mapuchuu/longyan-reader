@@ -7,7 +7,6 @@ final class PhraseState: ObservableObject {
     let selection: Selection
     let tokens: [PhraseToken]
     let senses: [Int: [Sense]]
-    let sourceNote: String?
     @Published var translation: String? { didSet { alignToTranslation() } }
     /// For each word, the sense that agrees with the translation (until the model has chosen).
     @Published var translationSense: [Int: Int] = [:]
@@ -43,9 +42,8 @@ final class PhraseState: ObservableObject {
         onLayoutChange()
     }
 
-    init(selection: Selection, dict: CEDict, sourceNote: String?) {
+    init(selection: Selection, dict: CEDict) {
         self.selection = selection
-        self.sourceNote = sourceNote
         let tokens = Segmenter.phrase(selection.range, in: selection.passage, dict: dict)
         self.tokens = tokens
         var senses: [Int: [Sense]] = [:]
@@ -285,7 +283,6 @@ struct PhraseView: View {
                 .padding(3)
                 .background(RoundedRectangle(cornerRadius: 10 * scale, style: .continuous).fill(Color.primary.opacity(0.04)))
             }
-            footer
         }
         .animation(.smooth(duration: 0.25), value: state.expanded)
         .animation(.smooth(duration: 0.25), value: state.translation)
@@ -418,12 +415,6 @@ struct PhraseView: View {
             if senses.isEmpty { Text("Not in the dictionary").cardFont(12).foregroundStyle(.secondary) }
         }
         .padding(.leading, 12 * scale).padding(.trailing, 8 * scale).padding(.top, 6 * scale).padding(.bottom, 10 * scale)
-    }
-
-    private var footer: some View {
-        let parts = [state.selection.appName, state.sourceNote].compactMap { $0 } + [state.choices.isEmpty ? "Click a word for its meaning here" : "Click a word for its other meanings"]
-        return Text(parts.joined(separator: " · "))
-            .cardFont(10).foregroundStyle(.tertiary)
     }
 }
 
