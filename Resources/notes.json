@@ -6288,5 +6288,175 @@
     ],
     "tag" : "lost_in_translation",
     "word" : "精神"
+  },
+  {
+    "gloss" : "objection",
+    "note" : "A complaint, a grudge. 我对他有意见 doesn't mean you have thoughts about someone, it means you're unhappy with them.",
+    "pinyin" : "yi4 jian4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "意见"
+  },
+  {
+    "gloss" : "local god",
+    "note" : "The local earth god. You pass small shrines to 土地公 in villages and leave offerings so he watches over the neighborhood.",
+    "pinyin" : "tu3 di5",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "土地"
+  },
+  {
+    "gloss" : "brothers",
+    "note" : "Brothers, and also your closest friends. Calling a friend 好兄弟 says you'd show up for him the way family would.",
+    "pinyin" : "xiong1 di4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "兄弟"
+  },
+  {
+    "gloss" : "I, me (humble term used by men in public speech)",
+    "note" : "I, me, from a man addressing a group. 兄弟我 sounds modest and rough-and-ready, like one of the guys.",
+    "pinyin" : "xiong1 di4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "兄弟"
+  },
+  {
+    "gloss" : "publicly funded institution, enterprise or foundation",
+    "note" : "A state-funded institution like a school or hospital. A job at a 事业单位 makes you think of stability and a pension, and your parents are proud of it.",
+    "pinyin" : "shi4 ye4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "事业"
+  },
+  {
+    "gloss" : "career",
+    "note" : "Your career as a life's work. 事业有成 means more than having a job, it means you've built something people respect.",
+    "pinyin" : "shi4 ye4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "事业"
+  },
+  {
+    "gloss" : "peasant; farmer",
+    "note" : "A farmer, and a social class as much as a job. You know 农民 can be thrown as an insult for someone unsophisticated, and it stings because of the rural and urban divide.",
+    "pinyin" : "nong2 min2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "农民"
+  },
+  {
+    "gloss" : "worker",
+    "note" : "A worker, once the honored class. If your parents had a factory job, 工人 carries the memory of a secure 铁饭碗 that many lost in the 1990s layoffs.",
+    "pinyin" : "gong1 ren2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "工人"
+  },
+  {
+    "gloss" : "had better",
+    "note" : "Had better, after weighing it up. 还是走吧 sounds like you've thought it over and settled on this.",
+    "pinyin" : "hai2 shi5",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "还是"
+  },
+  {
+    "gloss" : "(not) at all",
+    "note" : "Not at all, flatly. 我根本不知道 pushes back hard, and you can hear some annoyance at the suggestion.",
+    "pinyin" : "gen1 ben3",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "根本"
+  },
+  {
+    "gloss" : "good; correct; conforming to a standard",
+    "note" : "Correct, textbook. When you tell someone their 普通话 is 很标准, it's real praise, and they're pleased to hear it.",
+    "pinyin" : "biao1 zhun3",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "标准"
+  },
+  {
+    "gloss" : "a struggle",
+    "note" : "A struggle, and a word with history. You think of the 批斗 sessions of the Cultural Revolution, though you also joke about your 思想斗争 over dessert.",
+    "pinyin" : "dou4 zheng1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "斗争"
+  },
+  {
+    "gloss" : "principle",
+    "note" : "A principle. When you're told 原则上不行 you hear that a way around may still exist, if you ask the right person.",
+    "pinyin" : "yuan2 ze2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "原则"
+  },
+  {
+    "gloss" : "complaint",
+    "note" : "A complaint, a grudge. 我对他有意见 doesn't mean you have thoughts about someone, it means you're unhappy with them.",
+    "pinyin" : "yi4 jian4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "意见"
+  },
+  {
+    "gloss" : "absolutely (not)",
+    "note" : "Not at all, flatly. 我根本不知道 pushes back hard, and you can hear some annoyance at the suggestion.",
+    "pinyin" : "gen1 ben3",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "根本"
+  },
+  {
+    "gloss" : "fight",
+    "note" : "A struggle, and a word with history. You think of the 批斗 sessions of the Cultural Revolution, though you also joke about your 思想斗争 over dessert.",
+    "pinyin" : "dou4 zheng1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "斗争"
+  },
+  {
+    "gloss" : "battle",
+    "note" : "A struggle, and a word with history. You think of the 批斗 sessions of the Cultural Revolution, though you also joke about your 思想斗争 over dessert.",
+    "pinyin" : "dou4 zheng1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "斗争"
   }
 ]
