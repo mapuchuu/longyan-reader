@@ -1,4 +1,10 @@
 {
+  "一个|yi1 ge5|a; an; one" : [
+    "桌上放着一个苹果。"
+  ],
+  "一个|yi1 ge5|the whole (afternoon, summer vacation etc)" : [
+    "他一个下午都在睡觉。"
+  ],
   "上火|shang4 huo3|to get angry" : [
     "别为这点小事上火，不值得。"
   ],
@@ -139,6 +145,12 @@
     "他在一个事业单位上班，工作很稳定。",
     "以前结婚要单位开介绍信。"
   ],
+  "单元|dan1 yuan2|(in a residential building) entrance or staircase" : [
+    "我住在五号楼二单元，电梯在门口右边。"
+  ],
+  "单元|dan1 yuan2|unit (forming an entity)" : [
+    "这门课一共十个单元，每周学一个。"
+  ],
   "占便宜|zhan4 pian2 yi5|advantageous" : [
     "他个子高，打篮球占便宜。"
   ],
@@ -176,6 +188,9 @@
   "同志|tong2 zhi4|comrade" : [
     "同志们，我们要坚持到底！",
     "这位同志，请出示一下你的证件。"
+  ],
+  "后来|hou4 lai2|afterwards; later" : [
+    "我们以前是同事，后来他去了上海。"
   ],
   "含蓄|han2 xu4|(of a person or style etc) reserved" : [
     "中国人表达感情比较含蓄，很少直接说爱。",
@@ -313,12 +328,24 @@
     "师傅，到火车站多少钱？",
     "师傅，我家的水管漏水了，您能来修一下吗？"
   ],
+  "师父|shi1 fu5|master" : [
+    "他跟着师父学了十年木工。"
+  ],
+  "应聘|ying4 pin4|to apply for an advertised position" : [
+    "她上周应聘了一家银行，正在等通知。"
+  ],
   "应试|ying4 shi4|(of an education system) to be exam-oriented" : [
     "应试教育让学生只会背书，不会思考。",
     "这种应试的学习方法，考完就全忘了。"
   ],
   "应试|ying4 shi4|to take an exam" : [
     "他明天要去应试，今晚在复习。"
+  ],
+  "开除|kai1 chu2|to expel (a member of an organization)" : [
+    "他因为打架被学校开除了。"
+  ],
+  "开除|kai1 chu2|to fire (an employee)" : [
+    "她偷了公司的客户资料，第二天就被开除了。"
   ],
   "心疼|xin1 teng2|to feel sorry for sb" : [
     "看你每天加班到半夜，妈妈真心疼你。",
@@ -388,6 +415,12 @@
   "正气|zheng4 qi4|unyielding integrity; probity" : [
     "他一身正气，从不收别人的好处。",
     "我们要弘扬社会正气，打击歪风邪气。"
+  ],
+  "比较|bi3 jiao4|comparatively" : [
+    "这家店的菜比较清淡，老人应该喜欢。"
+  ],
+  "比较|bi3 jiao4|to compare" : [
+    "买之前先比较一下这两家的价格。"
   ],
   "气|qi4|gas; air" : [
     "轮胎没气了，得去打打气。"
@@ -495,6 +528,21 @@
     "被老板骂了也不敢还嘴，真窝囊。",
     "受了这么大的委屈却不能说，心里很窝囊。"
   ],
+  "站点|zhan4 dian3|(Internet) site (website, FTP site etc)" : [
+    "这个站点最近打不开，可能是服务器出问题了。"
+  ],
+  "站点|zhan4 dian3|a place set up to serve a specific function (train station, bus stop, toll plaza, bike rental station, meteorological station etc)" : [
+    "快递放在小区门口的站点了，下班顺路去拿。"
+  ],
+  "紧张|jin3 zhang1|in short supply" : [
+    "这几年城里的学位很紧张，很多孩子排不上。"
+  ],
+  "紧张|jin3 zhang1|intense" : [
+    "这个月项目很紧张，大家天天加班。"
+  ],
+  "紧张|jin3 zhang1|nervous" : [
+    "第一次上台讲话，她紧张得手都在抖。"
+  ],
   "纠结|jiu1 jie2|to intertwine; to band together (with); to link up (with)" : [
     "各种势力纠结在一起，形势很复杂。"
   ],
@@ -550,6 +598,18 @@
   "老实|lao3 shi5|well-behaved" : [
     "上课的时候孩子们都老老实实地坐着。"
   ],
+  "肯定|ken3 ding4|assuredly; definitely" : [
+    "放心吧，他肯定会来的。"
+  ],
+  "肯定|ken3 ding4|to give recognition; to affirm" : [
+    "领导在会上肯定了我们这一年的工作。"
+  ],
+  "脾气|pi2 qi5|bad temper" : [
+    "他一喝酒就发脾气，家里人都怕他。"
+  ],
+  "脾气|pi2 qi5|character; temperament; disposition" : [
+    "这孩子脾气好，从来不跟人争。"
+  ],
   "舍不得|she3 bu5 de5|to hate to do sth" : [
     "这件衣服太贵了，我舍不得买。",
     "他舍不得花钱，一件外套穿了十年。"
@@ -576,6 +636,12 @@
     "考完试了，终于解放了！",
     "妇女解放运动争取男女平等。"
   ],
+  "负责|fu4 ze2|conscientious" : [
+    "这位医生特别负责，每天都来看病人。"
+  ],
+  "负责|fu4 ze2|to be responsible for; to be in charge of; to bear responsibility for" : [
+    "这个项目由小王负责，有问题直接找他。"
+  ],
   "走|zou3|to die (euph.)" : [
     "外公是在睡梦中走的，很安详。",
     "她妈妈走了三年了，她还是常常想起她。",
@@ -600,6 +666,12 @@
   "走后门|zou3 hou4 men2|(lit.) to enter through the back door" : [
     "前门锁了，我们从后门走吧。"
   ],
+  "跟着|gen1 zhe5|immediately afterwards" : [
+    "雷声一响，跟着就下起了大雨。"
+  ],
+  "跟着|gen1 zhe5|to follow after" : [
+    "你跟着导游走，别走丢了。"
+  ],
   "躺平|tang3 ping2|(neologism, attested by 2021) to opt out of the rat race" : [
     "房价太高了，买不起，干脆躺平吧。",
     "不想再拼了，我决定躺平，过简单的生活。"
@@ -621,6 +693,12 @@
   "辛苦|xin1 ku3|to go to a lot of trouble" : [
     "辛苦你了，跑了这么远给我送过来。",
     "大家辛苦了，今天就到这里吧。"
+  ],
+  "过失|guo4 shi1|(law) negligence" : [
+    "法院认定他属于过失伤人，不是故意的。"
+  ],
+  "过失|guo4 shi1|error" : [
+    "这次事故是我的过失，我来承担。"
   ],
   "道|dao4|(Daoism) the Way; the Dao" : [
     "老子说，道可道，非常道。",

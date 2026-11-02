@@ -163,16 +163,70 @@ enum CLI {
             let byWord = Dictionary(words.map { ($0.word, $0) }, uniquingKeysWith: { a, _ in a })
             var map: [String: [String]] = [:]
             var unmatched: [String] = []
+            let evalText = (try? String(contentsOfFile: "notes/phrase-eval.tsv", encoding: .utf8)) ?? ""
             for line in try String(contentsOfFile: args[3], encoding: .utf8).split(whereSeparator: \.isNewline) where !line.hasPrefix("#") {
                 let cols = line.split(separator: "\t", maxSplits: 2).map(String.init)
                 guard cols.count == 3, let w = byWord[cols[0]], let i = Int(cols[1]),
                       let sense = w.senses.first(where: { $0.index == i }) else { unmatched.append(String(line.prefix(30))); continue }
                 map[NotesStore.key(w.word, sense.pinyin, sense.gloss), default: []].append(cols[2])
+                if !cols[2].contains(w.word) { unmatched.append("doesn't use the word: \(cols[2])") }
+                if evalText.contains(cols[2]) { unmatched.append("reuses an eval sentence: \(cols[2])") }
             }
             let enc = JSONEncoder(); enc.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes, .sortedKeys]
             try enc.encode(map).write(to: URL(fileURLWithPath: args[4]))
             print("\(map.values.map(\.count).reduce(0, +)) examples for \(map.count) senses; unmatched \(unmatched.count)")
             unmatched.forEach { print("  " + $0) }
+        case "--notes-next" where args.count >= 4:
+            // --notes-next <batch dir> <count>: starts a batch of the most looked-up unjudged words.
+            let dict = try CEDict.load()
+            let dir = URL(fileURLWithPath: args[2]), count = Int(args[3]) ?? 60
+            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            var words: [NotesBuilder.PilotWord] = [], names: [String] = [], skipped: [String] = []
+            var context: [String: String] = [:]
+            for candidate in try NotesBuilder.unjudgedLookups() where words.count < count {
+                let found = NotesBuilder.fromList(candidate.word, dict: dict).words
+                // Place names and the like have nothing to judge. They're recorded with a
+                // no-sense entry so that they don't come back in the next batch.
+                if found.isEmpty { skipped.append(candidate.word); continue }
+                words += found
+                names.append(candidate.word)
+                context[candidate.word] = candidate.sentence
+            }
+            let skippedWords = skipped.map { NotesBuilder.PilotWord(word: $0, rank: 0, kind: "skipped", senses: []) }
+            let enc = JSONEncoder(); enc.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
+            try enc.encode(words + skippedWords).write(to: dir.appendingPathComponent("selection.json"))
+            try ("# Most looked-up words not yet judged.\n" + names.joined(separator: " ") + "\n")
+                .write(to: dir.appendingPathComponent("words.txt"), atomically: true, encoding: .utf8)
+            let headers = ["annotations.tsv": "# word\tsense\ttag (L = lost in translation, C = cultural context)\tnote\n",
+                           "note-covers.tsv": "# word\tnoted sense\tother senses that mean the same thing (the note shows for them too)\n",
+                           "examples.tsv": "# word\tsense number (as in selection.json)\texample sentence. Never reuse eval sentences here.\n"]
+            for (name, header) in headers where !FileManager.default.fileExists(atPath: dir.appendingPathComponent(name).path) {
+                try header.write(to: dir.appendingPathComponent(name), atomically: true, encoding: .utf8)
+            }
+            for w in words {
+                print(w.word + " | " + w.senses.map { "\($0.index)[\($0.pinyin)] \($0.gloss.prefix(80))" }.joined(separator: " / "))
+                if let s = context[w.word], !s.isEmpty { print("    seen in: " + s) }
+            }
+            print("\(words.count) words, \(words.map(\.senses.count).reduce(0, +)) senses; skipped: \(skipped.joined(separator: " "))")
+        case "--notes-progress":
+            let judged = try NotesBuilder.judgedWords().filter { $0.kind != "skipped" }
+            let notes = try JSONDecoder().decode([NotesBuilder.Note].self, from: Data(contentsOf: URL(fileURLWithPath: "Resources/notes.json")))
+            print("\(judged.count) words judged, target 5000; \(Set(notes.map(\.word)).count) words have notes (\(notes.count) notes); \(try NotesBuilder.unjudgedLookups().count) looked-up words waiting")
+        case "--notes-merge" where args.count >= 4:
+            // --notes-merge batch-notes.json batch-examples.json: adds a batch to Resources/. A sense
+            // that's already there keeps its place and takes the batch's text.
+            let notesURL = URL(fileURLWithPath: "Resources/notes.json"), examplesURL = URL(fileURLWithPath: "Resources/examples.json")
+            func key(_ n: NotesBuilder.Note) -> String { NotesStore.key(n.word, n.pinyin, n.gloss) }
+            var notes = try JSONDecoder().decode([NotesBuilder.Note].self, from: Data(contentsOf: notesURL))
+            for note in try JSONDecoder().decode([NotesBuilder.Note].self, from: Data(contentsOf: URL(fileURLWithPath: args[2]))) {
+                if let i = notes.firstIndex(where: { key($0) == key(note) }) { notes[i] = note } else { notes.append(note) }
+            }
+            var examples = try JSONDecoder().decode([String: [String]].self, from: Data(contentsOf: examplesURL))
+            examples.merge(try JSONDecoder().decode([String: [String]].self, from: Data(contentsOf: URL(fileURLWithPath: args[3])))) { _, new in new }
+            let enc = JSONEncoder(); enc.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes, .sortedKeys]
+            try enc.encode(notes).write(to: notesURL)
+            try enc.encode(examples).write(to: examplesURL)
+            print("now \(notes.count) notes across \(Set(notes.map(\.word)).count) words, examples for \(examples.count) senses")
         case "--notes-submit" where args.count >= 4:
             let words = try JSONDecoder().decode([NotesBuilder.PilotWord].self, from: Data(contentsOf: URL(fileURLWithPath: args[2])))
             let batch = try await NotesBuilder.submit(words)

@@ -91,6 +91,39 @@ enum NotesBuilder {
         return (words, missing)
     }
 
+    // MARK: Batches from the lookup log
+
+    /// Every word judged so far, in the pilot or a batch, with or without a note.
+    static func judgedWords(root: URL = URL(fileURLWithPath: "notes")) throws -> [PilotWord] {
+        let batches = (try? FileManager.default.contentsOfDirectory(atPath: root.appendingPathComponent("batches").path)) ?? []
+        let dirs = ["pilot"] + batches.sorted().map { "batches/\($0)" }
+        return try dirs.flatMap { dir -> [PilotWord] in
+            let url = root.appendingPathComponent(dir).appendingPathComponent("selection.json")
+            guard FileManager.default.fileExists(atPath: url.path) else { return [] }
+            return try JSONDecoder().decode([PilotWord].self, from: Data(contentsOf: url))
+        }
+    }
+
+    /// Words the reader looked up that haven't been judged, most looked-up first, with a
+    /// sentence each came from. Single characters are left out, as are the simulation's lookups.
+    static func unjudgedLookups() throws -> [(word: String, count: Int, sentence: String)] {
+        let judged = Set(try judgedWords().map(\.word))
+        var counts: [String: Int] = [:], sentences: [String: String] = [:]
+        let log = try String(contentsOf: Log.directory.appendingPathComponent("lookups.jsonl"), encoding: .utf8)
+        for line in log.split(whereSeparator: \.isNewline) {
+            guard let r = try? JSONSerialization.jsonObject(with: Data(line.utf8)) as? [String: Any],
+                  !["Simulation", "Demo"].contains(r["app"] as? String ?? "") else { continue }
+            let words = (r["words"] as? [String]) ?? (r["word"] as? String).map { [$0] } ?? []
+            let sentence = (r["sentence"] as? String) ?? (r["text"] as? String) ?? ""
+            for w in words where w.count > 1 && !judged.contains(w) {
+                counts[w, default: 0] += 1
+                if sentence.count > (sentences[w]?.count ?? 0), sentence.count < 80 { sentences[w] = sentence }
+            }
+        }
+        return counts.sorted { ($0.value, $1.key) > ($1.value, $0.key) }
+            .map { ($0.key, $0.value, sentences[$0.key] ?? "") }
+    }
+
     // MARK: Prompt
 
     /// Adapted from the Longyan Chrome extension's note prompt, judged per dictionary sense.
