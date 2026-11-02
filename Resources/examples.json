@@ -263,12 +263,45 @@
     "大家都在加班，不加班就落后，这就是内卷。",
     "教育内卷越来越严重，孩子们从小就上各种补习班。"
   ],
+  "写字|xie3 zi4|to practice calligraphy" : [
+    "爷爷退休后每天在家写字画画。"
+  ],
+  "写字|xie3 zi4|to write (by hand)" : [
+    "这孩子写字很认真。"
+  ],
   "凑合|cou4 he5|to bring together" : [
     "大家凑合在一起，商量一下明天的事。"
   ],
   "凑合|cou4 he5|to just get by" : [
     "最近怎么样？还凑合吧。",
     "饭菜不太好吃，凑合着吃吧。"
+  ],
+  "前景|qian2 jing3|(future) prospects" : [
+    "这个行业的前景很好。"
+  ],
+  "前景|qian2 jing3|foreground" : [
+    "照片的前景是一片花，后面才是山。"
+  ],
+  "加入|jia1 ru4|to add in" : [
+    "煮开后加入一勺盐。"
+  ],
+  "加入|jia1 ru4|to join" : [
+    "他去年加入了学校的篮球队。"
+  ],
+  "动手|dong4 shou3|to raise a hand to hit sb" : [
+    "有话好好说，千万别动手。"
+  ],
+  "动手|dong4 shou3|to set about (a task)" : [
+    "别光说了，咱们动手干吧。"
+  ],
+  "动手|dong4 shou3|to touch; to handle (typically used in cautioning sb *not* to touch sth)" : [
+    "展品请勿动手触摸。"
+  ],
+  "半天|ban4 tian1|a long time" : [
+    "我找了半天，钥匙原来在口袋里。"
+  ],
+  "半天|ban4 tian1|half of the day" : [
+    "今天只上半天班，下午就放假。"
   ],
   "单位|dan1 wei4|unit (of measure)" : [
     "米是长度单位。"
@@ -290,6 +323,12 @@
     "他总想占别人便宜，吃饭从来不付钱。",
     "超市搞活动，大妈们都去占便宜了。"
   ],
+  "卫生|wei4 sheng1|hygiene; sanitation" : [
+    "周末我们全家一起打扫卫生。"
+  ],
+  "卫生|wei4 sheng1|hygienic; sanitary" : [
+    "这家小店不太卫生，别在这儿吃了。"
+  ],
   "卷|juan3|(slang) to compete to an unhealthy degree; hypercompetitive" : [
     "现在的年轻人太卷了，下班了还在学习。",
     "我们公司卷得厉害，大家都不敢准时下班。"
@@ -299,6 +338,18 @@
   ],
   "卷|juan4|volume" : [
     "这套书一共有五卷。"
+  ],
+  "反应|fan3 ying4|chemical reaction" : [
+    "这两种物质混在一起会发生反应。"
+  ],
+  "反应|fan3 ying4|to respond" : [
+    "他太累了，叫了好几声才反应过来。"
+  ],
+  "反正|fan3 zheng4|anyway" : [
+    "你去不去都行，反正我要去。"
+  ],
+  "反正|fan3 zheng4|to come over from the enemy's side" : [
+    "这支部队后来阵前反正，投向了我军。"
   ],
   "叔叔|shu1 shu5|father's younger brother; paternal uncle" : [
     "我叔叔是我爸爸的弟弟，在北京工作。"
@@ -312,6 +363,12 @@
   ],
   "只是|zhi3 shi4|merely; only; just; nothing but" : [
     "我只是路过，顺便来看看你。"
+  ],
+  "可是|ke3 shi4|(used for emphasis) indeed" : [
+    "这孩子可是全家人的宝贝。"
+  ],
+  "可是|ke3 shi4|but; however" : [
+    "我很想去，可是没时间。"
   ],
   "吃亏|chi1 kui1|to lose out" : [
     "你太老实了，这样会吃亏的。",
@@ -365,14 +422,53 @@
     "你这身衣服太土了，像我爸年轻时候穿的。",
     "他觉得自己的名字太土，想改个洋气点的。"
   ],
+  "埋头|mai2 tou2|to immerse oneself in" : [
+    "他整天埋头写论文，饭都顾不上吃。"
+  ],
+  "埋头|mai2 tou2|to lower the head (e.g. to avoid rain)" : [
+    "雨太大了，他埋头往家跑。"
+  ],
   "基准|ji1 zhun3|standard; criterion; benchmark" : [
     "这次考核以去年的业绩作为基准。"
+  ],
+  "处理|chu3 li3|to handle; to deal with" : [
+    "这件事你看着处理吧。"
+  ],
+  "处理|chu3 li3|to punish" : [
+    "他违反了纪律，受到了严肃处理。"
+  ],
+  "处理|chu3 li3|to sell at reduced prices" : [
+    "这批衣服过季了，打五折处理。"
+  ],
+  "外人|wai4 ren2|foreigner" : [
+    "这是我们的内政，不容外人干涉。"
+  ],
+  "外人|wai4 ren2|outsider" : [
+    "这是家里的事，不好跟外人说。"
+  ],
+  "多久|duo1 jiu3|(not) a long time" : [
+    "他走了没多久，你就来了。"
+  ],
+  "多久|duo1 jiu3|(of time) how long?" : [
+    "你在这儿等了多久？"
+  ],
+  "大姐|da4 jie3|elder sister" : [
+    "我大姐比我大十岁，已经当奶奶了。"
+  ],
+  "大姐|da4 jie3|older sister (also polite term of address for a girl or woman slightly older than the speaker)" : [
+    "大姐，请问去地铁站怎么走？"
   ],
   "大概|da4 gai4|probably" : [
     "他还没回消息，大概是睡了。"
   ],
   "大概|da4 gai4|roughly" : [
     "从这儿到车站大概要十分钟。"
+  ],
+  "大约|da4 yue1|approximately" : [
+    "这儿离机场大约三十公里。"
+  ],
+  "大约|da4 yue1|probably" : [
+    "他这么晚没到，大约是堵车了。"
   ],
   "奇葩|qi2 pa1|(slang) weirdo" : [
     "我们公司有个奇葩，上班穿睡衣。",
