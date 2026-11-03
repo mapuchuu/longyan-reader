@@ -7068,5 +7068,115 @@
     ],
     "tag" : "cultural_context",
     "word" : "进步"
+  },
+  {
+    "gloss" : "(social) class",
+    "note" : "Social class. In the Mao years your family's 阶级 could decide your whole life, and today people complain online about 阶级固化, classes that no longer move.",
+    "pinyin" : "jie1 ji2",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "阶级"
+  },
+  {
+    "gloss" : "revolutionary",
+    "note" : "Revolutionary. 红色旅游 takes you to old Communist bases like Yan'an, and 红色歌曲 are the songs your parents' generation can still sing by heart.",
+    "pinyin" : "hong2 se4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "红色"
+  },
+  {
+    "gloss" : "political line (e.g. right revisionist road)",
+    "note" : "A political line. You think of the 路线斗争 of the Mao era, when the wrong line could end a career or worse.",
+    "pinyin" : "lu4 xian4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "路线"
+  },
+  {
+    "gloss" : "document",
+    "note" : "A document, and in offices an instruction from above. 上面下了文件 means it's decided now, and a 红头文件 carries real weight.",
+    "pinyin" : "wen2 jian4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "文件"
+  },
+  {
+    "gloss" : "to admit (a student)",
+    "note" : "To be admitted, usually to a university. A 录取通知书 is a letter your whole family celebrates, and relatives call to ask where you got in.",
+    "pinyin" : "lu4 qu3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "录取"
+  },
+  {
+    "gloss" : "(fig.) to beg",
+    "note" : "To hold out a hand for something. 伸手要钱 means asking for money you haven't earned, and it makes the person sound shameless.",
+    "pinyin" : "shen1 shou3",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "伸手"
+  },
+  {
+    "gloss" : "to cooperate",
+    "note" : "To work together. Two people 配合得好 when they mesh well, while 请配合 from an official sounds polite and isn't really a request.",
+    "pinyin" : "pei4 he2",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "配合"
+  },
+  {
+    "gloss" : "(psychological) shock",
+    "note" : "A blow to your confidence. 别打击我 means don't discourage me, and you say it half joking when someone doubts you.",
+    "pinyin" : "da3 ji1",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "打击"
+  },
+  {
+    "gloss" : "to accept an applicant (prospective student, employee etc) who passes an entrance exam",
+    "note" : "To be admitted, usually to a university. A 录取通知书 is a letter your whole family celebrates, and relatives call to ask where you got in.",
+    "pinyin" : "lu4 qu3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "录取"
+  },
+  {
+    "gloss" : "to coordinate with",
+    "note" : "To work together. Two people 配合得好 when they mesh well, while 请配合 from an official sounds polite and isn't really a request.",
+    "pinyin" : "pei4 he2",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "配合"
+  },
+  {
+    "gloss" : "blow",
+    "note" : "A blow to your confidence. 别打击我 means don't discourage me, and you say it half joking when someone doubts you.",
+    "pinyin" : "da3 ji1",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "打击"
   }
 ]
