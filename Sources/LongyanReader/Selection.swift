@@ -13,6 +13,10 @@ struct Selection {
     let appName: String?
 
     var text: String { String(passage[range]) }
+
+    func withoutBounds() -> Selection {
+        Selection(passage: passage, range: range, bounds: nil, source: source, appName: appName)
+    }
     var hasChinese: Bool { passage[range].contains(where: isCJK) }
 
     /// Trims surrounding whitespace and punctuation so "，研究生。" looks up 研究生.
@@ -91,9 +95,9 @@ enum SelectionReader {
         note("focused \(role) in \(app.localizedName ?? "?")")
 
         // Web pages first: their text views also answer the plain-text queries, but without context.
-        if let s = webSelection(focused, app: app.localizedName) { return s }
-        if let s = nativeSelection(focused, app: app.localizedName) { return s }
-        if app.bundleIdentifier == "com.apple.Preview", let s = pdfSelection(focused, app: app.localizedName) { return s }
+        if let s = webSelection(focused, app: app.localizedName) { return checked(s, focused) }
+        if let s = nativeSelection(focused, app: app.localizedName) { return checked(s, focused) }
+        if app.bundleIdentifier == "com.apple.Preview", let s = pdfSelection(focused, app: app.localizedName) { return checked(s, focused) }
         // Some apps only say what is selected, not where: still better than copying.
         if let selected: String = attribute(focused, kAXSelectedTextAttribute) {
             if selected.isEmpty { return .nothingSelected }
@@ -103,6 +107,29 @@ enum SelectionReader {
                                         source: .accessibility, appName: app.localizedName))
         }
         return .unreadable
+    }
+
+    /// Some apps report an empty rectangle at the screen's corner, or one relative to their
+    /// window. Such a position is dropped, so the card opens by the pointer instead.
+    private static func checked(_ result: Result, _ focused: AXUIElement) -> Result {
+        guard case .selection(let s) = result, let b = s.bounds else { return result }
+        let primaryHeight = NSScreen.screens.first?.frame.height ?? 0
+        let onScreen = NSRect(x: b.minX, y: primaryHeight - b.maxY, width: b.width, height: b.height)
+        var plausible = b.width >= 1 && b.height >= 1 && NSScreen.screens.contains { $0.frame.intersects(onScreen) }
+        if plausible, let window = windowFrame(of: focused), !window.intersects(b) { plausible = false }
+        if plausible { return result }
+        note("bounds dropped: \(b)")
+        return .selection(s.withoutBounds())
+    }
+
+    /// The focused element's window, in the same space as selection bounds.
+    private static func windowFrame(of element: AXUIElement) -> CGRect? {
+        guard let window: AXUIElement = attribute(element, kAXWindowAttribute),
+              let position: AXValue = attribute(window, kAXPositionAttribute),
+              let size: AXValue = attribute(window, kAXSizeAttribute) else { return nil }
+        var origin = CGPoint.zero, extent = CGSize.zero
+        guard AXValueGetValue(position, .cgPoint, &origin), AXValueGetValue(size, .cgSize, &extent) else { return nil }
+        return CGRect(origin: origin, size: extent)
     }
 
     /// Chromium browsers build their page accessibility tree only when an assistive app

@@ -48,7 +48,10 @@ final class SelectionChip {
             case .selection(let s):
                 let t = s.trimmed()
                 guard !t.range.isEmpty, t.hasChinese, t.range.count <= 400 else { return }
-                self.show(at: upPoint, selectionBounds: s.bounds, selection: t)
+                // A position far from where the mouse let go isn't where the selection is.
+                let near = t.bounds.map { AppDelegate.appKitRect($0).insetBy(dx: -160, dy: -160).contains(upPoint) } ?? false
+                let placed = near ? t : t.withoutBounds()
+                self.show(at: upPoint, selectionBounds: placed.bounds, selection: placed)
             case .unreadable:
                 // The app won't say what's selected; offer the chip and copy on click.
                 self.show(at: upPoint, selectionBounds: nil, selection: nil)
@@ -58,8 +61,10 @@ final class SelectionChip {
         }
     }
 
-    /// The window is a little larger than the button so its hover growth and shadow fit.
-    private static let size: CGFloat = 30
+    /// The window is larger than the button so its hover growth and shadow fit.
+    private static let size: CGFloat = 44
+    /// The part of the window the button's position is worked out from.
+    private static let target: CGFloat = 30
 
     /// Sits just after the end of a one-line selection; for longer selections,
     /// just above and right of where the mouse was released.
@@ -72,18 +77,26 @@ final class SelectionChip {
         var origin = NSPoint(x: point.x + 6, y: point.y + 6)
         if let b = selectionBounds, b.height > 0, b.height < 40 {
             let r = AppDelegate.appKitRect(b)
-            origin = NSPoint(x: r.maxX + 4, y: r.midY - size / 2)
+            origin = NSPoint(x: r.maxX + 4, y: r.midY - Self.target / 2)
         }
+        let inset = (size - Self.target) / 2
+        origin = NSPoint(x: origin.x - inset, y: origin.y - inset)
         let panel = NSPanel(contentRect: NSRect(origin: origin, size: NSSize(width: size, height: size)),
                             styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         panel.isOpaque = false
         panel.backgroundColor = .clear
-        panel.hasShadow = true
+        panel.hasShadow = false        // the button draws its own, as the card does
+        panel.animationBehavior = .none
+        panel.alphaValue = 0
         panel.level = .popUpMenu
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
         panel.contentView = FirstMouseHostingView(rootView: ChipButtonView { [weak self] in self?.clicked() })
         panel.appearance = CardAppearance.current
         panel.orderFrontRegardless()
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.12
+            panel.animator().alphaValue = 1
+        }
         self.panel = panel
 
         let work = DispatchWorkItem { [weak self] in self?.hide() }
@@ -92,7 +105,8 @@ final class SelectionChip {
     }
 
     private func clicked() {
-        let frame = panel?.frame ?? .zero
+        let inset = (Self.size - Self.target) / 2
+        let frame = panel?.frame.insetBy(dx: inset, dy: inset) ?? .zero
         let selection = pending
         hide()
         onClick(selection, frame)
@@ -124,8 +138,8 @@ struct ChipButtonView: View {
     var body: some View {
         styled
         .scaleEffect(appeared || snapshot ? (pressed ? 0.92 : hovering ? 1.08 : 1) : 0.6)
-        .opacity(appeared || snapshot ? 1 : 0)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .shadow(color: .black.opacity(snapshot ? 0 : 0.18), radius: 5, y: 2)
+        .frame(width: 30, height: 30)
         .contentShape(Circle())
         .onHover { hovering = $0 }
         .gesture(DragGesture(minimumDistance: 0)
@@ -134,6 +148,7 @@ struct ChipButtonView: View {
         .help("Look up in Longyan")
         .animation(.spring(response: 0.25, dampingFraction: 0.7), value: hovering)
         .animation(.spring(response: 0.2, dampingFraction: 0.7), value: pressed)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear { withAnimation(.spring(response: 0.3, dampingFraction: 0.68)) { appeared = true } }
     }
 

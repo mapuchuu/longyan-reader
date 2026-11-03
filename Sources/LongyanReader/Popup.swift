@@ -125,15 +125,15 @@ struct LookupView: View {
             }
             senses
         }
-        .animation(.smooth(duration: 0.25), value: state.choice?.senseNumber)
-        .animation(.smooth(duration: 0.25), value: state.phase)
-        .animation(.smooth(duration: 0.25), value: state.showAllSenses)
-        .animation(.smooth(duration: 0.25), value: state.userPicked)
+        .animation(cardMotion, value: state.choice?.senseNumber)
+        .animation(cardMotion, value: state.phase)
+        .animation(cardMotion, value: state.showAllSenses)
+        .animation(cardMotion, value: state.userPicked)
     }
 
     private var header: some View {
         let syllables = Pinyin.syllables(state.headerPinyin)
-        return HStack(alignment: .lastTextBaseline, spacing: 10) {
+        return HStack(alignment: .lastTextBaseline, spacing: 10 * scale) {
             HStack(spacing: 0) {
                 ForEach(Array(state.context.word.enumerated()), id: \.offset) { i, ch in
                     Text(String(ch)).foregroundStyle(toneColor(syllables[safe: i]?.tone ?? 5))
@@ -167,7 +167,7 @@ struct LookupView: View {
 
     @ViewBuilder private var status: some View {
         if state.userPicked, let suggested = state.suggested, suggested.senseNumber != state.choice?.senseNumber {
-            Button { withAnimation(.smooth(duration: 0.25)) { state.useSuggested() } } label: {
+            Button { withAnimation(cardMotion) { state.useSuggested() } } label: {
                 Label("Use suggested meaning: \(suggested.meaningHere)", systemImage: "arrow.uturn.backward")
                     .cardFont(11)
                     .lineLimit(1)
@@ -201,15 +201,15 @@ struct LookupView: View {
         let collapsed = all.filter { listed?.contains($0.element) ?? preview.contains($0.offset) || $0.offset == state.chosenIndex }
         let shown = state.showAllSenses ? all : collapsed
         let showReading = Set(state.senses.map(\.pinyin)).count > 1
-        return VStack(alignment: .leading, spacing: 6) {
+        return VStack(alignment: .leading, spacing: 6 * scale) {
             SectionLabel(text: "Meanings")
             VStack(alignment: .leading, spacing: 1) {
                 ForEach(shown, id: \.offset) { i, sense in
                     let chosen = state.chosenIndex == i
                     let note = NotesStore.hasExactNote(state.context.word, sense)
                         ? NotesStore.note(state.context.word, sense) : nil
-                    Button { withAnimation(.smooth(duration: 0.25)) { state.pick(i) } } label: {
-                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Button { withAnimation(cardMotion) { state.pick(i) } } label: {
+                        HStack(alignment: .firstTextBaseline, spacing: 8 * scale) {
                             Text("\(i + 1)").cardFont(11, monospacedDigit: true).foregroundStyle(.tertiary)
                                 .frame(width: 14 * scale, alignment: .trailing)
                             VStack(alignment: .leading, spacing: 1) {
@@ -239,7 +239,7 @@ struct LookupView: View {
                 }
                 if state.senses.count > collapsed.count {
                     Button {
-                        withAnimation(.smooth(duration: 0.25)) { state.showAllSenses.toggle() }
+                        withAnimation(cardMotion) { state.showAllSenses.toggle() }
                         state.onLayoutChange()
                     } label: {
                         Text(state.showAllSenses ? "Show less" : "Show \(state.senses.count - collapsed.count) more")
@@ -327,10 +327,13 @@ final class PopupController {
     private(set) var generation = 0
 
     /// Shows a card just below `anchor` (the selection, or a small box at the cursor).
-    /// The card fades and springs in once its content has been measured.
-    func show<V: View>(_ view: V, kind: CardLayout.Kind, near anchor: NSRect) {
+    /// The card fades and springs in once its content has been measured. With `holdFor`, it
+    /// waits up to that long for `endHold`, so an answer on its way is there when it opens.
+    func show<V: View>(_ view: V, kind: CardLayout.Kind, near anchor: NSRect, holdFor hold: TimeInterval = 0) {
         close()
         wasMoved = false
+        revealPending = false
+        held = hold > 0
         self.anchor = anchor
         let layout = CardLayout(kind: kind)
         self.kind = kind
@@ -338,8 +341,12 @@ final class PopupController {
         let visible = visibleFrame()
         layout.maxHeight = max(140, visible.height * 0.8)
         let host = FirstMouseHostingView(rootView: CardChrome(layout: layout) { view })
+        host.sizingOptions = []        // only `setWindow` sizes the window
         let panel = PopupPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel],
                                backing: .buffered, defer: false)
+        panel.becomesKeyOnlyIfNeeded = true   // clicking the card leaves the app being read in focus
+        panel.animationBehavior = .none
+        panel.alphaValue = 0
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = false        // the card draws its own shadow, shaped like the card
@@ -350,20 +357,24 @@ final class PopupController {
         self.panel = panel
         self.hosting = host
         self.layout = layout
-        layout.onChange = { [weak self] animated in self?.applySize(animated: animated) }
+        layout.onChange = { [weak self, weak layout] animated in
+            self?.applySize(animated: animated)
+            if let layout, layout.contentHeight > 0 { self?.measured(layout) }
+        }
         panel.onMove = { [weak self] mouse in self?.move(to: mouse) }
         panel.canMove = { [weak self] point in self?.canMove(from: point) ?? false }
 
-        placedBelow = anchor.minY - 8 - 200 >= visible.minY
-        layout.placedBelow = placedBelow
+        choosePlacement(for: layout)
         applySize(animated: false)
+        // Ordered in while still invisible, so SwiftUI measures the content; `reveal` shows it.
         panel.orderFrontRegardless()
-
-        // Let SwiftUI measure the content, size the window to it, then animate in.
-        DispatchQueue.main.async { [weak self, weak layout] in
-            guard let self, let layout, self.layout === layout else { return }
-            self.applySize(animated: false)
-            withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) { layout.appeared = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self, weak layout] in
+            if let layout { self?.reveal(layout) }
+        }
+        if hold > 0 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + hold) { [weak self, weak layout] in
+                if let self, self.layout === layout { self.endHold() }
+            }
         }
 
         // Close on a click elsewhere, scrolling (unless the card was dragged aside to read
@@ -384,11 +395,77 @@ final class PopupController {
         }) { monitors.append(m) }
     }
 
+    /// The first measurement: the side can be settled now that the height is known, and
+    /// the card shows a frame later, once that has been drawn.
+    private func measured(_ layout: CardLayout) {
+        guard !layout.appeared else { return }
+        choosePlacement(for: layout)
+        applySize(animated: false)
+        guard !held, !revealPending else { return }
+        revealPending = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) { [weak self, weak layout] in
+            if let layout { self?.reveal(layout) }
+        }
+    }
+
+    /// Whether the open card has been shown yet.
+    var isRevealed: Bool { layout?.appeared ?? true }
+
+    /// Stops holding the card back: it opens a moment later, once its new content is measured.
+    func endHold() {
+        guard held else { return }
+        held = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.04) { [weak self, weak layout = self.layout] in
+            guard let self, let layout, self.layout === layout, !layout.appeared else { return }
+            self.choosePlacement(for: layout)
+            self.applySize(animated: false)
+            self.reveal(layout)
+        }
+    }
+
+    /// Fades the window in, which keeps the blur behind the card intact, as the card springs in.
+    private func reveal(_ layout: CardLayout) {
+        guard self.layout === layout, !layout.appeared, !held, let panel else { return }
+        revealPending = false
+        panel.displayIfNeeded()
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.14
+            panel.animator().alphaValue = 1
+        }
+        withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) { layout.appeared = true }
+    }
+
+    /// Below the selection when the card fits there, else whichever side has more room. The
+    /// card scrolls past that room, so it never slides over the selection as it fills in.
+    private func choosePlacement(for layout: CardLayout) {
+        let visible = visibleFrame()
+        let below = anchor.minY - 16 - visible.minY, above = visible.maxY - anchor.maxY - 16
+        placedBelow = below >= max(layout.contentHeight, 320) || below >= above
+        layout.placedBelow = placedBelow
+        fitMaxHeight(layout)
+    }
+
+    private func fitMaxHeight(_ layout: CardLayout) {
+        let visible = visibleFrame()
+        let room = placedBelow ? anchor.minY - 16 - visible.minY : visible.maxY - anchor.maxY - 16
+        layout.maxHeight = max(200, min(room, visible.height * 0.8))
+    }
+
+    /// The screen showing most of the anchor, else the one with the pointer.
     private func visibleFrame() -> NSRect {
-        (NSScreen.screens.first { $0.frame.intersects(anchor) } ?? NSScreen.main)?.visibleFrame ?? .zero
+        func overlap(_ s: NSScreen) -> CGFloat {
+            let r = s.frame.intersection(anchor)
+            return r.isNull ? 0 : max(r.width * r.height, 1)
+        }
+        let screens = NSScreen.screens
+        if let best = screens.max(by: { overlap($0) < overlap($1) }), overlap(best) > 0 { return best.visibleFrame }
+        let mouse = NSEvent.mouseLocation
+        return (screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? NSScreen.main)?.visibleFrame ?? .zero
     }
 
     private var shrinkWork: DispatchWorkItem?
+    private var revealPending = false
+    private var held = false
 
     /// Fits the transparent window around the card plus its shadow margin. The card animates
     /// its own size; the window only changes instantly, growing before an expansion and
@@ -462,6 +539,7 @@ final class PopupController {
             anchor.origin.x = panel.frame.minX + m
             anchor.origin.y = placedBelow ? panel.frame.maxY + 8 - m : panel.frame.minY - 8 + m - anchor.height
             moveStart = nil
+            if let layout { fitMaxHeight(layout); applySize(animated: true) }
             return
         }
         if moveStart == nil { moveStart = (mouse, anchor) }

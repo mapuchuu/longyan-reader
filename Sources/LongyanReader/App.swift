@@ -31,6 +31,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private(set) var lastLookupState: LookupState?
     private(set) var lastPhraseState: PhraseState?
     private var phrasePrep: PhrasePrep?
+    private var wordPrep: (key: String, task: Task<SenseChoice, Error>)?
     private var localModelReady = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -99,13 +100,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         try? await Task.sleep(for: .seconds(wait))
                         lines.append("\(label): " + self.popup.debugState)
                     }
-                    let savedZoom = UserDefaults.standard.object(forKey: "card.word.width")
+                    let savedZoom = UserDefaults.standard.object(forKey: CardLayout.zoomKey)
                     self.popup.debugDrag(dx: 120, dy: -150)
                     try? await Task.sleep(for: .seconds(0.3))
                     lines.append("after dragging corner +120, +150 down: " + self.popup.debugState)
-                    lines.append("saved size: " + "\(UserDefaults.standard.double(forKey: "card.word.width")) x \(UserDefaults.standard.double(forKey: "card.word.height"))")
-                    if let savedZoom { UserDefaults.standard.set(savedZoom, forKey: "card.word.width") }
-                    else { UserDefaults.standard.removeObject(forKey: "card.word.width") }
+                    lines.append("saved zoom: \(UserDefaults.standard.double(forKey: CardLayout.zoomKey))")
+                    if let savedZoom { UserDefaults.standard.set(savedZoom, forKey: CardLayout.zoomKey) }
+                    else { UserDefaults.standard.removeObject(forKey: CardLayout.zoomKey) }
                     self.popup.close()
                     try? lines.joined(separator: "\n").write(to: Log.directory.appendingPathComponent("ax-probe.txt"), atomically: true, encoding: .utf8)
                 }
@@ -301,21 +302,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                 phase: modelReady ? .choosing : .dictionaryOnly(senses.isEmpty ? "not in dictionary" : SenseChooser.unavailableReason))
         state.onLayoutChange = { [weak self] in Task { await self?.relayout() } }
         lastLookupState = state
-        popup.show(LookupView(state: state), kind: .word, near: anchor)
+        // Usually started when the text was selected (see `prepare`); otherwise start now. The
+        // card waits briefly for the answer, so it opens complete instead of growing after.
+        let key = Self.wordKey(context)
+        let prepared = wordPrep.flatMap { $0.key == key ? $0.task : nil }
+        wordPrep = nil
+        let pick: Task<SenseChoice, Error>? = !modelReady ? nil : prepared ?? Task { try await SenseChooser.choose(for: context, senses: senses) }
+        popup.show(LookupView(state: state), kind: .word, near: anchor, holdFor: modelReady ? 0.4 : 0)
         var record: [String: Any] = ["event": "word", "word": context.word, "sentence": context.sentence,
                                      "app": appName ?? "", "senses": senses.count]
         lookupTask = Task {
             let started = Date()
-            if modelReady {
+            if let pick {
                 do {
-                    let choice = try await SenseChooser.choose(for: context, senses: senses)
+                    let choice = try await pick.value
                     guard !Task.isCancelled else { return }
                     if state.userPicked { record["userPickedFirst"] = true }   // the reader's choice stands
-                    withAnimation(.smooth(duration: 0.3)) { state.receive(choice) }
+                    if popup.isRevealed {
+                        withAnimation(cardMotion) { state.receive(choice) }
+                    } else {
+                        var still = Transaction()
+                        still.disablesAnimations = true
+                        withTransaction(still) { state.receive(choice) }
+                        popup.endHold()
+                    }
                     record["meaningHere"] = choice.meaningHere
                     record["tag"] = choice.tag.rawValue
                 } catch {
                     state.phase = .failed(String(describing: error).prefix(80).description)
+                    popup.endHold()
                     record["error"] = String(describing: error)
                 }
                 record["ms"] = Int(Date().timeIntervalSince(started) * 1000)
@@ -351,9 +366,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// Starts a phrase card's work for a fresh selection, before the reader clicks.
+    private static func wordKey(_ context: WordInContext) -> String {
+        "\(context.wordRange)|\(String(context.passage))"
+    }
+
+    /// Starts a card's work for a fresh selection, before the reader clicks.
     func prepare(_ selection: Selection) {
-        guard let dict, !isSingleWord(selection, dict: dict) else { return }
+        guard let dict else { return }
+        if isSingleWord(selection, dict: dict) {
+            let context = Segmenter.context(for: selection.range, in: selection.passage)
+            let key = Self.wordKey(context)
+            let senses = dict.senses(for: context.word)
+            guard wordPrep?.key != key, SenseChooser.isAvailable, !senses.isEmpty,
+                  GrammarWords.entry(context.word, in: context.passage, at: context.wordRange.lowerBound) == nil else { return }
+            wordPrep?.task.cancel()
+            wordPrep = (key, Task { try await SenseChooser.choose(for: context, senses: senses) })
+            return
+        }
         if phrasePrep?.matches(selection) == true { return }
         phrasePrep?.cancel()
         phrasePrep = PhrasePrep(selection, dict: dict)

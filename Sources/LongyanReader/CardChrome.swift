@@ -24,6 +24,8 @@ final class CardLayout: ObservableObject {
 
     static let defaultWidth: [Kind: CGFloat] = [.word: 360, .phrase: 390, .hint: 260]
     static let scaleRange: ClosedRange<CGFloat> = 0.8...2.2
+    /// One zoom for every card, so word and phrase cards always have the same text size.
+    static let zoomKey = "card.zoom"
 
     var baseWidth: CGFloat { Self.defaultWidth[kind] ?? 360 }
     var scale: CGFloat { kind == .hint ? 1 : width / baseWidth }
@@ -31,8 +33,8 @@ final class CardLayout: ObservableObject {
     init(kind: Kind) {
         self.kind = kind
         let base = Self.defaultWidth[kind] ?? 360
-        let saved = UserDefaults.standard.double(forKey: "card.\(kind.rawValue).width")
-        width = saved > 0 ? min(max(saved, base * Self.scaleRange.lowerBound), base * Self.scaleRange.upperBound) : base
+        let saved = UserDefaults.standard.double(forKey: Self.zoomKey)
+        width = kind != .hint && saved > 0 ? base * min(max(saved, Self.scaleRange.lowerBound), Self.scaleRange.upperBound) : base
     }
 
     var height: CGFloat { min(contentHeight, maxHeight) }
@@ -64,17 +66,20 @@ final class CardLayout: ObservableObject {
     func endResize() {
         dragStart = nil
         isResizing = false
-        UserDefaults.standard.set(Double(width), forKey: "card.\(kind.rawValue).width")
+        UserDefaults.standard.set(Double(scale), forKey: Self.zoomKey)
         onChange(false)
     }
 
     /// Double-click on the grip: back to 1×.
     func resetSize() {
         width = baseWidth
-        UserDefaults.standard.removeObject(forKey: "card.\(kind.rawValue).width")
+        UserDefaults.standard.removeObject(forKey: Self.zoomKey)
         onChange(true)
     }
 }
+
+/// Every change inside a card uses this, so the content and the card's edge move together.
+let cardMotion = Animation.smooth(duration: 0.28)
 
 /// How much the card is zoomed; every card font and fixed size multiplies by it.
 private struct CardScaleKey: EnvironmentKey { static let defaultValue: CGFloat = 1 }
@@ -184,11 +189,12 @@ struct CardChrome<Content: View>: View {
     @ObservedObject var layout: CardLayout
     @Environment(\.renderingSnapshot) private var snapshot
     @Environment(\.colorScheme) private var colorScheme
+    @State private var hovering = false
     let content: Content
     static var radius: CGFloat { 14 }
     /// Transparent space around the card for its shadow.
     static var margin: CGFloat { 28 }
-    static var sizeAnimation: Animation { .smooth(duration: 0.28) }
+    static var sizeAnimation: Animation { cardMotion }
 
     init(layout: CardLayout, @ViewBuilder content: () -> Content) {
         self.layout = layout
@@ -196,8 +202,9 @@ struct CardChrome<Content: View>: View {
     }
 
     private var glassStyle: Bool { CardStyle.current == .glass && !snapshot }
+    private var shapeRadius: CGFloat { glassStyle ? Self.radius + 4 : Self.radius }
     private var shape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: glassStyle ? Self.radius + 4 : Self.radius, style: .continuous)
+        RoundedRectangle(cornerRadius: shapeRadius, style: .continuous)
     }
 
     var body: some View {
@@ -206,11 +213,11 @@ struct CardChrome<Content: View>: View {
         } else {
             card(scrolling)
                 .frame(width: layout.width, height: max(layout.height, 1), alignment: .top)
-                .animation(layout.isResizing ? nil : Self.sizeAnimation, value: layout.height)
-                .shadow(color: .black.opacity(0.16), radius: 16, y: 8)
-                .shadow(color: .black.opacity(0.08), radius: 1.5, y: 0.5)
+                // Not until it's shown, or the card would grow from nothing as it appears.
+                .animation(layout.appeared && !layout.isResizing ? Self.sizeAnimation : nil, value: layout.height)
+                .onHover { hovering = $0 }
+                .background(CardShadow(radius: shapeRadius))
                 .scaleEffect(layout.appeared ? 1 : 0.96, anchor: layout.placedBelow ? .top : .bottom)
-                .opacity(layout.appeared ? 1 : 0)
                 .offset(y: layout.appeared ? 0 : (layout.placedBelow ? -4 : 4))
                 .padding(Self.margin)
                 .frame(maxWidth: .infinity, maxHeight: .infinity,
@@ -269,7 +276,35 @@ struct CardChrome<Content: View>: View {
     }
 
     @ViewBuilder private var grip: some View {
-        if layout.kind != .hint { ResizeGrip(layout: layout) }
+        if layout.kind != .hint {
+            ResizeGrip(layout: layout)
+                .opacity(hovering || layout.isResizing ? 1 : 0)
+                .animation(.easeOut(duration: 0.15), value: hovering)
+        }
+    }
+}
+
+/// The card's shadow, drawn from its outline alone so its text isn't re-blurred on every
+/// frame of a resize. Cut out under the card, where it would show through the translucency.
+struct CardShadow: View {
+    let radius: CGFloat
+
+    private struct Outside: Shape {
+        let radius: CGFloat
+        func path(in rect: CGRect) -> Path {
+            var path = Path(rect.insetBy(dx: -CardChrome<EmptyView>.margin, dy: -CardChrome<EmptyView>.margin))
+            path.addPath(RoundedRectangle(cornerRadius: radius, style: .continuous).path(in: rect))
+            return path
+        }
+    }
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: radius, style: .continuous)
+            .fill(.black)
+            .shadow(color: .black.opacity(0.16), radius: 16, y: 8)
+            .shadow(color: .black.opacity(0.08), radius: 1.5, y: 0.5)
+            .mask(Outside(radius: radius).fill(style: FillStyle(eoFill: true)))
+            .allowsHitTesting(false)
     }
 }
 

@@ -21,18 +21,15 @@ extension AppDelegate {
         let savedModel = UserDefaults.standard.string(forKey: "senseModel")
         let savedStyle = UserDefaults.standard.string(forKey: "cardStyle")
         let savedAppearance = UserDefaults.standard.string(forKey: "appearance")
-        let savedZoom = UserDefaults.standard.object(forKey: "card.word.width")
-        let savedPhraseZoom = UserDefaults.standard.object(forKey: "card.phrase.width")
-        UserDefaults.standard.removeObject(forKey: "card.word.width")
-        UserDefaults.standard.removeObject(forKey: "card.phrase.width")
+        let savedZoom = UserDefaults.standard.object(forKey: CardLayout.zoomKey)
+        UserDefaults.standard.removeObject(forKey: CardLayout.zoomKey)
         popup.ignoresOutsideInput = true
         defer {
             popup.ignoresOutsideInput = false
             if let savedModel { LocalModel.select(savedModel) } else { UserDefaults.standard.removeObject(forKey: "senseModel") }
             UserDefaults.standard.set(savedStyle, forKey: "cardStyle")
             UserDefaults.standard.set(savedAppearance, forKey: "appearance")
-            if let savedZoom { UserDefaults.standard.set(savedZoom, forKey: "card.word.width") }
-            if let savedPhraseZoom { UserDefaults.standard.set(savedPhraseZoom, forKey: "card.phrase.width") }
+            if let savedZoom { UserDefaults.standard.set(savedZoom, forKey: CardLayout.zoomKey) }
             applyAppearance()
         }
 

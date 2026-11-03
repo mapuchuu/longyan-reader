@@ -72,9 +72,9 @@ final class PhraseState: ObservableObject {
         if translation != prep.translation { translation = prep.translation }
         if prep.translationDone, prep.translation == nil { translationError = prep.translationError }
         for (id, choice) in prep.picks where choices[id] == nil && !userPicked.contains(id) {
-            withAnimation(.smooth(duration: 0.25)) { choices[id] = choice }
+            withAnimation(cardMotion) { choices[id] = choice }
         }
-        if resolving != !prep.done { withAnimation(.smooth(duration: 0.25)) { resolving = !prep.done } }
+        if resolving != !prep.done { withAnimation(cardMotion) { resolving = !prep.done } }
         // Streaming updates come in quickly; resize the card at most every 80 ms.
         guard !layoutPending else { return }
         layoutPending = true
@@ -243,7 +243,7 @@ final class PhraseState: ObservableObject {
                 let choice = try await SenseChooser.choose(
                     for: Segmenter.context(for: token.range, in: selection.passage), senses: list)
                 if !userPicked.contains(token.id) {
-                    withAnimation(.smooth(duration: 0.3)) { choices[token.id] = choice }
+                    withAnimation(cardMotion) { choices[token.id] = choice }
                 }
             } catch {
                 failures[token.id] = "Dictionary order: couldn't place this word in the sentence"
@@ -280,7 +280,7 @@ struct PhraseView: View {
                     .lineLimit(4)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 6 * scale) {
                 SectionLabel(text: "Words")
                 VStack(alignment: .leading, spacing: 1) {
                     ForEach(state.tokens.prefix(maxRows)) { token in row(token) }
@@ -289,15 +289,15 @@ struct PhraseView: View {
                             .cardFont(11).foregroundStyle(.tertiary).padding(.horizontal, 8).padding(.vertical, 4)
                     }
                 }
-                .padding(3)
+                .padding(3 * scale)
                 .background(RoundedRectangle(cornerRadius: 10 * scale, style: .continuous).fill(Color.primary.opacity(0.04)))
             }
         }
-        .animation(.smooth(duration: 0.25), value: state.expanded)
-        .animation(.smooth(duration: 0.25), value: state.translation)
-        .animation(.smooth(duration: 0.25), value: state.choices.count)
-        .animation(.smooth(duration: 0.25), value: state.choosing)
-        .animation(.smooth(duration: 0.3), value: state.resolving)
+        .animation(cardMotion, value: state.expanded)
+        .animation(cardMotion, value: state.translation)
+        .animation(cardMotion, value: state.choices.count)
+        .animation(cardMotion, value: state.choosing)
+        .animation(cardMotion, value: state.resolving)
     }
 
     @ViewBuilder private var translation: some View {
@@ -321,8 +321,8 @@ struct PhraseView: View {
         let dim = particleWords.contains(token.text)
         let pending = state.pending(token)
         return VStack(alignment: .leading, spacing: 0) {
-            Button { withAnimation(.smooth(duration: 0.25)) { state.toggle(token) } } label: {
-                HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Button { withAnimation(cardMotion) { state.toggle(token) } } label: {
+                HStack(alignment: .firstTextBaseline, spacing: 10 * scale) {
                     HStack(spacing: 0) {
                         ForEach(Array(token.text.enumerated()), id: \.offset) { i, ch in
                             Text(String(ch)).foregroundStyle(pending ? Color.secondary : toneColor(syllables[safe: i]?.tone ?? 5))
@@ -356,7 +356,7 @@ struct PhraseView: View {
             .buttonStyle(CardRowStyle(selected: isOpen))
             if isOpen {
                 detail(token, senses: senses)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .transition(.opacity)
             }
         }
         .clipped()
@@ -392,7 +392,7 @@ struct PhraseView: View {
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(shown, id: \.offset) { i, sense in
                     let chosen = state.grammar(token) == nil && state.shownSense(token) == i
-                    Button { withAnimation(.smooth(duration: 0.25)) { state.pick(token, sense: i) } } label: {
+                    Button { withAnimation(cardMotion) { state.pick(token, sense: i) } } label: {
                         HStack(alignment: .firstTextBaseline, spacing: 6) {
                             Image(systemName: "checkmark").cardFont(9, .bold)
                                 .foregroundStyle(Color.accentColor).opacity(chosen ? 1 : 0)
@@ -411,7 +411,7 @@ struct PhraseView: View {
                 }
                 if senses.count > collapsed.count {
                     Button {
-                        withAnimation(.smooth(duration: 0.25)) {
+                        withAnimation(cardMotion) {
                             if all { state.showingAll.remove(token.id) } else { state.showingAll.insert(token.id) }
                         }
                         state.onLayoutChange()
