@@ -1,0 +1,112 @@
+[
+  {
+    "gloss" : "mainland China (reference to the PRC)",
+    "note" : "Mainland China. Said in Taiwan or Hong Kong it marks where you're standing, and on the mainland you hardly use it for your own home.",
+    "pinyin" : "Da4 lu4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "大陆"
+  },
+  {
+    "gloss" : "pregnancy",
+    "note" : "A pregnancy, said in an old or rural way. 她有身子了 sounds like your grandmother telling you the news quietly.",
+    "pinyin" : "shen1 zi5",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "身子"
+  },
+  {
+    "gloss" : "member of a class or group; people of a certain type",
+    "note" : "A member of a type of group, often one under suspicion. 坏分子 and 不法分子 sound like labels on a file, and you still hear the Mao-era tone in them.",
+    "pinyin" : "fen4 zi3",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "分子"
+  },
+  {
+    "gloss" : "(fig.) to report",
+    "note" : "To report something up. When you 反映问题 you take a complaint to someone in charge, and you choose your words carefully.",
+    "pinyin" : "fan3 ying4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "反映"
+  },
+  {
+    "gloss" : "don't tell me ...",
+    "note" : "Don't tell me. 难道 shows you don't believe it, and you're really asking the other person to admit it can't be so.",
+    "pinyin" : "nan2 dao4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "难道"
+  },
+  {
+    "gloss" : "Mrs.",
+    "note" : "Someone's wife, said respectfully. You ask after 您夫人 politely, and you'd only call your own wife 夫人 as a joke.",
+    "pinyin" : "fu1 ren5",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "夫人"
+  },
+  {
+    "gloss" : "to think; to believe (often with the implication that the belief is mistaken – unless referring to one's own current belief)",
+    "note" : "To think, and it usually turns out wrong. 我以为他走了 already tells you that he hadn't left.",
+    "pinyin" : "yi3 wei2",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "以为"
+  },
+  {
+    "gloss" : "neighborhood",
+    "note" : "Your neighborhood, as an office. The 社区 stamps your paperwork and knocks on your door, and you remember how much it ran your life during Covid.",
+    "pinyin" : "she4 qu1",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "社区"
+  },
+  {
+    "gloss" : "grades",
+    "note" : "Grades. It's the first thing relatives ask you about at New Year, and you feel the question coming before they sit down.",
+    "pinyin" : "cheng2 ji4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "成绩"
+  },
+  {
+    "gloss" : "to make known",
+    "note" : "To report something up. When you 反映问题 you take a complaint to someone in charge, and you choose your words carefully.",
+    "pinyin" : "fan3 ying4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "反映"
+  },
+  {
+    "gloss" : "could it be that...?",
+    "note" : "Don't tell me. 难道 shows you don't believe it, and you're really asking the other person to admit it can't be so.",
+    "pinyin" : "nan2 dao4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "难道"
+  }
+]
