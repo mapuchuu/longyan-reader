@@ -70,6 +70,27 @@ enum CLI {
                 else { print("WRONG \(f[1]) [\(f[2])] want \(f[3]), got: \(got?.gloss.prefix(60) ?? "none")\(senses.contains(where: matches) ? "" : "  (right sense not offered)")") }
             }
             print("right \(right)/\(total), right sense not offered \(unoffered), word split differently \(unsplit), \(Int(Date().timeIntervalSince(started))) s")
+        case "--eval-single" where args.count >= 3:
+            // The same file as --eval-phrase, picked the way a single-word card does.
+            let dict = try CEDict.load()
+            var right = 0, total = 0, unoffered = 0
+            let started = Date()
+            for line in try String(contentsOfFile: args[2], encoding: .utf8).split(separator: "\n") where !line.hasPrefix("#") {
+                let f = line.split(separator: "\t").map(String.init)
+                guard f.count == 4, args.count < 4 || f[0] == args[3] else { continue }
+                let passage = Array(f[1]), wants = f[3].lowercased().split(separator: "|").map(String.init)
+                guard let at = f[1].range(of: f[2]).map({ f[1].distance(from: f[1].startIndex, to: $0.lowerBound) }),
+                      let ctx = Segmenter.word(at: at, in: passage, dict: dict) else { continue }
+                total += 1
+                let senses = dict.senses(for: ctx.word)
+                let matches = { (s: Sense) in wants.contains { s.gloss.lowercased().contains($0) } }
+                if !senses.contains(where: matches) { unoffered += 1 }
+                let n = (try? await SenseChooser.choose(for: ctx, senses: senses))?.senseNumber ?? 1
+                let got = senses[safe: n - 1]
+                if ctx.word == f[2], let got, matches(got) { right += 1 }
+                else { print("WRONG \(f[1]) [\(ctx.word)] want \(f[3]), got: \(got?.gloss.prefix(60) ?? "none")\(senses.contains(where: matches) ? "" : "  (right sense not offered)")") }
+            }
+            print("right \(right)/\(total), right sense not offered \(unoffered), \(Int(Date().timeIntervalSince(started))) s")
         case "--gloss-audit" where args.count >= 3:
             // Every sense of every word in a file of sentences, with the short meaning a card
             // would show; flags the ones that still read like a dictionary. --gloss-audit f [all]

@@ -81,6 +81,8 @@ Nuance notes are written ahead of time, one per dictionary sense that needs one,
 
 New notes come in batches: most looked-up words first, then by frequency (`notes/frequency.txt`, from jieba). `scripts/notes-batch.sh next` picks the next words into `notes/batches/NN/` and prints their senses. Write the notes into its `annotations.tsv`, `note-covers.tsv` and `examples.tsv` (a batch can be empty of notes for plain words; most senses need none). `scripts/notes-batch.sh finish NN` checks them, merges them into `Resources/`, runs the tests and saves the scores in the batch's folder. `scripts/notes-batch.sh status` shows progress. Example sentences go into the model's prompt and can pull other words off their right sense (时候 and 那个 both did), so add them only for senses that are really distinct, and take a drop in the `finish` scores seriously. To drop an example already merged, remove it from `Resources/examples.json` as well as the batch.
 
+The model sees each noted sense with its note's first sentence, and a few fixed casual patterns it never reads correctly (这不科学, 你可以啊) are settled without it by `Resources/note-cues.json`. `notes/note-pick-eval.tsv` tests this with pairs: a casual use that should land on the noted sense, and a plain use that must not.
+
 ## Licences
 
 The Longyan eye icon is from the Longyan Chrome extension.

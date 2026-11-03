@@ -28,6 +28,8 @@ finish)
         "$bin" --eval-notes | tail -1
         "$bin" --eval | tail -1
         "$bin" --eval-phrase notes/phrase-eval.tsv | tail -1
+        "$bin" --eval-phrase notes/note-pick-eval.tsv | tail -1
+        "$bin" --eval-single notes/note-pick-eval.tsv | tail -1
     } | tee "$dir/scores.txt"
     "$bin" --notes-progress
     ;;

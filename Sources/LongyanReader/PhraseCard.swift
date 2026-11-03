@@ -99,9 +99,18 @@ final class PhraseState: ObservableObject {
     /// each row already resolved instead of changing when the reader opens it.
     static func resolve(_ tokens: [PhraseToken], in passage: [Character], dict: CEDict, translation: String? = nil,
                         onPick: @MainActor (Int, SenseChoice) -> Void = { _, _ in }) async -> [Int: SenseChoice] {
-        let words = ambiguous(tokens, in: passage, dict: dict)
-        guard SenseChooser.isAvailable, let lo = words.first?.range.lowerBound, let hi = words.last?.range.upperBound else { return [:] }
+        var words = ambiguous(tokens, in: passage, dict: dict)
+        guard SenseChooser.isAvailable else { return [:] }
         var out: [Int: SenseChoice] = [:]
+        words.removeAll { t in
+            let list = dict.senses(for: t.text)
+            guard let n = NoteCues.senseNumber(t.text, at: t.range, in: passage, senses: list) else { return false }
+            let choice = SenseChoice(senseNumber: n, meaningHere: headlineGloss(list[n - 1]))
+            out[t.id] = choice
+            onPick(t.id, choice)
+            return true
+        }
+        guard let lo = words.first?.range.lowerBound, let hi = words.last?.range.upperBound else { return out }
         // The local model takes them all in one streamed request (in chunks, to stay inside its
         // context window): Ollama answers one request at a time, so word-by-word calls queue.
         if await LocalModel.isAvailable() {

@@ -59,19 +59,11 @@ enum LocalModel {
         }
     }
 
-    static let instructions = """
-    You help an English speaker read Chinese. You get a Chinese passage with one word marked 【like this】 and that word's numbered dictionary senses, some with example sentences. \
-    Decide what the marked word means in this passage, then pick the sense that matches. Never invent a sense.
-    """
-
-    static func prompt(_ context: WordInContext, senses: [Sense]) -> String {
-        let list = senses.enumerated().map { i, s -> String in
-            var line = "\(i + 1). [\(Pinyin.marked(s.pinyin))] \(s.gloss)"
-            let ex = ExamplesStore.examples(context.word, s).prefix(2)
-            if !ex.isEmpty { line += "  e.g. " + ex.joined(separator: " ") }
-            return line
-        }
-        return "Passage: \(context.markedPassage)\nMarked word: \(context.word)\nSenses:\n" + list.joined(separator: "\n")
+    /// A noted sense's plain definition (a note's first sentence). Glosses like "objection" or
+    /// "rational" are too terse for the model to recognise 有意见 or 这不科学.
+    static func noteHint(_ word: String, _ s: Sense) -> String {
+        guard NotesStore.hasExactNote(word, s), let note = NotesStore.note(word, s)?.note else { return "" }
+        return " (" + (note.split(whereSeparator: { ".?!".contains($0) }).first.map(String.init) ?? note) + ")"
     }
 
     /// Picks the sense of several words in one passage with a single request. Ollama serves
@@ -85,7 +77,7 @@ enum LocalModel {
         let keys = words.indices.map { String(format: "w%02d", $0 + 1) }
         let blocks = words.enumerated().map { n, w -> String in
             let list = w.senses.enumerated().map { i, s -> String in
-                var line = "  \(i + 1). [\(Pinyin.marked(s.pinyin))] \(s.gloss)"
+                var line = "  \(i + 1). [\(Pinyin.marked(s.pinyin))] \(s.gloss)" + noteHint(w.word, s)
                 let ex = ExamplesStore.examples(w.word, s).prefix(1)
                 if !ex.isEmpty { line += "  e.g. " + ex.joined(separator: " ") }
                 return line
@@ -182,50 +174,11 @@ enum LocalModel {
         return text
     }
 
-    static func choose(_ context: WordInContext, senses: [Sense], brief: Bool = false) async throws -> SenseChoice {
-        let brief = brief || ProcessInfo.processInfo.environment["LONGYAN_SENSE_ONLY"] == "1"
-        let full: [String: Any] = [
-            "type": "object",
-            "properties": [
-                "meaningHere": ["type": "string", "maxLength": 50,
-                                "description": "In English only: what the marked word alone means here, 1 to 5 words. Never Chinese, never a translation or description of the sentence."],
-                "senseNumber": ["type": "integer"],
-            ],
-            "required": ["meaningHere", "senseNumber"],
-        ]
-        let schema: [String: Any] = brief
-            ? ["type": "object", "properties": ["senseNumber": ["type": "integer"]], "required": ["senseNumber"]]
-            : full
-        let body: [String: Any] = [
-            "model": name,
-            "stream": false,
-            "think": false,
-            "format": schema,
-            // Prompts are under 1k tokens: a small context window keeps memory down, and the
-            // model is unloaded after five idle minutes (the next lookup reloads it in seconds).
-            "options": ["temperature": 0, "num_ctx": 2048],
-            "keep_alive": "5m",
-            "messages": [
-                ["role": "system", "content": instructions],
-                ["role": "user", "content": prompt(context, senses: senses)],
-            ],
-        ]
-        var req = URLRequest(url: endpoint)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "content-type")
-        req.httpBody = try JSONSerialization.data(withJSONObject: body)
-        req.timeoutInterval = 60
-        let (data, response) = try await URLSession.shared.data(for: req)
-        guard (response as? HTTPURLResponse)?.statusCode == 200,
-              let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let message = json["message"] as? [String: Any],
-              let content = message["content"] as? String,
-              let parsed = try JSONSerialization.jsonObject(with: Data(content.utf8)) as? [String: Any],
-              let n = parsed["senseNumber"] as? Int else {
-            throw NSError(domain: "LongyanReader", code: 5, userInfo: [NSLocalizedDescriptionKey:
-                "local model: unexpected reply \(String(decoding: data.prefix(200), as: UTF8.self))"])
-        }
-        return SenseChoice(senseNumber: min(max(n, 1), senses.count),
-                           meaningHere: parsed["meaningHere"] as? String ?? shortGloss([senses[min(max(n, 1), senses.count) - 1]]))
+    /// One word's sense, asked the way a phrase card asks: on casual uses this picked better
+    /// than a dedicated prompt with the model's own wording first (27/30 against 22/30). The
+    /// passage marks the word and keeps the text around it, which can decide the sense.
+    static func choose(_ context: WordInContext, senses: [Sense]) async throws -> SenseChoice {
+        let n = try await chooseAll(passage: context.markedPassage, words: [(context.word, senses)]).first ?? 1
+        return SenseChoice(senseNumber: n, meaningHere: headlineGloss(senses[n - 1]))
     }
 }

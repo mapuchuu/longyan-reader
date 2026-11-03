@@ -36,6 +36,37 @@ enum NotesStore {
     static func hasExactNote(_ word: String, _ sense: Sense) -> Bool { shared[key(word, sense.pinyin, sense.gloss)] != nil }
 }
 
+/// Fixed casual patterns the model doesn't read as their noted sense, however it's asked
+/// (这不科学, 你可以啊, 研究研究). A cue settles the sense without a model call.
+struct NoteCue: Codable {
+    let word: String
+    let cue: String
+    let gloss: String
+}
+
+enum NoteCues {
+    static let byWord: [String: [NoteCue]] = {
+        let url = Bundle.main.url(forResource: "note-cues", withExtension: "json")
+            ?? URL(fileURLWithPath: FileManager.default.currentDirectoryPath + "/Resources/note-cues.json")
+        guard let data = try? Data(contentsOf: url),
+              let cues = try? JSONDecoder().decode([NoteCue].self, from: data) else { return [:] }
+        return Dictionary(grouping: cues, by: \.word)
+    }()
+
+    /// The sense number (1-based) a cue settles for the word at `range`: the cue has to cover
+    /// that occurrence of the word, not just appear somewhere in the passage.
+    static func senseNumber(_ word: String, at range: Range<Int>, in passage: [Character], senses: [Sense]) -> Int? {
+        for c in byWord[word] ?? [] {
+            let cue = Array(c.cue)
+            guard let i = senses.firstIndex(where: { $0.gloss == c.gloss }) else { continue }
+            let first = max(0, range.upperBound - cue.count), last = min(range.lowerBound, passage.count - cue.count)
+            guard first <= last else { continue }
+            for start in first...last where Array(passage[start..<start + cue.count]) == cue { return i + 1 }
+        }
+        return nil
+    }
+}
+
 /// Example sentences per sense (examples.json), used to tell close senses apart.
 enum ExamplesStore {
     static let shared: [String: [String]] = {

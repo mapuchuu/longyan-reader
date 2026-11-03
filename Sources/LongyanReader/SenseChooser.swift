@@ -85,6 +85,9 @@ enum SenseChooser {
     /// or a guardrail violation). Retry with just the sentence; if it still refuses,
     /// translate the sentence on-device and take the sense that matches the translation.
     static func choose(for context: WordInContext, senses: [Sense]) async throws -> SenseChoice {
+        if let n = NoteCues.senseNumber(context.word, at: context.wordRange, in: context.passage, senses: senses) {
+            return SenseChoice(senseNumber: n, meaningHere: headlineGloss(senses[n - 1]))
+        }
         let senses = Array(senses.prefix(CEDict.modelSenseLimit))
         return cleaned(try await chooseRaw(for: context, senses: senses), senses: senses)
     }

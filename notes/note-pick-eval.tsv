@@ -1,0 +1,91 @@
+# set	sentence	word	acceptable meanings. Pairs: a casual use that should land on the noted sense, then a plain use that must not. D tunes, H is held out.
+D	我对他有意见。	意见	objection|complaint
+D	你有什么意见可以提出来。	意见	idea|opinion|suggestion
+D	这不科学。	科学	rational
+D	现代科学发展很快。	科学	science
+D	他普通话很标准。	标准	good; correct
+D	这是行业标准。	标准	standard; norm|(adjective) standard
+D	我们研究研究再说。	研究	to look into
+D	他研究古代历史。	研究	research|study
+D	你可以啊！	可以	not bad
+D	你可以走了。	可以	can|may
+D	这家店的菜一般。	一般	so-so
+D	他一般八点上班。	一般	general|ordinary|common
+D	他总爱在领导面前表现自己。	表现	to show off
+D	她在比赛中的表现很好。	表现	performance|to show|to express
+D	他迟到太多，被公司处理了。	处理	to punish
+D	我来处理这个问题。	处理	to handle|to deal
+D	他算个什么东西！	东西	person
+D	我去超市买点东西。	东西	thing
+D	他不是学习的材料。	材料	person who has
+D	这种材料很结实。	材料	material
+D	他最近有情绪，别惹他。	情绪	moodiness
+D	观众的情绪很高。	情绪	mood|emotion|feeling
+D	这是我的一点意思，你收下吧。	意思	token of appreciation
+D	这个词是什么意思？	意思	meaning
+D	她这个人太作了。	作	troublesome
+D	他作了一个决定。	作	to do|to make|to act
+D	他在社会上混了十年。	混	to muddle
+D	别把这两种药混在一起。	混	to mix|to mingle|to blend
+D	这件衣服太土了。	土	unsophisticated
+D	这里的土很肥。	土	earth|soil
+H	她思想很开放。	开放	open-minded
+H	公园今天不开放。	开放	to open|to be open|to lift
+H	他脾气上来了，谁也劝不住。	脾气	bad temper
+H	她脾气很好。	脾气	temperament|disposition
+H	你也太老实了，被人骗了都不知道。	老实	naive
+H	老实说，我不想去。	老实	honest|frank|truthful
+H	他昨天晚上去找小姐了。	小姐	prostitute
+H	王小姐今天不在。	小姐	young lady|miss
+H	我等了他半天。	半天	a long time
+H	我上午请了半天假。	半天	half of the day
+H	你真牛！	牛	awesome
+H	牛在吃草。	牛	cow|ox
+H	现在学生太卷了。	卷	to compete
+H	给我拿一卷纸。	卷	roll|classifier
+H	他这人很实在，不会骗你。	实在	honest
+H	我实在太累了。	实在	really|indeed
+H	多喝点汤补一补。	补	to supplement
+H	妈妈在补衣服。	补	to mend|to repair|to patch
+H	他义务帮老人修车。	义务	volunteer
+H	公民有纳税的义务。	义务	duty|obligation
+H	这只是走个形式。	形式	formality
+H	诗歌是一种文学形式。	形式	form
+H	他非要找老板理论。	理论	to argue
+H	这个理论很难懂。	理论	theory
+H	老板肯定了他的成绩。	肯定	to give recognition
+H	他明天肯定来。	肯定	certainly|sure|definite
+H	差不多就行了，别太较真。	差不多	good enough
+H	他们两个人差不多高。	差不多	almost|nearly|about the same
+H	这么贵，我心疼。	心疼	to grudge
+H	孩子受伤了，妈妈很心疼。	心疼	to feel sorry|to love dearly
+N	家里请了个阿姨做饭。	阿姨	childcare worker|nanny
+N	王阿姨是我妈的朋友。	阿姨	term of address
+N	他靠关系进了这家公司。	关系	guanxi
+N	这跟天气有关系。	关系	relation|connection|bearing
+N	这个人很爱面子。	面子	social prestige
+N	沙发的面子破了。	面子	outer|surface|cover
+N	这点小便宜你也要？	便宜	petty advantage
+N	这件衣服很便宜。	便宜	cheap|inexpensive
+N	他是村里的教书先生。	先生	teacher
+N	李先生在吗？	先生	mister|mr
+N	我们领导今天不在。	领导	leader
+N	他领导了这次改革。	领导	to lead
+N	最近水电很紧张。	紧张	in short supply
+N	考试前我很紧张。	紧张	nervous
+N	他对工作很负责。	负责	conscientious
+N	他负责这个项目。	负责	to be in charge|responsible for
+N	有话好好说，别动手。	动手	to raise a hand
+N	我们现在动手做饭吧。	动手	to set about|to start
+N	这家公司待遇不错。	待遇	pay
+N	他受到了贵宾待遇。	待遇	treatment
+N	他是从底层干起来的。	底层	lowest level
+N	底层的房间很潮。	底层	ground|first floor|bottom
+N	他总在背后算计别人。	算计	to scheme
+N	他算计着这个月的开支。	算计	to reckon|to calculate
+N	她这人有点那个。	那个	humorously
+N	那个人是谁？	那个	that
+N	她刚进门就被婆婆嫌弃。	进门	to join one's husband
+N	他一进门就脱鞋。	进门	to enter|to go through a door
+N	她很爱八卦。	八卦	gossip
+N	算命先生画了个八卦。	八卦	eight divinatory
