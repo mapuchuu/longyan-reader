@@ -6588,5 +6588,125 @@
     ],
     "tag" : "cultural_context",
     "word" : "积极"
+  },
+  {
+    "gloss" : "secretary (chief official of a branch of a socialist or communist party)",
+    "note" : "The Party secretary. In a city or a university the 书记 outranks the mayor or president, and you know that's who really decides.",
+    "pinyin" : "shu1 ji5",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "书记"
+  },
+  {
+    "gloss" : "humble expression denying compliment",
+    "note" : "Not at all, said to a compliment. You answer 哪里哪里 because taking praise outright feels immodest.",
+    "pinyin" : "na3 li3",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "哪里"
+  },
+  {
+    "gloss" : "(coll.) (used to express disapproval, annoyance etc)",
+    "note" : "Honestly, said in annoyance. You mutter 你这人真是 or 真是的 and let it trail off, and everyone hears the complaint.",
+    "pinyin" : "zhen1 shi5",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "真是"
+  },
+  {
+    "gloss" : "trick; wile",
+    "note" : "A trick or a ruthless move. Someone 有手段 knows how to get what they want, and you say it with part admiration and part warning.",
+    "pinyin" : "shou3 duan4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "手段"
+  },
+  {
+    "gloss" : "feudalistic",
+    "note" : "Backward, stuck in old ideas. You tell someone 你太封建了 when they have old-fashioned views on marriage or women, half teasing and half serious.",
+    "pinyin" : "feng1 jian4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "封建"
+  },
+  {
+    "gloss" : "in those days; back then; in those years",
+    "note" : "Back then, in your younger days. 想当年 is how older people start a story, and you know you're about to hear how things used to be.",
+    "pinyin" : "dang1 nian2",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "当年"
+  },
+  {
+    "gloss" : "hidden meaning",
+    "note" : "A hidden meaning. 这里面有文章 means something is going on behind the scenes, and you start reading between the lines.",
+    "pinyin" : "wen2 zhang1",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "文章"
+  },
+  {
+    "gloss" : "do not hesitate (to ask, complain etc)",
+    "note" : "Go ahead, don't hold back. 有事尽管说 is a warm offer, and it makes you feel you can really ask.",
+    "pinyin" : "jin3 guan3",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "尽管"
+  },
+  {
+    "gloss" : "(fig.) climate; prevailing conditions (in human affairs)",
+    "note" : "The prevailing conditions. 不成气候 means someone will never amount to much, and you say it with a shrug.",
+    "pinyin" : "qi4 hou4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "气候"
+  },
+  {
+    "gloss" : "internal",
+    "note" : "Internal, for insiders. 内部价 or 内部消息 makes you feel you've got access that others don't.",
+    "pinyin" : "nei4 bu4",
+    "problems" : [
+
+    ],
+    "tag" : "cultural_context",
+    "word" : "内部"
+  },
+  {
+    "gloss" : "unhesitatingly",
+    "note" : "Go ahead, don't hold back. 有事尽管说 is a warm offer, and it makes you feel you can really ask.",
+    "pinyin" : "jin3 guan3",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "尽管"
+  },
+  {
+    "gloss" : "feudal",
+    "note" : "Backward, stuck in old ideas. You tell someone 你太封建了 when they have old-fashioned views on marriage or women, half teasing and half serious.",
+    "pinyin" : "feng1 jian4",
+    "problems" : [
+
+    ],
+    "tag" : "lost_in_translation",
+    "word" : "封建"
   }
 ]
