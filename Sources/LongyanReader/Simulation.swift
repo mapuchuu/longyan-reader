@@ -281,6 +281,7 @@ extension AppDelegate {
             await watch(2.5)
             let target = phrase.shownSense(a) == 0 ? 1 : 0
             let glossBefore = phrase.gloss(a)
+            let senseBefore = phrase.shownSense(a)
             withAnimation(.smooth(duration: 0.25)) { phrase.pick(a, sense: target) }
             await watch(0.6)
             check(phrase.choices[a.id]?.senseNumber == target + 1 && phrase.gloss(a) != glossBefore,
@@ -290,6 +291,25 @@ extension AppDelegate {
             check(phrase.choices[a.id]?.senseNumber == target + 1, "clicking the shown meaning again changes nothing")
             await watch(3)
             check(phrase.choices[a.id]?.senseNumber == target + 1, "that pick isn't overwritten by a late model answer")
+            check(phrase.canUseSuggested(a), "a row moved off its meaning offers the suggested one")
+            withAnimation(cardMotion) { phrase.useSuggested(a) }
+            await watch(0.4)
+            check(phrase.shownSense(a) == senseBefore && phrase.gloss(a) == glossBefore && !phrase.canUseSuggested(a),
+                  "'use suggested meaning' restores a phrase row")
+            withAnimation(cardMotion) { phrase.pick(a, sense: target) }
+            withAnimation(cardMotion) { phrase.pick(a, sense: senseBefore ?? 0) }
+            await watch(0.3)
+            check(!phrase.canUseSuggested(a) && phrase.gloss(a) == glossBefore, "picking the suggested meaning by hand counts as going back")
+            if let dict {
+                let fixed = PhraseState(selection: word("我的书很好", 0, 5), dict: dict)
+                if let de = fixed.tokens.first(where: { $0.text == "的" }), fixed.grammarEntry(de) != nil {
+                    let line = fixed.gloss(de)
+                    fixed.pick(de, sense: 1)
+                    let moved = fixed.canUseSuggested(de) && fixed.gloss(de) != line
+                    fixed.useSuggested(de)
+                    check(moved && fixed.gloss(de) == line, "'use suggested meaning' restores a phrase row's fixed line (的)")
+                } else { check(false, "的 has a fixed line in a phrase row") }
+            }
             withAnimation(.smooth(duration: 0.25)) { phrase.toggle(b) }
             await watch(2.5)
             check(phrase.expanded == b.id, "opening another row switches rows")

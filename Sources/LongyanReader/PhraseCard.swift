@@ -21,6 +21,8 @@ final class PhraseState: ObservableObject {
     @Published var resolving = false
     /// Words whose meaning the reader picked; a model answer arriving later doesn't replace it.
     private(set) var userPicked: Set<Int> = []
+    /// The model's own answers, kept so the reader can go back to them.
+    @Published private(set) var suggested: [Int: SenseChoice] = [:]
     var onLayoutChange: () -> Void = {}
 
     /// The word's fixed line, if it has one (see `GrammarWords`).
@@ -37,8 +39,39 @@ final class PhraseState: ObservableObject {
         guard let list = senses[token.id], list.indices.contains(index) else { return }
         // Clicking the meaning already shown changes nothing.
         guard grammar(token) != nil || shownSense(token) != index else { return }
+        if grammarEntry(token) == nil, suggestedSense(token) == index {
+            useSuggested(token)
+            return
+        }
         userPicked.insert(token.id)
         choices[token.id] = SenseChoice(senseNumber: index + 1, meaningHere: headlineGloss(list[index]))
+        onLayoutChange()
+    }
+
+    /// The sense the row showed before the reader picked: the model's, else the one that fits
+    /// the translation, else the first.
+    private func suggestedSense(_ token: PhraseToken) -> Int {
+        suggested[token.id].map { $0.senseNumber - 1 } ?? translationSense[token.id] ?? 0
+    }
+
+    /// Whether the reader has moved this row away from its suggested meaning.
+    func canUseSuggested(_ token: PhraseToken) -> Bool {
+        guard userPicked.contains(token.id) else { return false }
+        return grammarEntry(token) != nil || shownSense(token) != suggestedSense(token)
+    }
+
+    /// The meaning `useSuggested` goes back to, for its button.
+    func suggestedMeaning(_ token: PhraseToken) -> String? {
+        if let entry = grammarEntry(token) { return entry.summary }
+        if let answer = suggested[token.id] { return answer.meaningHere }
+        return (senses[token.id] ?? [])[safe: suggestedSense(token)].map(headlineGloss)
+    }
+
+    /// Back to the model's answer, with its own wording. Without one yet, the row falls back
+    /// to its default and takes the answer when it arrives.
+    func useSuggested(_ token: PhraseToken) {
+        userPicked.remove(token.id)
+        choices[token.id] = suggested[token.id]
         onLayoutChange()
     }
 
@@ -53,7 +86,10 @@ final class PhraseState: ObservableObject {
 
     /// Takes the senses chosen up front; the reader's own picks stay.
     func apply(_ picks: [Int: SenseChoice]) {
-        for (id, choice) in picks where !userPicked.contains(id) { choices[id] = choice }
+        for (id, choice) in picks {
+            suggested[id] = choice
+            if !userPicked.contains(id) { choices[id] = choice }
+        }
         resolving = false
         onLayoutChange()
     }
@@ -71,6 +107,7 @@ final class PhraseState: ObservableObject {
     private func sync(_ prep: PhrasePrep) {
         if translation != prep.translation { translation = prep.translation }
         if prep.translationDone, prep.translation == nil { translationError = prep.translationError }
+        for (id, choice) in prep.picks where suggested[id] == nil { suggested[id] = choice }
         for (id, choice) in prep.picks where choices[id] == nil && !userPicked.contains(id) {
             withAnimation(cardMotion) { choices[id] = choice }
         }
@@ -242,6 +279,7 @@ final class PhraseState: ObservableObject {
             do {
                 let choice = try await SenseChooser.choose(
                     for: Segmenter.context(for: token.range, in: selection.passage), senses: list)
+                suggested[token.id] = choice
                 if !userPicked.contains(token.id) {
                     withAnimation(cardMotion) { choices[token.id] = choice }
                 }
@@ -379,6 +417,16 @@ struct PhraseView: View {
                     .cardFont(12)
                     .fixedSize(horizontal: false, vertical: true)
                     .transition(.opacity)
+            }
+            if state.canUseSuggested(token), let meaning = state.suggestedMeaning(token) {
+                Button { withAnimation(cardMotion) { state.useSuggested(token) } } label: {
+                    Label("Use suggested meaning: \(meaning)", systemImage: "arrow.uturn.backward")
+                        .cardFont(11)
+                        .lineLimit(1)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.accentColor)
+                .transition(.opacity)
             }
             if let note = state.note(token) {
                 NuanceView(note: note).transition(.opacity)
