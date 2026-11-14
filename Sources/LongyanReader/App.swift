@@ -279,6 +279,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// One dictionary word gets the word card; anything longer gets the phrase card.
     func show(_ selection: Selection, near anchor: NSRect) {
         guard let dict else { hint("Dictionary still loading…", near: anchor); return }
+        let selection = selection.wholeWords(dict: dict)
         if isSingleWord(selection, dict: dict) {
             let context = Segmenter.context(for: selection.range, in: selection.passage)
             showWord(context, appName: selection.appName, near: anchor)
@@ -373,6 +374,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Starts a card's work for a fresh selection, before the reader clicks.
     func prepare(_ selection: Selection) {
         guard let dict else { return }
+        let selection = selection.wholeWords(dict: dict)
         if isSingleWord(selection, dict: dict) {
             let context = Segmenter.context(for: selection.range, in: selection.passage)
             let key = Self.wordKey(context)

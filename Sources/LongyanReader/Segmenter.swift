@@ -215,6 +215,37 @@ extension Segmenter {
         return out
     }
 
+    /// Widens a selection that cuts a word in half (电商平【台大促时】, 职介部门或【子公】司) out to
+    /// the whole word. The edges are judged by segmenting the text around them, so a word is
+    /// split the way it reads in its sentence. An edge stays put when the stretch would take in
+    /// a grammar character (把【门】 is 把 + 门, not 把门; 这【时候】 isn't 这时|候), or move more
+    /// than `maxStretch` characters. (Checking whether the selection already starts on a word
+    /// can't work: the fragment is often a word itself, as 台大 is in 平【台大】促.) Single characters are left alone: picking one is usually on purpose.
+    static func wholeWords(_ range: Range<Int>, in passage: [Character], dict: CEDict, maxStretch: Int = 3) -> Range<Int> {
+        guard range.count >= 2 else { return range }
+        func takesIn(_ r: Range<Int>) -> Bool { !r.contains { stretchStops.contains(passage[$0]) } }
+
+        let reach = dict.maxWordLength
+        let lo = max(0, range.lowerBound - reach), hi = min(passage.count, range.upperBound + reach)
+        var start = range.lowerBound, end = range.upperBound
+        for t in phrase(lo..<hi, in: passage, dict: dict) where t.range.count >= 2 && dict.contains(t.text) {
+            let r = t.range
+            if r.lowerBound < start, start < r.upperBound, start - r.lowerBound <= maxStretch,
+               takesIn(r.lowerBound..<start) {
+                start = r.lowerBound
+            }
+            if r.lowerBound < end, end < r.upperBound, r.upperBound - end <= maxStretch,
+               takesIn(end..<r.upperBound) {
+                end = r.upperBound
+            }
+        }
+        return start..<end
+    }
+
+    /// Grammar characters a stretch never takes in: the tokenizer glues them onto neighbours
+    /// (把门, 这时, 就是, 好的) where the reader meant the word beside them.
+    private static let stretchStops: Set<Character> = Set("把被就这那在是的了着过地得和跟给对向从也都还又才不吗呢吧啊")
+
     /// The sentence a selection sits in, for its translation to read it by; nil when the
     /// selection is the whole sentence. (Adding the sentence before scored no better.)
     static func translationContext(for range: Range<Int>, in passage: [Character]) -> String? {

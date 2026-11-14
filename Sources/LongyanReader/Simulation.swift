@@ -381,6 +381,14 @@ extension AppDelegate {
         let paragraphs = word("第一段。\n\n第二段。", 0, 10).trimmed()
         check(paragraphs.text.contains("\n\n"), "a blank line stays a paragraph break")
 
+        // 5d. A selection that cuts a word in half reads as the whole word.
+        if let dict {
+            let cut = word("到了电商平台大促时，我们", 5, 4).wholeWords(dict: dict)
+            check(cut.text == "平台大促时", "a selection cut mid-word widens to the word (\(cut.text))")
+            let deliberate = word("科学家研究生命的起源。", 3, 2).wholeWords(dict: dict)
+            check(deliberate.text == "研究", "a selection on a word boundary stays as made (\(deliberate.text))")
+        }
+
         // 6. Rapid lookups leave exactly one card on screen.
         for i in 0..<6 {
             show(word("这本书很有意思。", i % 4 + 1), near: anchor)

@@ -35,6 +35,16 @@ enum CLI {
             else if let r = args[2].range(of: args[3]) { index = args[2].distance(from: args[2].startIndex, to: r.lowerBound) }
             else { print("word not in passage"); return }
             try await lookup(passage: passage, index: index, dict: dict)
+        case "--snap" where args.count >= 3:
+            // --snap 电商平【台大促时】，…: prints the selection widened to whole words.
+            let dict = try CEDict.load()
+            for raw in args[2...] {
+                guard let a = raw.firstIndex(of: "【"), let b = raw.firstIndex(of: "】") else { print("mark the selection 【】"); continue }
+                let lo = raw.distance(from: raw.startIndex, to: a), hi = raw.distance(from: raw.startIndex, to: b) - 1
+                let passage = Array(raw.replacingOccurrences(of: "【", with: "").replacingOccurrences(of: "】", with: ""))
+                let r = Segmenter.wholeWords(lo..<hi, in: passage, dict: dict)
+                print("\(String(passage[lo..<hi])) → \(String(passage[r]))")
+            }
         case "--segment-file" where args.count >= 3:
             // One sentence per line: prints each line's phrase-card split, for comparing segmenter changes.
             let dict = try CEDict.load()
@@ -96,8 +106,12 @@ enum CLI {
                 // The selection is what's between 【】; without them, the whole text.
                 let raw = f[1].replacingOccurrences(of: "【", with: "").replacingOccurrences(of: "】", with: "")
                 let passage = Array(raw)
-                let lo = f[1].firstIndex(of: "【").map { f[1].distance(from: f[1].startIndex, to: $0) } ?? 0
-                let hi = f[1].firstIndex(of: "】").map { f[1].distance(from: f[1].startIndex, to: $0) - 1 } ?? passage.count
+                let markedLo = f[1].firstIndex(of: "【").map { f[1].distance(from: f[1].startIndex, to: $0) } ?? 0
+                let markedHi = f[1].firstIndex(of: "】").map { f[1].distance(from: f[1].startIndex, to: $0) - 1 } ?? passage.count
+                // Widened to whole words, as the app does (LONGYAN_NO_SNAP=1 keeps the selection as marked).
+                let snapped = ProcessInfo.processInfo.environment["LONGYAN_NO_SNAP"] == nil
+                    ? Segmenter.wholeWords(markedLo..<markedHi, in: passage, dict: dict) : markedLo..<markedHi
+                let lo = snapped.lowerBound, hi = snapped.upperBound
                 let started = Date()
                 total[kind, default: 0] += 1
                 defer { ms[kind, default: 0] += Int(Date().timeIntervalSince(started) * 1000) }

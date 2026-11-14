@@ -28,6 +28,12 @@ struct Selection {
         return Selection(passage: s.passage, range: lo..<hi, bounds: bounds, source: source, appName: appName)
     }
 
+    /// The selection widened to whole words, so a sloppy drag (平【台大促】) reads as 平台大促.
+    func wholeWords(dict: CEDict) -> Selection {
+        let r = Segmenter.wholeWords(range, in: passage, dict: dict)
+        return r == range ? self : Selection(passage: passage, range: r, bounds: bounds, source: source, appName: appName)
+    }
+
     /// Text in PDFs and narrow columns wraps mid-word (跟着师⏎父), which splits words and makes
     /// translators treat each line as its own sentence. Removes single line breaks next to
     /// Chinese text, and the spaces around them; a blank line is a real break and stays.
