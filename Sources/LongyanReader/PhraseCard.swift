@@ -147,6 +147,18 @@ final class PhraseState: ObservableObject {
             onPick(t.id, choice)
             return true
         }
+        // Grammar words whose position gives them away need no model call; the 4B model
+        // reads them wrong often enough (安抚和平衡's 和 "harmonious", 一两个人's 一 "single").
+        if ProcessInfo.processInfo.environment["LONGYAN_NO_RULES"] != "1" {
+            words.removeAll { t in
+                let list = dict.senses(for: t.text)
+                guard let i = grammarSense(t, tokens: tokens, passage: passage, senses: list) else { return false }
+                let choice = SenseChoice(senseNumber: i + 1, meaningHere: headlineGloss(list[i]))
+                out[t.id] = choice
+                onPick(t.id, choice)
+                return true
+            }
+        }
         guard let lo = words.first?.range.lowerBound, let hi = words.last?.range.upperBound else { return out }
         // The local model takes them all in one streamed request (in chunks, to stay inside its
         // context window): Ollama answers one request at a time, so word-by-word calls queue.
@@ -211,6 +223,9 @@ final class PhraseState: ObservableObject {
         }
     }
 
+    /// Common measure words, for telling 一个 "one" from 一看 "as soon as".
+    private static let measureWords: Set<Character> = Set("个只条张本件次天年位种块把双份些点辆家所头匹台封首部句场间")
+
     /// The sense of a grammar word, when its position gives it away.
     static func grammarSense(_ t: PhraseToken, tokens: [PhraseToken], passage: [Character], senses: [Sense]) -> Int? {
         func index(_ prefix: String) -> Int? { senses.firstIndex { $0.gloss.hasPrefix(prefix) } }
@@ -219,7 +234,17 @@ final class PhraseState: ObservableObject {
         // After a pronoun these are verbs: 他得了感冒, 我得走了, 我过春节.
         let afterVerb = previous != nil && !["我", "你", "他", "她", "它", "我们", "你们", "他们", "她们"].contains(previous!)
         let atEnd = t.range.upperBound >= passage.count || !(isCJK(passage[t.range.upperBound]) || passage[t.range.upperBound].isLetter)
+        let next = t.range.upperBound < passage.count ? passage[t.range.upperBound] : nil
+        let before = t.range.lowerBound > 0 ? passage[t.range.lowerBound - 1] : nil
+        let numerals: Set<Character> = ["一", "二", "两", "三", "四", "五", "六", "七", "八", "九", "十", "几", "数", "百", "千", "万"]
         switch t.text {
+        // Alone (not in 和平, 和气 …) it joins things: 我和你, 安抚和平衡. 和了 is the game sense.
+        case "和" where next != "了": return index("(joining two nouns)")
+        // 一两个, 一个, 一次: the number. (一进门 "as soon as" is left to the model.)
+        case "一" where next.map { numerals.contains($0) || measureWords.contains($0) } ?? false: return index("one")
+        case "百" where before.map(numerals.contains) ?? false: return index("hundred")
+        case "千" where before.map(numerals.contains) ?? false: return index("thousand")
+        case "万" where before.map(numerals.contains) ?? false: return index("ten thousand")
         case "地": return index("structural particle")
         case "得" where afterVerb && !atEnd && passage[t.range.upperBound] != "了": return index("structural particle")
         case "过" where afterVerb: return index("(experienced action marker)")

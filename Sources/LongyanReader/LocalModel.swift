@@ -73,8 +73,27 @@ enum LocalModel {
     static func chooseAll(passage: String, selectionMarked: Bool = false, words: [(word: String, senses: [Sense])],
                           onPick: @MainActor (Int, Int) -> Void = { _, _ in }) async throws -> [Int] {
         guard !words.isEmpty else { return [] }
-        // Zero-padded so that sorted keys (below) keep the words in order: w01, w02, … w10.
-        let keys = words.indices.map { String(format: "w%02d", $0 + 1) }
+        // Answer time is nearly all output tokens (~14 ms each; reading the prompt is a few
+        // tens of ms once cached), so the reply is one plain line, 等=2 和=1, about a third of
+        // the tokens of the JSON object below (which Ollama pretty-prints). Writing each word
+        // before its number matters: a bare [2, 1] array was as quick but scored 118/140
+        // against 130/140 on real reading. The JSON form is the fallback when a line won't parse.
+        // (A phrase of six words: 0.86 s → 0.31 s.)
+        if ProcessInfo.processInfo.environment["LONGYAN_PICK_FORMAT"] != "keys",
+           let picks = try? await chooseAllOnOneLine(passage: passage, selectionMarked: selectionMarked, words: words, onPick: onPick) {
+            return picks
+        }
+        return try await chooseAllAsJSON(passage: passage, selectionMarked: selectionMarked, words: words, onPick: onPick)
+    }
+
+    private static let chooseAllInstructions = """
+    You help an English speaker read Chinese. You get a Chinese passage and some of its words, each with numbered dictionary senses. \
+    For each word, decide what it means in this passage and give the number of the matching sense. Never invent a sense.
+    """
+
+    /// The request's text: the passage, then each word under its label with its numbered senses.
+    private static func chooseAllPrompt(_ passage: String, _ selectionMarked: Bool, _ words: [(word: String, senses: [Sense])],
+                                        labels: [String]) -> String {
         let blocks = words.enumerated().map { n, w -> String in
             let list = w.senses.enumerated().map { i, s -> String in
                 var line = "  \(i + 1). [\(Pinyin.marked(s.pinyin))] \(s.gloss)" + noteHint(w.word, s)
@@ -82,41 +101,81 @@ enum LocalModel {
                 if !ex.isEmpty { line += "  e.g. " + ex.joined(separator: " ") }
                 return line
             }
-            return "\(keys[n]): \(w.word)\n" + list.joined(separator: "\n")
+            return "\(labels[n]): \(w.word)\n" + list.joined(separator: "\n")
         }
-        let user = "Passage: \(passage)\n" + (selectionMarked ? "The reader selected the part in 【】.\n" : "") + "For each word, give the number of the sense it has in this passage.\n\n" + blocks.joined(separator: "\n\n")
-        // Just the numbers: asking for a short meaning before each one (as the single-word
-        // request does) made a sentence take twice as long and scored no better.
+        return "Passage: \(passage)\n" + (selectionMarked ? "The reader selected the part in 【】.\n" : "")
+            + "For each word, give the number of the sense it has in this passage.\n\n" + blocks.joined(separator: "\n\n")
+    }
+
+    private static func chooseAllBody(_ user: String, options: [String: Any], format: [String: Any]? = nil) -> [String: Any] {
+        var body: [String: Any] = [
+            "model": name, "think": false, "options": options, "keep_alive": "5m",
+            "messages": [["role": "system", "content": chooseAllInstructions], ["role": "user", "content": user]],
+        ]
+        if let format { body["format"] = format }
+        return body
+    }
+
+    private static func unexpected(_ text: String) -> NSError {
+        NSError(domain: "LongyanReader", code: 5, userInfo: [NSLocalizedDescriptionKey: "local model: unexpected reply \(text.prefix(200))"])
+    }
+
+    private static func chooseAllOnOneLine(passage: String, selectionMarked: Bool, words: [(word: String, senses: [Sense])],
+                                           onPick: @MainActor (Int, Int) -> Void) async throws -> [Int] {
+        let labels = words.indices.map { "w\($0 + 1)" }
+        let user = chooseAllPrompt(passage, selectionMarked, words, labels: labels)
+            + "\n\nReply on one line with each word and its sense number, in order, like: "
+            + words.prefix(2).enumerated().map { "\($1.word)=\($0 + 1)" }.joined(separator: " ")
+        // A cap, so a reply that wanders off can't run on.
+        let body = chooseAllBody(user, options: ["temperature": 0, "num_ctx": 2048, "num_predict": 8 * words.count + 8])
+        // Each word, then its number, read in order from where the last one ended. A number
+        // still being written (nothing after it yet) isn't taken until the reply is complete.
+        func read(_ text: String, final: Bool) -> [Int?] {
+            var out = [Int?](repeating: nil, count: words.count)
+            var rest = Substring(text)
+            for (i, w) in words.enumerated() {
+                guard let r = rest.range(of: w.word) else { break }
+                let after = rest[r.upperBound...].drop { $0 == "=" || $0 == " " || $0 == ":" }
+                let digits = after.prefix { $0.isNumber }
+                guard !digits.isEmpty, final || digits.endIndex < after.endIndex, let n = Int(digits) else { break }
+                out[i] = min(max(n, 1), w.senses.count)
+                rest = after[digits.endIndex...]
+            }
+            return out
+        }
+        var picked = [Bool](repeating: false, count: words.count)
+        let text = try await stream(body) { text in
+            for (i, n) in read(text, final: false).enumerated() where !picked[i] {
+                if let n { picked[i] = true; onPick(i, n) }
+            }
+        }
+        let picks = read(text, final: true)
+        guard picks.allSatisfy({ $0 != nil }) else { throw unexpected(text) }
+        // The last number has nothing after it, so it's only certain now.
+        for (i, n) in picks.enumerated() where !picked[i] { await onPick(i, n!) }
+        return picks.map { $0! }
+    }
+
+    private static func chooseAllAsJSON(passage: String, selectionMarked: Bool, words: [(word: String, senses: [Sense])],
+                                        onPick: @MainActor (Int, Int) -> Void) async throws -> [Int] {
+        // Zero-padded so that sorted keys (in `stream`) keep the words in order: w01, w02, … w10.
+        let keys = words.indices.map { String(format: "w%02d", $0 + 1) }
         var props: [String: Any] = [:]
         for k in keys { props[k] = ["type": "integer"] }
-        let body: [String: Any] = [
-            "model": name, "think": false,
-            "format": ["type": "object", "properties": props, "required": keys],
-            "options": ["temperature": 0, "num_ctx": 2048],
-            "keep_alive": "5m",
-            "messages": [
-                ["role": "system", "content": """
-                You help an English speaker read Chinese. You get a Chinese passage and some of its words, each with numbered dictionary senses. \
-                For each word, decide what it means in this passage and give the number of the matching sense. Never invent a sense.
-                """],
-                ["role": "user", "content": user],
-            ],
-        ]
+        let body = chooseAllBody(chooseAllPrompt(passage, selectionMarked, words, labels: keys),
+                                 options: ["temperature": 0, "num_ctx": 2048],
+                                 format: ["type": "object", "properties": props, "required": keys])
         var picks = [Int?](repeating: nil, count: words.count)
         let text = try await stream(body) { text in
             // A number is complete once something follows it.
-            let pattern = #/"w(\d+)"\s*:\s*(\d+)\s*[,}\s]/#
-            for m in text.matches(of: pattern) {
+            for m in text.matches(of: #/"w(\d+)"\s*:\s*(\d+)\s*[,}\s]/#) {
                 guard let k = Int(m.1), let n = Int(m.2), words.indices.contains(k - 1), picks[k - 1] == nil else { continue }
                 let pick = min(max(n, 1), words[k - 1].senses.count)
                 picks[k - 1] = pick
                 onPick(k - 1, pick)
             }
         }
-        guard let parsed = try? JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any] else {
-            throw NSError(domain: "LongyanReader", code: 5, userInfo: [NSLocalizedDescriptionKey:
-                "local model: unexpected reply \(text.prefix(200))"])
-        }
+        guard let parsed = try? JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any] else { throw unexpected(text) }
         return words.indices.map { i in
             picks[i] ?? min(max(parsed[keys[i]] as? Int ?? 1, 1), words[i].senses.count)
         }
@@ -194,7 +253,16 @@ enum LocalModel {
                 text += piece
                 await onText(text)
             }
-            if obj["done"] as? Bool == true { break }
+            if obj["done"] as? Bool == true {
+                // LONGYAN_TIMING=1: where a request's time went (prompt reading vs. answering).
+                if ProcessInfo.processInfo.environment["LONGYAN_TIMING"] == "1" {
+                    let ms = { (k: String) in ((obj[k] as? Double) ?? 0) / 1_000_000 }
+                    FileHandle.standardError.write(Data(String(format: "timing: prompt %d tok %.0f ms, answer %d tok %.0f ms, total %.0f ms\n",
+                        obj["prompt_eval_count"] as? Int ?? 0, ms("prompt_eval_duration"),
+                        obj["eval_count"] as? Int ?? 0, ms("eval_duration"), ms("total_duration")).utf8))
+                }
+                break
+            }
         }
         return text
     }
@@ -203,7 +271,11 @@ enum LocalModel {
     /// than a dedicated prompt with the model's own wording first (27/30 against 22/30). The
     /// passage marks the word and keeps the text around it, which can decide the sense.
     static func choose(_ context: WordInContext, senses: [Sense]) async throws -> SenseChoice {
-        let n = try await chooseAll(passage: context.markedPassage, words: [(context.word, senses)]).first ?? 1
+        // The JSON form here: for one word the one-line reply saves only ~0.1 s, and the card
+        // is prepared while the reader moves to click, while JSON scored a little better
+        // (real reading 36/39 against 34/39).
+        let n = try await chooseAllAsJSON(passage: context.markedPassage, selectionMarked: false,
+                                          words: [(context.word, senses)], onPick: { _, _ in }).first ?? 1
         return SenseChoice(senseNumber: n, meaningHere: headlineGloss(senses[n - 1]))
     }
 }
