@@ -301,6 +301,14 @@ extension AppDelegate {
             await watch(0.3)
             check(!phrase.canUseSuggested(a) && phrase.gloss(a) == glossBefore, "picking the suggested meaning by hand counts as going back")
             if let dict {
+                let long = Array("然而次日是清明节，和周六、周日调休连成了三天假期，也就是说我又要再等三天。")
+                let start = long.count - 12
+                let inSentence = Segmenter.phrase(start..<(start + 11), in: long, dict: dict)
+                if await LocalModel.isAvailable(), let deng = inSentence.first(where: { $0.text == "等" }) {
+                    let picks = await PhraseState.resolve(inSentence, in: long, dict: dict)
+                    check(picks[deng.id].map { dict.senses(for: "等")[$0.senseNumber - 1].gloss.contains("wait") } ?? false,
+                          "a selection within a longer sentence is read on its own terms (再等三天: to wait)")
+                }
                 let fixed = PhraseState(selection: word("我的书很好", 0, 5), dict: dict)
                 if let de = fixed.tokens.first(where: { $0.text == "的" }), fixed.grammarEntry(de) != nil {
                     let line = fixed.gloss(de)

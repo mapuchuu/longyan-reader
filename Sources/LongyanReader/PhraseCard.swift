@@ -151,7 +151,17 @@ final class PhraseState: ObservableObject {
         // The local model takes them all in one streamed request (in chunks, to stay inside its
         // context window): Ollama answers one request at a time, so word-by-word calls queue.
         if await LocalModel.isAvailable() {
-            let sentence = Segmenter.context(for: lo..<hi, in: passage).sentence
+            var sentence = Segmenter.context(for: lo..<hi, in: passage).sentence
+            // Mark the selection when it's part of a longer sentence, or the rest can pull the
+            // words off their sense (a list earlier in the sentence made 再等三天's 等 "by the time").
+            var selectionMarked = false
+            if let a = tokens.first?.range.lowerBound, let b = tokens.last?.range.upperBound {
+                let span = Segmenter.context(for: a..<b, in: passage)
+                if span.sentence.count - span.word.count > 1 {
+                    sentence = span.markedSentence
+                    selectionMarked = true
+                }
+            }
             var start = 0
             while start < words.count {
                 let chunk = Array(words[start..<min(start + 8, words.count)])
@@ -160,7 +170,7 @@ final class PhraseState: ObservableObject {
                 func choice(_ i: Int, _ n: Int) -> SenseChoice {
                     SenseChoice(senseNumber: n, meaningHere: headlineGloss(lists[i].senses[n - 1]))
                 }
-                guard let picks = try? await LocalModel.chooseAll(passage: sentence, words: lists,
+                guard let picks = try? await LocalModel.chooseAll(passage: sentence, selectionMarked: selectionMarked, words: lists,
                                                                   onPick: { i, n in onPick(chunk[i].id, choice(i, n)) })
                 else { continue }
                 for (i, n) in picks.enumerated() { out[chunk[i].id] = choice(i, n) }
@@ -504,7 +514,7 @@ final class PhrasePrep {
         // The local model translates slang and idioms far better than Apple's translator;
         // Apple's is the fallback when Ollama isn't running.
         if await LocalModel.isAvailable(),
-           let t = try? await LocalModel.translate(selection.text, partial: { [weak self] in self?.translation = $0; self?.onChange() }) {
+           let t = try? await LocalModel.translate(selection.text, context: Segmenter.translationContext(for: selection.range, in: selection.passage), partial: { [weak self] in self?.translation = $0; self?.onChange() }) {
             translation = t
         } else {
             do { translation = try await Translator.translate(selection.text) }

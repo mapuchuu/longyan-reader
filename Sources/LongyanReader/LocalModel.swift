@@ -70,7 +70,7 @@ enum LocalModel {
     /// one request at a time, so this is much quicker than asking word by word; the answer is
     /// just the sense numbers, in order, streamed so each word can be shown as soon as it's
     /// picked (`onPick` gets the word's position in `words` and its 1-based sense number).
-    static func chooseAll(passage: String, words: [(word: String, senses: [Sense])],
+    static func chooseAll(passage: String, selectionMarked: Bool = false, words: [(word: String, senses: [Sense])],
                           onPick: @MainActor (Int, Int) -> Void = { _, _ in }) async throws -> [Int] {
         guard !words.isEmpty else { return [] }
         // Zero-padded so that sorted keys (below) keep the words in order: w01, w02, … w10.
@@ -84,7 +84,7 @@ enum LocalModel {
             }
             return "\(keys[n]): \(w.word)\n" + list.joined(separator: "\n")
         }
-        let user = "Passage: \(passage)\n" + "For each word, give the number of the sense it has in this passage.\n\n" + blocks.joined(separator: "\n\n")
+        let user = "Passage: \(passage)\n" + (selectionMarked ? "The reader selected the part in 【】.\n" : "") + "For each word, give the number of the sense it has in this passage.\n\n" + blocks.joined(separator: "\n\n")
         // Just the numbers: asking for a short meaning before each one (as the single-word
         // request does) made a sentence take twice as long and scored no better.
         var props: [String: Any] = [:]
@@ -127,22 +127,47 @@ enum LocalModel {
     (translate its sense, not its characters). Reply with the English translation only.
     """
 
+    private static func contextPrompt(_ context: String, _ part: String) -> String {
+        "Surrounding text: \(context)\nTranslate only this part of it: \(part)"
+    }
+
+    /// Fragments cut mid-clause, answered with just the fragment's English.
+    private static let contextExamples = [
+        ("他说话很客气，不过脾气很差，大家都怕他。", "不过脾气", "but his temper"),
+        ("我们到了以后，经理让我们各自填一张表。", "经理让我们各自", "the manager had each of us"),
+    ]
+
     /// A natural English translation, streamed: `partial` gets the text so far. Better than
     /// Apple's translator on slang and idioms (内卷 "involution", not "internal entanglement";
     /// 小意思 "a small token", not "a little interesting").
-    static func translate(_ text: String, partial: @MainActor (String) -> Void = { _ in }) async throws -> String {
+    /// `context` is the text the selection sits in; given it, only the selection is translated,
+    /// but read the way the sentence means it (a clipped 别办入职 was "gender certificate").
+    static func translate(_ text: String, context: String? = nil,
+                          partial: @MainActor (String) -> Void = { _ in }) async throws -> String {
+        var messages = [["role": "system", "content": translationInstructions]]
+        if let context {
+            // Told only to translate the part, the 4B model still translated the whole sentence
+            // about a third of the time; two worked examples stop that (real reading: 22/52 →
+            // 44/52), and cost almost nothing, since Ollama reuses the cached prompt prefix.
+            for (c, part, english) in contextExamples {
+                messages.append(["role": "user", "content": contextPrompt(c, part)])
+                messages.append(["role": "assistant", "content": english])
+            }
+            messages.append(["role": "user", "content": contextPrompt(context, text)])
+        } else {
+            messages.append(["role": "user", "content": text])
+        }
         let body: [String: Any] = [
             "model": name, "think": false,
             "options": ["temperature": 0, "num_ctx": 2048],
             "keep_alive": "5m",
-            "messages": [
-                ["role": "system", "content": translationInstructions],
-                ["role": "user", "content": text],
-            ],
+            "messages": messages,
         ]
         let out = try await stream(body) { partial($0.trimmingCharacters(in: .whitespacesAndNewlines)) }
         let t = out.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !t.isEmpty else { throw NSError(domain: "LongyanReader", code: 6, userInfo: [NSLocalizedDescriptionKey: "empty translation"]) }
+        // With context it now and then answers in Chinese (胜任或轻视这份工作); alone it doesn't.
+        if context != nil, t.contains(where: isCJK) { return try await translate(text, partial: partial) }
         return t
     }
 

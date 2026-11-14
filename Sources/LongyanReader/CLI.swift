@@ -70,6 +70,75 @@ enum CLI {
                 else { print("WRONG \(f[1]) [\(f[2])] want \(f[3]), got: \(got?.gloss.prefix(60) ?? "none")\(senses.contains(where: matches) ? "" : "  (right sense not offered)")") }
             }
             print("right \(right)/\(total), right sense not offered \(unoffered), word split differently \(unsplit), \(Int(Date().timeIntervalSince(started))) s")
+        case "--senses" where args.count >= 3:
+            // A word's senses as the model sees them, numbered: --senses 等 [more words…]
+            let dict = try CEDict.load()
+            for word in args.dropFirst(2) {
+                let senses = dict.senses(for: word, limit: CEDict.modelSenseLimit)
+                print(word + "\t" + senses.enumerated().map { "\($0 + 1). \($1.gloss)" }.joined(separator: " | "))
+            }
+        case "--eval-real" where args.count >= 3:
+            // Lookups from real reading: --eval-real notes/real-eval.tsv [P|S|T] [nocontext]
+            //   P  passage with the selection in 【】, a word in it, wanted senses: the phrase card's pick
+            //   S  sentence, a word in it, wanted senses: the single-word card's pick
+            //   T  passage with the selection in 【】, phrases the translation must contain | …,
+            //      and optionally ones it must not; `nocontext` translates the selection alone
+            // Wanted senses are substrings of the dictionary sense, | separated.
+            let dict = try CEDict.load()
+            let only = args.count >= 4 && args[3].count == 1 ? args[3] : nil
+            let withContext = !args.contains("nocontext")
+            var right: [String: Int] = [:], total: [String: Int] = [:], unoffered = 0
+            var ms: [String: Int] = [:]
+            for line in try String(contentsOfFile: args[2], encoding: .utf8).split(separator: "\n") where !line.hasPrefix("#") {
+                let f = line.split(separator: "\t", omittingEmptySubsequences: false).map(String.init)
+                guard f.count >= 4, only == nil || f[0] == only else { continue }
+                let kind = f[0]
+                // The selection is what's between 【】; without them, the whole text.
+                let raw = f[1].replacingOccurrences(of: "【", with: "").replacingOccurrences(of: "】", with: "")
+                let passage = Array(raw)
+                let lo = f[1].firstIndex(of: "【").map { f[1].distance(from: f[1].startIndex, to: $0) } ?? 0
+                let hi = f[1].firstIndex(of: "】").map { f[1].distance(from: f[1].startIndex, to: $0) - 1 } ?? passage.count
+                let started = Date()
+                total[kind, default: 0] += 1
+                defer { ms[kind, default: 0] += Int(Date().timeIntervalSince(started) * 1000) }
+                if kind == "T" {
+                    let selected = String(passage[lo..<hi])
+                    let context = withContext ? Segmenter.translationContext(for: lo..<hi, in: passage) : nil
+                    let t = (try? await LocalModel.translate(selected, context: context)) ?? ""
+                    let lower = t.lowercased()
+                    let must = f[3].lowercased().split(separator: "|").map(String.init)
+                    let mustNot = f.count > 4 ? f[4].lowercased().split(separator: "|").map(String.init) : []
+                    let ok = (must.isEmpty || must.contains { lower.contains($0) }) && !mustNot.contains { lower.contains($0) }
+                    if ok { right[kind, default: 0] += 1 } else { print("WRONG T [\(selected)] want \(f[3])\(mustNot.isEmpty ? "" : ", not " + f[4]): \(t)") }
+                    continue
+                }
+                let wants = f[3].lowercased().split(separator: "|").map(String.init)
+                let matches = { (s: Sense) in wants.contains { s.gloss.lowercased().contains($0) } }
+                var senses: [Sense] = [], n = 1, word = f[2]
+                if kind == "P" {
+                    let tokens = Segmenter.phrase(lo..<hi, in: passage, dict: dict)
+                    guard let token = tokens.first(where: { $0.text == f[2] }) else {
+                        print("SPLIT P [\(f[2])]: \(tokens.map(\.text).joined(separator: " "))"); continue
+                    }
+                    senses = dict.senses(for: token.text)
+                    let picks = await PhraseState.resolve(tokens, in: passage, dict: dict)
+                    n = senses.count == 1 ? 1 : (picks[token.id]?.senseNumber ?? 1)
+                } else {
+                    guard let at = raw.range(of: f[2]).map({ raw.distance(from: raw.startIndex, to: $0.lowerBound) }),
+                          let ctx = Segmenter.word(at: at, in: passage, dict: dict) else { continue }
+                    word = ctx.word
+                    senses = dict.senses(for: ctx.word)
+                    n = senses.count == 1 ? 1 : ((try? await SenseChooser.choose(for: ctx, senses: senses))?.senseNumber ?? 1)
+                }
+                if !senses.contains(where: matches) { unoffered += 1 }
+                let got = senses[safe: n - 1]
+                if word == f[2], let got, matches(got) { right[kind, default: 0] += 1 }
+                else { print("WRONG \(kind) [\(word)] want \(f[3]), got: \(got?.gloss.prefix(60) ?? "none")\(senses.contains(where: matches) ? "" : "  (right sense not offered)")  …\(String(passage[max(0, lo - 12)..<min(passage.count, hi + 6)]))") }
+            }
+            for k in total.keys.sorted() {
+                print("\(k): right \(right[k, default: 0])/\(total[k]!), \(ms[k, default: 0] / max(total[k]!, 1)) ms each")
+            }
+            if unoffered > 0 { print("right sense not offered: \(unoffered)") }
         case "--eval-single" where args.count >= 3:
             // The same file as --eval-phrase, picked the way a single-word card does.
             let dict = try CEDict.load()

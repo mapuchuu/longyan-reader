@@ -215,6 +215,14 @@ extension Segmenter {
         return out
     }
 
+    /// The sentence a selection sits in, for its translation to read it by; nil when the
+    /// selection is the whole sentence. (Adding the sentence before scored no better.)
+    static func translationContext(for range: Range<Int>, in passage: [Character]) -> String? {
+        let sentence = context(for: range, in: passage).sentence
+        let selected = String(passage[range]).trimmingCharacters(in: .whitespacesAndNewlines)
+        return sentence.count - selected.count > 1 ? sentence : nil
+    }
+
     /// Context for a word that sits at a known range (a selection or a phrase token).
     static func context(for range: Range<Int>, in passage: [Character]) -> WordInContext {
         WordInContext(word: String(passage[range]), passage: passage, wordRange: range, alternatives: [])
