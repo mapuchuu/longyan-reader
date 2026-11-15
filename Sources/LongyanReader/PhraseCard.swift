@@ -178,7 +178,7 @@ final class PhraseState: ObservableObject {
             while start < words.count {
                 let chunk = Array(words[start..<min(start + 8, words.count)])
                 start += chunk.count
-                let lists = chunk.map { (word: $0.text, senses: dict.senses(for: $0.text, limit: CEDict.modelSenseLimit)) }
+                let lists = chunk.map { (word: $0.text, senses: dict.senses(for: $0.text).forModel) }
                 func choice(_ i: Int, _ n: Int) -> SenseChoice {
                     SenseChoice(senseNumber: n, meaningHere: headlineGloss(lists[i].senses[n - 1]))
                 }

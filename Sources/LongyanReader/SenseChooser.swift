@@ -88,7 +88,7 @@ enum SenseChooser {
         if let n = NoteCues.senseNumber(context.word, at: context.wordRange, in: context.passage, senses: senses) {
             return SenseChoice(senseNumber: n, meaningHere: headlineGloss(senses[n - 1]))
         }
-        let senses = Array(senses.prefix(CEDict.modelSenseLimit))
+        let senses = senses.forModel
         return cleaned(try await chooseRaw(for: context, senses: senses), senses: senses)
     }
 

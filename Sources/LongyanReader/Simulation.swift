@@ -158,6 +158,12 @@ extension AppDelegate {
 
         // 2d. Every meaning is on offer; a short list always includes the one chosen.
         if let dict {
+            let stale = SenseOrder.shared.filter { dict.senses(for: $0.key, handOrdered: false).count != $0.value.count }.map(\.key)
+            check(stale.isEmpty, "every sense-order.tsv line matches the dictionary (stale: \(stale.sorted().joined()))")
+            let yan = dict.senses(for: "眼")
+            check(yan.first?.gloss.hasPrefix("eye") == true && !yan.forModel.contains { $0.gloss.contains("salient") }
+                  && yan.contains { $0.gloss.contains("salient") },
+                  "眼 leads with eye; its rare sense is listed but not offered to the model")
             let gan = dict.senses(for: "干")
             check(gan.count > CEDict.modelSenseLimit, "a card has all of 干's meanings (\(gan.count))")
             let toDo = gan.firstIndex { $0.gloss == "to do" }

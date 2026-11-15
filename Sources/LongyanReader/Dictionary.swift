@@ -28,6 +28,19 @@ extension Array where Element == Sense {
 struct Sense: Equatable {
     let pinyin: String          // numbered
     let gloss: String
+    /// Too rare in modern prose to offer the model (sense-order.tsv); still listed on the card.
+    var rare = false
+
+    static func == (a: Sense, b: Sense) -> Bool { a.pinyin == b.pinyin && a.gloss == b.gloss }
+}
+
+extension Array where Element == Sense {
+    /// The senses a model chooses between: the rare ones (always last) are left out, and the
+    /// list is capped to keep the prompt short. Numbering matches the full list.
+    var forModel: [Sense] {
+        let common = prefix { !$0.rare }
+        return Array((common.isEmpty ? self[...] : common).prefix(CEDict.modelSenseLimit))
+    }
 }
 
 final class CEDict {
@@ -78,7 +91,8 @@ final class CEDict {
     /// That includes a single character's "(bound form)" senses (行 "row" lives in 行列, not
     /// 行不行), which still have to be on offer: words the dictionary lacks get split, and
     /// 薪 in 无薪 is "salary", a bound form, not the free-standing "firewood".
-    func senses(for word: String, limit: Int = .max) -> [Sense] {
+    /// `handOrdered: false` skips sense-order.tsv (to check its lines against the dictionary).
+    func senses(for word: String, limit: Int = .max, handOrdered: Bool = true) -> [Sense] {
         let entries = entries(for: word)
         let ordered = entries.filter { !$0.isProperNoun } + entries.filter { $0.isProperNoun }
         let standalone = word.count == 1
@@ -94,6 +108,7 @@ final class CEDict {
             return standalone && s.gloss.hasPrefix("(bound form)") ? 1 : 0
         }
         out = [0, 1, 2].flatMap { r in out.filter { rank($0) == r } }
+        if handOrdered, SenseOrder.enabled, let order = SenseOrder.shared[word] { out = order.apply(to: out) }
         if out.isEmpty, let first = ordered.first {
             // Only cross-references exist. Show what they point to (干活儿 → 干活), under this
             // word's own reading; else show them rather than nothing.

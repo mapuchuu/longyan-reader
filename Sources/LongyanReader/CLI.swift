@@ -92,11 +92,20 @@ enum CLI {
                 else { print("WRONG \(f[1]) [\(f[2])] want \(f[3]), got: \(got?.gloss.prefix(60) ?? "none")\(senses.contains(where: matches) ? "" : "  (right sense not offered)")") }
             }
             print("right \(right)/\(total), right sense not offered \(unoffered), word split differently \(unsplit), \(Int(Date().timeIntervalSince(started))) s")
+        case "--senses-all" where args.count >= 3:
+            // Every sense of each word with its reading, before sense-order.tsv is applied
+            // (LONGYAN_NO_SENSE_ORDER=1), for writing that file: --senses-all 眼 到 …
+            let dict = try CEDict.load()
+            for word in args.dropFirst(2) {
+                let senses = dict.senses(for: word)
+                print("\(word)\t\(senses.count)")
+                for (i, s) in senses.enumerated() { print("  \(i + 1). [\(s.pinyin)] \(s.gloss)\(s.rare ? "  (rare)" : "")") }
+            }
         case "--senses" where args.count >= 3:
             // A word's senses as the model sees them, numbered: --senses 等 [more words…]
             let dict = try CEDict.load()
             for word in args.dropFirst(2) {
-                let senses = dict.senses(for: word, limit: CEDict.modelSenseLimit)
+                let senses = dict.senses(for: word).forModel
                 print(word + "\t" + senses.enumerated().map { "\($0 + 1). \($1.gloss)" }.joined(separator: " | "))
             }
         case "--eval-real" where args.count >= 3:
