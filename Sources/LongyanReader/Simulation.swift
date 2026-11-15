@@ -306,8 +306,20 @@ extension AppDelegate {
                 withAnimation(.smooth(duration: 0.25)) { phrase.toggle(open) }
                 await wait(0.4)
             }
+            // A short card, so the open row makes it scroll: no scroll bar may take width, and
+            // the bottom edge fades instead.
+            let fullHeight = popup.currentLayout?.maxHeight ?? 640
+            popup.currentLayout?.maxHeight = 200
             withAnimation(.smooth(duration: 0.25)) { phrase.toggle(a) }
             await watch(2.5)
+            check(!popup.scrollBarTakesWidth, "a phrase card that scrolls shows no scroll bar")
+            check(popup.currentLayout?.moreBelow == true, "a card with more below fades at the bottom")
+            popup.saveImage(to: Log.directory.appendingPathComponent("simulation-fade.png"))
+            popup.currentLayout?.maxHeight = fullHeight
+            popup.currentLayout?.objectWillChange.send()   // maxHeight isn't published
+            popup.currentLayout?.onChange(false)
+            await watch(0.5)
+            check(popup.currentLayout?.moreBelow == false, "a card showing all its content doesn't fade")
             let target = phrase.shownSense(a) == 0 ? 1 : 0
             let glossBefore = phrase.gloss(a)
             let senseBefore = phrase.shownSense(a)

@@ -21,6 +21,8 @@ final class CardLayout: ObservableObject {
     @Published private(set) var isResizing = false
     /// Whether the card hangs below the selection (top edge fixed) or sits above it.
     @Published var placedBelow = true
+    /// Whether the card is scrolled short of the end of its content (the bottom edge fades).
+    @Published var moreBelow = false
 
     static let defaultWidth: [Kind: CGFloat] = [.word: 360, .phrase: 390, .hint: 260]
     static let scaleRange: ClosedRange<CGFloat> = 0.8...2.2
@@ -236,8 +238,26 @@ struct CardChrome<Content: View>: View {
         ScrollView(.vertical) {
             padded.background(GeometryReader { g in Color.clear.preference(key: HeightKey.self, value: g.size.height) })
         }
-        .scrollIndicators(layout.contentHeight > layout.maxHeight ? .automatic : .never)
+        // Never a scroll bar: with a mouse attached (or "Show scroll bars: Always") it takes
+        // width from the content, shoving the card's contents left the moment a row opens
+        // past the bottom. The card still scrolls, and its bottom edge fades out while
+        // there's more below.
+        .scrollIndicators(.never)
         .scrollBounceBehavior(.basedOnSize)
+        .onScrollGeometryChange(for: Bool.self) { g in
+            g.contentSize.height - g.visibleRect.maxY > 2
+        } action: { _, more in
+            layout.moreBelow = more
+        }
+        .mask {
+            VStack(spacing: 0) {
+                Rectangle()
+                LinearGradient(colors: [.black, .black.opacity(layout.moreBelow ? 0 : 1)],
+                               startPoint: .top, endPoint: .bottom)
+                    .frame(height: 36 * layout.scale)
+            }
+            .animation(.easeOut(duration: 0.2), value: layout.moreBelow)
+        }
         .onPreferenceChange(HeightKey.self) { h in
             MainActor.assumeIsolated { layout.reportContentHeight(h) }
         }

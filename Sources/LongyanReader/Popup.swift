@@ -542,15 +542,14 @@ final class PopupController {
         if frame != panel.frame { panel.setFrame(frame, display: true) }
     }
 
-    /// Anywhere on the card except the grip and, when the card scrolls, its scroll bar.
+    /// Anywhere on the card except the grip.
     private func canMove(from point: NSPoint) -> Bool {
         guard let panel, let layout, layout.kind != .hint else { return false }
         let m = CardChrome<EmptyView>.margin
         let card = NSRect(x: m, y: layout.placedBelow ? panel.frame.height - m - layout.height : m,
                           width: layout.width, height: layout.height)
         guard card.contains(point) else { return false }
-        if point.x > card.maxX - 22, point.y < card.minY + 22 { return false }
-        return layout.contentHeight <= layout.maxHeight || point.x < card.maxX - 16
+        return !(point.x > card.maxX - 22 && point.y < card.minY + 22)
     }
 
     private var moveStart: (mouse: NSPoint, anchor: NSRect)?
@@ -644,6 +643,26 @@ final class PopupController {
         guard let panel, let layout else { return true }
         let m = CardChrome<EmptyView>.margin
         return panel.frame.height + 0.5 >= max(layout.height, 1) + 2 * m && panel.frame.width + 0.5 >= layout.width + 2 * m
+    }
+
+    /// Debug: whether the card shows a scroll bar that takes width from its content (the
+    /// kind macOS uses with a mouse, or with "Show scroll bars: Always").
+    var scrollBarTakesWidth: Bool {
+        guard let hosting else { return false }
+        func scrollViews(_ v: NSView) -> [NSScrollView] {
+            if let s = v as? NSScrollView { return [s] }
+            return v.subviews.flatMap(scrollViews)
+        }
+        return scrollViews(hosting).contains { s in
+            s.scrollerStyle == .legacy && s.hasVerticalScroller && s.verticalScroller.map { !$0.isHidden } == true
+        }
+    }
+
+    /// Debug: writes the open card's window, as drawn, to a PNG.
+    func saveImage(to url: URL) {
+        guard let hosting, let rep = hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds) else { return }
+        hosting.cacheDisplay(in: hosting.bounds, to: rep)
+        try? rep.representation(using: .png, properties: [:])?.write(to: url)
     }
 
     var currentLayout: CardLayout? { layout }
