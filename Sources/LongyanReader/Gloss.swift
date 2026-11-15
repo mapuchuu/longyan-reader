@@ -5,17 +5,26 @@ import Foundation
 /// stays as the dictionary has it: notes and examples are keyed on it, and the model reads it.
 enum Gloss {
     private static let reference = try! NSRegularExpression(pattern: #"(?:\p{Han}+\|)?(\p{Han}+)(?:\[[A-Za-z0-9 :,·\-]+\])?"#)
+    private static let alsoWritten = try! NSRegularExpression(pattern: #"also written (\p{Han}+)\|(\p{Han}+)(?:\[[A-Za-z0-9 :,·\-]+\])?"#)
     private static let stray = try! NSRegularExpression(pattern: #"\[[A-Za-z]+[1-5:]?[A-Za-z0-9 :,·\-]*\]"#)
     private static let words: [(String, String)] = [
         (#"\bsb's\b"#, "someone's"), (#"\bsth's\b"#, "something's"), (#"\bsb\b"#, "someone"), (#"\bsth\b"#, "something"),
         (#"\besp\."#, "especially"), (#"\bfig\."#, "figuratively"), (#"\blit\."#, "literally"), (#"\babbr\. for\b"#, "short for"),
-        (#"\babbr\."#, "short for"), (#"\bcolloquial\."#, "colloquial"), (#"\bcf\."#, "compare"), (#"\be\.g\."#, "for example"),
+        (#"\babbr\."#, "short for"), (#"\bcolloquial\."#, "colloquial"), (#"\bcf\."#, "compare"), (#"\be\.g\. see\b"#, "as in"), (#"\be\.g\."#, "for example"),
         (#"\bi\.e\."#, "that is"), (#"\betc\.?(?=\W|$)"#, "and so on"),
+        (#"\busu\."#, "usually"), (#"\bapprox\."#, "about"),
     ]
 
     /// The whole definition, without dictionary markup. Used in the lists of meanings.
     static func readable(_ raw: String) -> String {
         var text = raw
+        // "also written 裏|里" is about the other script, so both forms stay: on 里 itself
+        // "also written 里" says nothing.
+        text = alsoWritten.stringByReplacingMatches(in: text, range: NSRange(text.startIndex..., in: text),
+                                                    withTemplate: "also written $2 (traditional $1)")
+        // "opposite: passive 被動|被动" names the opposite word; it isn't a meaning of this one.
+        text = text.replacingOccurrences(of: #"^opposite: ([^\p{Han}]+?) ?((?:\p{Han}+\|)?\p{Han}+(?:\[[^\]]*\])?)$"#,
+                                         with: "not $1 (opposite of $2)", options: .regularExpression)
         let range = NSRange(text.startIndex..., in: text)
         text = reference.stringByReplacingMatches(in: text, range: range, withTemplate: "$1")
         text = spellingPronunciations(text)
@@ -50,12 +59,20 @@ enum Gloss {
         if let plain = plainWording[raw] { return plain }
         var text = firstClause(readable(raw))
         // Leading and trailing asides go: "(bound form) up", "benefit (provided by an employer)".
+        // A "(not)" stays: "(not) at all" is a meaning of 并, "at all" its opposite.
         while text.hasPrefix("("), let close = matchingClose(in: text) {
+            let aside = String(text[...close])
             let rest = text[text.index(after: close)...].trimmingCharacters(in: .whitespaces)
-            if rest.isEmpty { break }
+            if rest.isEmpty || isNegation(aside) { break }
+            // "(to say the) least": the aside is the start of the phrase, not a note on it.
+            if !rest.contains(" "), let last = aside.dropLast().split(separator: " ").last, joiningWords.contains(String(last)) {
+                text = String(aside.dropFirst().dropLast()) + " " + rest
+                break
+            }
             text = rest
         }
-        while text.hasSuffix(")"), let open = text.lastIndex(of: "("), open > text.startIndex {
+        while text.hasSuffix(")"), let open = text.lastIndex(of: "("), open > text.startIndex,
+              !isNegation(String(text[open...])) {
             let rest = text[..<open].trimmingCharacters(in: .whitespaces)
             if rest.isEmpty { break }
             text = rest
@@ -96,6 +113,14 @@ enum Gloss {
         }
         return text
     }
+
+    /// "(not)", "(not ...)", "(not only ...)": CC-CEDICT's way of saying "used with a negative".
+    private static func isNegation(_ aside: String) -> Bool {
+        aside.range(of: #"^\(not( only)?( ?\.\.\.)?\)$"#, options: .regularExpression) != nil
+    }
+
+    /// An aside ending in one of these runs on into the word after it: "(to say the) least".
+    private static let joiningWords: Set<String> = ["the", "a", "an", "to", "be", "one's", "someone's", "something's"]
 
     private static func matchingClose(in text: String) -> String.Index? {
         var depth = 0

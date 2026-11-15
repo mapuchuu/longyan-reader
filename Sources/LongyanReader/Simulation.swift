@@ -135,6 +135,11 @@ extension AppDelegate {
         check(GrammarWords.entry("了", in: Array("下雨了"), at: 2)?.reading == "le5", "了 after a verb reads le")
         check(Gloss.readable("also pr. [di4] or [di5] in poetry and songs") == "also pronounced dì or di in poetry and songs",
               "pronunciation notes keep their pinyin")
+        check(Gloss.short("(not) at all") == "(not) at all" && Gloss.short("absolutely (not)") == "absolutely (not)",
+              "short meanings keep their \"(not)\" (\(Gloss.short("(not) at all")))")
+        check(Gloss.short("(to say the) least") == "to say the least", "a bracket that starts the phrase is unwrapped")
+        check(Gloss.short("opposite: passive 被動|被动[bei4 dong4]") == "not passive", "an opposite note reads as a meaning")
+        check(Gloss.short("(physics) energy") == "energy", "labels in brackets still go")
 
         // 2d. Every meaning is on offer; a short list always includes the one chosen.
         if let dict {
