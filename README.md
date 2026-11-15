@@ -31,6 +31,21 @@ If the model is unavailable or rejects a prompt, the cards still show the dictio
 
 Size changes animate inside the card, never by animating the window: the window is a transparent frame with room for the card's own shadow, resized instantly (growing before an expansion, shrinking after a contraction), so no rectangular window edge or stale shadow can flash mid-animation.
 
+## Install
+
+Download `LongyanReader-<version>.zip` from Releases, unzip it, and move **Longyan Reader** to Applications. It needs macOS 26 on Apple silicon.
+
+The app is free and open source, so it isn't signed with a paid Apple Developer ID, and macOS blocks it the first time:
+
+1. Open it once. macOS says it can't verify the developer; click **Done**.
+2. Go to System Settings → Privacy & Security, scroll down, and click **Open Anyway** next to Longyan Reader. Confirm with your password.
+
+A welcome window then asks for **Accessibility** (System Settings → Privacy & Security → Accessibility), which is how it reads the text you highlight. It notices as soon as you turn it on. No other permissions are used. Each new version is a new binary, so after updating, turn Accessibility off and on again for it.
+
+## Privacy
+
+Lookups are processed on your Mac: the dictionary is bundled and the model runs locally. Lookup history (the sentences you looked up, for building study notes) is **off** by default; Lookup History in the menu keeps it for 30 days or for good, shows the file, or moves it to the Trash. It's saved to `~/Library/Logs/LongyanReader/lookups.jsonl`, readable only by your account.
+
 ## Build and run
 
 You need macOS 26 and the Xcode Command Line Tools. Full Xcode isn't required.
@@ -40,9 +55,9 @@ scripts/build-app.sh
 open "build/Longyan Reader.app"
 ```
 
-On first run, allow **Accessibility** in System Settings → Privacy & Security. It's needed to read the selection and to see when you select text. No other permissions are used.
+`scripts/build-app.sh --release` builds the download: a plain ad-hoc signature and `build/LongyanReader-<version>.zip`, with its SHA-256 printed for the release notes.
 
-The eye icon in the menu bar shows the status of the dictionary, the model and the permission, and lets you turn the selection button off. Builds are ad-hoc signed with a requirement on the bundle ID, so the permission normally survives rebuilds.
+The eye icon in the menu bar shows the status of the dictionary, the model and the permission, and lets you turn the selection button off. Local builds are ad-hoc signed with a requirement on the bundle ID, so the permission survives rebuilds. Release builds aren't: that requirement would let any app using the same bundle ID inherit the permission.
 
 ## Testing without the hotkey
 
@@ -85,6 +100,10 @@ New notes come in batches: most looked-up words first, then by frequency (`notes
 The model sees each noted sense with its note's first sentence, and a few fixed casual patterns it never reads correctly (这不科学, 你可以啊) are settled without it by `Resources/note-cues.json`. `notes/note-pick-eval.tsv` tests this with pairs: a casual use that should land on the noted sense, and a plain use that must not.
 
 ## Licences
+
+The code is under the [MIT License](LICENSE). Data derived from CC-CEDICT (`Resources/cedict_ts.u8`, `Resources/sense-order.tsv`, `Resources/extra-words.u8`) stays under CC BY-SA 4.0, as CC-CEDICT requires.
+
+About Longyan Reader in the menu lists the credits below. Sense picks and translations come from a language model and can be wrong; the nuance notes were written by Claude and checked against the senses they attach to.
 
 The Longyan eye icon is from the Longyan Chrome extension.
 

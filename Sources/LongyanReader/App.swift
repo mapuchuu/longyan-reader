@@ -54,6 +54,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Saved card widths now mean a zoom level; sizes saved by the box-resizing
         // version would open cards shrunk, so start those fresh once.
         let defaults = UserDefaults.standard
+        Log.trim()
         applyAppearance()
         if defaults.integer(forKey: "cardSizeVersion") < 2 {
             for key in defaults.dictionaryRepresentation().keys where key.hasPrefix("card.") { defaults.removeObject(forKey: key) }
@@ -107,6 +108,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
                 return
             }
+            if arg == "onboarding" { Onboarding.shared.show(); return }
+            if arg == "about" { About.show(); return }
             if arg == "demo" {
                 // Debug: open a word card mid-screen, log its sizing, then drag the corner.
                 Task { @MainActor in
@@ -149,9 +152,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         #endif
 
-        // Ask for Accessibility once; the system shows its own prompt.
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-        _ = AXIsProcessTrustedWithOptions(options)
+        // Without Accessibility nothing works, so explain it before the system prompt appears.
+        Onboarding.shared.onTrusted = { [weak self] in self?.rebuildMenu() }
+        Onboarding.shared.showIfNeeded()
     }
 
     // MARK: Menu
@@ -194,11 +197,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         let appearanceItem = menu.addItem(withTitle: "Appearance", action: nil, keyEquivalent: "")
         menu.setSubmenu(appearanceMenu, for: appearanceItem)
+        let historyMenu = NSMenu()
+        for (keep, label) in [(Log.Keep.off, "Off"), (.days30, "Keep 30 Days"), (.all, "Keep Everything")] {
+            let item = historyMenu.addItem(withTitle: label, action: #selector(selectHistory(_:)), keyEquivalent: "")
+            item.target = self; item.representedObject = keep.rawValue; item.state = Log.keep == keep ? .on : .off
+        }
+        historyMenu.addItem(.separator())
+        let hasHistory = FileManager.default.fileExists(atPath: Log.file.path)
+        let reveal = historyMenu.addItem(withTitle: "Show in Finder", action: hasHistory ? #selector(revealHistory) : nil, keyEquivalent: "")
+        reveal.target = self
+        let clear = historyMenu.addItem(withTitle: "Clear History…", action: hasHistory ? #selector(clearHistory) : nil, keyEquivalent: "")
+        clear.target = self
+        let historyItem = menu.addItem(withTitle: "Lookup History", action: nil, keyEquivalent: "")
+        menu.setSubmenu(historyMenu, for: historyItem)
         menu.addItem(withTitle: "Accessibility: " + (AXIsProcessTrusted() ? "allowed" : "not allowed"), action: nil, keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Open Accessibility Settings…", action: #selector(openAccessibility), keyEquivalent: "").target = self
         menu.addItem(withTitle: "Refresh Status", action: #selector(refresh), keyEquivalent: "").target = self
         menu.addItem(.separator())
+        menu.addItem(withTitle: "About Longyan Reader", action: #selector(showAbout), keyEquivalent: "").target = self
         menu.addItem(withTitle: "Quit Longyan Reader", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         statusItem.menu = menu
     }
@@ -235,7 +252,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         refresh()
     }
     @objc private func openAccessibility() {
-        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
+        if AXIsProcessTrusted() { Onboarding.openAccessibilitySettings() } else { Onboarding.shared.show() }
+    }
+    @objc private func showAbout() { About.show() }
+    @objc private func selectHistory(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String, let keep = Log.Keep(rawValue: raw) else { return }
+        Log.keep = keep
+        rebuildMenu()
+    }
+    @objc private func revealHistory() { NSWorkspace.shared.activateFileViewerSelecting([Log.file]) }
+    @objc private func clearHistory() {
+        let alert = NSAlert()
+        alert.messageText = "Clear lookup history?"
+        alert.informativeText = "The history file moves to the Trash, where you can still restore it."
+        alert.addButton(withTitle: "Move to Trash")
+        alert.addButton(withTitle: "Cancel")
+        NSApp.activate()
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        Log.clear()
+        rebuildMenu()
     }
     @objc private func refresh() {
         Task {
@@ -476,22 +511,65 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
+/// The lookup history: one JSON line per lookup in ~/Library/Logs/LongyanReader/lookups.jsonl,
+/// on this Mac only. It holds the sentences read, so it's off for new installs; the menu turns
+/// it on for 30 days or for good, and Clear moves the file to the Trash.
 enum Log {
+    enum Keep: String, CaseIterable { case off, days30, all }
+
     static let directory: URL = {
         let dir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/LongyanReader")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }()
+    static var file: URL { directory.appendingPathComponent("lookups.jsonl") }
+
+    /// Unset means a first launch with this setting: a history that already exists (it was
+    /// always on before) is kept whole; otherwise it starts off.
+    static var keep: Keep {
+        get {
+            if let raw = UserDefaults.standard.string(forKey: "lookupHistory"), let k = Keep(rawValue: raw) { return k }
+            let k: Keep = FileManager.default.fileExists(atPath: file.path) ? .all : .off
+            UserDefaults.standard.set(k.rawValue, forKey: "lookupHistory")
+            return k
+        }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: "lookupHistory"); trim() }
+    }
 
     static func write(_ record: [String: Any]) {
+        guard keep != .off else { return }
         var r = record
         r["at"] = ISO8601DateFormatter().string(from: Date())
         guard let data = try? JSONSerialization.data(withJSONObject: r, options: [.sortedKeys]) else { return }
-        let url = directory.appendingPathComponent("lookups.jsonl")
-        if let h = try? FileHandle(forWritingTo: url) {
+        if let h = try? FileHandle(forWritingTo: file) {
             h.seekToEndOfFile(); h.write(data); h.write("\n".data(using: .utf8)!); try? h.close()
         } else {
-            try? (String(data: data, encoding: .utf8)! + "\n").write(to: url, atomically: true, encoding: .utf8)
+            FileManager.default.createFile(atPath: file.path, contents: data + "\n".data(using: .utf8)!,
+                                           attributes: [.posixPermissions: 0o600])
         }
+    }
+
+    /// Readable by this account only, and with "30 days", nothing older. Runs at launch.
+    static func trim() {
+        guard FileManager.default.fileExists(atPath: file.path) else { return }
+        try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)
+        guard keep == .days30, let text = try? String(contentsOf: file, encoding: .utf8) else { return }
+        let cutoff = Date().addingTimeInterval(-30 * 86_400)
+        let parse = ISO8601DateFormatter()
+        let lines = text.split(separator: "\n")
+        let kept = lines.filter { line in
+            guard let at = line.range(of: #""at":"([^"]+)""#, options: .regularExpression)
+                .map({ String(line[$0].dropFirst(6).dropLast()) }), let date = parse.date(from: at) else { return true }
+            return date >= cutoff
+        }
+        guard kept.count < lines.count else { return }
+        try? (kept.joined(separator: "\n") + (kept.isEmpty ? "" : "\n")).write(to: file, atomically: true, encoding: .utf8)
+        try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)
+    }
+
+    /// Moves the history to the Trash (recoverable from there).
+    static func clear() {
+        guard FileManager.default.fileExists(atPath: file.path) else { return }
+        try? FileManager.default.trashItem(at: file, resultingItemURL: nil)
     }
 }
