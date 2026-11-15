@@ -19,7 +19,7 @@ It's a sibling of [Longyan](https://github.com/mapuchuu/longyan), the Chrome ext
      - a translation, typed in as it's written. With the local model it comes from Qwen, which handles slang and idioms far better than Apple's Translation framework (内卷 "involution" rather than "internal entanglement", 小意思 "a small token" rather than "a little interesting", 佛系 "laid-back" rather than "Buddhist"). Apple's translator is the fallback;
      - then each word with its meaning in this passage, the rows filling in top to bottom as the model picks them. Opening a row never changes it; click a word for its other meanings or to pick one yourself.
 
-     The work starts as soon as the selection button appears, while you move to click it, so it's often finished by the time the card opens. The local model picks all the words in one streamed request (Ollama answers one request at a time, so word-by-word calls queue up): the translation starts in about 0.15 s and a sentence's words are done in about 1–2 s. With Apple's model the words are picked separately, a few seconds per sentence, and still shown in reading order.
+     The work starts as soon as the selection button appears, while you move to click it, so it's often finished by the time the card opens. The local model picks all the words in one streamed request (the model answers one request at a time, so word-by-word calls would queue up): the translation starts in about 0.15 s and a sentence's words are done in about 1–2 s. With Apple's model the words are picked separately, a few seconds per sentence, and still shown in reading order.
 
      With Apple's model, words whose meaning is settled without it skip the model call: grammar words by position (了 at the end of a sentence, 地, 得 after a verb), then a sense the translation agrees with, except for words with notes. `notes/phrase-eval.tsv` holds labelled sentences, half for tuning (D) and half held out (H): `--eval-phrase notes/phrase-eval.tsv H` scores the current sense picker.
 
@@ -79,7 +79,11 @@ Each lookup appends a line to `~/Library/Logs/LongyanReader/lookups.jsonl`, a fe
 
 ## Status
 
-The sense picker uses a local model through [Ollama](https://ollama.com) when it is running (default `qwen3.5:4b`; choose it in the menu under Sense Picker, or set `LONGYAN_MODEL`, or `apple` to turn it off), and falls back to Apple's on-device model otherwise. The model gets a 2,048-token context and is unloaded after five idle minutes.
+The sense picker is Qwen 3.5 4B (Q4_K_M), run inside the app with [llama.cpp](https://github.com/ggml-org/llama.cpp) (release b11588's Metal framework, a SwiftPM binary target, bundled in `Contents/Frameworks`). The model file isn't bundled: **Download Qwen Model (2.7 GB)…** in the menu fetches `Qwen3.5-4B-Q4_K_M.gguf` from `unsloth/Qwen3.5-4B-GGUF` at a pinned revision, from hf-mirror.com and then huggingface.co, resuming if interrupted and keeping it only if its SHA-256 matches, into `~/Library/Application Support/LongyanReader/models/`. It's byte-identical to Ollama's `qwen3.5:4b`, so on a Mac with that installed the app uses Ollama's copy and needs no download (`LONGYAN_GGUF` points at any other file).
+
+Without the file the app uses [Ollama](https://ollama.com) if it's running (`LONGYAN_BACKEND=ollama` forces it, for comparison), and Apple's on-device model otherwise; `apple` under Sense Picker or in `LONGYAN_MODEL` turns the local model off. The model gets a 2,048-token context and is unloaded after five idle minutes.
+
+The embedded backend scores the same as Ollama on every test, with the same misses item for item. Qwen 3.5 is a hybrid model (its recurrent state can't be cut back to a shared prefix), so the state at the end of each of the last six prompts is saved and a repeated prompt (a card prepared, then opened) skips reading it. Per pick it's within ~10–15% of Ollama (single word ~0.32 s, phrase ~0.36 s, translation ~0.23 s); the app's own memory is ~1.1 GB plus the 2.7 GB model file mapped from disk.
 
 | Sense picker | Note test (52 held-out) | Wrong notes | Main test senses (29) | Per lookup | Memory in use |
 |---|---|---|---|---|---|
@@ -90,8 +94,6 @@ The sense picker uses a local model through [Ollama](https://ollama.com) when it
 Rephrasing the question for Apple's model (meanings by name, examples in the prompt) did not help: 33–38/52 in every variant.
 
 The tie-break rules (translation matching, a two-option question in both orders) only run with Apple's model; with Qwen they overrode correct answers.
-
-To set up Qwen without Ollama's downloader (for example behind a fake-IP proxy), download `Qwen3.5-4B-Q4_K_M.gguf` (2.74 GB) from the `unsloth/Qwen3.5-4B-GGUF` repo (hf-mirror.com works in China) and run `ollama create qwen3.5:4b -f Modelfile` with `FROM ./Qwen3.5-4B-Q4_K_M.gguf`.
 
 Nuance notes are written ahead of time, one per dictionary sense that needs one, and shipped in `Resources/notes.json`. The pilot covers 502 words (95 idioms), written by Claude in a Claude Code session; see `notes/pilot/review.md`. Example sentences (`notes/pilot/examples.tsv`, 315 sentences for 198 senses) go into the local model's prompt, and `notes/pilot/note-covers.tsv` lets one note cover its paraphrase senses. For a full build, `NotesBuilder.swift` can also run the job through the Message Batches API (`--notes-submit`, `--notes-status`, `--notes-fetch`).
 

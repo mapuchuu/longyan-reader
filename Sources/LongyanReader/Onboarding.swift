@@ -116,7 +116,7 @@ enum About {
         add(". Modified: senses reordered, words added, notes attached. ")
         add("cc-cedict.org", link: "https://cc-cedict.org/")
         add("\n\nModels\n", font: bold)
-        add("Sense picks and translations come from a local language model (Qwen, Apache 2.0, run through Ollama), or Apple's on-device models and Translation framework. They can be wrong: check a pick against the other listed senses. Sentence translations are machine translations.")
+        add("Sense picks and translations come from a local language model (Qwen 3.5, Apache 2.0, run in the app with llama.cpp, MIT; or through Ollama), or Apple's on-device models and Translation framework. They can be wrong: check a pick against the other listed senses. Sentence translations are machine translations.")
         add("\n\nNotes\n", font: bold)
         add("The cultural and nuance notes were written by an AI model (Claude) and checked against the dictionary senses they attach to; they can contain mistakes.")
         add("\n\nPrivacy\n", font: bold)

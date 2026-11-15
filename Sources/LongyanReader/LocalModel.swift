@@ -1,9 +1,17 @@
 import Foundation
 
-/// A sense picker backed by a local model served by Ollama (http://127.0.0.1:11434).
-/// Stronger than Apple's on-device 3B model at telling close senses apart; used when
-/// Ollama is running and the model is installed, otherwise the app falls back.
+/// A sense picker and translator backed by a local Qwen model: run inside the app with
+/// llama.cpp when the model file is present (EmbeddedModel), otherwise served by Ollama
+/// (http://127.0.0.1:11434) if that's running. Stronger than Apple's on-device 3B model at
+/// telling close senses apart; without either, the app falls back to Apple's.
 enum LocalModel {
+    enum Backend { case embedded, ollama }
+    /// LONGYAN_BACKEND=ollama forces Ollama (for comparing the two).
+    static var backend: Backend {
+        if ProcessInfo.processInfo.environment["LONGYAN_BACKEND"] == "ollama" { return .ollama }
+        return EmbeddedModel.modelPath != nil ? .embedded : .ollama
+    }
+
     /// Which model to use: LONGYAN_MODEL, else the "senseModel" default, else qwen3.5:4b.
     /// "apple" turns it off. On the tests the 4B matched the 9B (51/52) with one wrong note
     /// to the 9B's none, at ~0.4 s and 2.9 GB instead of ~0.6 s and 4.5 GB.
@@ -34,6 +42,7 @@ enum LocalModel {
     }
     static func isAvailable() async -> Bool {
         guard enabled else { return false }
+        if backend == .embedded { lastCheck = (Date(), true); return true }
         if let c = lastCheck, Date().timeIntervalSince(c.at) < 30 { return c.ok }
         var ok = false
         var req = URLRequest(url: URL(string: "http://127.0.0.1:11434/api/tags")!)
@@ -57,6 +66,7 @@ enum LocalModel {
     private static var _lastWarmUp: Date?
     static func warmUp() {
         guard enabled else { return }
+        if backend == .embedded { EmbeddedModel.shared.warmUp(); return }
         let due = lock.withLock {
             if let last = _lastWarmUp, Date().timeIntervalSince(last) < 60 { return false }
             _lastWarmUp = Date()
@@ -251,6 +261,18 @@ enum LocalModel {
 
     /// Runs a chat request with streaming on; `onText` gets the reply so far after each piece.
     private static func stream(_ body: [String: Any], onText: @MainActor (String) -> Void) async throws -> String {
+        if backend == .embedded {
+            let options = body["options"] as? [String: Any] ?? [:]
+            let keys = (body["format"] as? [String: Any])?["required"] as? [String]
+            var text = ""
+            for try await t in EmbeddedModel.shared.stream(messages: body["messages"] as? [[String: String]] ?? [],
+                                                           maxTokens: options["num_predict"] as? Int,
+                                                           grammar: keys.map(EmbeddedModel.jsonGrammar)) {
+                try Task.checkCancellation()
+                if t != text { text = t; await onText(text) }
+            }
+            return text
+        }
         var body = body
         body["stream"] = true
         var req = URLRequest(url: endpoint)

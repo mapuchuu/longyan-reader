@@ -16,6 +16,11 @@ app="build/Longyan Reader.app"
 rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 cp .build/release/LongyanReader "$app/Contents/MacOS/LongyanReader"
+# llama.cpp (the local model runs in-process). ditto keeps the framework's symlinks and,
+# with --arch, keeps only the slice the app is built for (the binary is this Mac's arch).
+mkdir -p "$app/Contents/Frameworks"
+ditto --arch "$(uname -m)" .build/release/llama.framework "$app/Contents/Frameworks/llama.framework"
+codesign --force --sign - "$app/Contents/Frameworks/llama.framework"
 cp Resources/cedict_ts.u8 Resources/longyan-mark.png Resources/notes.json Resources/examples.json Resources/note-cues.json Resources/sense-order.tsv Resources/extra-words.u8 "$app/Contents/Resources/"
 cat > "$app/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>

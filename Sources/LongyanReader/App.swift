@@ -168,9 +168,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         chipItem.state = chip.isEnabled ? .on : .off
         menu.addItem(.separator())
         menu.addItem(withTitle: "Dictionary: " + (dict.map { "\($0.entryCount) entries" } ?? "loading…"), action: nil, keyEquivalent: "")
-        menu.addItem(withTitle: "Sense chooser: " + (localModelReady ? "\(LocalModel.name) (local, via Ollama)"
+        let localLabel = LocalModel.backend == .embedded ? "Qwen 3.5 4B (built in)" : "\(LocalModel.name) (via Ollama)"
+        menu.addItem(withTitle: "Sense chooser: " + (localModelReady ? localLabel
                                                      : "Apple on-device model, " + SenseChooser.unavailableReason),
                      action: nil, keyEquivalent: "")
+        // The model file isn't bundled (2.7 GB); offer it until it's here.
+        let downloader = ModelDownloader.shared
+        switch downloader.state {
+        case .downloading(let p):
+            menu.addItem(withTitle: String(format: "Downloading model… %.0f%% (Cancel)", p * 100),
+                         action: #selector(cancelModelDownload), keyEquivalent: "").target = self
+        case .verifying:
+            menu.addItem(withTitle: "Checking the downloaded model…", action: nil, keyEquivalent: "")
+        case .failed(let why) where EmbeddedModel.modelPath == nil:
+            menu.addItem(withTitle: "Model download failed: \(why)", action: nil, keyEquivalent: "")
+            menu.addItem(withTitle: "Retry Download", action: #selector(downloadModel), keyEquivalent: "").target = self
+        default:
+            if EmbeddedModel.modelPath == nil {
+                menu.addItem(withTitle: "Download Qwen Model (2.7 GB)…", action: #selector(downloadModel), keyEquivalent: "").target = self
+            }
+        }
         let pickerMenu = NSMenu()
         for choice in LocalModel.choices {
             let item = pickerMenu.addItem(withTitle: choice.label, action: #selector(selectModel(_:)), keyEquivalent: "")
@@ -255,6 +272,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if AXIsProcessTrusted() { Onboarding.openAccessibilitySettings() } else { Onboarding.shared.show() }
     }
     @objc private func showAbout() { About.show() }
+    @objc private func downloadModel() {
+        if case .failed = ModelDownloader.shared.state {} else {
+            let alert = NSAlert()
+            alert.messageText = "Download the local model?"
+            let gb = Double(ProcessInfo.processInfo.physicalMemory) / 1_073_741_824
+            alert.informativeText = "Qwen 3.5 4B (Apache 2.0), 2.7 GB from Hugging Face. It picks word senses and translates "
+                + "on this Mac, more accurately than Apple's built-in model, and uses about 3 GB of memory while a lookup is recent."
+                + (gb < 15 ? " This Mac has \(Int(gb.rounded())) GB of memory, so other apps may slow down while it's loaded." : "")
+                + " An interrupted download picks up where it stopped."
+            alert.addButton(withTitle: "Download")
+            alert.addButton(withTitle: "Cancel")
+            NSApp.activate()
+            guard alert.runModal() == .alertFirstButtonReturn else { return }
+        }
+        let d = ModelDownloader.shared
+        d.onChange = { [weak self] in
+            if d.state == .done { LocalModel.select(LocalModel.name); self?.refresh() } else { self?.rebuildMenu() }
+        }
+        d.start()
+    }
+    @objc private func cancelModelDownload() { ModelDownloader.shared.cancel() }
     @objc private func selectHistory(_ sender: NSMenuItem) {
         guard let raw = sender.representedObject as? String, let keep = Log.Keep(rawValue: raw) else { return }
         Log.keep = keep
