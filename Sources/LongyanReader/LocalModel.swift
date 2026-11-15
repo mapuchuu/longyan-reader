@@ -173,6 +173,11 @@ enum LocalModel {
             }
             return out
         }
+        if usesScoring {
+            return try await pickByScoring(body, words: words,
+                                           steps: words.enumerated().map { ($0 == 0 ? "" : " ") + $1.word + "=" },
+                                           onPick: onPick)
+        }
         var picked = [Bool](repeating: false, count: words.count)
         let text = try await stream(body) { text in
             for (i, n) in read(text, final: false).enumerated() where !picked[i] {
@@ -195,6 +200,12 @@ enum LocalModel {
         let body = chooseAllBody(chooseAllPrompt(passage, selectionMarked, words, labels: keys),
                                  options: ["temperature": 0, "num_ctx": 2048],
                                  format: ["type": "object", "properties": props, "required": keys])
+        // Laid out the way the model writes it: {\n  "w01": 3\n}
+        if usesScoring {
+            return try await pickByScoring(body, words: words,
+                                           steps: keys.enumerated().map { ($0 == 0 ? "{\n  \"" : ",\n  \"") + $1 + "\": " },
+                                           onPick: onPick)
+        }
         func valid(_ i: Int, _ n: Int?) -> Int? { n.flatMap { (1...words[i].senses.count).contains($0) ? $0 : nil } }
         var picks = [Int?](repeating: nil, count: words.count)
         let text = try await stream(body) { text in
@@ -208,6 +219,36 @@ enum LocalModel {
         }
         guard let parsed = try? JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any] else { throw unexpected(text) }
         return words.indices.map { i in picks[i] ?? valid(i, parsed[keys[i]] as? Int) }
+    }
+
+    /// With the built-in model, picks are read from the model's odds instead of a written
+    /// reply (EmbeddedModel.pick): the same prompt and answer format, one model pass per word
+    /// instead of one per token. LONGYAN_PICK=generate writes the reply, for comparison.
+    static var usesScoring: Bool {
+        backend == .embedded && ProcessInfo.processInfo.environment["LONGYAN_PICK"] != "generate"
+    }
+
+    private static func pickByScoring(_ body: [String: Any], words: [(word: String, senses: [Sense])], steps: [String],
+                                      onPick: @MainActor (Int, Int) -> Void) async throws -> [Int?] {
+        var picks: [Int?] = []
+        let messages = body["messages"] as? [[String: String]] ?? []
+        for try await p in EmbeddedModel.shared.pick(messages: messages, steps: zip(steps, words).map { ($0, $1.senses.count) }) {
+            try Task.checkCancellation()
+            let i = picks.count
+            record(words[i].word, p.number, p.confidence)
+            picks.append(p.number)
+            await onPick(i, p.number)
+        }
+        guard picks.count == words.count else { throw unexpected("\(picks.count) of \(words.count) picks") }
+        return picks
+    }
+
+    /// How sure the model was of its latest pick for each word (0…1), for the evals' calibration
+    /// lines. Only scoring picks have one.
+    private static var confidences: [String: (number: Int, confidence: Double)] = [:]
+    private static func record(_ word: String, _ n: Int, _ p: Double) { lock.withLock { confidences[word] = (n, p) } }
+    static func confidence(_ word: String, picked n: Int) -> Double? {
+        lock.withLock { confidences[word].flatMap { $0.number == n ? $0.confidence : nil } }
     }
 
     static let translationInstructions = """

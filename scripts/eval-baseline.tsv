@@ -1,0 +1,11 @@
+# eval	right	total	ms
+words	27	29	148
+senses	24	29	-
+notes	51	52	-
+wrong-notes	1	0	-
+phrase	83	95	294
+single	85	90	122
+phrase-notes	81	90	311
+real-P	132	136	211
+real-S	36	39	135
+real-T	48	52	229

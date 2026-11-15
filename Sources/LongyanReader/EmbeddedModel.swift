@@ -123,13 +123,10 @@ final class EmbeddedModel: @unchecked Sendable {
         return s + "<|im_start|>assistant\n<think>\n\n</think>\n\n"
     }
 
-    private func generate(prompt: String, maxTokens: Int, grammar: String?, stop: StopFlag,
-                          onText: (String) -> Void) throws {
-        guard let ctx, let vocab, let model else { throw Self.error("not loaded") }
-        let started = Date()
-        let tokens = tokenize(prompt)
-        guard tokens.count + maxTokens < Int(Self.contextSize) else { throw Self.error("prompt too long (\(tokens.count) tokens)") }
-
+    /// Reads a prompt into the context, reusing what's already there, and leaves the logits
+    /// for what comes after its last token. Returns how many tokens were reused.
+    private func read(_ tokens: [llama_token]) throws -> Int {
+        guard let ctx, let model else { throw Self.error("not loaded") }
         // Reuse what's already been read. A plain transformer keeps its cache up to where this
         // prompt departs from the last one. Qwen 3.5 is a hybrid model, whose recurrent state
         // can't be cut back to a shared prefix, so instead the state at the end of each recent
@@ -164,6 +161,16 @@ final class EmbeddedModel: @unchecked Sendable {
             }
             try decode([tokens.last!], startingAt: cached.count)
         }
+        return keep
+    }
+
+    private func generate(prompt: String, maxTokens: Int, grammar: String?, stop: StopFlag,
+                          onText: (String) -> Void) throws {
+        guard let ctx, let vocab, let model else { throw Self.error("not loaded") }
+        let started = Date()
+        let tokens = tokenize(prompt)
+        guard tokens.count + maxTokens < Int(Self.contextSize) else { throw Self.error("prompt too long (\(tokens.count) tokens)") }
+        let keep = try read(tokens)
         let promptMs = Date().timeIntervalSince(started) * 1000
 
         // Greedy (temperature 0). With a grammar, the top token is checked alone first and the
@@ -213,9 +220,84 @@ final class EmbeddedModel: @unchecked Sendable {
             try decode([t], startingAt: cached.count)
         }
         if ProcessInfo.processInfo.environment["LONGYAN_TIMING"] == "1" {
-            FileHandle.standardError.write(Data(String(format: "timing: prompt %d tok (%d new%@) %.0f ms, answer %d tok %.0f ms\n",
-                tokens.count, tokens.count - keep, llama_model_is_hybrid(model) ? ", hybrid" : "", promptMs, produced, Date().timeIntervalSince(answerStart) * 1000).utf8))
+            FileHandle.standardError.write(Data(String(format: "timing: prompt %d tok (%d new%@) %.0f ms, answer %d tok %.0f ms: %@\n",
+                tokens.count, tokens.count - keep, llama_model_is_hybrid(model) ? ", hybrid" : "", promptMs, produced,
+                Date().timeIntervalSince(answerStart) * 1000, Self.completeUTF8(bytes).debugDescription).utf8))
         }
+    }
+
+    struct Pick: Sendable { let number: Int; let confidence: Double }
+
+    /// Numbers picked without writing a reply. Each step is the answer's text up to a number
+    /// (`等=`, then ` 和=`) and how many numbers it may be (1…count). The model's odds for the
+    /// next token, over the digits, give the number and how sure it is (its share of the odds
+    /// of all the allowed numbers); the number and the next step's text are then read in
+    /// together. That's one model pass per number, where writing the reply took one per token.
+    func pick(messages: [[String: String]], steps: [(text: String, count: Int)]) -> AsyncThrowingStream<Pick, Error> {
+        AsyncThrowingStream { continuation in
+            let stop = StopFlag()
+            continuation.onTermination = { _ in stop.set() }
+            queue.async {
+                do {
+                    try self.loadIfNeeded()
+                    let started = Date()
+                    let digits = (0...9).map { self.tokenize(String($0)) }
+                    guard digits.allSatisfy({ $0.count == 1 }), let first = steps.first else { throw Self.error("digits aren't single tokens") }
+                    let tokens = self.tokenize(Self.render(messages) + first.text)
+                    guard tokens.count + 4 * steps.count < Int(Self.contextSize) else { throw Self.error("prompt too long (\(tokens.count) tokens)") }
+                    let keep = try self.read(tokens)
+                    var pending: [llama_token] = []
+                    for (i, step) in steps.enumerated() {
+                        if stop.isSet { throw CancellationError() }
+                        if i > 0 { try self.decode(pending + self.tokenize(step.text), startingAt: self.cached.count) }
+                        let (pick, rest) = try self.readNumber(upTo: step.count, digits: digits.map { $0[0] })
+                        pending = rest
+                        continuation.yield(pick)
+                    }
+                    if ProcessInfo.processInfo.environment["LONGYAN_TIMING"] == "1" {
+                        FileHandle.standardError.write(Data(String(format: "timing: pick, prompt %d tok (%d new), %d numbers, %.0f ms\n",
+                            tokens.count, tokens.count - keep, steps.count, Date().timeIntervalSince(started) * 1000).utf8))
+                    }
+                    self.noteUse()
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+        }
+    }
+
+    /// Reads the number (1…count) the logits point to. Above 9 numbers, a leading 1 may be
+    /// 1 or 10…count, so the 1 is read in and the next token decides: a digit, or anything
+    /// else (the number ended). Returns the pick and the tokens of the number not yet read in.
+    private func readNumber(upTo count: Int, digits: [llama_token]) throws -> (Pick, [llama_token]) {
+        guard let ctx, let vocab else { throw Self.error("not loaded") }
+        let nVocab = Int(llama_vocab_n_tokens(vocab))
+        // Each digit's probability, and the rest (any other token), from the full softmax.
+        func odds() -> (digit: [Double], other: Double) {
+            let logits = llama_get_logits_ith(ctx, -1)!
+            var top = logits[0]
+            for i in 1..<nVocab where logits[i] > top { top = logits[i] }
+            var z = 0.0
+            for i in 0..<nVocab { z += exp(Double(logits[i] - top)) }
+            let d = digits.map { exp(Double(logits[Int($0)] - top)) / z }
+            return (d, max(0, 1 - d.reduce(0, +)))
+        }
+        func best(_ p: [Double]) -> (Int, Double) {
+            let total = p.reduce(0, +)
+            let i = p.indices.max { p[$0] < p[$1] }!
+            return (i, total > 0 ? p[i] / total : 0)
+        }
+        let o = odds()
+        let firsts = Array(1...min(9, max(count, 1)))
+        let (i, share) = best(firsts.map { o.digit[$0] })
+        let lead = firsts[i]
+        guard count >= 10, lead == 1 else { return (Pick(number: lead, confidence: share), [digits[lead]]) }
+        try decode([digits[1]], startingAt: cached.count)
+        let o2 = odds()
+        // 0: the number ends at 1; then 10, 11, … up to count.
+        let (j, share2) = best([o2.other] + (0...(count - 10)).map { o2.digit[$0] })
+        return (Pick(number: j == 0 ? 1 : 9 + j, confidence: share * share2), j == 0 ? [] : [digits[j - 1]])
     }
 
     private func decode(_ tokens: [llama_token], startingAt pos: Int) throws {

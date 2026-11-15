@@ -68,7 +68,7 @@ enum CLI {
             // Word senses as a phrase card picks them, on labelled sentences.
             // --eval-phrase notes/phrase-eval.tsv [D|H]; uses the current sense picker.
             let dict = try CEDict.load()
-            var right = 0, total = 0, unoffered = 0, unsplit = 0
+            var right = 0, total = 0, unoffered = 0, unsplit = 0, calibration = Calibration()
             let started = Date()
             for line in try String(contentsOfFile: args[2], encoding: .utf8).split(separator: "\n") where !line.hasPrefix("#") {
                 let f = line.split(separator: "\t").map(String.init)
@@ -88,9 +88,11 @@ enum CLI {
                 let picks = await PhraseState.resolve(tokens, in: passage, dict: dict, translation: translation)
                 let n = senses.count == 1 ? 1 : (picks[token.id]?.senseNumber ?? 1)
                 let got = senses[safe: n - 1]
+                if senses.count > 1 { calibration.add(token.text, n, right: got.map(matches) ?? false) }
                 if let got, matches(got) { right += 1 }
                 else { print("WRONG \(f[1]) [\(f[2])] want \(f[3]), got: \(got?.gloss.prefix(60) ?? "none")\(senses.contains(where: matches) ? "" : "  (right sense not offered)")") }
             }
+            calibration.report()
             print("right \(right)/\(total), right sense not offered \(unoffered), word split differently \(unsplit), \(Int(Date().timeIntervalSince(started))) s")
         case "--check-data":
             // Every override keyed to a dictionary sense still finds it: notes and examples by
@@ -141,7 +143,7 @@ enum CLI {
             let only = args.count >= 4 && args[3].count == 1 ? args[3] : nil
             let withContext = !args.contains("nocontext")
             var right: [String: Int] = [:], total: [String: Int] = [:], unoffered = 0
-            var ms: [String: Int] = [:]
+            var ms: [String: Int] = [:], calibration = Calibration()
             for line in try String(contentsOfFile: args[2], encoding: .utf8).split(separator: "\n") where !line.hasPrefix("#") {
                 let f = line.split(separator: "\t", omittingEmptySubsequences: false).map(String.init)
                 guard f.count >= 4, only == nil || f[0] == only else { continue }
@@ -189,9 +191,11 @@ enum CLI {
                 }
                 if !senses.contains(where: matches) { unoffered += 1 }
                 let got = senses[safe: n - 1]
+                if senses.count > 1 { calibration.add(word, n, right: word == f[2] && (got.map(matches) ?? false)) }
                 if word == f[2], let got, matches(got) { right[kind, default: 0] += 1 }
                 else { print("WRONG \(kind) [\(word)] want \(f[3]), got: \(got?.gloss.prefix(60) ?? "none")\(senses.contains(where: matches) ? "" : "  (right sense not offered)")  …\(String(passage[max(0, lo - 12)..<min(passage.count, hi + 6)]))") }
             }
+            calibration.report()
             for k in total.keys.sorted() {
                 print("\(k): right \(right[k, default: 0])/\(total[k]!), \(ms[k, default: 0] / max(total[k]!, 1)) ms each")
             }
@@ -199,7 +203,7 @@ enum CLI {
         case "--eval-single" where args.count >= 3:
             // The same file as --eval-phrase, picked the way a single-word card does.
             let dict = try CEDict.load()
-            var right = 0, total = 0, unoffered = 0
+            var right = 0, total = 0, unoffered = 0, calibration = Calibration()
             let started = Date()
             for line in try String(contentsOfFile: args[2], encoding: .utf8).split(separator: "\n") where !line.hasPrefix("#") {
                 let f = line.split(separator: "\t").map(String.init)
@@ -213,9 +217,11 @@ enum CLI {
                 if !senses.contains(where: matches) { unoffered += 1 }
                 let n = (try? await SenseChooser.choose(for: ctx, senses: senses))?.senseNumber ?? 1
                 let got = senses[safe: n - 1]
+                if senses.count > 1 { calibration.add(ctx.word, n, right: ctx.word == f[2] && (got.map(matches) ?? false)) }
                 if ctx.word == f[2], let got, matches(got) { right += 1 }
                 else { print("WRONG \(f[1]) [\(ctx.word)] want \(f[3]), got: \(got?.gloss.prefix(60) ?? "none")\(senses.contains(where: matches) ? "" : "  (right sense not offered)")") }
             }
+            calibration.report()
             print("right \(right)/\(total), right sense not offered \(unoffered), \(Int(Date().timeIntervalSince(started))) s")
         case "--gloss-audit" where args.count >= 3:
             // Every sense of every word in a file of sentences, with the short meaning a card
@@ -639,5 +645,26 @@ enum CLI {
         let scale = Double(ProcessInfo.processInfo.environment["LONGYAN_CARD_SCALE"] ?? "") ?? 1
         layout.width = layout.baseWidth * scale
         return layout
+    }
+}
+
+/// How often the model's picks were right at each level of its confidence, for deciding
+/// below what confidence a pick shouldn't be trusted. Picks without a confidence (Apple's
+/// model, a written reply, words settled by rules) are left out.
+struct Calibration {
+    static let bands: [(floor: Double, label: String)] = [(0.9, "90%+"), (0.7, "70-90%"), (0.5, "50-70%"), (0, "under 50%")]
+    private var counts = [(right: Int, all: Int)](repeating: (0, 0), count: bands.count)
+
+    mutating func add(_ word: String, _ n: Int, right: Bool) {
+        guard let p = LocalModel.confidence(word, picked: n) else { return }
+        let b = Self.bands.firstIndex { p >= $0.floor }!
+        counts[b].all += 1
+        if right { counts[b].right += 1 }
+        if ProcessInfo.processInfo.environment["LONGYAN_TRACE"] == "1" { print(String(format: "    · %@ %@ at %.0f%%", word, right ? "right" : "wrong", p * 100)) }
+    }
+
+    func report() {
+        guard counts.contains(where: { $0.all > 0 }) else { return }
+        print("confidence: " + zip(Self.bands, counts).map { "\($0.label) \($1.right) of \($1.all) correct" }.joined(separator: ", "))
     }
 }

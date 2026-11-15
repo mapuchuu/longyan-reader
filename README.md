@@ -68,6 +68,7 @@ $B --lookup "他长得很高。" 长                        # segment, list sens
 $B --phrase "快递员每天晚上都要上夜班分拣包裹。"       # the phrase card's pipeline: translation, then every word's sense
 $B --segment-file sentences.txt                     # each line's word split, for comparing segmenter changes
 $B --eval                                           # labelled cases: word, sense and tag accuracy
+scripts/evals.sh                                    # every test, compared with scripts/eval-baseline.tsv
 $B --check-data                                     # every note, example, cue and sense-order line still matches the dictionary
 $B --render "明朝实行海禁，闭关锁国。" 锁 out.png       # draw the word card to a PNG
 $B --render-phrase "明朝实行海禁，闭关锁国。" out.png 闭关锁国   # draw the phrase card, one word expanded
@@ -83,12 +84,15 @@ The sense picker is Qwen 3.5 4B (Q4_K_M), run inside the app with [llama.cpp](ht
 
 Without the file the app uses [Ollama](https://ollama.com) if it's running (`LONGYAN_BACKEND=ollama` forces it, for comparison), and Apple's on-device model otherwise; `apple` under Sense Picker or in `LONGYAN_MODEL` turns the local model off. The model gets a 2,048-token context and is unloaded after five idle minutes.
 
-The embedded backend scores the same as Ollama on every test, with the same misses item for item. Qwen 3.5 is a hybrid model (its recurrent state can't be cut back to a shared prefix), so the state at the end of each of the last six prompts is saved and a repeated prompt (a card prepared, then opened) skips reading it. Per pick it's within ~10–15% of Ollama (single word ~0.32 s, phrase ~0.36 s, translation ~0.23 s); the app's own memory is ~1.1 GB plus the 2.7 GB model file mapped from disk.
+The embedded backend scores the same as Ollama on every test, with the same misses item for item. Qwen 3.5 is a hybrid model (its recurrent state can't be cut back to a shared prefix), so the state at the end of each of the last six prompts is saved and a repeated prompt (a card prepared, then opened) skips reading it. Picks aren't written out: the answer's text up to each number (`{\n  "w01": `, or `等=` on a phrase's line) is added to the prompt and the number is read from the model's odds for the next token, one model pass per word instead of one per token of a written reply. Same prompts and answers as writing them (identical scores), in about half the time: single word ~0.13 s, phrase ~0.21 s; translation, which is written, ~0.23 s (`LONGYAN_PICK=generate` writes picks too, for comparison). The app's own memory is ~1.1 GB plus the 2.7 GB model file mapped from disk.
+
+`scripts/evals.sh` runs every test and compares scores and timings with `scripts/eval-baseline.tsv` (exit 1 on fewer right answers, more wrong notes, or a timing over 15% slower; `--update` saves a new baseline). Each sense test also prints how often the model's picks were right at each confidence level; on real reading even its picks under 50% were mostly right (9 of 11), so no pick is held back for low confidence.
 
 | Sense picker | Note test (52 held-out) | Wrong notes | Main test senses (29) | Per lookup | Memory in use |
 |---|---|---|---|---|---|
 | Apple 3B + tie-break rules | 38 | 5 | 22 | ~0.55 s | (system model) |
-| **Qwen3.5 4B (default)** | **51** | **1** | **25** | **~0.39 s** | **2.9 GB** |
+| **Qwen3.5 4B (default)** | **51** | **1** | **25** | **~0.15 s** | **2.9 GB** |
+| Qwen3.5 2B (measured, not installed) | 35 | 2 | 22 | ~0.18 s | 1.6 GB |
 | Qwen3.5 9B (measured, not installed) | 51 | 0 | 25 | ~0.62 s | 4.5 GB |
 
 Rephrasing the question for Apple's model (meanings by name, examples in the prompt) did not help: 33–38/52 in every variant.
