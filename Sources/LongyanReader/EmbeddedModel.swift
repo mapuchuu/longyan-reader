@@ -33,7 +33,9 @@ final class EmbeddedModel: @unchecked Sendable {
     private var cached: [llama_token] = []
     private struct Snapshot { let tokens: [llama_token]; let data: [UInt8] }
     private var snapshots: [Snapshot] = []
-    private static let maxSnapshots = 6
+    /// Each is 58–81 MB (Qwen 3.5 4B's recurrent state is ~53 MB, plus ~0.03 MB a prompt token).
+    /// In every test, each reuse was of the latest one; two cover a card's pick and translation.
+    private static let maxSnapshots = 2
     static let contextSize: UInt32 = 2048
     /// Like Ollama, the model (about 3 GB) is let go after five idle minutes; the next lookup,
     /// or selecting Chinese text (warmUp), loads it again in about a second.
@@ -146,6 +148,9 @@ final class EmbeddedModel: @unchecked Sendable {
             cached = []
             if let i = snapshots.firstIndex(where: { $0.tokens == body }),
                snapshots[i].data.withUnsafeBufferPointer({ llama_state_seq_set_data(ctx, $0.baseAddress, $0.count, 0) }) > 0 {
+                if ProcessInfo.processInfo.environment["LONGYAN_TIMING"] == "1" {
+                    FileHandle.standardError.write(Data("snapshot hit: \(snapshots.count - 1 - i) back\n".utf8))
+                }
                 snapshots.append(snapshots.remove(at: i))   // most recently used last
                 cached = body
                 keep = body.count
@@ -157,6 +162,10 @@ final class EmbeddedModel: @unchecked Sendable {
                 if data.withUnsafeMutableBufferPointer({ llama_state_seq_get_data(ctx, $0.baseAddress, size, 0) }) == size {
                     snapshots.append(Snapshot(tokens: body, data: data))
                     if snapshots.count > Self.maxSnapshots { snapshots.removeFirst() }
+                    if ProcessInfo.processInfo.environment["LONGYAN_TIMING"] == "1" {
+                        FileHandle.standardError.write(Data(String(format: "snapshot: %d tokens, %.1f MB; %d kept, %.1f MB\n", body.count,
+                            Double(size) / 1e6, snapshots.count, Double(snapshots.reduce(0) { $0 + $1.data.count }) / 1e6).utf8))
+                    }
                 }
             }
             try decode([tokens.last!], startingAt: cached.count)
