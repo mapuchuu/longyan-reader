@@ -14,6 +14,13 @@ final class LookupState: ObservableObject {
     @Published var showAllSenses = false
     var onLayoutChange: () -> Void = {}
 
+    /// The word a lone character belongs to here (彻 in 彻底), with its meaning in the sentence;
+    /// for a word of several meanings that arrives after the character's own.
+    struct PartOf { let word: String; var pinyin: String; var meaning: String? }
+    @Published var partOf: PartOf?
+    /// Opens the card for `partOf`'s word.
+    var openPartOf: () -> Void = {}
+
     /// Set for 的 and 了, which show a fixed line instead of a chosen sense (`senseNumber` 0).
     let grammar: GrammarWord?
 
@@ -115,6 +122,7 @@ struct LookupView: View {
             VStack(alignment: .leading, spacing: 6 * scale) {
                 header
                 meaning
+                partOf
                 status
             }
             if let choice = state.choice,
@@ -129,6 +137,7 @@ struct LookupView: View {
         .animation(cardMotion, value: state.phase)
         .animation(cardMotion, value: state.showAllSenses)
         .animation(cardMotion, value: state.userPicked)
+        .animation(cardMotion, value: state.partOf?.meaning)
     }
 
     private var header: some View {
@@ -162,6 +171,25 @@ struct LookupView: View {
                     .contentTransition(.opacity)
             }
             .transition(.opacity)
+        }
+    }
+
+    @ViewBuilder private var partOf: some View {
+        if let part = state.partOf {
+            Button { state.openPartOf() } label: {
+                HStack(alignment: .firstTextBaseline, spacing: 5 * scale) {
+                    Text("In").foregroundStyle(.secondary)
+                    Text(part.word).cardFont(14, .medium)
+                    Text(Pinyin.marked(part.pinyin)).foregroundStyle(.secondary)
+                    if let meaning = part.meaning {
+                        Text(meaning).lineLimit(1).transition(.opacity)
+                    }
+                    Image(systemName: "chevron.right").cardFont(9, .semibold).foregroundStyle(.tertiary)
+                }
+                .cardFont(12)
+            }
+            .buttonStyle(.plain)
+            .help("Look up \(part.word)")
         }
     }
 

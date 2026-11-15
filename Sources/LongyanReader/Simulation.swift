@@ -79,6 +79,21 @@ extension AppDelegate {
         await wait(3)
         check(early?.chosenIndex == 1, "an early pick isn't overwritten by the model's later answer")
 
+        // 2a2. A lone character shows the word it's part of; a word of several meanings gets its
+        //      meaning from the model after the character's, and opening it reuses that answer.
+        show(word("修车已经彻底没戏了。", 4), near: anchor)
+        let part = lastLookupState
+        await waitForAnswer(part)
+        for _ in 0..<40 where part?.partOf?.meaning == nil { await wait(0.1) }
+        check(part?.partOf?.word == "彻底" && part?.partOf?.meaning != nil,
+              "a character shows the word it's in (\(part?.partOf?.word ?? "none"): \(part?.partOf?.meaning ?? "no meaning"))")
+        part?.openPartOf()
+        await wait(0.1)
+        check(lastLookupState?.context.word == "彻底" && lastLookupState?.choice != nil,
+              "opening that word shows its card with the meaning ready")
+        show(word("撬了把门的合页。", 3), near: anchor)
+        check(lastLookupState?.partOf == nil, "门 in 把门的合页 isn't shown as part of 把门")
+
         // 2b. Clicking the meaning already chosen leaves the headline alone; picking another
         //     and then "use suggested" brings the model's wording back.
         show(word("我很理解你的想法。", 2, 2), near: anchor)

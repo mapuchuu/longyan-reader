@@ -45,6 +45,18 @@ enum CLI {
                 let r = Segmenter.wholeWords(lo..<hi, in: passage, dict: dict)
                 print("\(String(passage[lo..<hi])) → \(String(passage[r]))")
             }
+        case "--part-of" where args.count >= 3:
+            // --part-of 修车已经【彻】底没戏了: the word a selected character belongs to, as its card shows it.
+            let dict = try CEDict.load()
+            for raw in args[2...] {
+                guard let a = raw.firstIndex(of: "【") else { continue }
+                let i = raw.distance(from: raw.startIndex, to: a)
+                let passage = Array(raw.replacingOccurrences(of: "【", with: "").replacingOccurrences(of: "】", with: ""))
+                guard let r = Segmenter.enclosingWord(of: i..<(i + 1), in: passage, dict: dict) else { print("\(passage[i])\t—"); continue }
+                let word = String(passage[r]), senses = dict.senses(for: word)
+                let n = NoteCues.senseNumber(word, at: r, in: passage, senses: senses) ?? 1
+                print("\(passage[i])\t\(word)\t\(Gloss.short(senses[n - 1].gloss))\t(\(senses.count) senses)")
+            }
         case "--segment-file" where args.count >= 3:
             // One sentence per line: prints each line's phrase-card split, for comparing segmenter changes.
             let dict = try CEDict.load()
@@ -440,14 +452,23 @@ enum CLI {
     static func render(passage: String, click: String, to url: URL) async throws {
         let dict = try CEDict.load()
         guard let r = passage.range(of: click),
-              let ctx = Segmenter.word(at: passage.distance(from: passage.startIndex, to: r.lowerBound), in: Array(passage), dict: dict)
+              var ctx = Segmenter.word(at: passage.distance(from: passage.startIndex, to: r.lowerBound), in: Array(passage), dict: dict)
         else { print("no word"); return }
+        // A one-character click draws that character's card, with the word it's in.
+        let at = passage.distance(from: passage.startIndex, to: r.lowerBound)
+        if click.count == 1 { ctx = Segmenter.context(for: at..<(at + 1), in: Array(passage)) }
         let senses = dict.senses(for: ctx.word)
         let state = LookupState(context: ctx, senses: senses, phase: .choosing)
         if SenseChooser.isAvailable, !senses.isEmpty, state.grammar == nil {
             state.choice = try await SenseChooser.choose(for: ctx, senses: senses)
             if let wording = ProcessInfo.processInfo.environment["LONGYAN_RENDER_MEANING"] { state.choice?.meaningHere = wording }
             state.phase = .chosen
+        }
+        if let w = Segmenter.enclosingWord(of: ctx.wordRange, in: ctx.passage, dict: dict) {
+            let whole = Segmenter.context(for: w, in: ctx.passage), ws = dict.senses(for: whole.word)
+            let c = ws.count > 1 ? try? await SenseChooser.choose(for: whole, senses: ws) : nil
+            state.partOf = .init(word: whole.word, pinyin: ws[safe: (c?.senseNumber ?? 1) - 1]?.pinyin ?? "",
+                                 meaning: c?.meaningHere ?? ws.first.map { Gloss.short($0.gloss) })
         }
         try await writePNG(CardChrome(layout: renderLayout(.word)) { LookupView(state: state) }, to: url)
         print("wrote \(url.path)")

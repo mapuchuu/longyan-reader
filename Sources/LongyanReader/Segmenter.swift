@@ -242,6 +242,20 @@ extension Segmenter {
         return start..<end
     }
 
+    /// The longer word a single character belongs to in its sentence (彻 in 彻底, 务 in 财务),
+    /// split the way a phrase card splits it; nil when the character stands on its own. A word
+    /// the tokenizer glued onto 把 or 被 (把门 in 把门的合页撬歪) doesn't count; other grammar
+    /// characters are part of real words here (过失, 地址, 吃不准).
+    static func enclosingWord(of range: Range<Int>, in passage: [Character], dict: CEDict) -> Range<Int>? {
+        guard range.count == 1, passage.indices.contains(range.lowerBound), isCJK(passage[range.lowerBound]) else { return nil }
+        let reach = dict.maxWordLength
+        let lo = max(0, range.lowerBound - reach), hi = min(passage.count, range.upperBound + reach)
+        guard let t = phrase(lo..<hi, in: passage, dict: dict).first(where: { $0.range.contains(range.lowerBound) }),
+              t.range.count > 1, dict.contains(t.text),
+              !t.range.contains(where: { $0 != range.lowerBound && "把被".contains(passage[$0]) }) else { return nil }
+        return t.range
+    }
+
     /// Grammar characters a stretch never takes in: the tokenizer glues them onto neighbours
     /// (把门, 这时, 就是, 好的) where the reader meant the word beside them.
     private static let stretchStops: Set<Character> = Set("把被就这那在是的了着过地得和跟给对向从也都还又才不吗呢吧啊")

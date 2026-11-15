@@ -302,6 +302,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let state = LookupState(context: context, senses: senses,
                                 phase: modelReady ? .choosing : .dictionaryOnly(senses.isEmpty ? "not in dictionary" : SenseChooser.unavailableReason))
         state.onLayoutChange = { [weak self] in Task { await self?.relayout() } }
+        // A lone character inside a longer word (彻 in 彻底) also shows that word. A word with one
+        // meaning, or one a cue settles, shows it at once; otherwise the model picks it after the
+        // character's own answer, so the character is no slower (八卦 is gossip, not trigrams).
+        var partPick: (context: WordInContext, senses: [Sense])?
+        if let r = Segmenter.enclosingWord(of: context.wordRange, in: context.passage, dict: dict) {
+            let whole = Segmenter.context(for: r, in: context.passage)
+            let wordSenses = dict.senses(for: whole.word)
+            let settled = wordSenses.count == 1 ? 1 : NoteCues.senseNumber(whole.word, at: r, in: context.passage, senses: wordSenses)
+            if let first = wordSenses.first {
+                let sense = settled.flatMap { wordSenses[safe: $0 - 1] }
+                state.partOf = .init(word: whole.word, pinyin: (sense ?? first).pinyin, meaning: sense.map { Gloss.short($0.gloss) })
+                state.openPartOf = { [weak self] in self?.showWord(whole, appName: appName, near: anchor) }
+                if sense == nil, SenseChooser.isAvailable { partPick = (whole, wordSenses) }
+            }
+        }
         lastLookupState = state
         // Usually started when the text was selected (see `prepare`); otherwise start now. The
         // card waits briefly for the answer, so it opens complete instead of growing after.
@@ -336,6 +351,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
                 record["ms"] = Int(Date().timeIntervalSince(started) * 1000)
                 await relayout()
+            }
+            if let partPick, !Task.isCancelled {
+                // Kept as the word's prepared answer, so opening the word doesn't ask again.
+                let task = Task { try await SenseChooser.choose(for: partPick.context, senses: partPick.senses) }
+                wordPrep = (Self.wordKey(partPick.context), task)
+                if let c = try? await task.value, !Task.isCancelled {
+                    state.partOf?.pinyin = partPick.senses[safe: c.senseNumber - 1]?.pinyin ?? state.partOf?.pinyin ?? ""
+                    state.partOf?.meaning = c.meaningHere
+                    record["partOf"] = partPick.context.word + "=" + c.meaningHere
+                    await relayout()
+                }
             }
             Log.write(record)
         }
