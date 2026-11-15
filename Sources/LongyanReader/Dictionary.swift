@@ -44,9 +44,35 @@ extension Array where Element == Sense {
 }
 
 final class CEDict {
+    /// Parsed from the text (the CLI run from the repo, and --compile-dict), or the compiled
+    /// file the app ships (DictionaryFile), which opens in ~1 ms instead of ~1.4 s.
     private var byWord: [String: [DictEntry]] = [:]
+    private var file: DictionaryFile?
     private(set) var maxWordLength = 1
     private(set) var entryCount = 0
+
+    init(compiled url: URL) throws {
+        let f = try DictionaryFile(contentsOf: url)
+        file = f; maxWordLength = f.maxWordLength; entryCount = f.entryCount
+    }
+
+    /// Writes the compiled file, then reopens it and checks every headword reads back the same.
+    func compile(to url: URL) throws -> Int {
+        try DictionaryFile.write(byWord, entryCount: entryCount, maxWordLength: maxWordLength, to: url)
+        let back = try CEDict(compiled: url)
+        func same(_ a: [DictEntry], _ b: [DictEntry]) -> Bool {
+            a.count == b.count && zip(a, b).allSatisfy {
+                $0.traditional == $1.traditional && $0.simplified == $1.simplified && $0.pinyin == $1.pinyin && $0.definitions == $1.definitions
+            }
+        }
+        let mismatched = byWord.filter { !same($0.value, back.entries(for: $0.key)) }.map(\.key)
+        guard mismatched.isEmpty, back.maxWordLength == maxWordLength, back.entryCount == entryCount,
+              !back.contains("龘龘龘") else {
+            throw NSError(domain: "LongyanReader", code: 1, userInfo: [NSLocalizedDescriptionKey:
+                "compiled dictionary doesn't match the text: \(mismatched.prefix(5))"])
+        }
+        return byWord.count
+    }
 
     init(contentsOf url: URL) throws {
         addLines(try String(contentsOf: url, encoding: .utf8))
@@ -89,8 +115,8 @@ final class CEDict {
         return DictEntry(traditional: trad, simplified: simp, pinyin: pinyin, definitions: defs)
     }
 
-    func entries(for word: String) -> [DictEntry] { byWord[word] ?? [] }
-    func contains(_ word: String) -> Bool { byWord[word] != nil }
+    func entries(for word: String) -> [DictEntry] { file?.entries(for: word) ?? byWord[word] ?? [] }
+    func contains(_ word: String) -> Bool { file?.contains(word) ?? (byWord[word] != nil) }
 
     /// Senses worth choosing between, common readings first. Cross-references
     /// ("variant of", "used in", classifiers, surnames) are dropped; proper
@@ -148,7 +174,14 @@ final class CEDict {
         return def[match].split(separator: "|").last.map(String.init)
     }
 
+    /// The app's compiled copy when there is one (and extra words aren't switched off for a
+    /// comparison), else the text: the bundle's, LONGYAN_CEDICT, or Resources/ in the repo.
     static func load() throws -> CEDict {
+        if ProcessInfo.processInfo.environment["LONGYAN_NO_EXTRA_WORDS"] == nil,
+           ProcessInfo.processInfo.environment["LONGYAN_CEDICT"] == nil,
+           let url = Bundle.main.url(forResource: "cedict", withExtension: "bin") {
+            return try CEDict(compiled: url)
+        }
         let candidates: [URL?] = [
             Bundle.main.url(forResource: "cedict_ts", withExtension: "u8"),
             ProcessInfo.processInfo.environment["LONGYAN_CEDICT"].map { URL(fileURLWithPath: $0) },

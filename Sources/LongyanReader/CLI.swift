@@ -397,6 +397,10 @@ enum CLI {
             try enc.encode(report.notes).write(to: URL(fileURLWithPath: args[4]))
             try NotesBuilder.review(report, words: words).write(to: URL(fileURLWithPath: args[5]), atomically: true, encoding: .utf8)
             print("notes \(report.notes.count), flagged \(report.notes.filter { !$0.problems.isEmpty }.count), failed \(report.errored.count)")
+        case "--compile-dict" where args.count >= 3:
+            // --compile-dict OUT: the text dictionary as the app's compiled file, checked word by word.
+            let dict = try CEDict.load()
+            print("compiled \(try dict.compile(to: URL(fileURLWithPath: args[2]))) headwords to \(args[2])")
         case "--eval-notes":
             try await evalNotes(dict: try CEDict.load())
         case "--eval":

@@ -21,7 +21,17 @@ cp .build/release/LongyanReader "$app/Contents/MacOS/LongyanReader"
 mkdir -p "$app/Contents/Frameworks"
 ditto --arch "$(uname -m)" .build/release/llama.framework "$app/Contents/Frameworks/llama.framework"
 codesign --force --sign - "$app/Contents/Frameworks/llama.framework"
-cp Resources/cedict_ts.u8 Resources/longyan-mark.png Resources/notes.json Resources/examples.json Resources/note-cues.json Resources/sense-order.tsv Resources/extra-words.u8 "$app/Contents/Resources/"
+# The dictionary ships compiled (DictionaryFile.swift): opens in ~1 ms instead of ~1.4 s of
+# parsing. Compiling checks every headword against the text.
+.build/release/LongyanReader --compile-dict "$app/Contents/Resources/cedict.bin"
+# CC BY-SA asks for the license notice with every copy: the text's header, which now names
+# the compiled file as a modified copy (the README's Licences section has the details).
+{ sed -n '/^#/p;/^[^#]/q' Resources/cedict_ts.u8
+  echo "#"
+  echo "# Longyan Reader ships this dictionary modified: compiled into cedict.bin, with the"
+  echo "# additions in extra-words.u8. Source: https://github.com/mapuchuu/longyan-reader"
+} > "$app/Contents/Resources/CC-CEDICT-LICENSE.txt"
+cp Resources/longyan-mark.png Resources/notes.json Resources/examples.json Resources/note-cues.json Resources/sense-order.tsv "$app/Contents/Resources/"
 cat > "$app/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

@@ -84,7 +84,9 @@ The sense picker is Qwen 3.5 4B (Q4_K_M), run inside the app with [llama.cpp](ht
 
 Without the file the app uses [Ollama](https://ollama.com) if it's running (`LONGYAN_BACKEND=ollama` forces it, for comparison), and Apple's on-device model otherwise; `apple` under Sense Picker or in `LONGYAN_MODEL` turns the local model off. The model gets a 2,048-token context and is unloaded after five idle minutes.
 
-The embedded backend scores the same as Ollama on every test, with the same misses item for item. Qwen 3.5 is a hybrid model (its recurrent state can't be cut back to a shared prefix), so the state at the end of each of the last six prompts is saved and a repeated prompt (a card prepared, then opened) skips reading it. Picks aren't written out: the answer's text up to each number (`{\n  "w01": `, or `等=` on a phrase's line) is added to the prompt and the number is read from the model's odds for the next token, one model pass per word instead of one per token of a written reply. Same prompts and answers as writing them (identical scores), in about half the time: single word ~0.13 s, phrase ~0.21 s; translation, which is written, ~0.23 s (`LONGYAN_PICK=generate` writes picks too, for comparison). The app's own memory is ~1.1 GB plus the 2.7 GB model file mapped from disk.
+The embedded backend scores the same as Ollama on every test, with the same misses item for item. Qwen 3.5 is a hybrid model (its recurrent state can't be cut back to a shared prefix), so the state at the end of each of the last six prompts is saved and a repeated prompt (a card prepared, then opened) skips reading it. Picks aren't written out: the answer's text up to each number (`{\n  "w01": `, or `等=` on a phrase's line) is added to the prompt and the number is read from the model's odds for the next token, one model pass per word instead of one per token of a written reply. Same prompts and answers as writing them (identical scores), in about half the time: single word ~0.13 s, phrase ~0.21 s; translation, which is written, ~0.23 s (`LONGYAN_PICK=generate` writes picks too, for comparison). The app's own memory is ~0.97 GB plus the 2.7 GB model file mapped from disk.
+
+The dictionary ships compiled (`DictionaryFile.swift`): headwords sorted by their UTF-8 bytes and found by binary search in a file read straight from disk, so it opens in ~3 ms with almost nothing copied into memory, where parsing the text took ~1.4 s and ~85 MB. `scripts/build-app.sh` writes it with `--compile-dict`, which reads every headword back and fails on any difference from the text. Run from the repo, the CLI still parses `Resources/cedict_ts.u8`.
 
 `scripts/evals.sh` runs every test and compares scores and timings with `scripts/eval-baseline.tsv` (exit 1 on fewer right answers, more wrong notes, or a timing over 15% slower; `--update` saves a new baseline). Each sense test also prints how often the model's picks were right at each confidence level; on real reading even its picks under 50% were mostly right (9 of 11), so no pick is held back for low confidence.
 
@@ -107,7 +109,7 @@ The model sees each noted sense with its note's first sentence, and a few fixed 
 
 ## Licences
 
-The code is under the [MIT License](LICENSE). Data derived from CC-CEDICT (`Resources/cedict_ts.u8`, `Resources/sense-order.tsv`, `Resources/extra-words.u8`) stays under CC BY-SA 4.0, as CC-CEDICT requires.
+The code is under the [MIT License](LICENSE). Data derived from CC-CEDICT (`Resources/cedict_ts.u8`, `Resources/sense-order.tsv`, `Resources/extra-words.u8`, and the app's compiled `cedict.bin`, shipped with the dictionary's license header as `CC-CEDICT-LICENSE.txt`) stays under CC BY-SA 4.0, as CC-CEDICT requires.
 
 About Longyan Reader in the menu lists the credits below. Sense picks and translations come from a language model and can be wrong; the nuance notes were written by Claude and checked against the senses they attach to.
 
