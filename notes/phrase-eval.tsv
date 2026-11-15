@@ -1,5 +1,5 @@
 # set	sentence	word	acceptable meanings (substring of the dictionary sense, | separated)
-D	在S公司试工是无薪的。	薪	salary
+D	在S公司试工是无薪的。	无薪	unpaid|without pay
 H	薪的，要试三天，说是不用干活儿。	薪	salary
 D	他对于公车私用的福利很满意。	私	private
 H	这是他的私人问题，公私要分开，不能私用。	私	private

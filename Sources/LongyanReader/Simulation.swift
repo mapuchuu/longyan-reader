@@ -158,6 +158,9 @@ extension AppDelegate {
 
         // 2d. Every meaning is on offer; a short list always includes the one chosen.
         if let dict {
+            let opposite = Segmenter.phrase(0..<9, in: Array("我住在银行斜对面。"), dict: dict).map(\.text)
+            check(opposite.contains("斜对面") && dict.contains("眼里"),
+                  "words CC-CEDICT lacks (extra-words.u8) are found and kept whole (\(opposite.joined(separator: " ")))")
             let stale = SenseOrder.shared.filter { dict.senses(for: $0.key, handOrdered: false).count != $0.value.count }.map(\.key)
             check(stale.isEmpty, "every sense-order.tsv line matches the dictionary (stale: \(stale.sorted().joined()))")
             let yan = dict.senses(for: "眼")

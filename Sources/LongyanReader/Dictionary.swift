@@ -49,7 +49,15 @@ final class CEDict {
     private(set) var entryCount = 0
 
     init(contentsOf url: URL) throws {
-        let text = try String(contentsOf: url, encoding: .utf8)
+        addLines(try String(contentsOf: url, encoding: .utf8))
+        // Words CC-CEDICT lacks (extra-words.u8, beside it), unless LONGYAN_NO_EXTRA_WORDS=1 for comparisons.
+        if ProcessInfo.processInfo.environment["LONGYAN_NO_EXTRA_WORDS"] == nil,
+           let text = try? String(contentsOf: url.deletingLastPathComponent().appendingPathComponent("extra-words.u8"), encoding: .utf8) {
+            addLines(text)
+        }
+    }
+
+    private func addLines(_ text: String) {
         text.enumerateLines { line, _ in
             guard let entry = CEDict.parse(line) else { return }
             self.entryCount += 1
