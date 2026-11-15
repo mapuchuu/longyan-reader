@@ -237,18 +237,21 @@ struct LookupView: View {
                     let note = NotesStore.hasExactNote(state.context.word, sense)
                         ? NotesStore.note(state.context.word, sense) : nil
                     Button { withAnimation(cardMotion) { state.pick(i) } } label: {
-                        HStack(alignment: .firstTextBaseline, spacing: 8 * scale) {
-                            Text("\(i + 1)").cardFont(11, monospacedDigit: true).foregroundStyle(.tertiary)
-                                .frame(width: 14 * scale, alignment: .trailing)
-                            VStack(alignment: .leading, spacing: 1) {
-                                if showReading && (listed == nil || state.showAllSenses) {
-                                    Text(Pinyin.marked(sense.pinyin)).cardFont(11).foregroundStyle(.secondary)
+                        // As on the phrase card's rows: the dot and checkmark are centred on the row.
+                        HStack(alignment: .center, spacing: 8 * scale) {
+                            HStack(alignment: .firstTextBaseline, spacing: 8 * scale) {
+                                Text("\(i + 1)").cardFont(11, monospacedDigit: true).foregroundStyle(.tertiary)
+                                    .frame(width: 14 * scale, alignment: .trailing)
+                                VStack(alignment: .leading, spacing: 1) {
+                                    if showReading && (listed == nil || state.showAllSenses) {
+                                        Text(Pinyin.marked(sense.pinyin)).cardFont(11).foregroundStyle(.secondary)
+                                    }
+                                    Text(listed?.contains(sense) == true ? Gloss.short(sense.gloss) : Gloss.listed(sense.gloss))
+                                        .cardFont(13, chosen ? .semibold : .regular)
+                                        .foregroundStyle(chosen || state.choice == nil ? .primary : .secondary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                        .help(Gloss.readable(sense.gloss))
                                 }
-                                Text(listed?.contains(sense) == true ? Gloss.short(sense.gloss) : Gloss.listed(sense.gloss))
-                                    .cardFont(13, chosen ? .semibold : .regular)
-                                    .foregroundStyle(chosen || state.choice == nil ? .primary : .secondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                    .help(Gloss.readable(sense.gloss))
                             }
                             Spacer(minLength: 4)
                             if let note {

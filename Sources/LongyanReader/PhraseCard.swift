@@ -395,26 +395,30 @@ struct PhraseView: View {
         let pending = state.pending(token)
         return VStack(alignment: .leading, spacing: 0) {
             Button { withAnimation(cardMotion) { state.toggle(token) } } label: {
-                HStack(alignment: .firstTextBaseline, spacing: 10 * scale) {
-                    HStack(spacing: 0) {
-                        ForEach(Array(token.text.enumerated()), id: \.offset) { i, ch in
-                            Text(String(ch)).foregroundStyle(pending ? Color.secondary : toneColor(syllables[safe: i]?.tone ?? 5))
+                // The text shares a baseline; the dot and arrow are centred on the row, since
+                // on the baseline they sat low against the larger characters.
+                HStack(alignment: .center, spacing: 10 * scale) {
+                    HStack(alignment: .firstTextBaseline, spacing: 10 * scale) {
+                        HStack(spacing: 0) {
+                            ForEach(Array(token.text.enumerated()), id: \.offset) { i, ch in
+                                Text(String(ch)).foregroundStyle(pending ? Color.secondary : toneColor(syllables[safe: i]?.tone ?? 5))
+                            }
                         }
+                        .cardFont(17, .medium)
+                        .frame(minWidth: 46 * scale, alignment: .leading)
+                        Text(syllables.map(\.text).joined(separator: " "))
+                            .cardFont(11).foregroundStyle(.secondary)
+                            .frame(minWidth: 70 * scale, alignment: .leading)
+                            .redacted(reason: pending ? .placeholder : [])
+                        Text(state.gloss(token))
+                            .cardFont(13)
+                            .foregroundStyle(dim ? .secondary : .primary)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .redacted(reason: pending ? .placeholder : [])
+                            .opacity(pending ? 0.6 : 1)
+                            .contentTransition(.opacity)
                     }
-                    .cardFont(17, .medium)
-                    .frame(minWidth: 46 * scale, alignment: .leading)
-                    Text(syllables.map(\.text).joined(separator: " "))
-                        .cardFont(11).foregroundStyle(.secondary)
-                        .frame(minWidth: 70 * scale, alignment: .leading)
-                        .redacted(reason: pending ? .placeholder : [])
-                    Text(state.gloss(token))
-                        .cardFont(13)
-                        .foregroundStyle(dim ? .secondary : .primary)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .redacted(reason: pending ? .placeholder : [])
-                        .opacity(pending ? 0.6 : 1)
-                        .contentTransition(.opacity)
                     Spacer(minLength: 4)
                     if !pending, let note = state.note(token) {
                         Circle().fill(noteTint(note.tag))
