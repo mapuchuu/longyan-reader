@@ -28,6 +28,8 @@ final class LookupState: ObservableObject {
     @Published private(set) var userPicked = false
     /// The model's own answer, kept so the reader can go back to it.
     @Published var suggested: SenseChoice?
+    /// Called when the reader changes the meaning (for History).
+    var onUserPick: (SenseChoice) -> Void = { _ in }
 
     /// The reader picks a meaning. Clicking the one already chosen changes nothing (it used
     /// to rewrite the headline from the dictionary gloss, e.g. 理解's "to comprehend;
@@ -42,6 +44,7 @@ final class LookupState: ObservableObject {
         choice = SenseChoice(senseNumber: index + 1, meaningHere: headlineGloss(senses[index]))
         phase = .chosen
         onLayoutChange()
+        onUserPick(choice!)
     }
 
     /// Back to the model's answer, with its own wording.
@@ -51,6 +54,7 @@ final class LookupState: ObservableObject {
         choice = suggested
         phase = .chosen
         onLayoutChange()
+        onUserPick(suggested)
     }
 
     /// True when the headline is the model's reading of this passage rather than dictionary wording.

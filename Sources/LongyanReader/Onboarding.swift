@@ -71,7 +71,7 @@ private struct OnboardingView: View {
             Text("Highlight Chinese text in any app, then click the eye that appears or press ⌃⌥L.")
                 .font(.headline)
                 .fixedSize(horizontal: false, vertical: true)
-            Text("To read what you highlight, Longyan Reader needs the **Accessibility** permission. It reads only the selection and the sentence around it, when you ask. Lookups stay on this Mac: the dictionary and the model run locally, and nothing is sent anywhere.")
+            Text("To read what you highlight, Longyan Reader needs the **Accessibility** permission. It reads only the selection and the sentence around it, when you ask. Lookups stay on this Mac: the dictionary and the model run locally, and nothing is sent anywhere. The words you look up are kept for review and flashcards under History… in the menu, where you can also turn that off.")
                 .fixedSize(horizontal: false, vertical: true)
             if Onboarding.outsideApplications && !model.trusted {
                 Label("Move the app to your Applications folder first: the permission is tied to where the app is, so moving it later means granting it again.", systemImage: "folder")
@@ -120,7 +120,7 @@ enum About {
         add("\n\nNotes\n", font: bold)
         add("The cultural and nuance notes were written by an AI model (Claude) and checked against the dictionary senses they attach to; they can contain mistakes.")
         add("\n\nPrivacy\n", font: bold)
-        add("Lookups are processed on this Mac. Lookup history is off unless you turn it on in the menu; it's saved to ~/Library/Logs/LongyanReader/lookups.jsonl, readable only by your account.")
+        add("Lookups are processed on this Mac. Lookup history (History… in the menu, which exports flashcards) is kept on this Mac in ~/Library/Logs/LongyanReader/lookups.jsonl, readable only by your account; Lookup History in the menu turns it off or clears it.")
         NSApp.activate()
         var options: [NSApplication.AboutPanelOptionKey: Any] = [.applicationName: "Longyan Reader", .credits: credits]
         if let mark = Icons.mark(size: 64) {

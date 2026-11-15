@@ -27,13 +27,13 @@ It's a sibling of [Longyan](https://github.com/mapuchuu/longyan), the Chrome ext
 
 If the model is unavailable or rejects a prompt, the cards still show the dictionary senses in their usual order.
 
-**Cards.** Both cards sit on the translucent popover material with continuous rounded corners. They spring in once measured (a word card also waits up to 0.4 s for its answer, usually started when the text was selected, so it opens complete), cross-fade the model's answer and notes, fade rows open, resize smoothly as content changes (keeping the edge nearest the selection fixed), and fade out on close. Drag the bottom-right corner to zoom the card: text, spacing and dots scale together (0.8× to 2.2×) and the height follows the content. The zoom is remembered separately for word and phrase cards, and double-clicking the grip resets it to 1×. Tone and note colours are muted, appearance-aware tones rather than the bright system colours. A clean near-white (near-black in dark mode) surface sits over the material so cards don't read grey, and the selection button uses the same style. The menu's **Appearance** submenu sets the cards and button to Match System, Light or Dark, and picks a style: **Classic** (the material and clean surface) or **Liquid Glass** (macOS 26's system glass, `.glassEffect`, with a light frosted tint, and an interactive glass selection button).
+**Cards.** Both cards sit on the translucent popover material with continuous rounded corners. They spring in once measured (a word card also waits up to 0.4 s for its answer, usually started when the text was selected, so it opens complete), cross-fade the model's answer and notes, fade rows open, resize smoothly as content changes (keeping the edge nearest the selection fixed), and fade out on close. Drag the bottom-right corner to zoom the card: text, spacing and dots scale together (0.8× to 2.2×) and the height follows the content. The zoom is remembered separately for word and phrase cards, and double-clicking the grip resets it to 1×. Tone and note colours are muted, appearance-aware tones rather than the bright system colours. A clean near-white (near-black in dark mode) surface sits over the material so cards don't read grey, and the selection button uses the same style. The menu's **Appearance** submenu sets the cards and button to Match System, Light or Dark, and picks a style: **Classic** (the material and clean surface) or **Liquid Glass** (macOS 26 only: the system glass, `.glassEffect`, with a light frosted tint, and an interactive glass selection button).
 
 Size changes animate inside the card, never by animating the window: the window is a transparent frame with room for the card's own shadow, resized instantly (growing before an expansion, shrinking after a contraction), so no rectangular window edge or stale shadow can flash mid-animation.
 
 ## Install
 
-Download `LongyanReader-<version>.zip` from Releases, unzip it, and move **Longyan Reader** to Applications. It needs macOS 26 on Apple silicon.
+Download `LongyanReader-<version>.zip` from Releases, unzip it, and move **Longyan Reader** to Applications. It needs macOS 15 or later on Apple silicon. On macOS 15 the sense picker and translations come only from the local Qwen model (downloaded from the menu), since Apple's on-device model and translator need macOS 26, and cards use the Classic style.
 
 The app is free and open source, so it isn't signed with a paid Apple Developer ID, and macOS blocks it the first time:
 
@@ -44,11 +44,11 @@ A welcome window then asks for **Accessibility** (System Settings → Privacy & 
 
 ## Privacy
 
-Lookups are processed on your Mac: the dictionary is bundled and the model runs locally. Lookup history (the sentences you looked up, for building study notes) is **off** by default; Lookup History in the menu keeps it for 30 days or for good, shows the file, or moves it to the Trash. It's saved to `~/Library/Logs/LongyanReader/lookups.jsonl`, readable only by your account.
+Lookups are processed on your Mac: the dictionary is bundled and the model runs locally. Lookup history is **on** by default: **History…** (⌘Y in the menu) lists every word with the meaning it had in its sentence and every phrase with its translation, searchable, and exports them as Anki flashcards (a text file Anki's File › Import reads straight into a "Longyan Reader" deck) or a CSV spreadsheet, one row per word and meaning. Lookup History in the menu turns it off, keeps 30 days, shows the file, or moves it to the Trash. Nothing in it leaves your Mac unless you export it. It's saved to `~/Library/Logs/LongyanReader/lookups.jsonl`, readable only by your account.
 
 ## Build and run
 
-You need macOS 26 and the Xcode Command Line Tools. Full Xcode isn't required.
+You need the Xcode Command Line Tools with the macOS 26 SDK (the app itself runs on macOS 15 and later). Full Xcode isn't required.
 
 ```bash
 scripts/build-app.sh

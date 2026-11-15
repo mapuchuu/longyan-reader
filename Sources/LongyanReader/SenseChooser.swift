@@ -19,10 +19,9 @@ struct SenseChoice {
 /// Chooses which dictionary sense fits the passage, using Apple's on-device model.
 /// The model never writes definitions; it picks from the numbered list.
 enum SenseChooser {
-    static var availability: SystemLanguageModel.Availability { SystemLanguageModel.default.availability }
-
+    /// Apple's model needs macOS 26; below that only the local model picks.
     static var isAvailable: Bool {
-        if case .available = availability { return true }
+        if #available(macOS 26, *), case .available = SystemLanguageModel.default.availability { return true }
         return false
     }
 
@@ -37,7 +36,8 @@ enum SenseChooser {
     }
 
     static var unavailableReason: String {
-        switch availability {
+        guard #available(macOS 26, *) else { return "needs macOS 26" }
+        switch SystemLanguageModel.default.availability {
         case .available: return "available"
         case .unavailable(.appleIntelligenceNotEnabled): return "Apple Intelligence is off"
         case .unavailable(.modelNotReady): return "model still downloading"
@@ -69,6 +69,7 @@ enum SenseChooser {
 
     /// The output schema, built at runtime. (The @Generable macro needs full Xcode;
     /// this works with just the Command Line Tools.)
+    @available(macOS 26, *)
     static func schema(senseCount: Int, withNuance: Bool = true) throws -> GenerationSchema {
         typealias S = DynamicGenerationSchema
         let root = S(name: "SenseChoice", properties: [
@@ -128,7 +129,7 @@ enum SenseChooser {
         if await LocalModel.isAvailable() {
             do {
                 let choice = try await LocalModel.choose(context, senses: senses)
-                if ProcessInfo.processInfo.environment["LONGYAN_TIEBREAK"] == "1" {
+                if ProcessInfo.processInfo.environment["LONGYAN_TIEBREAK"] == "1", #available(macOS 26, *) {
                     return await preferNoted(choice, context: context, senses: senses)
                 }
                 return choice
@@ -143,6 +144,7 @@ enum SenseChooser {
         // Apple's model may be off (the local model was expected but stopped answering): go
         // straight to matching the translation.
         for passage in passages where isAvailable {
+            guard #available(macOS 26, *) else { break }
             do {
                 let choice = try await respond(prompt(passage, word: context.word, senses: senses), senses: senses, nuance: false)
                 return await preferNoted(choice, context: context, senses: senses)
@@ -158,6 +160,7 @@ enum SenseChooser {
                                    userInfo: [NSLocalizedDescriptionKey: "no sense matched the translation"])
     }
 
+    @available(macOS 26, *)
     private static func respond(_ prompt: String, senses: [Sense], nuance: Bool) async throws -> SenseChoice {
         let session = LanguageModelSession(instructions: instructions)
         let response = try await session.respond(
@@ -225,6 +228,7 @@ enum SenseChooser {
     /// The 3B model tends to pick the plainest sense (关系 "relationship" in 他靠关系找到了工作).
     /// When a sense with a prewritten note fits the sentence's translation at least as well
     /// as the model's pick, show that sense, so its note appears.
+    @available(macOS 26, *)
     static func preferNoted(_ choice: SenseChoice, context: WordInContext, senses: [Sense]) async -> SenseChoice {
         let chosen = choice.senseNumber - 1
         if NotesStore.hasExactNote(context.word, senses[chosen]),
@@ -264,6 +268,7 @@ enum SenseChooser {
     /// may fit better (沙发的面子 is the sofa's cover, not "face"). Same rules as switching
     /// toward a note: the competitor must win both orders, and the translation must not
     /// side with the noted pick. Returns the switched choice, or nil to keep the pick.
+    @available(macOS 26, *)
     static func checkNotedPick(_ chosen: Int, context: WordInContext, senses: [Sense]) async -> SenseChoice? {
         let rivals = senses.indices.filter {
             $0 != chosen && !NotesStore.hasExactNote(context.word, senses[$0])
@@ -289,6 +294,7 @@ enum SenseChooser {
     /// A yes/no question invites agreement (the 3B model says yes to "died" for 我们走吧),
     /// so offer exactly two meanings and ask in both orders. Unanimous or no switch:
     /// a missing note is fine, a wrong one is not.
+    @available(macOS 26, *)
     static func prefersNoted(_ noted: Sense, over current: Sense, context: WordInContext) async -> Bool {
         typealias S = DynamicGenerationSchema
         for (x, y) in [(current.gloss, noted.gloss), (noted.gloss, current.gloss)] {

@@ -16,7 +16,11 @@ enum Translator {
         }
     }
 
+    /// Needs macOS 26 (a session without SwiftUI); below that the local model translates.
     static func translate(_ text: String) async throws -> String {
+        guard #available(macOS 26, *) else {
+            throw NSError(domain: "LongyanReader", code: 8, userInfo: [NSLocalizedDescriptionKey: "Apple's translator needs macOS 26"])
+        }
         let session = TranslationSession(installedSource: chinese, target: english)
         return try await session.translate(text).targetText
     }

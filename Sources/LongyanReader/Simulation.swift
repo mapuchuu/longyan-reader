@@ -8,6 +8,9 @@ import SwiftUI
 /// the report is written to ~/Library/Logs/LongyanReader/simulation.txt.
 extension AppDelegate {
     func runUsageSimulation() async -> String {
+        // Its lookups are made up: keep them out of the reader's history.
+        Log.paused = true
+        defer { Log.paused = false }
         var lines: [String] = []
         var failures = 0
         func check(_ ok: Bool, _ what: String) {

@@ -113,7 +113,23 @@ extension View {
 /// Classic (material with a clean surface) or Liquid Glass, chosen in the menu.
 enum CardStyle: String {
     case classic, glass
-    static var current: CardStyle { CardStyle(rawValue: UserDefaults.standard.string(forKey: "cardStyle") ?? "") ?? .classic }
+    /// Liquid Glass needs macOS 26; below that cards are always classic.
+    static var current: CardStyle {
+        guard isGlassAvailable else { return .classic }
+        return CardStyle(rawValue: UserDefaults.standard.string(forKey: "cardStyle") ?? "") ?? .classic
+    }
+    static var isGlassAvailable: Bool { if #available(macOS 26, *) { true } else { false } }
+}
+
+extension View {
+    /// The glass effect where there is one (macOS 26); CardStyle never asks for it below that.
+    @ViewBuilder func liquidGlass(in shape: some Shape, interactive: Bool = false) -> some View {
+        if #available(macOS 26, *) {
+            glassEffect(interactive ? .regular.interactive() : .regular, in: shape)
+        } else {
+            self
+        }
+    }
 }
 
 /// The light/dark choice from the menu: nil follows the system.
@@ -273,7 +289,7 @@ struct CardChrome<Content: View>: View {
             view
                 .background(shape.fill(glassTint(colorScheme)))
                 .clipShape(shape)
-                .glassEffect(.regular, in: shape)
+                .liquidGlass(in: shape)
                 .overlay(alignment: .bottomTrailing) { grip.padding(5) }
         } else {
             view

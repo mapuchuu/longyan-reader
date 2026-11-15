@@ -110,6 +110,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             if arg == "onboarding" { Onboarding.shared.show(); return }
             if arg == "about" { About.show(); return }
+            if arg == "history" { self.showHistory(); return }
             if arg == "demo" {
                 // Debug: open a word card mid-screen, log its sizing, then drag the corner.
                 Task { @MainActor in
@@ -206,7 +207,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             item.state = currentAppearance == id ? .on : .off
         }
         appearanceMenu.addItem(.separator())
-        for (id, label) in [("classic", "Classic"), ("glass", "Liquid Glass")] {
+        for (id, label) in [("classic", "Classic"), ("glass", "Liquid Glass")] where id == "classic" || CardStyle.isGlassAvailable {
             let item = appearanceMenu.addItem(withTitle: label, action: #selector(selectStyle(_:)), keyEquivalent: "")
             item.target = self
             item.representedObject = id
@@ -214,6 +215,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         let appearanceItem = menu.addItem(withTitle: "Appearance", action: nil, keyEquivalent: "")
         menu.setSubmenu(appearanceMenu, for: appearanceItem)
+        menu.addItem(withTitle: "History…", action: #selector(showHistory), keyEquivalent: "y").target = self
         let historyMenu = NSMenu()
         for (keep, label) in [(Log.Keep.off, "Off"), (.days30, "Keep 30 Days"), (.all, "Keep Everything")] {
             let item = historyMenu.addItem(withTitle: label, action: #selector(selectHistory(_:)), keyEquivalent: "")
@@ -296,7 +298,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func selectHistory(_ sender: NSMenuItem) {
         guard let raw = sender.representedObject as? String, let keep = Log.Keep(rawValue: raw) else { return }
         Log.keep = keep
+        HistoryWindow.shared.reloadIfOpen()
         rebuildMenu()
+    }
+    @objc private func showHistory() {
+        HistoryWindow.shared.show(dict: { [weak self] in self?.dict }, onChange: { [weak self] in self?.rebuildMenu() })
     }
     @objc private func revealHistory() { NSWorkspace.shared.activateFileViewerSelecting([Log.file]) }
     @objc private func clearHistory() {
@@ -308,6 +314,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate()
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         Log.clear()
+        HistoryWindow.shared.reloadIfOpen()
         rebuildMenu()
     }
     @objc private func refresh() {
@@ -429,6 +436,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popup.show(LookupView(state: state), kind: .word, near: anchor, holdFor: modelReady ? 0.4 : 0)
         var record: [String: Any] = ["event": "word", "word": context.word, "sentence": context.sentence,
                                      "app": appName ?? "", "senses": senses.count]
+        // A meaning picked on the card after its lookup was logged: History shows that one.
+        var recordWritten = false
+        state.onUserPick = { choice in
+            guard recordWritten, let sense = senses[safe: choice.senseNumber - 1] else { return }
+            Log.write(["event": "pick", "word": context.word, "sentence": context.sentence, "meaning": choice.meaningHere,
+                       "pinyin": sense.pinyin, "gloss": Gloss.readable(sense.gloss)])
+        }
         lookupTask = Task {
             let started = Date()
             if let pick {
@@ -469,7 +483,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     await relayout()
                 }
             }
+            // What the card ended on (the reader's pick, if they made one first), for History.
+            if let c = state.choice, let sense = state.senses[safe: c.senseNumber - 1] {
+                record["meaningHere"] = c.meaningHere
+                record["pinyin"] = sense.pinyin
+                record["gloss"] = Gloss.readable(sense.gloss)
+            }
             Log.write(record)
+            recordWritten = true
         }
     }
 
@@ -562,20 +583,23 @@ enum Log {
     }()
     static var file: URL { directory.appendingPathComponent("lookups.jsonl") }
 
-    /// Unset means a first launch with this setting: a history that already exists (it was
-    /// always on before) is kept whole; otherwise it starts off.
+    /// On (kept whole) unless the reader turns it off: it's what the History window shows
+    /// and exports as flashcards.
     static var keep: Keep {
         get {
             if let raw = UserDefaults.standard.string(forKey: "lookupHistory"), let k = Keep(rawValue: raw) { return k }
-            let k: Keep = FileManager.default.fileExists(atPath: file.path) ? .all : .off
+            let k: Keep = .all
             UserDefaults.standard.set(k.rawValue, forKey: "lookupHistory")
             return k
         }
         set { UserDefaults.standard.set(newValue.rawValue, forKey: "lookupHistory"); trim() }
     }
 
-    static func write(_ record: [String: Any]) {
-        guard keep != .off else { return }
+    /// Set while the usage simulation runs.
+    @MainActor static var paused = false
+
+    @MainActor static func write(_ record: [String: Any]) {
+        guard keep != .off, !paused else { return }
         var r = record
         r["at"] = ISO8601DateFormatter().string(from: Date())
         guard let data = try? JSONSerialization.data(withJSONObject: r, options: [.sortedKeys]) else { return }

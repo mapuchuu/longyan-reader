@@ -397,6 +397,12 @@ enum CLI {
             try enc.encode(report.notes).write(to: URL(fileURLWithPath: args[4]))
             try NotesBuilder.review(report, words: words).write(to: URL(fileURLWithPath: args[5]), atomically: true, encoding: .utf8)
             print("notes \(report.notes.count), flagged \(report.notes.filter { !$0.problems.isEmpty }.count), failed \(report.errored.count)")
+        case "--history-export" where args.count >= 4:
+            // --history-export anki|csv OUT: the History window's export of the whole history.
+            let entries = HistoryReader.entries(dict: try CEDict.load())
+            let text = args[2] == "anki" ? HistoryExport.anki(entries) : HistoryExport.csv(entries)
+            try text.write(toFile: args[3], atomically: true, encoding: .utf8)
+            print("\(entries.count) lookups, \(HistoryExport.unique(entries).count) rows to \(args[3])")
         case "--compile-dict" where args.count >= 3:
             // --compile-dict OUT: the text dictionary as the app's compiled file, checked word by word.
             let dict = try CEDict.load()

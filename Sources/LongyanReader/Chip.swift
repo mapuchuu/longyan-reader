@@ -168,7 +168,7 @@ struct ChipButtonView: View {
                 .frame(width: diameter, height: diameter)
                 .background(Circle().fill(glassTint(colorScheme)))
                 .clipShape(Circle())
-                .glassEffect(.regular.interactive(), in: Circle())
+                .liquidGlass(in: Circle(), interactive: true)
         } else {
             ZStack {
                 if !snapshot { MaterialBackground(radius: diameter / 2) }
