@@ -3,7 +3,12 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 [ -f Resources/cedict_ts.u8 ] || scripts/fetch-cedict.sh
-swift build -c release
+# --dev adds the debug notification (probe, usage simulation; see App.swift), never in releases.
+flags=()
+[ "${1:-}" = "--dev" ] && flags=(-Xswiftc -DDEV_TOOLS)
+swift build -c release "${flags[@]+"${flags[@]}"}"
+# Every note, example, cue and sense-order line must still match a dictionary sense.
+.build/release/LongyanReader --check-data
 app="build/Longyan Reader.app"
 rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"

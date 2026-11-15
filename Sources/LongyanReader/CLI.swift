@@ -92,6 +92,28 @@ enum CLI {
                 else { print("WRONG \(f[1]) [\(f[2])] want \(f[3]), got: \(got?.gloss.prefix(60) ?? "none")\(senses.contains(where: matches) ? "" : "  (right sense not offered)")") }
             }
             print("right \(right)/\(total), right sense not offered \(unoffered), word split differently \(unsplit), \(Int(Date().timeIntervalSince(started))) s")
+        case "--check-data":
+            // Every override keyed to a dictionary sense still finds it: notes and examples by
+            // word|pinyin|gloss, cues by gloss, sense-order lines by sense count. A dictionary
+            // update that rewords a gloss would otherwise drop them silently. Exits 1 on any miss.
+            let dict = try CEDict.load()
+            var misses: [String] = []
+            func has(_ key: String) -> Bool {
+                let f = key.split(separator: "|", maxSplits: 2).map(String.init)
+                return f.count == 3 && dict.senses(for: f[0], handOrdered: false).contains { $0.pinyin == f[1] && $0.gloss == f[2] }
+            }
+            for key in NotesStore.shared.keys where !has(key) { misses.append("note: \(key)") }
+            for key in ExamplesStore.shared.keys where !has(key) { misses.append("examples: \(key)") }
+            for (word, cues) in NoteCues.byWord {
+                let glosses = Set(dict.senses(for: word, handOrdered: false).map(\.gloss))
+                for c in cues where !glosses.contains(c.gloss) { misses.append("cue: \(word) \(c.cue) → \(c.gloss)") }
+            }
+            for (word, order) in SenseOrder.shared where dict.senses(for: word, handOrdered: false).count != order.count {
+                misses.append("sense order: \(word) was written for \(order.count) senses, now \(dict.senses(for: word, handOrdered: false).count)")
+            }
+            print("notes \(NotesStore.shared.count), examples \(ExamplesStore.shared.count), cues \(NoteCues.byWord.values.map(\.count).reduce(0, +)), sense orders \(SenseOrder.shared.count): \(misses.count) unmatched")
+            misses.forEach { print("  " + $0) }
+            if !misses.isEmpty { exit(1) }
         case "--senses-all" where args.count >= 3:
             // Every sense of each word with its reading, before sense-order.tsv is applied
             // (LONGYAN_NO_SENSE_ORDER=1), for writing that file: --senses-all 眼 到 …
@@ -384,7 +406,8 @@ enum CLI {
         print("word: \(ctx.word)  alternatives: \(ctx.alternatives)")
         print("sentence: \(ctx.sentence)")
         for (i, s) in senses.enumerated() { print("  \(i + 1). [\(Pinyin.marked(s.pinyin))] \(s.gloss)") }
-        guard SenseChooser.isAvailable, !senses.isEmpty else { print("sense chooser: \(SenseChooser.unavailableReason)"); return }
+        _ = await LocalModel.isAvailable()
+        guard SenseChooser.canChoose, !senses.isEmpty else { print("sense chooser: \(SenseChooser.noPickerReason)"); return }
         let t = Date()
         let c = try await SenseChooser.choose(for: ctx, senses: senses)
         print("chosen: \(c.senseNumber). \(senses[c.senseNumber - 1].gloss)  [\(Int(Date().timeIntervalSince(t) * 1000)) ms]")
@@ -468,7 +491,8 @@ enum CLI {
         if click.count == 1 { ctx = Segmenter.context(for: at..<(at + 1), in: Array(passage)) }
         let senses = dict.senses(for: ctx.word)
         let state = LookupState(context: ctx, senses: senses, phase: .choosing)
-        if SenseChooser.isAvailable, !senses.isEmpty, state.grammar == nil {
+        _ = await LocalModel.isAvailable()
+        if SenseChooser.canChoose, !senses.isEmpty, state.grammar == nil {
             state.choice = try await SenseChooser.choose(for: ctx, senses: senses)
             if let wording = ProcessInfo.processInfo.environment["LONGYAN_RENDER_MEANING"] { state.choice?.meaningHere = wording }
             state.phase = .chosen

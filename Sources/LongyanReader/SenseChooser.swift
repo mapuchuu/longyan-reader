@@ -26,6 +26,16 @@ enum SenseChooser {
         return false
     }
 
+    /// Whether any sense picker can run: the local model (as last checked) or Apple's. Cards
+    /// and phrase picks gate on this; gating on Apple's model alone left Macs without Apple
+    /// Intelligence on dictionary order even with the local model running.
+    static var canChoose: Bool { LocalModel.lastKnownAvailable || isAvailable }
+
+    /// Why no sense picker can run, for the card's dictionary-order line.
+    static var noPickerReason: String {
+        LocalModel.enabled ? "local model not running, and Apple's model: \(unavailableReason)" : unavailableReason
+    }
+
     static var unavailableReason: String {
         switch availability {
         case .available: return "available"
@@ -115,17 +125,24 @@ enum SenseChooser {
         // note test Qwen3.5 9B alone got 51/52 with no wrong notes, and the tie-break rules
         // (built around the 3B model's habits) pulled it down to 39/52. LONGYAN_TIEBREAK=1
         // re-applies them for comparison.
-        if await LocalModel.isAvailable(), let choice = try? await LocalModel.choose(context, senses: senses) {
-            if ProcessInfo.processInfo.environment["LONGYAN_TIEBREAK"] == "1" {
-                return await preferNoted(choice, context: context, senses: senses)
-            }
-            return choice
+        if await LocalModel.isAvailable() {
+            do {
+                let choice = try await LocalModel.choose(context, senses: senses)
+                if ProcessInfo.processInfo.environment["LONGYAN_TIEBREAK"] == "1" {
+                    return await preferNoted(choice, context: context, senses: senses)
+                }
+                return choice
+            } catch let e as NoSenseFits {
+                throw e   // the model read the sentence and nothing fit: don't guess another way
+            } catch {}    // not answering: fall back below
         }
         var lastError: Error?
         // LONGYAN_SKIP_MODEL=1 exercises the translation fallback in tests.
         let passages = ProcessInfo.processInfo.environment["LONGYAN_SKIP_MODEL"] == "1"
             ? [] : [context.markedPassage, context.markedSentence]
-        for passage in passages {
+        // Apple's model may be off (the local model was expected but stopped answering): go
+        // straight to matching the translation.
+        for passage in passages where isAvailable {
             do {
                 let choice = try await respond(prompt(passage, word: context.word, senses: senses), senses: senses, nuance: false)
                 return await preferNoted(choice, context: context, senses: senses)

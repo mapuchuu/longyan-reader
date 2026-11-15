@@ -111,6 +111,7 @@ final class PhraseState: ObservableObject {
         for (id, choice) in prep.picks where choices[id] == nil && !userPicked.contains(id) {
             withAnimation(cardMotion) { choices[id] = choice }
         }
+        for (id, why) in prep.misses where failures[id] == nil { failures[id] = why }
         if resolving != !prep.done { withAnimation(cardMotion) { resolving = !prep.done } }
         // Streaming updates come in quickly; resize the card at most every 80 ms.
         guard !layoutPending else { return }
@@ -120,6 +121,9 @@ final class PhraseState: ObservableObject {
             self?.onLayoutChange()
         }
     }
+
+    /// Whether this row shows a dictionary-order guess because no pick could be made.
+    func isGuess(_ token: PhraseToken) -> Bool { failures[token.id] != nil && choices[token.id] == nil }
 
     /// Whether this row is still waiting for its sense (its gloss and pinyin aren't final yet).
     func pending(_ token: PhraseToken) -> Bool {
@@ -134,11 +138,21 @@ final class PhraseState: ObservableObject {
 
     /// Chooses the in-context sense of every ambiguous word at once, so the card opens with
     /// each row already resolved instead of changing when the reader opens it.
+    /// Words left without a pick are passed to `onMiss` with why, so their rows show the
+    /// dictionary-order guess as a guess.
     static func resolve(_ tokens: [PhraseToken], in passage: [Character], dict: CEDict, translation: String? = nil,
-                        onPick: @MainActor (Int, SenseChoice) -> Void = { _, _ in }) async -> [Int: SenseChoice] {
+                        onPick: @MainActor (Int, SenseChoice) -> Void = { _, _ in },
+                        onMiss: @MainActor (Int, String) -> Void = { _, _ in }) async -> [Int: SenseChoice] {
         var words = ambiguous(tokens, in: passage, dict: dict)
-        guard SenseChooser.isAvailable else { return [:] }
+        guard SenseChooser.canChoose else { return [:] }
         var out: [Int: SenseChoice] = [:]
+        var noFit: Set<Int> = []
+        func reportMisses() {
+            for t in words where out[t.id] == nil {
+                onMiss(t.id, noFit.contains(t.id) ? "Dictionary order: no listed meaning was picked for this sentence"
+                                                  : "Dictionary order: couldn't place this word in the sentence")
+            }
+        }
         words.removeAll { t in
             let list = dict.senses(for: t.text)
             guard let n = NoteCues.senseNumber(t.text, at: t.range, in: passage, senses: list) else { return false }
@@ -174,6 +188,7 @@ final class PhraseState: ObservableObject {
                     selectionMarked = true
                 }
             }
+            var answered = false
             var start = 0
             while start < words.count {
                 let chunk = Array(words[start..<min(start + 8, words.count)])
@@ -185,10 +200,18 @@ final class PhraseState: ObservableObject {
                 guard let picks = try? await LocalModel.chooseAll(passage: sentence, selectionMarked: selectionMarked, words: lists,
                                                                   onPick: { i, n in onPick(chunk[i].id, choice(i, n)) })
                 else { continue }
-                for (i, n) in picks.enumerated() { out[chunk[i].id] = choice(i, n) }
+                answered = true
+                for (i, n) in picks.enumerated() {
+                    if let n { out[chunk[i].id] = choice(i, n) } else { noFit.insert(chunk[i].id) }
+                }
             }
-            if !out.isEmpty || ProcessInfo.processInfo.environment["LONGYAN_BATCH_ONLY"] == "1" { return out }
+            // Only when the model answered: words settled by cues or rules above don't count.
+            if answered || ProcessInfo.processInfo.environment["LONGYAN_BATCH_ONLY"] == "1" {
+                reportMisses()
+                return out
+            }
         }
+        words.removeAll { out[$0.id] != nil }
         // Apple's model: one word at a time, concurrently. Answers are passed on in reading
         // order (each once the words before it are in), so the rows still fill in from the top.
         return await withTaskGroup(of: (Int, SenseChoice?).self) { group in
@@ -219,6 +242,7 @@ final class PhraseState: ObservableObject {
                     next += 1
                 }
             }
+            reportMisses()
             return out
         }
     }
@@ -308,13 +332,14 @@ final class PhraseState: ObservableObject {
         expanded = expanded == token.id ? nil : token.id
         defer { onLayoutChange() }
         guard expanded == token.id, grammarEntry(token) == nil, !resolving, choices[token.id] == nil, !choosing.contains(token.id),
-              let list = senses[token.id], !list.isEmpty, SenseChooser.isAvailable else { return }
+              let list = senses[token.id], !list.isEmpty, SenseChooser.canChoose else { return }
         choosing.insert(token.id)
         Task {
             do {
                 let choice = try await SenseChooser.choose(
                     for: Segmenter.context(for: token.range, in: selection.passage), senses: list)
                 suggested[token.id] = choice
+                failures[token.id] = nil
                 if !userPicked.contains(token.id) {
                     withAnimation(cardMotion) { choices[token.id] = choice }
                 }
@@ -412,7 +437,7 @@ struct PhraseView: View {
                             .redacted(reason: pending ? .placeholder : [])
                         Text(state.gloss(token))
                             .cardFont(13)
-                            .foregroundStyle(dim ? .secondary : .primary)
+                            .foregroundStyle(dim || state.isGuess(token) ? .secondary : .primary)
                             .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
                             .redacted(reason: pending ? .placeholder : [])
@@ -525,6 +550,8 @@ final class PhrasePrep {
     private(set) var translationDone = false
     private(set) var translationError: String?
     private(set) var picks: [Int: SenseChoice] = [:]
+    /// Words left without a pick, with why.
+    private(set) var misses: [Int: String] = [:]
     private(set) var done = false
     private(set) var translationMs = 0
     /// Called after every piece of progress.
@@ -546,6 +573,7 @@ final class PhrasePrep {
            let t = try? await LocalModel.translate(selection.text, context: Segmenter.translationContext(for: selection.range, in: selection.passage), partial: { [weak self] in self?.translation = $0; self?.onChange() }) {
             translation = t
         } else {
+            translation = nil   // a stream that broke off mustn't stay up as the translation
             do { translation = try await Translator.translate(selection.text) }
             catch { translationError = String(describing: error).prefix(60).description }
         }
@@ -553,10 +581,13 @@ final class PhrasePrep {
         translationMs = Int(Date().timeIntervalSince(started) * 1000)
         onChange()
         guard !Task.isCancelled else { return }
-        _ = await PhraseState.resolve(tokens, in: selection.passage, dict: dict, translation: translation) { [weak self] id, choice in
+        _ = await PhraseState.resolve(tokens, in: selection.passage, dict: dict, translation: translation, onPick: { [weak self] id, choice in
             self?.picks[id] = choice
             self?.onChange()
-        }
+        }, onMiss: { [weak self] id, why in
+            self?.misses[id] = why
+            self?.onChange()
+        })
         done = true
         onChange()
     }

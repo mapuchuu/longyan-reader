@@ -60,8 +60,11 @@ enum Segmenter {
         var chosen: Range<Int>
         if let t = token, dict.contains(String(passage[t])) {
             chosen = t
-            // A lone character that begins a dictionary word usually belongs to it (长得, not 长).
-            if t.count == 1, let word = covering.first(where: { $0.lowerBound == t.lowerBound && $0.count > 1 }) {
+            // A lone character that begins a dictionary word usually belongs to it (长得, not 长),
+            // but not when the rest is an aspect particle the tokenizer split off: 他得了感冒 is
+            // 得 "to catch" + 了, not 得了 "all right!".
+            if t.count == 1, let word = covering.first(where: { $0.lowerBound == t.lowerBound && $0.count > 1 }),
+               !(word.count == 2 && "了着过".contains(passage[word.upperBound - 1])) {
                 chosen = word
             }
             if let longer = covering.first, longer.count >= 4, longer.count > t.count,

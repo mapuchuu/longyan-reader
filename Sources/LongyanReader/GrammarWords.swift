@@ -24,7 +24,12 @@ enum GrammarWords {
         case "的": return de
         case "了":
             let before = passage.indices.contains(index - 1) ? passage[index - 1] : nil
-            return before == "不" || before == "得" ? liao : le
+            if before == "不" { return liao }
+            guard before == "得" else { return le }
+            // 走得了 is liǎo, but after a subject 得 is the verb itself: 他得了感冒 is le. (A name
+            // as subject, 小王得了奖, still reads liǎo.)
+            let subject = passage.indices.contains(index - 2) ? passage[index - 2] : nil
+            return subject.map { isCJK($0) && !"我你他她它们".contains($0) } ?? false ? liao : le
         default: return nil
         }
     }

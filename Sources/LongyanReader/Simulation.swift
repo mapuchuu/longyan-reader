@@ -1,6 +1,8 @@
 import AppKit
 import SwiftUI
 
+#if DEV_TOOLS   // dev builds only (scripts/build-app.sh --dev)
+
 /// Debug: scripted usage of the real cards through the same code paths as clicks, with
 /// checks after each step. Trigger with the probe notification object "simulate";
 /// the report is written to ~/Library/Logs/LongyanReader/simulation.txt.
@@ -148,6 +150,13 @@ extension AppDelegate {
         let liao = Array("吃不了")
         check(GrammarWords.entry("了", in: liao, at: 2)?.reading == "liao3", "了 after 不 reads liǎo")
         check(GrammarWords.entry("了", in: Array("下雨了"), at: 2)?.reading == "le5", "了 after a verb reads le")
+        check(GrammarWords.entry("了", in: Array("受得了"), at: 2)?.reading == "liao3", "了 in 受得了 reads liǎo")
+        check(GrammarWords.entry("了", in: Array("他得了感冒"), at: 2)?.reading == "le5", "了 after 他得 reads le")
+        if let dict {
+            check(Segmenter.word(at: 1, in: Array("他得了感冒。"), dict: dict)?.word == "得",
+                  "得 in 他得了感冒 isn't joined into 得了 \"all right\"")
+            check(Segmenter.word(at: 1, in: Array("他长得很高。"), dict: dict)?.word == "长得", "长得 still joins")
+        }
         check(Gloss.readable("also pr. [di4] or [di5] in poetry and songs") == "also pronounced dì or di in poetry and songs",
               "pronunciation notes keep their pinyin")
         check(Gloss.short("(not) at all") == "(not) at all" && Gloss.short("absolutely (not)") == "absolutely (not)",
@@ -445,3 +454,4 @@ extension AppDelegate {
         return lines.joined(separator: "\n")
     }
 }
+#endif

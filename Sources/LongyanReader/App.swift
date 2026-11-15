@@ -32,6 +32,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private(set) var lastPhraseState: PhraseState?
     private var phrasePrep: PhrasePrep?
     private var wordPrep: (key: String, task: Task<SenseChoice, Error>)?
+    /// The open card's model work. Ollama answers one request at a time, so work left over
+    /// from a card that's gone would hold up the next one: a new card cancels it all.
+    private var cardTasks: [Task<SenseChoice, Error>] = []
+    private var shownPhrasePrep: PhrasePrep?
+
+    private func cancelCardWork(keeping kept: Task<SenseChoice, Error>? = nil) {
+        lookupTask?.cancel()
+        for t in cardTasks where t != kept { t.cancel() }
+        cardTasks = []
+        shownPhrasePrep?.cancel()
+        shownPhrasePrep = nil
+    }
+
+    /// Longer selections get a hint instead of a card (the selection button doesn't appear for
+    /// them either): a card for a page of text would take minutes of model time.
+    static let maxSelection = 400
     private var localModelReady = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -74,7 +90,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if let front = NSWorkspace.shared.frontmostApplication { SelectionReader.prepare(front) }
 
-        // Debug: describe an app's accessibility structure (see Probe.swift).
+        #if DEV_TOOLS
+        // Debug (dev builds only: scripts/build-app.sh --dev): describe an app's accessibility
+        // structure (see Probe.swift), or run the usage simulation. Any local process can post
+        // this notification, and the probe acts with this app's Accessibility permission, so
+        // it isn't compiled into the builds people download.
         DistributedNotificationCenter.default().addObserver(
             forName: Notification.Name("com.mapuchuu.longyanreader.probe"), object: nil, queue: .main
         ) { note in
@@ -127,6 +147,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             try? report.write(to: Log.directory.appendingPathComponent("ax-probe.txt"), atomically: true, encoding: .utf8)
         }
+        #endif
 
         // Ask for Accessibility once; the system shows its own prompt.
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
@@ -279,6 +300,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// One dictionary word gets the word card; anything longer gets the phrase card.
     func show(_ selection: Selection, near anchor: NSRect) {
         guard let dict else { hint("Dictionary still loading…", near: anchor); return }
+        guard selection.range.count <= Self.maxSelection else {
+            hint("That's a lot of text: select a sentence or two", near: anchor)
+            return
+        }
         let selection = selection.wholeWords(dict: dict)
         if isSingleWord(selection, dict: dict) {
             let context = Segmenter.context(for: selection.range, in: selection.passage)
@@ -295,12 +320,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func showWord(_ context: WordInContext, appName: String?, near anchor: NSRect) {
         guard let dict else { return }
-        lookupTask?.cancel()
         let senses = dict.senses(for: context.word)
         let grammar = GrammarWords.entry(context.word, in: context.passage, at: context.wordRange.lowerBound)
-        let modelReady = SenseChooser.isAvailable && !senses.isEmpty && grammar == nil
+        let modelReady = SenseChooser.canChoose && !senses.isEmpty && grammar == nil
         let state = LookupState(context: context, senses: senses,
-                                phase: modelReady ? .choosing : .dictionaryOnly(senses.isEmpty ? "not in dictionary" : SenseChooser.unavailableReason))
+                                phase: modelReady ? .choosing : .dictionaryOnly(senses.isEmpty ? "not in dictionary" : SenseChooser.noPickerReason))
         state.onLayoutChange = { [weak self] in Task { await self?.relayout() } }
         // A lone character inside a longer word (彻 in 彻底) also shows that word. A word with one
         // meaning, or one a cue settles, shows it at once; otherwise the model picks it after the
@@ -314,7 +338,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 let sense = settled.flatMap { wordSenses[safe: $0 - 1] }
                 state.partOf = .init(word: whole.word, pinyin: (sense ?? first).pinyin, meaning: sense.map { Gloss.short($0.gloss) })
                 state.openPartOf = { [weak self] in self?.showWord(whole, appName: appName, near: anchor) }
-                if sense == nil, SenseChooser.isAvailable { partPick = (whole, wordSenses) }
+                if sense == nil, SenseChooser.canChoose { partPick = (whole, wordSenses) }
             }
         }
         lastLookupState = state
@@ -322,8 +346,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // card waits briefly for the answer, so it opens complete instead of growing after.
         let key = Self.wordKey(context)
         let prepared = wordPrep.flatMap { $0.key == key ? $0.task : nil }
+        if prepared == nil { wordPrep?.task.cancel() }
         wordPrep = nil
+        cancelCardWork(keeping: prepared)
+        phrasePrep?.cancel()
+        phrasePrep = nil
         let pick: Task<SenseChoice, Error>? = !modelReady ? nil : prepared ?? Task { try await SenseChooser.choose(for: context, senses: senses) }
+        if let pick { cardTasks.append(pick) }
         popup.show(LookupView(state: state), kind: .word, near: anchor, holdFor: modelReady ? 0.4 : 0)
         var record: [String: Any] = ["event": "word", "word": context.word, "sentence": context.sentence,
                                      "app": appName ?? "", "senses": senses.count]
@@ -344,8 +373,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     }
                     record["meaningHere"] = choice.meaningHere
                     record["tag"] = choice.tag.rawValue
+                } catch is CancellationError {
+                    return   // a newer card replaced this one
                 } catch {
-                    state.phase = .failed(String(describing: error).prefix(80).description)
+                    state.phase = error is NoSenseFits ? .dictionaryOnly("no listed meaning was picked for this sentence")
+                        : .failed(String(describing: error).prefix(80).description)
                     popup.endHold()
                     record["error"] = String(describing: error)
                 }
@@ -356,6 +388,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 // Kept as the word's prepared answer, so opening the word doesn't ask again.
                 let task = Task { try await SenseChooser.choose(for: partPick.context, senses: partPick.senses) }
                 wordPrep = (Self.wordKey(partPick.context), task)
+                cardTasks.append(task)
                 if let c = try? await task.value, !Task.isCancelled {
                     state.partOf?.pinyin = partPick.senses[safe: c.senseNumber - 1]?.pinyin ?? state.partOf?.pinyin ?? ""
                     state.partOf?.meaning = c.meaningHere
@@ -368,10 +401,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func showPhrase(_ selection: Selection, dict: CEDict, near anchor: NSRect) {
-        lookupTask?.cancel()
+        cancelCardWork()
+        wordPrep?.task.cancel()
+        wordPrep = nil
         // Usually started when the text was selected (see `prepare`); otherwise start now.
         let prep = phrasePrep.flatMap { $0.matches(selection) ? $0 : nil } ?? PhrasePrep(selection, dict: dict)
+        if phrasePrep !== prep { phrasePrep?.cancel() }
         phrasePrep = nil
+        shownPhrasePrep = prep
         let state = PhraseState(selection: selection, dict: dict)
         state.onLayoutChange = { [weak self] in Task { await self?.relayout() } }
         lastPhraseState = state
@@ -405,7 +442,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let context = Segmenter.context(for: selection.range, in: selection.passage)
             let key = Self.wordKey(context)
             let senses = dict.senses(for: context.word)
-            guard wordPrep?.key != key, SenseChooser.isAvailable, !senses.isEmpty,
+            guard wordPrep?.key != key, SenseChooser.canChoose, !senses.isEmpty,
                   GrammarWords.entry(context.word, in: context.passage, at: context.wordRange.lowerBound) == nil else { return }
             wordPrep?.task.cancel()
             wordPrep = (key, Task { try await SenseChooser.choose(for: context, senses: senses) })

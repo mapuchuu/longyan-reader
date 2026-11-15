@@ -53,11 +53,12 @@ $B --lookup "他长得很高。" 长                        # segment, list sens
 $B --phrase "快递员每天晚上都要上夜班分拣包裹。"       # the phrase card's pipeline: translation, then every word's sense
 $B --segment-file sentences.txt                     # each line's word split, for comparing segmenter changes
 $B --eval                                           # labelled cases: word, sense and tag accuracy
+$B --check-data                                     # every note, example, cue and sense-order line still matches the dictionary
 $B --render "明朝实行海禁，闭关锁国。" 锁 out.png       # draw the word card to a PNG
 $B --render-phrase "明朝实行海禁，闭关锁国。" out.png 闭关锁国   # draw the phrase card, one word expanded
 ```
 
-A scripted usage simulation drives the real cards through the same code paths as clicks and checks the results: tint and surface before and after picking another meaning in every style and mode, early picks not overwritten by the model, hint timers not closing the next card, phrase-row picking and switching with the window always holding the card, live style switching, and rapid lookups leaving one card. Trigger it with the probe notification `simulate` (report in `~/Library/Logs/LongyanReader/simulation.txt`; it restores your settings afterwards).
+A scripted usage simulation drives the real cards through the same code paths as clicks and checks the results: tint and surface before and after picking another meaning in every style and mode, early picks not overwritten by the model, hint timers not closing the next card, phrase-row picking and switching with the window always holding the card, live style switching, and rapid lookups leaving one card. It needs a dev build, `scripts/build-app.sh --dev`: only that build listens for the probe notification, since any local process can post one. Trigger it with the notification `simulate` (report in `~/Library/Logs/LongyanReader/simulation.txt`; it restores your settings afterwards).
 
 Each lookup appends a line to `~/Library/Logs/LongyanReader/lookups.jsonl`, a few hundred bytes each. Misses record why the selection couldn't be read.
 
@@ -87,8 +88,8 @@ The model sees each noted sense with its note's first sentence, and a few fixed 
 
 The Longyan eye icon is from the Longyan Chrome extension.
 
-CC-CEDICT is © MDBG and contributors under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). It's downloaded by `scripts/fetch-cedict.sh` and not committed here.
+CC-CEDICT is © MDBG and contributors under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). The release used is committed (`Resources/cedict_ts.u8`, with its license header), so every build reads the same dictionary. `scripts/fetch-cedict.sh` moves to a newer release, keeping it only if `--check-data` still passes, and `scripts/build-app.sh` runs the same check.
 
-的 and 了 skip sense picking. They show one fixed line (`GrammarWords.swift`), and opening them lists only that reading's meanings, in short wording; 了 after 不 or 得 reads liǎo. Lists of meanings shorten any definition past about two lines, and the full text is in its tooltip.
+的 and 了 skip sense picking. They show one fixed line (`GrammarWords.swift`), and opening them lists only that reading's meanings, in short wording; 了 after 不, or after 得 following a verb (受得了), reads liǎo; after a pronoun 得 is the verb (他得了感冒), so 了 reads le. Lists of meanings shorten any definition past about two lines, and the full text is in its tooltip.
 
 Cards can be dragged from anywhere but the resize corner. A dragged card stays open through scrolling elsewhere, and the next card opens by its word as usual.

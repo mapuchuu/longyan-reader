@@ -24,13 +24,21 @@ enum LocalModel {
 
     private static let endpoint = URL(string: "http://127.0.0.1:11434/api/chat")!
 
-    /// Whether Ollama answers and has the model, checked at most every 30 seconds.
-    private static var lastCheck: (at: Date, ok: Bool)?
+    /// Whether Ollama answers and has the model, checked at most every 30 seconds. Checked
+    /// from background tasks and read on the main thread, so the cache sits behind a lock.
+    private static let lock = NSLock()
+    private static var _lastCheck: (at: Date, ok: Bool)?
+    private static var lastCheck: (at: Date, ok: Bool)? {
+        get { lock.withLock { _lastCheck } }
+        set { lock.withLock { _lastCheck = newValue } }
+    }
     static func isAvailable() async -> Bool {
         guard enabled else { return false }
         if let c = lastCheck, Date().timeIntervalSince(c.at) < 30 { return c.ok }
         var ok = false
-        if let (data, _) = try? await URLSession.shared.data(from: URL(string: "http://127.0.0.1:11434/api/tags")!),
+        var req = URLRequest(url: URL(string: "http://127.0.0.1:11434/api/tags")!)
+        req.timeoutInterval = 2   // a local server answers at once or not at all
+        if let (data, _) = try? await URLSession.shared.data(for: req),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let models = json["models"] as? [[String: Any]] {
             ok = models.contains { ($0["name"] as? String) == name || ($0["model"] as? String) == name }
@@ -39,14 +47,22 @@ enum LocalModel {
         return ok
     }
 
+    /// The last check's answer, without waiting: for deciding at once whether a card can
+    /// expect a model pick. The app checks at launch, on Refresh and on each selection.
+    static var lastKnownAvailable: Bool { enabled && lastCheck?.ok == true }
+
     /// Loads the model in the background (Ollama unloads it after five idle minutes), so a
     /// lookup that follows soon doesn't wait several seconds. Called when Chinese text is
     /// selected, while the reader moves to click.
-    private static var lastWarmUp: Date?
+    private static var _lastWarmUp: Date?
     static func warmUp() {
         guard enabled else { return }
-        if let last = lastWarmUp, Date().timeIntervalSince(last) < 60 { return }
-        lastWarmUp = Date()
+        let due = lock.withLock {
+            if let last = _lastWarmUp, Date().timeIntervalSince(last) < 60 { return false }
+            _lastWarmUp = Date()
+            return true
+        }
+        guard due else { return }
         Task.detached(priority: .utility) {
             guard await isAvailable() else { return }
             var req = URLRequest(url: URL(string: "http://127.0.0.1:11434/api/generate")!)
@@ -70,8 +86,10 @@ enum LocalModel {
     /// one request at a time, so this is much quicker than asking word by word; the answer is
     /// just the sense numbers, in order, streamed so each word can be shown as soon as it's
     /// picked (`onPick` gets the word's position in `words` and its 1-based sense number).
+    /// A word's pick is nil when the model gave no usable number for it (missing, or outside
+    /// the list): that word is left unsettled rather than forced onto a sense.
     static func chooseAll(passage: String, selectionMarked: Bool = false, words: [(word: String, senses: [Sense])],
-                          onPick: @MainActor (Int, Int) -> Void = { _, _ in }) async throws -> [Int] {
+                          onPick: @MainActor (Int, Int) -> Void = { _, _ in }) async throws -> [Int?] {
         guard !words.isEmpty else { return [] }
         // Answer time is nearly all output tokens (~14 ms each; reading the prompt is a few
         // tens of ms once cached), so the reply is one plain line, 等=2 和=1, about a third of
@@ -121,7 +139,7 @@ enum LocalModel {
     }
 
     private static func chooseAllOnOneLine(passage: String, selectionMarked: Bool, words: [(word: String, senses: [Sense])],
-                                           onPick: @MainActor (Int, Int) -> Void) async throws -> [Int] {
+                                           onPick: @MainActor (Int, Int) -> Void) async throws -> [Int?] {
         let labels = words.indices.map { "w\($0 + 1)" }
         let user = chooseAllPrompt(passage, selectionMarked, words, labels: labels)
             + "\n\nReply on one line with each word and its sense number, in order, like: "
@@ -130,15 +148,17 @@ enum LocalModel {
         let body = chooseAllBody(user, options: ["temperature": 0, "num_ctx": 2048, "num_predict": 8 * words.count + 8])
         // Each word, then its number, read in order from where the last one ended. A number
         // still being written (nothing after it yet) isn't taken until the reply is complete.
-        func read(_ text: String, final: Bool) -> [Int?] {
-            var out = [Int?](repeating: nil, count: words.count)
+        // Returns, per word, nil until its number is read, then .some(nil) for a number
+        // outside the list or .some(n) for a sense.
+        func read(_ text: String, final: Bool) -> [Int??] {
+            var out = [Int??](repeating: nil, count: words.count)
             var rest = Substring(text)
             for (i, w) in words.enumerated() {
                 guard let r = rest.range(of: w.word) else { break }
                 let after = rest[r.upperBound...].drop { $0 == "=" || $0 == " " || $0 == ":" }
                 let digits = after.prefix { $0.isNumber }
                 guard !digits.isEmpty, final || digits.endIndex < after.endIndex, let n = Int(digits) else { break }
-                out[i] = min(max(n, 1), w.senses.count)
+                out[i] = .some((1...w.senses.count).contains(n) ? n : nil)
                 rest = after[digits.endIndex...]
             }
             return out
@@ -146,18 +166,18 @@ enum LocalModel {
         var picked = [Bool](repeating: false, count: words.count)
         let text = try await stream(body) { text in
             for (i, n) in read(text, final: false).enumerated() where !picked[i] {
-                if let n { picked[i] = true; onPick(i, n) }
+                if let n { picked[i] = true; if let n { onPick(i, n) } }
             }
         }
         let picks = read(text, final: true)
         guard picks.allSatisfy({ $0 != nil }) else { throw unexpected(text) }
         // The last number has nothing after it, so it's only certain now.
-        for (i, n) in picks.enumerated() where !picked[i] { await onPick(i, n!) }
+        for (i, n) in picks.enumerated() where !picked[i] { if let n = n! { await onPick(i, n) } }
         return picks.map { $0! }
     }
 
     private static func chooseAllAsJSON(passage: String, selectionMarked: Bool, words: [(word: String, senses: [Sense])],
-                                        onPick: @MainActor (Int, Int) -> Void) async throws -> [Int] {
+                                        onPick: @MainActor (Int, Int) -> Void) async throws -> [Int?] {
         // Zero-padded so that sorted keys (in `stream`) keep the words in order: w01, w02, … w10.
         let keys = words.indices.map { String(format: "w%02d", $0 + 1) }
         var props: [String: Any] = [:]
@@ -165,20 +185,19 @@ enum LocalModel {
         let body = chooseAllBody(chooseAllPrompt(passage, selectionMarked, words, labels: keys),
                                  options: ["temperature": 0, "num_ctx": 2048],
                                  format: ["type": "object", "properties": props, "required": keys])
+        func valid(_ i: Int, _ n: Int?) -> Int? { n.flatMap { (1...words[i].senses.count).contains($0) ? $0 : nil } }
         var picks = [Int?](repeating: nil, count: words.count)
         let text = try await stream(body) { text in
             // A number is complete once something follows it.
             for m in text.matches(of: #/"w(\d+)"\s*:\s*(\d+)\s*[,}\s]/#) {
-                guard let k = Int(m.1), let n = Int(m.2), words.indices.contains(k - 1), picks[k - 1] == nil else { continue }
-                let pick = min(max(n, 1), words[k - 1].senses.count)
+                guard let k = Int(m.1), words.indices.contains(k - 1), picks[k - 1] == nil,
+                      let pick = valid(k - 1, Int(m.2)) else { continue }
                 picks[k - 1] = pick
                 onPick(k - 1, pick)
             }
         }
         guard let parsed = try? JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any] else { throw unexpected(text) }
-        return words.indices.map { i in
-            picks[i] ?? min(max(parsed[keys[i]] as? Int ?? 1, 1), words[i].senses.count)
-        }
+        return words.indices.map { i in picks[i] ?? valid(i, parsed[keys[i]] as? Int) }
     }
 
     static let translationInstructions = """
@@ -274,8 +293,15 @@ enum LocalModel {
         // The JSON form here: for one word the one-line reply saves only ~0.1 s, and the card
         // is prepared while the reader moves to click, while JSON scored a little better
         // (real reading 36/39 against 34/39).
-        let n = try await chooseAllAsJSON(passage: context.markedPassage, selectionMarked: false,
-                                          words: [(context.word, senses)], onPick: { _, _ in }).first ?? 1
+        guard let n = try await chooseAllAsJSON(passage: context.markedPassage, selectionMarked: false,
+                                                words: [(context.word, senses)], onPick: { _, _ in }).first ?? nil
+        else { throw NoSenseFits() }
         return SenseChoice(senseNumber: n, meaningHere: headlineGloss(senses[n - 1]))
     }
+}
+
+/// The model answered, but with no sense from the list: the word is left in dictionary order
+/// rather than matched some other way.
+struct NoSenseFits: LocalizedError {
+    var errorDescription: String? { "none of the dictionary's meanings was picked" }
 }

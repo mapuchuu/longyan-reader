@@ -1,6 +1,8 @@
 import AppKit
 import ApplicationServices
 
+#if DEV_TOOLS   // dev builds only (scripts/build-app.sh --dev)
+
 /// Debug aid: describes what an app exposes through Accessibility around its focused
 /// element (roles, attribute names, text lengths; not the text itself), so selection
 /// reading can be fixed per app. Trigger from a terminal:
@@ -98,3 +100,4 @@ enum Probe {
         }
     }
 }
+#endif
