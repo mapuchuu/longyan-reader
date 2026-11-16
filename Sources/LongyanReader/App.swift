@@ -117,6 +117,45 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if arg == "onboarding" { Onboarding.shared.show(); return }
             if arg == "about" { About.show(); return }
             if arg == "history" { self.showHistory(); return }
+            if arg.hasPrefix("showlow:") {
+                // Debug: open a card near the bottom of the screen, so it opens above. showlow:<passage>|<from>|<to>
+                let f = arg.dropFirst(8).split(separator: "|").map(String.init)
+                guard f.count == 3, let lo = Int(f[1]), let hi = Int(f[2]) else { return }
+                let screen = NSScreen.main?.visibleFrame ?? .zero
+                let anchor = NSRect(x: screen.midX - 200, y: screen.minY + 70, width: 60, height: 20)
+                self.show(Selection(passage: Array(f[0]), range: lo..<hi, bounds: nil, source: .accessibility, appName: "Demo"), near: anchor)
+                return
+            }
+            if arg == "press" { self.popup.hangFromTop(); return }
+            if arg == "holdopen" { self.popup.ignoresOutsideInput = true; return }
+            if arg == "letgo" { self.popup.ignoresOutsideInput = false; return }
+            if arg.hasPrefix("tracegrow:") {
+                // Debug: open (or close) a phrase row and log the window and card every frame for 0.8 s.
+                let word = String(arg.dropFirst(10))
+                guard let state = self.lastPhraseState, let token = state.tokens.first(where: { $0.text == word }) else { return }
+                var lines: [String] = []
+                @MainActor func snap(_ t: Double) {
+                    let f = self.popup.windowFrame ?? .zero, l = self.popup.currentLayout
+                    lines.append(String(format: "%5.3f window y %.1f…%.1f h %.1f  below %@/%@  layout.height %.1f content %.1f max %.1f",
+                                        t, f.minY, f.maxY, f.height, self.popup.isPlacedBelow ? "Y" : "N", (l?.placedBelow ?? false) ? "Y" : "N",
+                                        l?.height ?? 0, l?.contentHeight ?? 0, l?.maxHeight ?? 0))
+                }
+                snap(0)
+                withAnimation(cardMotion) { state.toggle(token) }
+                let start = Date()
+                Timer.scheduledTimer(withTimeInterval: 1.0 / 60, repeats: true) { timer in
+                    MainActor.assumeIsolated {
+                        let t = Date().timeIntervalSince(start)
+                        snap(t)
+                        if t > 0.8 {
+                            timer.invalidate()
+                            try? lines.joined(separator: "\n").write(to: Log.directory.appendingPathComponent("grow-trace.txt"), atomically: true, encoding: .utf8)
+                        }
+                    }
+                }
+                return
+            }
+            if arg == "partof" { self.lastLookupState?.openPartOf(); return }
             if arg.hasPrefix("show:") {
                 // Debug: open a card mid-screen and leave it open. show:<passage>|<from>|<to>
                 let f = arg.dropFirst(5).split(separator: "|").map(String.init)
@@ -522,7 +561,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if let first = wordSenses.first {
                 let sense = settled.flatMap { wordSenses[safe: $0 - 1] }
                 state.partOf = .init(word: whole.word, pinyin: (sense ?? first).pinyin, meaning: sense.map { Gloss.short($0.gloss) })
-                state.openPartOf = { [weak self] in self?.showWord(whole, appName: appName, near: anchor) }
+                state.openPartOf = { [weak self] in
+                    self?.popup.nextOpensInPlace()
+                    self?.showWord(whole, appName: appName, near: anchor)
+                }
                 if sense == nil, SenseChooser.canChoose { partPick = (whole, wordSenses) }
             }
         }

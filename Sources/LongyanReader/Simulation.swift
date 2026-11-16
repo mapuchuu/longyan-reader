@@ -472,6 +472,75 @@ extension AppDelegate {
         await wait(0.6)
         check(PopupController.visibleCardWindows == 1, "rapid lookups leave one card (found \(PopupController.visibleCardWindows))")
 
+        // 6c. A card above the selection stands on it while it fills in; once clicked, it hangs
+        //     from its top, so opening a row grows it downward and the row stays put.
+        do {
+            let low = NSRect(x: screen.midX - 180, y: screen.minY + 70, width: 60, height: 20)
+            let text = "这时所有小组都满员了，而我什么人都不认识。"
+            show(word(text, 0, 10), near: low)
+            var t = 0.0
+            while (popup.kind != .phrase || lastPhraseState?.selection.text != "这时所有小组都满员了") && t < 3 { await wait(0.02); t += 0.02 }
+            t = 0
+            while lastPhraseState?.resolving == true && t < 8 { await wait(0.05); t += 0.05 }
+            await wait(0.6)
+            check(!popup.isPlacedBelow, "a card at the bottom of the screen opens above the selection")
+            let before = popup.cardScreenRect ?? .zero
+            // A real click on the card's translation, which isn't a button.
+            if let height = NSScreen.screens.first?.frame.height {
+                let back = NSEvent.mouseLocation
+                func post(_ type: CGEventType, _ p: NSPoint) {
+                    CGEvent(mouseEventSource: nil, mouseType: type, mouseCursorPosition: CGPoint(x: p.x, y: height - p.y), mouseButton: .left)?.post(tap: .cghidEventTap)
+                }
+                let at = NSPoint(x: before.minX + 60, y: before.maxY - 52)
+                post(.mouseMoved, at); await wait(0.1)
+                post(.leftMouseDown, at); await wait(0.05)
+                post(.leftMouseUp, at); await wait(0.2)
+                post(.mouseMoved, back)
+            }
+            let pressed = popup.cardScreenRect ?? .zero
+            check(popup.isPlacedBelow && abs(pressed.maxY - before.maxY) < 0.5 && abs(pressed.minY - before.minY) < 0.5,
+                  "clicking it leaves it where it is, now hanging from its top")
+            if let phrase = lastPhraseState, let token = phrase.tokens.first(where: { $0.text == "所有" }) {
+                withAnimation(cardMotion) { phrase.toggle(token) }
+                await wait(0.7)
+                let grown = popup.cardScreenRect ?? .zero
+                check(abs(grown.maxY - before.maxY) < 0.5 && grown.height > before.height + 20,
+                      "opening a row grows it downward, its top staying put (\(Int(before.height)) → \(Int(grown.height)) pt, top \(Int(before.maxY)) → \(Int(grown.maxY)))")
+                withAnimation(cardMotion) { phrase.toggle(token) }
+                await wait(0.7)
+                let shut = popup.cardScreenRect ?? .zero
+                check(abs(shut.maxY - before.maxY) < 0.5, "closing the row leaves the top where it was")
+            } else {
+                check(false, "a phrase card with 所有 to open")
+            }
+            popup.close()
+            await wait(0.3)
+
+            // A word's "Part of" link opens that word's card in the same spot, swapped in
+            // without a gap, whichever side of the selection the first card was on.
+            show(word("他把问题想得很彻底。", 7), near: low)
+            t = 0
+            while (lastLookupState?.context.word != "彻" || lastLookupState?.partOf == nil) && t < 4 { await wait(0.05); t += 0.05 }
+            await wait(0.4)
+            if let first = lastLookupState, first.partOf != nil, let spot = popup.cardScreenRect {
+                popup.hangFromTop()       // the press on the link
+                first.openPartOf()
+                await wait(0.05)
+                check(PopupController.visibleCardWindows >= 1, "the first card stays up while the next one gets ready")
+                t = 0
+                while lastLookupState?.context.word != "彻底" && t < 3 { await wait(0.02); t += 0.02 }
+                await wait(0.8)
+                let next = popup.cardScreenRect ?? .zero
+                check(lastLookupState?.context.word == "彻底" && abs(next.minX - spot.minX) < 0.5 && abs(next.maxY - spot.maxY) < 0.5,
+                      "Part of opens the whole word's card in the same spot (top-left \(Int(spot.minX)),\(Int(spot.maxY)) → \(Int(next.minX)),\(Int(next.maxY)))")
+                check(PopupController.visibleCardWindows == 1, "and the first card is gone (\(PopupController.visibleCardWindows) cards)")
+            } else {
+                check(false, "a card for 彻 that shows it's part of 彻底")
+            }
+            popup.close()
+            await wait(0.3)
+        }
+
         // 7. A pinned card stays where it is while new lookups replace it, a hint opens
         //    beside it rather than in its place, and Copy has the card's text.
         show(word("这本书很有意思。", 2), near: anchor)

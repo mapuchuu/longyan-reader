@@ -322,6 +322,8 @@ final class PopupPanel: NSPanel {
     var canMove: (NSPoint) -> Bool = { _ in false }
     /// The card is being dragged: the pointer's screen position, then nil when it's let go.
     var onMove: (NSPoint?) -> Void = { _ in }
+    /// Any press on the card, before it's handled.
+    var onPress: () -> Void = {}
     private var pressedAt: NSPoint?
     private var moving = false
 
@@ -331,6 +333,7 @@ final class PopupPanel: NSPanel {
     override func sendEvent(_ event: NSEvent) {
         switch event.type {
         case .leftMouseDown:
+            onPress()
             pressedAt = canMove(event.locationInWindow) ? NSEvent.mouseLocation : nil
             moving = false
         case .leftMouseDragged:
@@ -382,6 +385,20 @@ final class PopupController {
     /// the selection and close as usual.
     var followsPin = true
     private var pinned: Bool { followsPin && CardPin.shared.isOn }
+    /// Set for a card opened from inside the open one (彻 → 彻底): it takes that card's place,
+    /// hanging from the same top-left corner, as a pinned card's next lookup does.
+    private var opensInPlace = false
+    /// The open card took the previous one's place, so it hangs from that corner.
+    private var hangsInPlace = false
+    /// The current card's spot, for a card opened from inside it; nil if none is open.
+    private var inPlaceAnchor: NSRect?
+
+    /// The next `show` replaces the open card in its place instead of opening by the selection.
+    func nextOpensInPlace() {
+        guard panel != nil, let corner = cardTopLeft else { return }
+        opensInPlace = true
+        inPlaceAnchor = NSRect(x: corner.x, y: corner.y + 8, width: 1, height: 1)
+    }
     /// Which kind of card is open, and a token that changes with every new card.
     private(set) var kind: CardLayout.Kind?
     private(set) var generation = 0
@@ -394,7 +411,11 @@ final class PopupController {
         // A new card silences the last one's reading; a hint beside it doesn't.
         if kind != .hint { Speaker.shared.stop() }
         // A pinned card is replaced in place: the old one stays up until the new one is ready.
-        let pinned = self.pinned
+        // So is a card opened from inside the open one.
+        let inPlace = opensInPlace && kind != .hint ? inPlaceAnchor : nil
+        opensInPlace = false
+        inPlaceAnchor = nil
+        let pinned = self.pinned || inPlace != nil
         if pinned, let old = panel {
             swapping?.orderOut(nil)
             swapping = old
@@ -407,7 +428,8 @@ final class PopupController {
         wasMoved = false
         revealPending = false
         held = hold > 0
-        self.anchor = pinned ? (pinnedAnchor ?? anchor) : anchor
+        self.anchor = inPlace ?? (pinned ? (pinnedAnchor ?? anchor) : anchor)
+        hangsInPlace = inPlace != nil
         let layout = CardLayout(kind: kind)
         self.kind = kind
         generation += 1
@@ -441,6 +463,7 @@ final class PopupController {
         }
         panel.onMove = { [weak self] mouse in self?.move(to: mouse) }
         panel.canMove = { [weak self] point in self?.canMove(from: point) ?? false }
+        panel.onPress = { [weak self] in self?.hangFromTop() }
 
         choosePlacement(for: layout)
         applySize(animated: false)
@@ -559,12 +582,25 @@ final class PopupController {
         applySize(animated: false)
     }
 
+    /// Once the reader clicks in a card that sits above the selection, it hangs from its top
+    /// edge as a card below does: opening a row grows it downward, so the row just clicked
+    /// stays under the pointer instead of the whole card climbing (and dropping back as the
+    /// row closes). Until then it stands on the selection, so filling in never covers it.
+    func hangFromTop() {
+        guard !placedBelow, let layout, layout.appeared, let corner = cardTopLeft else { return }
+        anchor = NSRect(x: corner.x, y: corner.y + 8, width: 1, height: 1)
+        placedBelow = true
+        layout.placedBelow = true
+        fitMaxHeight(layout)
+        applySize(animated: false)
+    }
+
     /// Below the selection when the card fits there, else whichever side has more room. The
     /// card scrolls past that room, so it never slides over the selection as it fills in.
     private func choosePlacement(for layout: CardLayout) {
         let visible = visibleFrame()
         let below = anchor.minY - 16 - visible.minY, above = visible.maxY - anchor.maxY - 16
-        placedBelow = pinned || below >= max(layout.contentHeight, 320) || below >= above
+        placedBelow = pinned || hangsInPlace || below >= max(layout.contentHeight, 320) || below >= above
         layout.placedBelow = placedBelow
         fitMaxHeight(layout)
     }
@@ -572,7 +608,9 @@ final class PopupController {
     private func fitMaxHeight(_ layout: CardLayout) {
         let visible = visibleFrame()
         let room = placedBelow ? anchor.minY - 16 - visible.minY : visible.maxY - anchor.maxY - 16
-        layout.maxHeight = max(200, min(room, visible.height * 0.8))
+        // Never taller than its room (down to a small floor), so the screen edge never has to
+        // push the card back, which would move it.
+        layout.maxHeight = max(120, min(room, visible.height * 0.8))
     }
 
     private var resizeStart: (mouse: NSPoint, card: NSRect, size: CardLayout.SizeState)?
@@ -732,6 +770,9 @@ final class PopupController {
         anchor = start.anchor.offsetBy(dx: mouse.x - start.mouse.x, dy: mouse.y - start.mouse.y)
         setWindow(panel.frame.size)
     }
+
+    /// Debug: whether the card hangs below its anchor (top edge fixed).
+    var isPlacedBelow: Bool { placedBelow }
 
     /// Debug: the card itself on screen (AppKit coordinates).
     var cardScreenRect: NSRect? {
