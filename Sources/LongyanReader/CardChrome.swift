@@ -710,6 +710,63 @@ struct ChoiceMark: View {
     }
 }
 
+/// One meaning in a word's list: its number (meanings are different senses, not synonyms;
+/// numbered from the whole list, so a short list shows where some were left out), the part of
+/// speech when the definition makes it clear, and the definition. Always one row: a word with
+/// several readings lists its meanings under a `ReadingHeader` for each.
+struct SenseLine: View {
+    let number: Int
+    let total: Int
+    let gloss: String
+    let partOfSpeech: PartOfSpeech?
+    let size: CGFloat
+    let chosen: Bool
+    let dimmed: Bool
+    @Environment(\.cardScale) private var scale
+
+    var body: some View {
+        let column = (total >= 10 ? 15 : 9) * scale
+        let gap = 6 * scale
+        HStack(alignment: .firstTextBaseline, spacing: gap) {
+            Text("\(number)")
+                .cardFont(size - 1, .medium, monospacedDigit: true)
+                .foregroundStyle(.tertiary)
+                .frame(width: column, alignment: .trailing)
+            definition
+                .cardFont(size, chosen ? .semibold : .regular)
+                .foregroundStyle(dimmed ? .secondary : .primary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var definition: Text {
+        guard let partOfSpeech else { return Text(gloss) }
+        return Text(partOfSpeech.label).italic().fontWeight(.regular).foregroundColor(.secondary)
+            + Text(" ") + Text(gloss)
+    }
+
+    /// Whether the meaning at `position` in a shown list starts a new reading (好 hǎo, then hào).
+    static func startsReading(_ shown: [(offset: Int, element: Sense)], at position: Int) -> Bool {
+        position == 0 || shown[position - 1].element.pinyin != shown[position].element.pinyin
+    }
+}
+
+/// A reading over the meanings that have it, as dictionaries print it: once, not on every row.
+struct ReadingHeader: View {
+    let pinyin: String
+    let first: Bool
+    @Environment(\.cardScale) private var scale
+    var body: some View {
+        Text(Pinyin.marked(pinyin))
+            .cardFont(TextSize.subheadline, .semibold)
+            .foregroundStyle(.secondary)
+            .padding(.top, (first ? 0 : Space.s) * scale)
+            .padding(.bottom, 1 * scale)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+}
+
 /// The room a card's first line keeps at its trailing end for Copy and Pin, which the card
 /// draws there (fixed, so they stay put when the card scrolls). `centerAboveBaseline` puts
 /// the buttons' centre on the line's visual middle: about half the cap height of its text.

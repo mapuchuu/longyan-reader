@@ -259,22 +259,22 @@ struct LookupView: View {
             CardDivider()
             SectionLabel(text: "Meanings")
             VStack(alignment: .leading, spacing: 0) {
-                ForEach(shown, id: \.offset) { i, sense in
+                let headed = showReading && (listed == nil || state.showAllSenses)
+                ForEach(Array(shown.enumerated()), id: \.element.offset) { position, item in
+                    let (i, sense) = item
                     let chosen = state.chosenIndex == i
                     let hasNote = NotesStore.hasExactNote(state.context.word, sense)
+                    if headed && SenseLine.startsReading(shown, at: position) {
+                        ReadingHeader(pinyin: sense.pinyin, first: position == 0)
+                    }
                     Button { withAnimation(cardMotion) { state.pick(i) } } label: {
-                        HStack(alignment: .firstTextBaseline, spacing: Space.s * scale) {
-                            VStack(alignment: .leading, spacing: 1) {
-                                if showReading && (listed == nil || state.showAllSenses) {
-                                    Text(Pinyin.marked(sense.pinyin)).cardFont(TextSize.subheadline).foregroundStyle(.secondary)
-                                }
-                                Text(listed?.contains(sense) == true ? Gloss.short(sense.gloss) : Gloss.listed(sense.gloss))
-                                    .cardFont(TextSize.body, chosen ? .semibold : .regular)
-                                    .foregroundStyle(chosen || state.choice == nil ? .primary : .secondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                    .help(Gloss.readable(sense.gloss))
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                        HStack(alignment: .center, spacing: Space.s * scale) {
+                            SenseLine(number: i + 1, total: state.senses.count,
+                                      gloss: listed?.contains(sense) == true ? Gloss.short(sense.gloss) : Gloss.listed(sense.gloss),
+                                      partOfSpeech: PartOfSpeech.of(sense.gloss),
+                                      size: TextSize.body, chosen: chosen, dimmed: !(chosen || state.choice == nil))
+                                .help(Gloss.readable(sense.gloss))
+                                .frame(maxWidth: .infinity, alignment: .leading)
                             if hasNote { NoteMark() }
                             ChoiceMark(chosen: chosen)
                         }

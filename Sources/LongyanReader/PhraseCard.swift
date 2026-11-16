@@ -536,21 +536,20 @@ struct PhraseView: View {
             let shown = all ? Array(senses.enumerated()) : collapsed
             let showReading = Set(shown.map(\.element.pinyin)).count > 1
             VStack(alignment: .leading, spacing: 0) {
-                ForEach(shown, id: \.offset) { i, sense in
+                ForEach(Array(shown.enumerated()), id: \.element.offset) { position, item in
+                    let (i, sense) = item
                     let chosen = state.grammar(token) == nil && state.shownSense(token) == i
+                    if showReading && SenseLine.startsReading(shown, at: position) {
+                        ReadingHeader(pinyin: sense.pinyin, first: position == 0)
+                    }
                     Button { withAnimation(cardMotion) { state.pick(token, sense: i) } } label: {
-                        HStack(alignment: .firstTextBaseline, spacing: Space.s * scale) {
-                            VStack(alignment: .leading, spacing: 1) {
-                                if showReading {
-                                    Text(Pinyin.marked(sense.pinyin)).cardFont(TextSize.subheadline).foregroundStyle(.secondary)
-                                }
-                                Text(listed?.contains(sense) == true ? Gloss.short(sense.gloss) : Gloss.listed(sense.gloss))
-                                    .cardFont(TextSize.callout, chosen ? .semibold : .regular)
-                                    .foregroundStyle(chosen ? .primary : .secondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                    .help(Gloss.readable(sense.gloss))
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                        HStack(alignment: .center, spacing: Space.s * scale) {
+                            SenseLine(number: i + 1, total: senses.count,
+                                      gloss: listed?.contains(sense) == true ? Gloss.short(sense.gloss) : Gloss.listed(sense.gloss),
+                                      partOfSpeech: PartOfSpeech.of(sense.gloss),
+                                      size: TextSize.callout, chosen: chosen, dimmed: !chosen)
+                                .help(Gloss.readable(sense.gloss))
+                                .frame(maxWidth: .infinity, alignment: .leading)
                             ChoiceMark(chosen: chosen)
                         }
                     }

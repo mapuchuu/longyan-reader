@@ -91,9 +91,15 @@ struct NuanceView: View {
     var body: some View {
         let lost = note.tag == "lost_in_translation"
         VStack(alignment: .leading, spacing: Space.xs * scale) {
-            Text(lost ? "Lost in translation" : "Cultural context")
-                .cardFont(TextSize.subheadline, .semibold)
-                .foregroundStyle(.secondary)
+            // A small coloured symbol tells the two kinds apart; the block itself stays plain.
+            HStack(spacing: 4 * scale) {
+                Image(systemName: lost ? "translate" : "globe.asia.australia.fill")
+                    .cardFont(TextSize.subheadline, .semibold)
+                    .foregroundStyle(lost ? Color.orange : Color.teal)
+                Text(lost ? "Lost in translation" : "Cultural context")
+                    .cardFont(TextSize.subheadline, .semibold)
+                    .foregroundStyle(.secondary)
+            }
             Text(note.note)
                 .cardFont(TextSize.body)
                 .lineSpacing(2 * scale)
