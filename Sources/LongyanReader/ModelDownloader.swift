@@ -33,8 +33,23 @@ final class ModelDownloader: NSObject, URLSessionDataDelegate {
     func start() {
         guard !isRunning else { return }
         try? FileManager.default.createDirectory(at: EmbeddedModel.modelsDirectory, withIntermediateDirectories: true)
+        if let problem = spaceProblem() { state = .failed(problem); return }
         hostIndex = 0
         request()
+    }
+
+    /// Why the disk can't take the rest of the download, or nil. Asks for what's left to fetch
+    /// plus 1 GB, so the download doesn't leave the disk full (checking reads the file in
+    /// place, and finishing is a rename, so neither needs more).
+    func spaceProblem() -> String? {
+        let dir = EmbeddedModel.modelsDirectory
+        let have = (try? FileManager.default.attributesOfItem(atPath: partial.path)[.size] as? Int64) ?? 0
+        let need = max(0, Self.size - have) + 1_000_000_000
+        let probe = FileManager.default.fileExists(atPath: dir.path) ? dir : FileManager.default.homeDirectoryForCurrentUser
+        guard let free = try? probe.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
+            .volumeAvailableCapacityForImportantUsage, free < need else { return nil }
+        let gb = { (b: Int64) in String(format: "%.1f GB", Double(b) / 1e9) }
+        return "needs \(gb(need)) free and the disk has \(gb(free))"
     }
 
     func cancel() {
@@ -74,7 +89,13 @@ final class ModelDownloader: NSObject, URLSessionDataDelegate {
 
     nonisolated func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
         MainActor.assumeIsolated {
-            handle?.write(data)
+            // The throwing write: the old one raises an exception (a crash) on a full disk.
+            do { try handle?.write(contentsOf: data) } catch {
+                session.invalidateAndCancel(); self.session = nil
+                try? handle?.close(); handle = nil
+                state = .failed(spaceProblem() ?? error.localizedDescription)   // the .part file stays for a retry
+                return
+            }
             received += Int64(data.count)
             let p = Double(received) / Double(Self.size)
             if p - lastShown >= 0.005 { lastShown = p; state = .downloading(p) }

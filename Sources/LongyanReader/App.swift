@@ -234,6 +234,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(withTitle: "Open Accessibility Settings…", action: #selector(openAccessibility), keyEquivalent: "").target = self
         menu.addItem(withTitle: "Refresh Status", action: #selector(refresh), keyEquivalent: "").target = self
         menu.addItem(.separator())
+        menu.addItem(withTitle: "Report an Issue…", action: #selector(reportIssue), keyEquivalent: "").target = self
         menu.addItem(withTitle: "About Longyan Reader", action: #selector(showAbout), keyEquivalent: "").target = self
         menu.addItem(withTitle: "Quit Longyan Reader", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         statusItem.menu = menu
@@ -274,7 +275,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if AXIsProcessTrusted() { Onboarding.openAccessibilitySettings() } else { Onboarding.shared.show() }
     }
     @objc private func showAbout() { About.show() }
+    /// A new GitHub issue with the app, macOS and model versions filled in (nothing else: no
+    /// lookups, no file paths), opened in the browser for the reader to write and send.
+    @objc private func reportIssue() {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
+        let os = ProcessInfo.processInfo.operatingSystemVersion
+        var chip = [CChar](repeating: 0, count: 128), size = chip.count
+        sysctlbyname("machdep.cpu.brand_string", &chip, &size, nil, 0)
+        let model = LocalModel.enabled ? (LocalModel.backend == .embedded ? "Qwen 3.5 4B (built in)" : "Ollama") : "Apple"
+        let body = """
+        **What happened**
+
+
+        **What you expected**
+
+
+        **Steps or text to reproduce** (a sentence and the word you looked up help most)
+
+
+        ---
+        Longyan Reader \(version), macOS \(os.majorVersion).\(os.minorVersion).\(os.patchVersion), \(String(cString: chip)), \(Int((Double(ProcessInfo.processInfo.physicalMemory) / 1_073_741_824).rounded())) GB, sense picker: \(model)
+        """
+        var url = URLComponents(string: "https://github.com/mapuchuu/longyan-reader/issues/new")!
+        url.queryItems = [URLQueryItem(name: "body", value: body)]
+        if let u = url.url { NSWorkspace.shared.open(u) }
+    }
     @objc private func downloadModel() {
+        if let problem = ModelDownloader.shared.spaceProblem() {
+            let alert = NSAlert()
+            alert.messageText = "Not enough disk space for the model"
+            alert.informativeText = "The download \(problem). Free up some space, then choose Download Qwen Model again."
+            NSApp.activate()
+            alert.runModal()
+            return
+        }
         if case .failed = ModelDownloader.shared.state {} else {
             let alert = NSAlert()
             alert.messageText = "Download the local model?"

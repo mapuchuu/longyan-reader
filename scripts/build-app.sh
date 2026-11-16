@@ -14,7 +14,7 @@ swift build -c release "${flags[@]+"${flags[@]}"}"
 .build/release/LongyanReader --check-data
 app="build/Longyan Reader.app"
 rm -rf "$app"
-mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
+mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources/Licenses"
 cp .build/release/LongyanReader "$app/Contents/MacOS/LongyanReader"
 # llama.cpp (the local model runs in-process). ditto keeps the framework's symlinks and,
 # with --arch, keeps only the slice the app is built for (the binary is this Mac's arch).
@@ -30,7 +30,9 @@ codesign --force --sign - "$app/Contents/Frameworks/llama.framework"
   echo "#"
   echo "# Longyan Reader ships this dictionary modified: compiled into cedict.bin, with the"
   echo "# additions in extra-words.u8. Source: https://github.com/mapuchuu/longyan-reader"
-} > "$app/Contents/Resources/CC-CEDICT-LICENSE.txt"
+} > "$app/Contents/Resources/Licenses/CC-CEDICT.txt"
+cp LICENSE "$app/Contents/Resources/Licenses/Longyan-Reader.txt"
+cp Resources/licenses/llama.cpp-LICENSE.txt "$app/Contents/Resources/Licenses/llama.cpp.txt"
 cp Resources/longyan-mark.png Resources/notes.json Resources/examples.json Resources/note-cues.json Resources/sense-order.tsv "$app/Contents/Resources/"
 cat > "$app/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>

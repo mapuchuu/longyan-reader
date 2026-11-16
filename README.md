@@ -109,7 +109,7 @@ The model sees each noted sense with its note's first sentence, and a few fixed 
 
 ## Licences
 
-The code is under the [MIT License](LICENSE). Data derived from CC-CEDICT (`Resources/cedict_ts.u8`, `Resources/sense-order.tsv`, `Resources/extra-words.u8`, and the app's compiled `cedict.bin`, shipped with the dictionary's license header as `CC-CEDICT-LICENSE.txt`) stays under CC BY-SA 4.0, as CC-CEDICT requires.
+The code is under the [MIT License](LICENSE). Data derived from CC-CEDICT (`Resources/cedict_ts.u8`, `Resources/sense-order.tsv`, `Resources/extra-words.u8`, and the app's compiled `cedict.bin`, shipped with the dictionary's license header in the app's `Contents/Resources/Licenses/`) stays under CC BY-SA 4.0, as CC-CEDICT requires. llama.cpp is MIT (`Resources/licenses/llama.cpp-LICENSE.txt`, shipped beside it), and the Qwen model, downloaded separately from Hugging Face, is Apache 2.0.
 
 About Longyan Reader in the menu lists the credits below. Sense picks and translations come from a language model and can be wrong; the nuance notes were written by Claude and checked against the senses they attach to.
 
