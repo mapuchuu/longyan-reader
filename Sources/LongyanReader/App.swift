@@ -66,6 +66,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             for key in defaults.dictionaryRepresentation().keys where key.hasPrefix("card.") { defaults.removeObject(forKey: key) }
             defaults.set(2, forKey: "cardSizeVersion")
         }
+        Updates.start()
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let mark = Icons.mark(size: 18) { statusItem.button?.image = mark } else { statusItem.button?.title = "龙" }
         rebuildMenu()
@@ -324,6 +325,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(withTitle: "Open Accessibility Settings…", action: #selector(openAccessibility), keyEquivalent: "").target = self
         menu.addItem(withTitle: "Refresh Status", action: #selector(refresh), keyEquivalent: "").target = self
         menu.addItem(.separator())
+        if Updates.available {
+            menu.addItem(withTitle: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "").target = self
+        }
         menu.addItem(withTitle: "Report an Issue…", action: #selector(reportIssue), keyEquivalent: "").target = self
         menu.addItem(withTitle: "About Longyan Reader", action: #selector(showAbout), keyEquivalent: "").target = self
         menu.addItem(withTitle: "Quit Longyan Reader", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
@@ -385,6 +389,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if AXIsProcessTrusted() { Onboarding.openAccessibilitySettings() } else { Onboarding.shared.show() }
     }
     @objc private func showAbout() { About.show() }
+    @objc private func checkForUpdates() { Updates.checkNow() }
     /// A new GitHub issue with the app, macOS and model versions filled in (nothing else: no
     /// lookups, no file paths), opened in the browser for the reader to write and send.
     @objc private func reportIssue() {

@@ -40,11 +40,15 @@ The app is free and open source, so it isn't signed with a paid Apple Developer 
 1. Open it once. macOS says it can't verify the developer; click **Done**.
 2. Go to System Settings → Privacy & Security, scroll down, and click **Open Anyway** next to Longyan Reader. Confirm with your password.
 
-A welcome window then asks for **Accessibility** (System Settings → Privacy & Security → Accessibility), which is how it reads the text you highlight. It notices as soon as you turn it on. No other permissions are used. Each new version is a new binary, so after updating, turn Accessibility off and on again for it.
+A welcome window then asks for **Accessibility** (System Settings → Privacy & Security → Accessibility), which is how it reads the text you highlight. It notices as soon as you turn it on. No other permissions are used.
+
+**Updates.** On its second launch the app asks whether to check for updates automatically; **Check for Updates…** in the menu checks any time. Updates are downloaded from this repository's GitHub releases, verified against the key built into the app, and installed in place. Every release is signed with the same certificate, so Accessibility stays allowed after updating.
+
+**Uninstall.** Quit it, then move these to the Trash: **Longyan Reader** from Applications, `~/Library/Application Support/LongyanReader` (the downloaded model, 2.7 GB) and `~/Library/Logs/LongyanReader` (lookup history), and remove it from the Accessibility list.
 
 ## Privacy
 
-Lookups are processed on your Mac: the dictionary is bundled and the model runs locally. Lookup history is **on** by default: **History…** (⌘Y in the menu) lists every word with the meaning it had in its sentence and every phrase with its translation, searchable, and exports them as Anki flashcards (a text file Anki's File › Import reads straight into a "Longyan Reader" deck) or a CSV spreadsheet, one row per word and meaning. Lookup History in the menu turns it off, keeps 30 days, shows the file, or moves it to the Trash. Nothing in it leaves your Mac unless you export it. It's saved to `~/Library/Logs/LongyanReader/lookups.jsonl`, readable only by your account.
+Lookups are processed on your Mac: the dictionary is bundled and the model runs locally. Lookup history is **on** by default: **History…** (⌘Y in the menu) lists every word with the meaning it had in its sentence and every phrase with its translation, searchable, and exports them as Anki flashcards (a text file Anki's File › Import reads straight into a "Longyan Reader" deck) or a CSV spreadsheet, one row per word and meaning. Lookup History in the menu turns it off, keeps 30 days, shows the file, or moves it to the Trash. Nothing in it leaves your Mac unless you export it. The app goes online only to download the model when you ask for it and to check for updates (automatically only if you agreed, otherwise when you choose Check for Updates); an update check sends nothing beyond the request for the feed file. It's saved to `~/Library/Logs/LongyanReader/lookups.jsonl`, readable only by your account.
 
 ## Build and run
 
@@ -107,9 +111,15 @@ New notes come in batches: most looked-up words first, then by frequency (`notes
 
 The model sees each noted sense with its note's first sentence, and a few fixed casual patterns it never reads correctly (这不科学, 你可以啊) are settled without it by `Resources/note-cues.json`. `notes/note-pick-eval.tsv` tests this with pairs: a casual use that should land on the noted sense, and a plain use that must not.
 
+## Releases
+
+`scripts/release.sh notes.md` builds the release, signs it and writes `build/release-<version>/` with the zip and `appcast.xml`; it prints the `gh release create` command that publishes both. Installed copies read the feed from the latest release, so publishing is what ships the update. Bump `version` in `scripts/build-app.sh` first; the build number is the commit count, so commit before releasing.
+
+Two keys make releases, both kept outside the repo in `~/Library/Application Support/LongyanReader-signing/`, and both need a backup: the self-signed code-signing certificate (`longyan-codesign.p12`, password in the login keychain under `longyan-signing`), which keeps every version the same app to macOS, and Sparkle's update key (in the login keychain; exported as `sparkle-private-key.txt`), without which installed copies reject updates. Sparkle's tools (2.10.1) are in the same folder.
+
 ## Licences
 
-The code is under the [MIT License](LICENSE). Data derived from CC-CEDICT (`Resources/cedict_ts.u8`, `Resources/sense-order.tsv`, `Resources/extra-words.u8`, and the app's compiled `cedict.bin`, shipped with the dictionary's license header in the app's `Contents/Resources/Licenses/`) stays under CC BY-SA 4.0, as CC-CEDICT requires. llama.cpp is MIT (`Resources/licenses/llama.cpp-LICENSE.txt`, shipped beside it), and the Qwen model, downloaded separately from Hugging Face, is Apache 2.0.
+The code is under the [MIT License](LICENSE). Data derived from CC-CEDICT (`Resources/cedict_ts.u8`, `Resources/sense-order.tsv`, `Resources/extra-words.u8`, and the app's compiled `cedict.bin`, shipped with the dictionary's license header in the app's `Contents/Resources/Licenses/`) stays under CC BY-SA 4.0, as CC-CEDICT requires. llama.cpp is MIT (`Resources/licenses/llama.cpp-LICENSE.txt`, shipped beside it), Sparkle is MIT (`Resources/licenses/Sparkle-LICENSE.txt`, likewise), and the Qwen model, downloaded separately from Hugging Face, is Apache 2.0.
 
 About Longyan Reader in the menu lists the credits below. Sense picks and translations come from a language model and can be wrong; the nuance notes were written by Claude and checked against the senses they attach to.
 
