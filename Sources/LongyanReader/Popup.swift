@@ -103,7 +103,7 @@ extension Array {
 
 /// Tone colours, muted so they sit quietly on the card: dusty brick, sage, slate and
 /// violet in light mode, soft pastels in dark mode. Neutral tone uses the secondary label.
-private func tone(light: (CGFloat, CGFloat, CGFloat), dark: (CGFloat, CGFloat, CGFloat)) -> Color {
+func tone(light: (CGFloat, CGFloat, CGFloat), dark: (CGFloat, CGFloat, CGFloat)) -> Color {
     Color(nsColor: NSColor(name: nil) { appearance in
         let c = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? dark : light
         return NSColor(srgbRed: c.0, green: c.1, blue: c.2, alpha: 1)

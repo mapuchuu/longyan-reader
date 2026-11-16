@@ -95,7 +95,7 @@ struct NuanceView: View {
             HStack(spacing: 4 * scale) {
                 Image(systemName: lost ? "translate" : "globe.asia.australia.fill")
                     .cardFont(TextSize.subheadline, .semibold)
-                    .foregroundStyle(lost ? Color.orange : Color.teal)
+                    .foregroundStyle(lost ? NoteColors.lost : NoteColors.culture)
                 Text(lost ? "Lost in translation" : "Cultural context")
                     .cardFont(TextSize.subheadline, .semibold)
                     .foregroundStyle(.secondary)
@@ -110,4 +110,12 @@ struct NuanceView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: 10 * scale, style: .continuous).fill(Color.primary.opacity(0.045)))
     }
+}
+
+/// The note symbols' colours: the muted family of the tone colours rather than the system's
+/// saturated orange and teal. A dusty amber and a sage teal, deeper in light mode and softer
+/// in dark mode, so each reads the same against either card.
+enum NoteColors {
+    static let lost = tone(light: (0.68, 0.50, 0.27), dark: (0.87, 0.73, 0.53))
+    static let culture = tone(light: (0.27, 0.51, 0.50), dark: (0.58, 0.78, 0.76))
 }
