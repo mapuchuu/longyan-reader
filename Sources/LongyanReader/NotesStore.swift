@@ -88,17 +88,22 @@ struct NuanceView: View {
     @Environment(\.cardScale) private var scale
     var body: some View {
         let lost = note.tag == "lost_in_translation"
-        let tint = noteTint(note.tag)
-        VStack(alignment: .leading, spacing: 5) {
-            Label(lost ? "Lost in translation" : "Cultural context",
-                  systemImage: lost ? "text.bubble" : "building.columns")
-                .cardFont(11, .semibold)
-                .foregroundStyle(tint)
-            Text(note.note).cardFont(13).fixedSize(horizontal: false, vertical: true)
-                .lineSpacing(1.5)
+        VStack(alignment: .leading, spacing: Space.xs * scale) {
+            HStack(spacing: 5 * scale) {
+                Image(systemName: lost ? "character.bubble" : "building.columns")
+                    .foregroundStyle(noteTint(note.tag))
+                Text(lost ? "Lost in Translation" : "Cultural Context")
+                    .foregroundStyle(.secondary)
+            }
+            .cardFont(TextSize.subheadline, .semibold)
+            Text(note.note)
+                .cardFont(TextSize.body)
+                .lineSpacing(2 * scale)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(10 * scale)
+        .padding(.horizontal, Space.m * scale)
+        .padding(.vertical, 10 * scale)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 10 * scale, style: .continuous).fill(tint.opacity(0.10)))
+        .background(RoundedRectangle(cornerRadius: 10 * scale, style: .continuous).fill(Color.primary.opacity(0.045)))
     }
 }

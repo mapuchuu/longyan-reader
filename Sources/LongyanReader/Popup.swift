@@ -111,6 +111,10 @@ let toneColors: [Int: Color] = [
     4: tone(light: (0.50, 0.38, 0.64), dark: (0.76, 0.67, 0.88)),
 ]
 func toneColor(_ t: Int) -> Color { toneColors[t] ?? Color.secondary }
+/// A character's colour: its tone's when tone colours are on, else the primary label.
+func hanziColor(_ t: Int) -> Color { ToneColors.enabled ? toneColor(t) : .primary }
+/// A pinyin syllable's colour: its tone's when tone colours are on, else the secondary label.
+func pinyinColor(_ t: Int) -> Color { ToneColors.enabled ? toneColor(t) : .secondary }
 
 /// Note colours in the same muted family: amber for lost in translation, teal for cultural context.
 let lostTint = tone(light: (0.66, 0.44, 0.20), dark: (0.91, 0.74, 0.52))
@@ -121,18 +125,21 @@ struct LookupView: View {
     @ObservedObject var state: LookupState
     @Environment(\.cardScale) private var scale
 
+    private var note: StoredNote? {
+        state.choice.flatMap { NotesStore.note(state.context.word, state.senses[safe: $0.senseNumber - 1]) }
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 14 * scale) {
-            VStack(alignment: .leading, spacing: 6 * scale) {
+        VStack(alignment: .leading, spacing: Space.m * scale) {
+            VStack(alignment: .leading, spacing: Space.xs * scale) {
                 header
                 meaning
                 partOf
                 status
             }
-            if let choice = state.choice,
-               let note = NotesStore.note(state.context.word, state.senses[safe: choice.senseNumber - 1]) {
+            if let note {
                 NuanceView(note: note)
-                    .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .top)))
+                    .transition(.opacity.combined(with: .offset(y: -4 * scale)))
                     .id(note.note)
             }
             senses
@@ -144,35 +151,37 @@ struct LookupView: View {
         .animation(cardMotion, value: state.partOf?.meaning)
     }
 
+    /// The word large, its pinyin beside it on the same baseline.
     private var header: some View {
         let syllables = Pinyin.syllables(state.headerPinyin)
-        return HStack(alignment: .lastTextBaseline, spacing: 10 * scale) {
+        return HStack(alignment: .firstTextBaseline, spacing: Space.s * scale) {
             HStack(spacing: 0) {
                 ForEach(Array(state.context.word.enumerated()), id: \.offset) { i, ch in
-                    Text(String(ch)).foregroundStyle(toneColor(syllables[safe: i]?.tone ?? 5))
+                    Text(String(ch)).foregroundStyle(hanziColor(syllables[safe: i]?.tone ?? 5))
                 }
             }
-            .cardFont(30, .medium)
-            HStack(spacing: 4) {
+            .cardFont(TextSize.headword, .medium)
+            HStack(spacing: 3 * scale) {
                 ForEach(Array(syllables.enumerated()), id: \.offset) { _, s in
-                    Text(s.text).foregroundStyle(toneColor(s.tone))
+                    Text(s.text).foregroundStyle(pinyinColor(s.tone))
                 }
             }
-            .cardFont(15, .medium)
+            .cardFont(TextSize.title3)
             .contentTransition(.opacity)
         }
     }
 
     @ViewBuilder private var meaning: some View {
         if let choice = state.choice {
-            VStack(alignment: .leading, spacing: 2) {
-                if state.isContextual {
-                    Text("In this context").cardFont(11).foregroundStyle(.secondary).transition(.opacity)
-                }
+            VStack(alignment: .leading, spacing: Space.xxs * scale) {
                 Text(choice.meaningHere)
-                    .cardFont(17, .semibold)
+                    .cardFont(TextSize.headline, .semibold)
                     .fixedSize(horizontal: false, vertical: true)
                     .contentTransition(.opacity)
+                if state.isContextual {
+                    Text("Meaning in this sentence").cardFont(TextSize.subheadline).foregroundStyle(.secondary)
+                        .transition(.opacity)
+                }
             }
             .transition(.opacity)
         }
@@ -181,18 +190,19 @@ struct LookupView: View {
     @ViewBuilder private var partOf: some View {
         if let part = state.partOf {
             Button { state.openPartOf() } label: {
-                HStack(alignment: .firstTextBaseline, spacing: 5 * scale) {
-                    Text("In").foregroundStyle(.secondary)
-                    Text(part.word).cardFont(14, .medium)
+                HStack(alignment: .firstTextBaseline, spacing: Space.xs * scale) {
+                    Text("Part of").foregroundStyle(.secondary)
+                    Text(part.word).cardFont(TextSize.body, .medium)
                     Text(Pinyin.marked(part.pinyin)).foregroundStyle(.secondary)
                     if let meaning = part.meaning {
                         Text(meaning).lineLimit(1).transition(.opacity)
                     }
-                    Image(systemName: "chevron.right").cardFont(9, .semibold).foregroundStyle(.tertiary)
+                    Image(systemName: "chevron.forward").cardFont(TextSize.footnote, .semibold).foregroundStyle(.tertiary)
                 }
-                .cardFont(12)
+                .cardFont(TextSize.callout)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(CardRowStyle(bleed: Space.xs, vertical: Space.xxs))
+            .fixedSize()
             .help("Look up \(part.word)")
         }
     }
@@ -200,8 +210,8 @@ struct LookupView: View {
     @ViewBuilder private var status: some View {
         if state.userPicked, let suggested = state.suggested, suggested.senseNumber != state.choice?.senseNumber {
             Button { withAnimation(cardMotion) { state.useSuggested() } } label: {
-                Label("Use suggested meaning: \(suggested.meaningHere)", systemImage: "arrow.uturn.backward")
-                    .cardFont(11)
+                Label("Back to “\(suggested.meaningHere)”", systemImage: "arrow.uturn.backward")
+                    .cardFont(TextSize.callout)
                     .lineLimit(1)
             }
             .buttonStyle(.plain)
@@ -210,17 +220,17 @@ struct LookupView: View {
         }
         switch state.phase {
         case .choosing:
-            HStack(spacing: 6) { ProgressView().controlSize(.mini); Text("Reading the sentence…") }
-                .cardFont(12).foregroundStyle(.secondary)
+            HStack(spacing: Space.s * scale) { ProgressView().controlSize(.mini); Text("Reading the sentence…") }
+                .cardFont(TextSize.callout).foregroundStyle(.secondary)
                 .transition(.opacity)
         case .dictionaryOnly(let why):
-            Text("Dictionary order · \(why)").cardFont(11).foregroundStyle(.secondary)
+            Text("Dictionary order · \(why)").cardFont(TextSize.subheadline).foregroundStyle(.secondary)
         case .failed(let why):
-            Text("Dictionary order · couldn't place this word in the sentence").cardFont(11).foregroundStyle(.secondary)
+            Text("Dictionary order · couldn't place this word in the sentence").cardFont(TextSize.subheadline).foregroundStyle(.secondary)
                 .help(why)
         case .chosen:
             if state.choice?.viaTranslation == true {
-                Text("Matched to the sentence translation").cardFont(11).foregroundStyle(.secondary)
+                Text("Matched to the sentence translation").cardFont(TextSize.subheadline).foregroundStyle(.secondary)
             }
         }
     }
@@ -233,63 +243,62 @@ struct LookupView: View {
         let collapsed = all.filter { listed?.contains($0.element) ?? preview.contains($0.offset) || $0.offset == state.chosenIndex }
         let shown = state.showAllSenses ? all : collapsed
         let showReading = Set(state.senses.map(\.pinyin)).count > 1
-        return VStack(alignment: .leading, spacing: 6 * scale) {
+        return VStack(alignment: .leading, spacing: Space.s * scale) {
+            CardDivider()
             SectionLabel(text: "Meanings")
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: 0) {
                 ForEach(shown, id: \.offset) { i, sense in
                     let chosen = state.chosenIndex == i
-                    let note = NotesStore.hasExactNote(state.context.word, sense)
-                        ? NotesStore.note(state.context.word, sense) : nil
+                    let hasNote = NotesStore.hasExactNote(state.context.word, sense)
                     Button { withAnimation(cardMotion) { state.pick(i) } } label: {
-                        // As on the phrase card's rows: the dot and checkmark are centred on the row.
-                        HStack(alignment: .center, spacing: 8 * scale) {
-                            HStack(alignment: .firstTextBaseline, spacing: 8 * scale) {
-                                Text("\(i + 1)").cardFont(11, monospacedDigit: true).foregroundStyle(.tertiary)
-                                    .frame(width: 14 * scale, alignment: .trailing)
-                                VStack(alignment: .leading, spacing: 1) {
-                                    if showReading && (listed == nil || state.showAllSenses) {
-                                        Text(Pinyin.marked(sense.pinyin)).cardFont(11).foregroundStyle(.secondary)
-                                    }
-                                    Text(listed?.contains(sense) == true ? Gloss.short(sense.gloss) : Gloss.listed(sense.gloss))
-                                        .cardFont(13, chosen ? .semibold : .regular)
-                                        .foregroundStyle(chosen || state.choice == nil ? .primary : .secondary)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                        .help(Gloss.readable(sense.gloss))
+                        HStack(alignment: .firstTextBaseline, spacing: Space.s * scale) {
+                            VStack(alignment: .leading, spacing: 1) {
+                                if showReading && (listed == nil || state.showAllSenses) {
+                                    Text(Pinyin.marked(sense.pinyin)).cardFont(TextSize.subheadline).foregroundStyle(.secondary)
                                 }
+                                Text(listed?.contains(sense) == true ? Gloss.short(sense.gloss) : Gloss.listed(sense.gloss))
+                                    .cardFont(TextSize.body, chosen ? .semibold : .regular)
+                                    .foregroundStyle(chosen || state.choice == nil ? .primary : .secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    .help(Gloss.readable(sense.gloss))
                             }
-                            Spacer(minLength: 4)
-                            if let note {
-                                Circle().fill(noteTint(note.tag))
-                                    .frame(width: 6 * scale, height: 6 * scale)
-                            }
-                            if chosen {
-                                Image(systemName: "checkmark").cardFont(11, .semibold)
-                                    .foregroundStyle(Color.accentColor)
-                                    .transition(.scale.combined(with: .opacity))
-                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            if hasNote { NoteMark() }
+                            ChoiceMark(chosen: chosen)
                         }
                     }
-                    .buttonStyle(CardRowStyle(selected: chosen))
-                    .help("Use this meaning")
+                    .buttonStyle(CardRowStyle())
+                    .help(hasNote ? "Use this meaning · has a note" : "Use this meaning")
                 }
                 if state.senses.count > collapsed.count {
                     Button {
                         withAnimation(cardMotion) { state.showAllSenses.toggle() }
                         state.onLayoutChange()
                     } label: {
-                        Text(state.showAllSenses ? "Show less" : "Show \(state.senses.count - collapsed.count) more")
-                            .cardFont(12).foregroundStyle(Color.accentColor)
+                        HStack(spacing: Space.xs * scale) {
+                            Text(state.showAllSenses ? "Show Fewer" : "Show All \(state.senses.count)")
+                            Image(systemName: "chevron.down").cardFont(TextSize.footnote, .semibold)
+                                .rotationEffect(.degrees(state.showAllSenses ? 180 : 0))
+                        }
+                        .cardFont(TextSize.callout, .medium).foregroundStyle(Color.accentColor)
                     }
                     .buttonStyle(CardRowStyle())
                 }
             }
-            .padding(3 * scale)
-            .background(RoundedRectangle(cornerRadius: 10 * scale, style: .continuous).fill(Color.primary.opacity(0.04)))
             if !state.context.alternatives.isEmpty {
                 Text("Also here: " + state.context.alternatives.joined(separator: " · "))
-                    .cardFont(11).foregroundStyle(.tertiary)
+                    .cardFont(TextSize.subheadline).foregroundStyle(.tertiary)
             }
         }
+    }
+}
+
+/// Marks a meaning that has a prewritten note: a small speech-bubble symbol, quiet until read.
+struct NoteMark: View {
+    var body: some View {
+        Image(systemName: "text.bubble")
+            .cardFont(TextSize.subheadline)
+            .foregroundStyle(.tertiary)
     }
 }
 

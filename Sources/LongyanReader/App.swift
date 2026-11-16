@@ -111,6 +111,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if arg == "onboarding" { Onboarding.shared.show(); return }
             if arg == "about" { About.show(); return }
             if arg == "history" { self.showHistory(); return }
+            if arg.hasPrefix("show:") {
+                // Debug: open a card mid-screen and leave it open. show:<passage>|<from>|<to>
+                let f = arg.dropFirst(5).split(separator: "|").map(String.init)
+                guard f.count == 3, let lo = Int(f[1]), let hi = Int(f[2]) else { return }
+                let screen = NSScreen.main?.visibleFrame ?? .zero
+                let anchor = NSRect(x: screen.midX - 200, y: screen.midY + 260, width: 60, height: 20)
+                self.show(Selection(passage: Array(f[0]), range: lo..<hi, bounds: nil, source: .accessibility, appName: "Demo"), near: anchor)
+                return
+            }
+            if arg.hasPrefix("expand:") {
+                // Debug: open (or close) a phrase card's row. expand:<word>
+                let word = String(arg.dropFirst(7))
+                if let state = self.lastPhraseState, let token = state.tokens.first(where: { $0.text == word }) {
+                    withAnimation(cardMotion) { state.toggle(token) }
+                }
+                return
+            }
+            if arg.hasPrefix("pick:") {
+                // Debug: pick a word card's meaning by index. pick:<n>
+                if let n = Int(arg.dropFirst(5)), let state = self.lastLookupState { withAnimation(cardMotion) { state.pick(n) } }
+                return
+            }
             if arg == "demo" {
                 // Debug: open a word card mid-screen, log its sizing, then drag the corner.
                 Task { @MainActor in
@@ -213,6 +235,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             item.representedObject = id
             item.state = CardStyle.current.rawValue == id ? .on : .off
         }
+        appearanceMenu.addItem(.separator())
+        let tones = appearanceMenu.addItem(withTitle: "Tone Colors", action: #selector(toggleToneColors), keyEquivalent: "")
+        tones.target = self
+        tones.state = ToneColors.enabled ? .on : .off
         let appearanceItem = menu.addItem(withTitle: "Appearance", action: nil, keyEquivalent: "")
         menu.setSubmenu(appearanceMenu, for: appearanceItem)
         menu.addItem(withTitle: "History…", action: #selector(showHistory), keyEquivalent: "y").target = self
@@ -255,6 +281,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func selectStyle(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? String else { return }
         UserDefaults.standard.set(id, forKey: "cardStyle")
+        popup.refreshStyle()
+        rebuildMenu()
+    }
+
+    @objc private func toggleToneColors() {
+        UserDefaults.standard.set(!ToneColors.enabled, forKey: "toneColors")
         popup.refreshStyle()
         rebuildMenu()
     }

@@ -328,6 +328,13 @@ final class PhraseState: ObservableObject {
         return NotesStore.note(token.text, shownSense(token).flatMap { list[safe: $0] })
     }
 
+    /// Whether opening the row shows anything the row doesn't: other meanings, a note, the
+    /// model's own wording, or why it's a guess. A word with one meaning and nothing else doesn't open.
+    func canOpen(_ token: PhraseToken) -> Bool {
+        (senses[token.id]?.count ?? 0) > 1 || note(token) != nil || meaningHere(token) != nil
+            || failures[token.id] != nil || pending(token)
+    }
+
     func toggle(_ token: PhraseToken) {
         expanded = expanded == token.id ? nil : token.id
         defer { onLayoutChange() }
@@ -363,14 +370,24 @@ func headlineGloss(_ sense: Sense) -> String { Gloss.short(sense.gloss) }
 let particleWords: Set<String> = ["的", "了", "和", "是", "在", "也", "都", "就", "与", "或", "但", "而", "对", "于",
                                   "把", "被", "让", "给", "从", "到", "着", "过", "吗", "呢", "吧", "啊", "嗯", "呀", "地", "得"]
 
+/// The widest word column among a phrase card's rows, so every row's meaning starts at the same x.
+private struct WordColumnKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
+}
+
 struct PhraseView: View {
     @ObservedObject var state: PhraseState
     @Environment(\.cardScale) private var scale
+    @State private var column: CGFloat = 0
     private let maxRows = 24
 
+    /// Gap between the word column and the meaning column.
+    private var gutter: CGFloat { Space.m * scale }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 14 * scale) {
-            VStack(alignment: .leading, spacing: 6 * scale) {
+        VStack(alignment: .leading, spacing: Space.m * scale) {
+            VStack(alignment: .leading, spacing: Space.xs * scale) {
                 translation
                 Text(state.selection.text)
                     .cardFont(14)
@@ -378,17 +395,17 @@ struct PhraseView: View {
                     .lineLimit(4)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            VStack(alignment: .leading, spacing: 6 * scale) {
+            VStack(alignment: .leading, spacing: Space.s * scale) {
+                CardDivider()
                 SectionLabel(text: "Words")
-                VStack(alignment: .leading, spacing: 1) {
+                VStack(alignment: .leading, spacing: 0) {
                     ForEach(state.tokens.prefix(maxRows)) { token in row(token) }
                     if state.tokens.count > maxRows {
-                        Text("+\(state.tokens.count - maxRows) more words")
-                            .cardFont(11).foregroundStyle(.tertiary).padding(.horizontal, 8).padding(.vertical, 4)
+                        Text("\(state.tokens.count - maxRows) more words not shown")
+                            .cardFont(TextSize.subheadline).foregroundStyle(.tertiary).padding(.vertical, Space.xs * scale)
                     }
                 }
-                .padding(3 * scale)
-                .background(RoundedRectangle(cornerRadius: 10 * scale, style: .continuous).fill(Color.primary.opacity(0.04)))
+                .onPreferenceChange(WordColumnKey.self) { w in MainActor.assumeIsolated { column = w } }
             }
         }
         .animation(cardMotion, value: state.expanded)
@@ -400,14 +417,15 @@ struct PhraseView: View {
 
     @ViewBuilder private var translation: some View {
         if let t = state.translation {
-            Text(t).cardFont(17, .semibold)
+            Text(t).cardFont(TextSize.translation)
+                .lineSpacing(2 * scale)
                 .fixedSize(horizontal: false, vertical: true)
                 .transition(.opacity)
         } else if let e = state.translationError {
-            Text("No translation · \(e)").cardFont(11).foregroundStyle(.secondary)
+            Text("No translation · \(e)").cardFont(TextSize.subheadline).foregroundStyle(.secondary)
         } else {
-            HStack(spacing: 6) { ProgressView().controlSize(.mini); Text("Translating…") }
-                .cardFont(12).foregroundStyle(.secondary)
+            HStack(spacing: Space.s * scale) { ProgressView().controlSize(.mini); Text("Translating…") }
+                .cardFont(TextSize.callout).foregroundStyle(.secondary)
                 .transition(.opacity)
         }
     }
@@ -418,82 +436,87 @@ struct PhraseView: View {
         let isOpen = state.expanded == token.id
         let dim = particleWords.contains(token.text)
         let pending = state.pending(token)
+        let opens = state.canOpen(token)
         return VStack(alignment: .leading, spacing: 0) {
             Button { withAnimation(cardMotion) { state.toggle(token) } } label: {
-                // The text shares a baseline; the dot and arrow are centred on the row, since
-                // on the baseline they sat low against the larger characters.
-                HStack(alignment: .center, spacing: 10 * scale) {
-                    HStack(alignment: .firstTextBaseline, spacing: 10 * scale) {
+                HStack(alignment: .firstTextBaseline, spacing: gutter) {
+                    // The word with its pinyin under it, in a column as wide as the widest row's.
+                    VStack(alignment: .leading, spacing: 1 * scale) {
                         HStack(spacing: 0) {
                             ForEach(Array(token.text.enumerated()), id: \.offset) { i, ch in
-                                Text(String(ch)).foregroundStyle(pending ? Color.secondary : toneColor(syllables[safe: i]?.tone ?? 5))
+                                Text(String(ch)).foregroundStyle(pending ? Color.secondary : hanziColor(syllables[safe: i]?.tone ?? 5))
                             }
                         }
-                        .cardFont(17, .medium)
-                        .frame(minWidth: 46 * scale, alignment: .leading)
-                        Text(syllables.map(\.text).joined(separator: " "))
-                            .cardFont(11).foregroundStyle(.secondary)
-                            .frame(minWidth: 70 * scale, alignment: .leading)
-                            .redacted(reason: pending ? .placeholder : [])
-                        Text(state.gloss(token))
-                            .cardFont(13)
-                            .foregroundStyle(dim || state.isGuess(token) ? .secondary : .primary)
-                            .lineLimit(2)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .redacted(reason: pending ? .placeholder : [])
-                            .opacity(pending ? 0.6 : 1)
-                            .contentTransition(.opacity)
+                        .cardFont(TextSize.rowWord - 1, .medium)
+                        HStack(spacing: 2 * scale) {
+                            ForEach(Array(syllables.enumerated()), id: \.offset) { _, s in
+                                Text(s.text).foregroundStyle(pinyinColor(s.tone))
+                            }
+                        }
+                        .cardFont(TextSize.footnote + 0.5)
+                        .redacted(reason: pending ? .placeholder : [])
                     }
-                    Spacer(minLength: 4)
-                    if !pending, let note = state.note(token) {
-                        Circle().fill(noteTint(note.tag))
-                            .frame(width: 6 * scale, height: 6 * scale)
-                    }
-                    Image(systemName: "chevron.right")
-                        .cardFont(10, .semibold)
+                    .fixedSize()
+                    .background(GeometryReader { g in Color.clear.preference(key: WordColumnKey.self, value: g.size.width) })
+                    .frame(width: column > 0 ? column : nil, alignment: .leading)
+                    Text(state.gloss(token))
+                        .cardFont(TextSize.body)
+                        .foregroundStyle(dim || state.isGuess(token) ? .secondary : .primary)
+                        .lineLimit(isOpen ? nil : 2)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .redacted(reason: pending ? .placeholder : [])
+                        .opacity(pending ? 0.6 : 1)
+                        .contentTransition(.opacity)
+                    if !pending, state.note(token) != nil { NoteMark() }
+                    // Rows with nothing more to show (one meaning, no note) don't open.
+                    Image(systemName: "chevron.forward")
+                        .cardFont(TextSize.footnote, .semibold)
                         .foregroundStyle(.tertiary)
                         .rotationEffect(.degrees(isOpen ? 90 : 0))
+                        .opacity(opens ? 1 : 0)
                 }
             }
-            .buttonStyle(CardRowStyle(selected: isOpen))
+            .buttonStyle(CardRowStyle(vertical: Space.xs + 1))
+            .disabled(!opens && !isOpen)
             if isOpen {
                 detail(token, senses: senses)
-                    .transition(.opacity)
+                    .transition(.opacity.combined(with: .offset(y: -6 * scale)))
             }
         }
-        .clipped()
     }
 
+    /// An open row: what the model read, any note, and the meanings to choose from, all
+    /// lined up under the meaning column (the checkmarks sit in the gap before it).
     @ViewBuilder private func detail(_ token: PhraseToken, senses: [Sense]) -> some View {
-        VStack(alignment: .leading, spacing: 7) {
-            if state.pending(token) {
-                HStack(spacing: 6) { ProgressView().controlSize(.mini); Text("Reading the sentence…") }
-                    .cardFont(12).foregroundStyle(.secondary)
-            } else if state.choosing.contains(token.id) {
-                HStack(spacing: 6) { ProgressView().controlSize(.mini); Text("Reading the sentence…") }
-                    .cardFont(12).foregroundStyle(.secondary)
-            } else if let f = state.failures[token.id] {
-                Text(f).cardFont(11).foregroundStyle(.secondary)
-            } else if state.choices[token.id]?.viaTranslation == true {
-                Text("Matched to the sentence translation").cardFont(11).foregroundStyle(.secondary)
-            } else if let here = state.meaningHere(token) {
-                (Text("In this context: ").foregroundColor(.secondary) + Text(here).fontWeight(.medium))
-                    .cardFont(12)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .transition(.opacity)
-            }
-            if state.canUseSuggested(token), let meaning = state.suggestedMeaning(token) {
-                Button { withAnimation(cardMotion) { state.useSuggested(token) } } label: {
-                    Label("Use suggested meaning: \(meaning)", systemImage: "arrow.uturn.backward")
-                        .cardFont(11)
-                        .lineLimit(1)
+        VStack(alignment: .leading, spacing: Space.s * scale) {
+            Group {
+                if state.pending(token) || state.choosing.contains(token.id) {
+                    HStack(spacing: Space.s * scale) { ProgressView().controlSize(.mini); Text("Reading the sentence…") }
+                        .cardFont(TextSize.callout).foregroundStyle(.secondary)
+                } else if let f = state.failures[token.id] {
+                    Text(f).cardFont(TextSize.subheadline).foregroundStyle(.secondary)
+                } else if state.choices[token.id]?.viaTranslation == true {
+                    Text("Matched to the sentence translation").cardFont(TextSize.subheadline).foregroundStyle(.secondary)
+                } else if let here = state.meaningHere(token) {
+                    (Text("In this sentence: ").foregroundColor(.secondary) + Text(here).fontWeight(.medium))
+                        .cardFont(TextSize.callout)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .transition(.opacity)
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(Color.accentColor)
-                .transition(.opacity)
-            }
-            if let note = state.note(token) {
-                NuanceView(note: note).transition(.opacity)
+                if state.canUseSuggested(token), let meaning = state.suggestedMeaning(token) {
+                    Button { withAnimation(cardMotion) { state.useSuggested(token) } } label: {
+                        Label("Back to “\(meaning)”", systemImage: "arrow.uturn.backward")
+                            .cardFont(TextSize.callout)
+                            .lineLimit(1)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.accentColor)
+                    .transition(.opacity)
+                }
+                if let note = state.note(token) {
+                    NuanceView(note: note).transition(.opacity)
+                }
             }
             let listed = state.grammarEntry(token)?.listed(senses)
             let all = state.showingAll.contains(token.id)
@@ -505,20 +528,22 @@ struct PhraseView: View {
                 ForEach(shown, id: \.offset) { i, sense in
                     let chosen = state.grammar(token) == nil && state.shownSense(token) == i
                     Button { withAnimation(cardMotion) { state.pick(token, sense: i) } } label: {
-                        HStack(alignment: .firstTextBaseline, spacing: 6) {
-                            Image(systemName: "checkmark").cardFont(9, .bold)
-                                .foregroundStyle(Color.accentColor).opacity(chosen ? 1 : 0)
-                            if showReading {
-                                Text(Pinyin.marked(sense.pinyin)).cardFont(11).foregroundStyle(.tertiary)
+                        HStack(alignment: .firstTextBaseline, spacing: Space.s * scale) {
+                            VStack(alignment: .leading, spacing: 1) {
+                                if showReading {
+                                    Text(Pinyin.marked(sense.pinyin)).cardFont(TextSize.subheadline).foregroundStyle(.secondary)
+                                }
+                                Text(listed?.contains(sense) == true ? Gloss.short(sense.gloss) : Gloss.listed(sense.gloss))
+                                    .cardFont(TextSize.callout, chosen ? .semibold : .regular)
+                                    .foregroundStyle(chosen ? .primary : .secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    .help(Gloss.readable(sense.gloss))
                             }
-                            Text(listed?.contains(sense) == true ? Gloss.short(sense.gloss) : Gloss.listed(sense.gloss))
-                                .cardFont(12, chosen ? .semibold : .regular)
-                                .foregroundStyle(chosen ? .primary : .secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .help(Gloss.readable(sense.gloss))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            ChoiceMark(chosen: chosen)
                         }
                     }
-                    .buttonStyle(CardRowStyle())
+                    .buttonStyle(CardRowStyle(bleed: Space.s, vertical: 3))
                     .help("Use this meaning")
                 }
                 if senses.count > collapsed.count {
@@ -528,14 +553,23 @@ struct PhraseView: View {
                         }
                         state.onLayoutChange()
                     } label: {
-                        Text(all ? "Show less" : "Show \(senses.count - collapsed.count) more").cardFont(12).foregroundStyle(Color.accentColor)
+                        HStack(spacing: Space.xs * scale) {
+                            Text(all ? "Show Fewer" : "Show All \(senses.count)")
+                            Image(systemName: "chevron.down").cardFont(TextSize.footnote, .semibold)
+                                .rotationEffect(.degrees(all ? 180 : 0))
+                        }
+                        .cardFont(TextSize.callout, .medium).foregroundStyle(Color.accentColor)
                     }
-                    .buttonStyle(CardRowStyle())
+                    .buttonStyle(CardRowStyle(bleed: Space.s, vertical: 3))
                 }
             }
-            if senses.isEmpty { Text("Not in the dictionary").cardFont(12).foregroundStyle(.secondary) }
+            if senses.isEmpty { Text("Not in the dictionary").cardFont(TextSize.callout).foregroundStyle(.secondary) }
         }
-        .padding(.leading, 12 * scale).padding(.trailing, 8 * scale).padding(.top, 6 * scale).padding(.bottom, 10 * scale)
+        .padding(.leading, column + gutter)
+        // Clear of the row's chevron column, so the checkmarks line up with the chevrons.
+        .padding(.trailing, 0)
+        .padding(.top, Space.xxs * scale)
+        .padding(.bottom, Space.s * scale)
     }
 }
 

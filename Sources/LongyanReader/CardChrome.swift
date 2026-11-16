@@ -80,8 +80,28 @@ final class CardLayout: ObservableObject {
     }
 }
 
-/// Every change inside a card uses this, so the content and the card's edge move together.
-let cardMotion = Animation.smooth(duration: 0.28)
+/// Every change inside a card uses this, so the content and the card's edge move together:
+/// a critically damped spring, the feel of system popovers and disclosure rows.
+let cardMotion = Animation.spring(response: 0.34, dampingFraction: 1)
+
+/// The cards' spacing scale (points at 1× zoom): every gap and inset is one of these.
+enum Space {
+    static let xxs: CGFloat = 2, xs: CGFloat = 4, s: CGFloat = 8, m: CGFloat = 12, l: CGFloat = 16, xl: CGFloat = 20
+}
+
+/// Text sizes, after macOS's own text styles (body 13, callout 12, footnote 10, title3 15,
+/// title2 17), with the headword and translation a step larger.
+enum TextSize {
+    static let headword: CGFloat = 34, headline: CGFloat = 19, translation: CGFloat = 16
+    static let rowWord: CGFloat = 18, title3: CGFloat = 15, body: CGFloat = 13, callout: CGFloat = 12
+    static let subheadline: CGFloat = 11, footnote: CGFloat = 10
+}
+
+/// Tone colours on characters and pinyin, from the Appearance menu; off by default, when
+/// characters use the primary label colour and pinyin the secondary.
+enum ToneColors {
+    static var enabled: Bool { UserDefaults.standard.bool(forKey: "toneColors") }
+}
 
 /// How much the card is zoomed; every card font and fixed size multiplies by it.
 private struct CardScaleKey: EnvironmentKey { static let defaultValue: CGFloat = 1 }
@@ -209,7 +229,7 @@ struct CardChrome<Content: View>: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var hovering = false
     let content: Content
-    static var radius: CGFloat { 14 }
+    static var radius: CGFloat { 16 }
     /// Transparent space around the card for its shadow.
     static var margin: CGFloat { 28 }
     static var sizeAnimation: Animation { cardMotion }
@@ -246,7 +266,9 @@ struct CardChrome<Content: View>: View {
     private var padded: some View {
         content
             .environment(\.cardScale, layout.scale)
-            .padding(16 * layout.scale)
+            .padding(.horizontal, Space.l * layout.scale)
+            .padding(.top, Space.l * layout.scale)
+            .padding(.bottom, Space.m * layout.scale)
             .frame(width: layout.width, alignment: .leading)
     }
 
@@ -384,43 +406,69 @@ struct ResizeGrip: View {
     }
 }
 
-/// A full-width row that highlights on hover and press, the way macOS lists do.
+/// A full-width row that highlights on hover and press, the way macOS lists do. It reaches
+/// `bleed` past the content's edges, so row text stays on the card's leading edge while the
+/// highlight has room around it.
 struct CardRowStyle: ButtonStyle {
-    var selected = false
+    var bleed: CGFloat = Space.s
+    var vertical: CGFloat = Space.xs + 1
 
     func makeBody(configuration: Configuration) -> some View {
-        Row(configuration: configuration, selected: selected)
+        Row(configuration: configuration, bleed: bleed, vertical: vertical)
     }
 
     private struct Row: View {
         let configuration: ButtonStyleConfiguration
-        let selected: Bool
+        let bleed: CGFloat
+        let vertical: CGFloat
         @State private var hovering = false
         @Environment(\.cardScale) private var scale
 
         var body: some View {
             configuration.label
-                .padding(.vertical, 5 * scale).padding(.horizontal, 8 * scale)
+                .padding(.vertical, vertical * scale).padding(.horizontal, bleed * scale)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
-                    RoundedRectangle(cornerRadius: 7 * scale, style: .continuous)
-                        .fill(selected ? Color.accentColor.opacity(0.16)
-                              : Color.primary.opacity(configuration.isPressed ? 0.10 : hovering ? 0.05 : 0))
+                    RoundedRectangle(cornerRadius: 6 * scale, style: .continuous)
+                        .fill(Color.primary.opacity(configuration.isPressed ? 0.09 : hovering ? 0.05 : 0))
                 )
                 .contentShape(Rectangle())
+                .padding(.horizontal, -bleed * scale)
                 .onHover { hovering = $0 }
-                .animation(.easeOut(duration: 0.12), value: hovering)
+                .animation(.easeOut(duration: hovering ? 0.08 : 0.2), value: hovering)
                 .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
         }
     }
 }
 
-/// A small uppercase section label.
+/// A section's title, in sentence case like the system's grouped lists.
 struct SectionLabel: View {
     let text: String
     var body: some View {
-        Text(text.uppercased())
-            .cardFont(10, .semibold).tracking(0.5)
+        Text(text)
+            .cardFont(TextSize.subheadline, .semibold)
             .foregroundStyle(.secondary)
+    }
+}
+
+/// A hairline between a card's sections.
+struct CardDivider: View {
+    var body: some View {
+        Rectangle().fill(Color.primary.opacity(0.08)).frame(height: 1)
+    }
+}
+
+/// The chosen option's checkmark, at the row's trailing edge as in the system's selection
+/// lists, so every option's text keeps the same leading edge. It holds its width either way.
+struct ChoiceMark: View {
+    let chosen: Bool
+    @Environment(\.cardScale) private var scale
+    var body: some View {
+        Image(systemName: "checkmark")
+            .cardFont(TextSize.callout, .semibold)
+            .foregroundStyle(Color.accentColor)
+            .opacity(chosen ? 1 : 0)
+            .scaleEffect(chosen ? 1 : 0.6)
+            .frame(width: 14 * scale, alignment: .trailing)
     }
 }

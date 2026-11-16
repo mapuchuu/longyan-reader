@@ -18,6 +18,9 @@ extension AppDelegate {
             if !ok { failures += 1 }
         }
         func wait(_ s: Double) async { try? await Task.sleep(for: .seconds(s)) }
+        // The drag checks post real mouse events, which macOS allows only with Accessibility
+        // access; an ad-hoc rebuild can lose it until the app is re-added in System Settings.
+        lines.append("  accessibility \(AXIsProcessTrusted() ? "allowed" : "NOT allowed"), posting events \(CGPreflightPostEventAccess() ? "allowed" : "NOT allowed")")
         func waitForAnswer(_ state: LookupState?, timeout: Double = 12) async {
             var t = 0.0
             while let state, state.phase == .choosing, t < timeout { await wait(0.1); t += 0.1 }
@@ -331,7 +334,16 @@ extension AppDelegate {
             popup.currentLayout?.objectWillChange.send()   // maxHeight isn't published
             popup.currentLayout?.onChange(false)
             await watch(0.5)
-            check(popup.currentLayout?.moreBelow == false, "a card showing all its content doesn't fade")
+            let shown = popup.currentLayout.map { "content \(Int($0.contentHeight)), max \(Int($0.maxHeight))" } ?? "no card"
+            if let l = popup.currentLayout, l.contentHeight <= l.maxHeight {
+                check(l.moreBelow == false, "a card showing all its content doesn't fade (\(shown))")
+            } else {
+                // The open row is taller than this screen allows: close it, so the card fits.
+                withAnimation(.smooth(duration: 0.25)) { phrase.toggle(a) }
+                await watch(0.6)
+                let after = popup.currentLayout.map { "content \(Int($0.contentHeight)), max \(Int($0.maxHeight))" } ?? "no card"
+                check(popup.currentLayout?.moreBelow == false, "a card showing all its content doesn't fade (\(after), row closed)")
+            }
             let target = phrase.shownSense(a) == 0 ? 1 : 0
             let glossBefore = phrase.gloss(a)
             let senseBefore = phrase.shownSense(a)
