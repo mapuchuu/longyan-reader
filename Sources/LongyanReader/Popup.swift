@@ -693,7 +693,8 @@ final class PopupController {
         let card = NSRect(x: m, y: layout.placedBelow ? panel.frame.height - m - layout.height : m,
                           width: layout.width, height: layout.height)
         // Not from the side edges' resize bands, or the corners.
-        let inner = card.insetBy(dx: ResizeHandles.inside, dy: 0)
+        var inner = card.insetBy(dx: ResizeHandles.inside, dy: 0)
+        inner.size.width -= ResizeHandles.rightInside - ResizeHandles.inside
         guard inner.contains(point) else { return false }
         let c = ResizeHandles.corner - ResizeHandles.outside
         let nearX = point.x < card.minX + c || point.x > card.maxX - c

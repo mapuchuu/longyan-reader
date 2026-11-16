@@ -600,6 +600,7 @@ extension AppDelegate {
             }
             // Just outside each edge, where a window's resize area also reaches.
             for (name, at, d) in [("right edge", { (r: NSRect) in NSPoint(x: r.maxX + 2, y: r.midY) }, CGVector(dx: 36, dy: 0)),
+                                  ("right edge from 6 pt inside", { (r: NSRect) in NSPoint(x: r.maxX - 6, y: r.midY) }, CGVector(dx: 36, dy: 0)),
                                   ("left edge", { (r: NSRect) in NSPoint(x: r.minX - 2, y: r.midY) }, CGVector(dx: -36, dy: 0))] {
                 guard let card = popup.cardScreenRect, let l = popup.currentLayout, l.placedBelow else { break }
                 await drag(from: at(card), by: d)

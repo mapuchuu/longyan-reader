@@ -567,6 +567,8 @@ struct ResizeGrip: View {
 struct ResizeHandles: View {
     @ObservedObject var layout: CardLayout
     static let outside: CGFloat = 4, inside: CGFloat = 4, corner: CGFloat = 14
+    /// The right edge, the one that widens the card, reaches further in.
+    static let rightInside: CGFloat = 8
     /// The bottom-right corner, the one people reach for: bigger, and easy to hit.
     static let bigCorner: CGFloat = 26
 
@@ -575,7 +577,7 @@ struct ResizeHandles: View {
         let c = Self.corner
         ZStack {
             handle([.left]).frame(width: band).padding(.vertical, c).frame(maxWidth: .infinity, alignment: .leading)
-            handle([.right]).frame(width: band).padding(.vertical, c).frame(maxWidth: .infinity, alignment: .trailing)
+            handle([.right]).frame(width: Self.outside + Self.rightInside).padding(.vertical, c).frame(maxWidth: .infinity, alignment: .trailing)
             handle([.top, .left]).frame(width: c, height: c).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             handle([.top, .right]).frame(width: c, height: c).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
             handle([.bottom, .left]).frame(width: c, height: c).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
