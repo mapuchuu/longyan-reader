@@ -277,6 +277,9 @@ enum CLI {
             guard let r = SelectionReader.find(args[4], in: text) else { print("selection not found"); return }
             let lo = max(0, r.lowerBound - 40), hi = min(text.count, r.upperBound + 40)
             print("found at \(r): …" + String(text[lo..<r.lowerBound]) + "【" + String(text[r]) + "】" + String(text[r.upperBound..<hi]) + "…")
+        case "--render-onboarding" where args.count >= 4:
+            // --render-onboarding <access|checking|offer|nospace|downloading|verifying|failed|done|ollama|file> out.png
+            try await renderOnboarding(args[2], to: URL(fileURLWithPath: args[3]))
         case "--render-chip" where args.count >= 3:
             try await writePNG(ChipButtonView {}.frame(width: 30, height: 30), to: URL(fileURLWithPath: args[2]))
         case "--render" where args.count >= 5:
@@ -552,6 +555,23 @@ enum CLI {
         }
         try await writePNG(CardChrome(layout: renderLayout(.phrase)) { PhraseView(state: state) }, to: url)
         print("wrote \(url.path)")
+    }
+
+    @MainActor
+    static func renderOnboarding(_ state: String, to url: URL) async throws {
+        let m: OnboardingModel = switch state {
+            case "access": .init(trusted: false, download: .idle, found: nil)
+            case "checking": .init(trusted: true, download: .idle, found: nil)
+            case "nospace": .init(trusted: true, download: .idle, found: false, spaceProblem: "needs 3.7 GB free and the disk has 2.1 GB")
+            case "downloading": .init(trusted: true, download: .downloading(0.42), found: false, timeLeft: "About 4 minutes left")
+            case "verifying": .init(trusted: true, download: .verifying, found: false)
+            case "failed": .init(trusted: true, download: .failed("The network connection was lost."), found: false)
+            case "done": .init(trusted: true, download: .done, found: true)
+            case "ollama": .init(trusted: true, download: .idle, found: true, ollama: true)
+            case "file": .init(trusted: true, download: .idle, found: true)
+            default: .init(trusted: true, download: .idle, found: false)
+            }
+        try await writePNG(OnboardingView(model: m) {}.background(Color(nsColor: .windowBackgroundColor)), to: url)
     }
 
     /// AppKit drawing must happen on the main thread.

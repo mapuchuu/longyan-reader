@@ -235,6 +235,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #endif
 
         // Without Accessibility nothing works, so explain it before the system prompt appears.
+        // Then it offers the model download, which the menu also follows.
+        ModelDownloader.shared.observe { [weak self] in
+            if ModelDownloader.shared.state == .done { LocalModel.select(LocalModel.name); self?.refresh() }
+            else { self?.rebuildMenu() }
+        }
         Onboarding.shared.onTrusted = { [weak self] in self?.rebuildMenu() }
         Onboarding.shared.showIfNeeded()
     }
@@ -258,16 +263,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let downloader = ModelDownloader.shared
         switch downloader.state {
         case .downloading(let p):
-            menu.addItem(withTitle: String(format: "Downloading model… %.0f%% (Cancel)", p * 100),
+            menu.addItem(withTitle: String(format: "Downloading Reading Model… %.0f%%", p * 100), action: nil, keyEquivalent: "")
+            menu.addItem(withTitle: "Stop Download",
                          action: #selector(cancelModelDownload), keyEquivalent: "").target = self
         case .verifying:
-            menu.addItem(withTitle: "Checking the downloaded model…", action: nil, keyEquivalent: "")
+            menu.addItem(withTitle: "Checking Download…", action: nil, keyEquivalent: "")
         case .failed(let why) where EmbeddedModel.modelPath == nil:
-            menu.addItem(withTitle: "Model download failed: \(why)", action: nil, keyEquivalent: "")
+            menu.addItem(withTitle: "Download failed: \(why)", action: nil, keyEquivalent: "")
             menu.addItem(withTitle: "Retry Download", action: #selector(downloadModel), keyEquivalent: "").target = self
         default:
             if EmbeddedModel.modelPath == nil {
-                menu.addItem(withTitle: "Download Qwen Model (2.7 GB)…", action: #selector(downloadModel), keyEquivalent: "").target = self
+                menu.addItem(withTitle: "Download Reading Model (2.7 GB)…", action: #selector(downloadModel), keyEquivalent: "").target = self
             }
         }
         let pickerMenu = NSMenu()
@@ -418,30 +424,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func downloadModel() {
         if let problem = ModelDownloader.shared.spaceProblem() {
             let alert = NSAlert()
-            alert.messageText = "Not enough disk space for the model"
-            alert.informativeText = "The download \(problem). Free up some space, then choose Download Qwen Model again."
+            alert.messageText = "Not enough disk space"
+            alert.informativeText = "The download \(problem). Free up some space and try again."
             NSApp.activate()
             alert.runModal()
             return
         }
         if case .failed = ModelDownloader.shared.state {} else {
             let alert = NSAlert()
-            alert.messageText = "Download the local model?"
-            let gb = Double(ProcessInfo.processInfo.physicalMemory) / 1_073_741_824
-            alert.informativeText = "Qwen 3.5 4B (Apache 2.0), 2.7 GB from Hugging Face. It picks word senses and translates "
-                + "on this Mac, more accurately than Apple's built-in model, and uses about 3 GB of memory while a lookup is recent."
-                + (gb < 15 ? " This Mac has \(Int(gb.rounded())) GB of memory, so other apps may slow down while it's loaded." : "")
-                + " An interrupted download picks up where it stopped."
+            alert.messageText = "Download the reading model?"
+            alert.informativeText = "It picks the right meaning for each word and translates phrases. 2.7 GB, runs on your Mac."
             alert.addButton(withTitle: "Download")
             alert.addButton(withTitle: "Cancel")
             NSApp.activate()
             guard alert.runModal() == .alertFirstButtonReturn else { return }
         }
-        let d = ModelDownloader.shared
-        d.onChange = { [weak self] in
-            if d.state == .done { LocalModel.select(LocalModel.name); self?.refresh() } else { self?.rebuildMenu() }
-        }
-        d.start()
+        ModelDownloader.shared.start()
     }
     @objc private func cancelModelDownload() { ModelDownloader.shared.cancel() }
     @objc private func selectHistory(_ sender: NSMenuItem) {

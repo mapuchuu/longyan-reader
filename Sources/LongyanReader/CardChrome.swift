@@ -198,10 +198,10 @@ enum TextSize {
     static let subheadline: CGFloat = 11, footnote: CGFloat = 10
 }
 
-/// Tone colours on characters and pinyin, from the Appearance menu; off by default, when
+/// Tone colours on characters and pinyin, from the Appearance menu; on by default. Off,
 /// characters use the primary label colour and pinyin the secondary.
 enum ToneColors {
-    static var enabled: Bool { UserDefaults.standard.bool(forKey: "toneColors") }
+    static var enabled: Bool { UserDefaults.standard.object(forKey: "toneColors") as? Bool ?? true }
 }
 
 /// How much the card is zoomed; every card font and fixed size multiplies by it.

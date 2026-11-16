@@ -2,8 +2,9 @@ import AppKit
 import ApplicationServices
 import SwiftUI
 
-/// First-run window: why the app needs Accessibility, a button to the right Settings pane,
-/// and a check every second that turns into "You're set" once the switch is on.
+/// First-run window, in two steps. First Accessibility: why the app needs it, a button to the
+/// right Settings pane, and a check every second that notices once the switch is on. Then the
+/// reading model: offered once, downloaded here with its progress, or found already installed.
 @MainActor
 final class Onboarding {
     static let shared = Onboarding()
@@ -12,8 +13,10 @@ final class Onboarding {
     var onTrusted: () -> Void = {}
 
     func showIfNeeded() {
-        guard !AXIsProcessTrusted() else { return }
-        show()
+        if !AXIsProcessTrusted() { show(); return }
+        guard OnboardingModel.modelNotAsked else { return }
+        // Someone with Qwen in Ollama already has what the download would give them.
+        Task { if await !LocalModel.isAvailable() { show() } }
     }
 
     func show() {
@@ -60,42 +63,190 @@ final class Onboarding {
 @MainActor
 final class OnboardingModel: ObservableObject {
     @Published var trusted = AXIsProcessTrusted()
+    @Published var download = ModelDownloader.shared.state
+    /// Whether Qwen is already here, as the model file or in Ollama; nil while Ollama is asked.
+    @Published var modelFound: Bool?
+    @Published var spaceProblem = ModelDownloader.shared.spaceProblem()
+    /// "About 4 minutes left", once the download has run long enough to tell.
+    @Published var timeLeft: String?
+    var foundInOllama = false
+    private var rateStart: (at: Date, progress: Double)?
+
+    /// A fixed state, for drawing the window with --render-onboarding.
+    init(trusted: Bool, download: ModelDownloader.State, found: Bool?, ollama: Bool = false,
+         spaceProblem: String? = nil, timeLeft: String? = nil) {
+        self.trusted = trusted; self.download = download; modelFound = found; foundInOllama = ollama
+        self.spaceProblem = spaceProblem; self.timeLeft = timeLeft
+    }
+
+    init() {
+        ModelDownloader.shared.observe { [weak self] in
+            guard let self else { return }
+            download = ModelDownloader.shared.state
+            if download == .done { modelFound = true }
+            estimate()
+        }
+        checkModel()
+    }
+
+    func checkModel() {
+        if EmbeddedModel.modelPath != nil || !LocalModel.enabled { modelFound = true; return }
+        Task {
+            modelFound = await LocalModel.isAvailable()
+            foundInOllama = modelFound == true
+        }
+    }
+
+    func startDownload() {
+        spaceProblem = ModelDownloader.shared.spaceProblem()
+        if spaceProblem == nil { ModelDownloader.shared.start() }
+    }
+
+    private func estimate() {
+        guard case .downloading(let p) = download else { rateStart = nil; timeLeft = nil; return }
+        guard let start = rateStart else { rateStart = (Date(), p); return }
+        let elapsed = Date().timeIntervalSince(start.at)
+        guard elapsed > 5, p > start.progress else { return }
+        let seconds = (1 - p) * elapsed / (p - start.progress)
+        if seconds < 60 { timeLeft = "Less than a minute left"; return }
+        let f = DateComponentsFormatter()
+        f.unitsStyle = .full; f.maximumUnitCount = 1; f.includesApproximationPhrase = true
+        f.allowedUnits = seconds < 3600 ? [.minute] : [.hour, .minute]
+        timeLeft = f.string(from: seconds).map { $0 + " left" }
+    }
+
+    /// The model step is offered once; after that, it's in the menu.
+    static var modelNotAsked: Bool {
+        LocalModel.enabled && EmbeddedModel.modelPath == nil && !ModelDownloader.shared.isRunning
+            && !UserDefaults.standard.bool(forKey: "onboarding.modelAsked")
+    }
+    static func markModelAsked() { UserDefaults.standard.set(true, forKey: "onboarding.modelAsked") }
 }
 
-private struct OnboardingView: View {
+struct OnboardingView: View {
     @ObservedObject var model: OnboardingModel
     let done: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Highlight Chinese text in any app, then click the eye that appears or press ⌃⌥L.")
+            Text("Highlight Chinese text anywhere, then click the eye or press\u{00A0}⌃⌥L.")
                 .font(.headline)
                 .fixedSize(horizontal: false, vertical: true)
-            Text("To read what you highlight, Longyan Reader needs the **Accessibility** permission. It reads only the selection and the sentence around it, when you ask. Lookups stay on this Mac: the dictionary and the model run locally, and nothing is sent anywhere. The words you look up are kept for review and flashcards under History… in the menu, where you can also turn that off.")
-                .fixedSize(horizontal: false, vertical: true)
-            if Onboarding.outsideApplications && !model.trusted {
-                Label("Move the app to your Applications folder first: the permission is tied to where the app is, so moving it later means granting it again.", systemImage: "folder")
-                    .fixedSize(horizontal: false, vertical: true)
-                    .foregroundStyle(.secondary)
-            }
             if model.trusted {
-                Label("You're set. Highlight some Chinese text to try it.", systemImage: "checkmark.circle.fill")
+                Label("Accessibility is on.", systemImage: "checkmark.circle.fill")
                     .foregroundStyle(.green)
-                HStack { Spacer(); Button("Done", action: done).keyboardShortcut(.defaultAction) }
+                Divider()
+                ModelStep(model: model, done: done)
             } else {
-                Text("In System Settings, turn on Longyan Reader under Privacy & Security › Accessibility. This window notices as soon as you do.")
-                    .fixedSize(horizontal: false, vertical: true)
-                    .foregroundStyle(.secondary)
-                HStack {
-                    Spacer()
-                    Button("Later", action: done)
-                    Button("Open Accessibility Settings") { Onboarding.openAccessibilitySettings() }
-                        .keyboardShortcut(.defaultAction)
-                }
+                accessStep
             }
         }
         .padding(20)
         .frame(width: 460)
+        .animation(.easeInOut(duration: 0.2), value: model.trusted)
+        .animation(.easeInOut(duration: 0.2), value: model.modelFound)
+    }
+
+    @ViewBuilder private var accessStep: some View {
+        Text("Longyan Reader needs Accessibility access to read the text you highlight. Nothing leaves your Mac.")
+            .fixedSize(horizontal: false, vertical: true)
+        if Onboarding.outsideApplications {
+            Label("Move Longyan Reader to your Applications folder first.", systemImage: "folder")
+                .foregroundStyle(.secondary)
+        }
+        Text("Turn on Longyan Reader in Privacy & Security › Accessibility.")
+            .fixedSize(horizontal: false, vertical: true)
+            .foregroundStyle(.secondary)
+        HStack {
+            Spacer()
+            Button("Later", action: done)
+            Button("Open System Settings") { Onboarding.openAccessibilitySettings() }
+                .keyboardShortcut(.defaultAction)
+        }
+    }
+}
+
+/// The reading model: Download or Later, then progress, then ready. Lookups work throughout.
+private struct ModelStep: View {
+    @ObservedObject var model: OnboardingModel
+    let done: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            switch (model.modelFound, model.download) {
+            case (nil, _):
+                ProgressView().controlSize(.small)
+            case (true?, _):
+                Label(model.foundInOllama ? "You're all set. Using Qwen from Ollama." : "You're all set.",
+                      systemImage: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                buttons { Button("Done", action: done).keyboardShortcut(.defaultAction) }
+            case (false?, .downloading(let p)):
+                intro
+                VStack(alignment: .leading, spacing: 4) {
+                    ProgressView(value: p)
+                    Text(progressText(p)).font(.callout).monospacedDigit().foregroundStyle(.secondary)
+                }
+                buttons {
+                    Button("Stop") { ModelDownloader.shared.cancel() }
+                    Button("Close", action: done).keyboardShortcut(.defaultAction)
+                }
+            case (false?, .verifying):
+                intro
+                VStack(alignment: .leading, spacing: 4) {
+                    ProgressView(value: 1)
+                    Text("Checking download…").font(.callout).foregroundStyle(.secondary)
+                }
+                buttons { Button("Close", action: done).keyboardShortcut(.defaultAction) }
+            case (false?, .failed(let why)):
+                intro
+                Label("Download failed: \(Self.plain(why)).", systemImage: "exclamationmark.triangle")
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                choice("Try Again")
+            case (false?, _):
+                intro
+                if let problem = model.spaceProblem {
+                    Label("Not enough disk space. The download \(problem).", systemImage: "externaldrive.badge.exclamationmark")
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                choice(model.spaceProblem == nil ? "Download" : "Try Again")
+            }
+        }
+        .onAppear { if !CommandLine.arguments.contains("--render-onboarding") { OnboardingModel.markModelAsked() } }
+    }
+
+    private var intro: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Download the reading model").font(.headline)
+            Text("Recommended. It picks the right meaning for each word and translates phrases. 2.7 GB, runs on your Mac.")
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func progressText(_ p: Double) -> String {
+        let gb = String(format: "%.1f of %.1f GB", p * Double(ModelDownloader.size) / 1e9, Double(ModelDownloader.size) / 1e9)
+        return [gb, model.timeLeft].compactMap { $0 }.joined(separator: " · ")
+    }
+
+    /// A system error inside a sentence: "The network connection was lost." → "the network connection was lost".
+    private static func plain(_ s: String) -> String {
+        var s = s.trimmingCharacters(in: .whitespaces)
+        if s.hasSuffix(".") { s.removeLast() }
+        return s.prefix(1).lowercased() + s.dropFirst()
+    }
+
+    private func choice(_ primary: String) -> some View {
+        buttons {
+            Button("Later", action: done)
+            Button(primary) { model.startDownload() }.keyboardShortcut(.defaultAction)
+        }
+    }
+
+    private func buttons(@ViewBuilder _ content: () -> some View) -> some View {
+        HStack { Spacer(); content() }
     }
 }
 

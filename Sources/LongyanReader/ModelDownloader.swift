@@ -15,8 +15,10 @@ final class ModelDownloader: NSObject, URLSessionDataDelegate {
     nonisolated static let sha256 = "00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4"
 
     enum State: Equatable { case idle, downloading(Double), verifying, failed(String), done }
-    private(set) var state: State = .idle { didSet { onChange() } }
-    var onChange: () -> Void = {}
+    private(set) var state: State = .idle { didSet { observers.forEach { $0() } } }
+    private var observers: [() -> Void] = []
+    /// Called on every state change: the menu and the welcome window both follow the download.
+    func observe(_ f: @escaping () -> Void) { observers.append(f) }
 
     private var target: URL { EmbeddedModel.modelsDirectory.appendingPathComponent(EmbeddedModel.fileName) }
     private var partial: URL { target.appendingPathExtension("part") }
@@ -132,7 +134,7 @@ final class ModelDownloader: NSObject, URLSessionDataDelegate {
                 } else {
                     // A corrupt file can't be resumed into a good one.
                     try? FileManager.default.trashItem(at: partial, resultingItemURL: nil)
-                    self.state = .failed("the downloaded file didn't match its checksum; try again")
+                    self.state = .failed("the file was damaged")
                 }
             }
         }
