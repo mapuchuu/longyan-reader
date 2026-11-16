@@ -14,6 +14,9 @@
   "一刀切|yi1 dao1 qie1|lit. to cut all at one stroke (idiom); to impose uniformity" : [
     "这项规定不能一刀切，要看各地情况。"
   ],
+  "一口|yi1 kou3|flatly (deny, admit and so on)" : [
+    "他一口咬定那天自己根本没出门。"
+  ],
   "一定|yi1 ding4|a certain ...; a given ..." : [
     "这件事在一定程度上影响了销量。"
   ],
@@ -65,11 +68,17 @@
   "不了|bu4 le5|no thanks (used to politely but informally decline)" : [
     "你再吃点吧？不了，我已经饱了。"
   ],
+  "不以为然|bu4 yi3 wei2 ran2|not to accept as correct (idiom); to object" : [
+    "对于专家的建议，他显得很不以为然。"
+  ],
   "不会|bu4 hui4|not having learned to do sth" : [
     "我不会开车，只能坐地铁。"
   ],
   "不会|bu4 hui4|will not (act, happen etc)" : [
     "放心，他不会告诉别人的。"
+  ],
+  "不动声色|bu4 dong4 sheng1 se4|not a word or movement (idiom); remaining calm and collected" : [
+    "他不动声色地听完了对方的全部条件。"
   ],
   "不在|bu4 zai4|(euphemism) to pass away" : [
     "我奶奶已经不在了，走了三年了。"
@@ -315,6 +324,12 @@
     "最近怎么样？还凑合吧。",
     "饭菜不太好吃，凑合着吃吧。"
   ],
+  "出发|chu1 fa1|(fig.) to proceed from (a particular standpoint or basis)" : [
+    "制定政策必须从实际出发。"
+  ],
+  "出席|chu1 xi2|to attend" : [
+    "市长出席了昨天的开幕式。"
+  ],
   "分子|fen4 zi3|member of a class or group; people of a certain type" : [
     "社会上还有一些不法分子。"
   ],
@@ -489,8 +504,14 @@
   "嘀咕|di2 gu5|to feel apprehensive" : [
     "他这么热情，我心里直犯嘀咕。"
   ],
+  "回头|hui2 tou2|later; by and by" : [
+    "这件事我们回头再说吧。"
+  ],
   "回扣|hui2 kou4|a kickback" : [
     "这位采购经理因为收回扣被公司开除了。"
+  ],
+  "团结|tuan2 jie2|unity; solidarity" : [
+    "各民族要加强团结，共同发展。"
   ],
   "圈子|quan1 zi5|(social) circle" : [
     "他不在我们这个圈子里，大家都不太熟。",
@@ -518,6 +539,9 @@
   "坑爹|keng1 die1|(vulgar) (of sth that makes one feel misled or let down etc) to be a big disappointment" : [
     "花了这么多钱，结果这么坑爹。"
   ],
+  "垂帘听政|chui2 lian2 ting1 zheng4|lit. to govern from behind the curtain" : [
+    "慈禧太后曾长期垂帘听政，掌握朝政大权。"
+  ],
   "埋头|mai2 tou2|to immerse oneself in" : [
     "他整天埋头写论文，饭都顾不上吃。"
   ],
@@ -532,6 +556,9 @@
   ],
   "基准|ji1 zhun3|standard; criterion; benchmark" : [
     "这次考核以去年的业绩作为基准。"
+  ],
+  "声东击西|sheng1 dong1 ji1 xi1|to threaten the east and strike to the west (idiom)" : [
+    "球队用声东击西的战术骗过了对手。"
   ],
   "处理|chu3 li3|to handle; to deal with" : [
     "这件事你看着处理吧。"
@@ -553,6 +580,9 @@
   ],
   "外卖|wai4 mai4|takeout (meal)" : [
     "太累了，今晚点个外卖吧。"
+  ],
+  "外面|wai4 mian4|outside (also pr. [wai4 mian5] for this sense)" : [
+    "他天天加班，其实是在外面有人了。"
   ],
   "多久|duo1 jiu3|(not) a long time" : [
     "他走了没多久，你就来了。"
@@ -725,6 +755,9 @@
   "小金库|xiao3 jin1 ku4|slush fund" : [
     "审计发现这个单位私设小金库。"
   ],
+  "少年|shao4 nian2|youngster" : [
+    "这个少年才十四岁就考上了大学。"
+  ],
   "就是|jiu4 shi4|(used correlatively with 也[ye3]) even; even if" : [
     "就是下大雨，我也要去。"
   ],
@@ -736,6 +769,9 @@
   ],
   "尽管|jin3 guan3|do not hesitate (to ask, complain etc)" : [
     "有什么需要尽管开口。"
+  ],
+  "层出不穷|ceng2 chu1 bu4 qiong2|more and more emerge" : [
+    "手机上的新骗局层出不穷，老人防不胜防。"
   ],
   "山寨|shan1 zhai4|(fig.) knockoff (goods)" : [
     "这款手机是山寨货，用了一个月就坏了。"
@@ -803,6 +839,9 @@
   "应试|ying4 shi4|to take an exam" : [
     "他明天要去应试，今晚在复习。"
   ],
+  "应运而生|ying4 yun4 er2 sheng1|to arise at an opportune time" : [
+    "随着网购普及，快递行业应运而生。"
+  ],
   "底层|di3 ceng2|ground floor; first floor" : [
     "他家住在大楼的底层，夏天很潮。"
   ],
@@ -830,6 +869,9 @@
   "开除|kai1 chu2|to fire (an employee)" : [
     "她偷了公司的客户资料，第二天就被开除了。"
   ],
+  "当家作主|dang1 jia1 zuo4 zhu3|to be the master of one's own affairs" : [
+    "搬出来以后，她终于可以自己当家作主了。"
+  ],
   "当时|dang1 shi2|then; at that time" : [
     "当时我还在上大学，什么都不懂。"
   ],
@@ -844,6 +886,9 @@
   ],
   "待遇|dai4 yu4|treatment" : [
     "服务员对我们的待遇很差，一直不理人。"
+  ],
+  "得天独厚|de2 tian1 du2 hou4|blessed by heaven (idiom)" : [
+    "这里气候温和，种茶的条件得天独厚。"
   ],
   "得罪|de2 zui4|excuse me! (formal)" : [
     "得罪了，刚才是我没看见您。"
@@ -920,6 +965,12 @@
   ],
   "感情|gan3 qing2|affection; feelings between two persons" : [
     "他们俩结婚十年，感情一直很好。"
+  ],
+  "成分|cheng2 fen4|one's social status" : [
+    "他家的成分是地主，文革时吃了不少苦。"
+  ],
+  "战士|zhan4 shi4|fighter" : [
+    "疫情期间，医护人员被称为白衣战士。"
   ],
   "户口|hu4 kou3|(in Hong Kong and Macau) bank account" : [
     "我在香港开了一个银行户口。"
@@ -1006,6 +1057,9 @@
   "擦边球|ca1 bian1 qiu2|(fig.) actions that are technically legal but perhaps not respectable" : [
     "这家公司靠打擦边球赚钱，迟早出事。"
   ],
+  "改造|gai3 zao4|to remold" : [
+    "他年轻时被送去农场劳动改造了好几年。"
+  ],
   "教养|jiao4 yang3|upbringing; breeding; culture" : [
     "在公共场合大喊大叫，真没教养。"
   ],
@@ -1046,6 +1100,12 @@
   "朋友圈|Peng2 you5 quan1|Moments (social networking function of smartphone app WeChat 微信[Wei1 xin4])" : [
     "她每天都在朋友圈晒孩子的照片。"
   ],
+  "本人|ben3 ren2|I; me; myself" : [
+    "本人已经说明情况，请大家不要再转发了。"
+  ],
+  "本人|ben3 ren2|oneself; yourself; himself; herself; the person concerned" : [
+    "办理护照必须本人到场。"
+  ],
   "机关|ji1 guan1|mechanism; gear" : [
     "这只箱子有机关，一按就开。"
   ],
@@ -1069,6 +1129,9 @@
   "材料|cai2 liao4|data" : [
     "办签证要交的材料我都准备好了。"
   ],
+  "桃花|tao2 hua1|(fig.) love affair" : [
+    "她今年桃花运特别旺，追她的人很多。"
+  ],
   "检查|jian3 cha2|inspection" : [
     "安全检查要排很长的队。"
   ],
@@ -1087,6 +1150,9 @@
   ],
   "比较|bi3 jiao4|to compare" : [
     "买之前先比较一下这两家的价格。"
+  ],
+  "民间|min2 jian1|non-governmental" : [
+    "政府鼓励民间资本进入医疗行业。"
   ],
   "气|qi4|gas; air" : [
     "轮胎没气了，得去打打气。"
@@ -1140,6 +1206,9 @@
   "流浪|liu2 lang4|homeless" : [
     "小区里有几只流浪猫，邻居常去喂。"
   ],
+  "流芳百世|liu2 fang1 bai3 shi4|(of one's name, reputation etc) to be immortalized (idiom)" : [
+    "他为国捐躯，名字将流芳百世。"
+  ],
   "混|hun4|to mix" : [
     "把面粉和水混在一起。"
   ],
@@ -1189,8 +1258,23 @@
     "今年我们省的高考状元考了七百多分。",
     "高考状元被北大录取了，媒体都来采访。"
   ],
+  "独树一帜|du2 shu4 yi1 zhi4|to stand out" : [
+    "这家小店的装修风格在整条街上独树一帜。"
+  ],
+  "独立自主|du2 li4 zi4 zhu3|independent and autonomous (idiom); self-determination" : [
+    "中国一贯奉行独立自主的和平外交政策。"
+  ],
   "现实|xian4 shi2|realistic; pragmatic; materialistic; self-interested" : [
     "她太现实了，只想嫁有钱人。"
+  ],
+  "理想|li3 xiang3|an ideal" : [
+    "我小时候的理想是当一名医生。"
+  ],
+  "理想|li3 xiang3|ideal" : [
+    "这次期末考试的成绩不太理想。"
+  ],
+  "理直气壮|li3 zhi2 qi4 zhuang4|in the right and self-confident (idiom); bold and confident with justice on one's side" : [
+    "他迟到了还理直气壮地找借口。"
   ],
   "理论|li3 lun4|to argue" : [
     "他不服气，非要去找老板理论理论。"
@@ -1291,6 +1375,9 @@
   "秀才|xiu4 cai5|skillful writer" : [
     "他是我们班的秀才，作文写得最好。"
   ],
+  "移动|yi2 dong4|mobile" : [
+    "我的手机号是移动的，信号一直不错。"
+  ],
   "稳定|wen3 ding4|stability" : [
     "稳定压倒一切，这是政府的头等大事。",
     "维护社会稳定是地方官员的重要任务。"
@@ -1335,6 +1422,9 @@
   ],
   "粉丝|fen3 si1|fan; enthusiast for sb or sth (loanword from \"fans\")" : [
     "她的微博已经有一百万粉丝了。"
+  ],
+  "粉身碎骨|fen3 shen1 sui4 gu3|(fig.) to die horribly; to sacrifice one's life" : [
+    "为了国家，他粉身碎骨也在所不辞。"
   ],
   "精神|jing1 shen5|vigor; vitality" : [
     "他穿上新西装，看起来特别精神。"
@@ -1407,6 +1497,9 @@
     "干部要深入群众，听听老百姓的意见。",
     "一切为了群众，一切依靠群众。"
   ],
+  "耀武扬威|yao4 wu3 yang2 wei1|to show off one's military strength (idiom); to strut around" : [
+    "那几个保安在门口耀武扬威，谁都不让进。"
+  ],
   "老实|lao3 shi5|honest; sincere" : [
     "他是个老实人，说话从来不骗人。"
   ],
@@ -1418,11 +1511,17 @@
   "老实|lao3 shi5|well-behaved" : [
     "上课的时候孩子们都老老实实地坐着。"
   ],
+  "考察|kao3 cha2|to inspect" : [
+    "省领导下周要到我们县考察。"
+  ],
   "肯定|ken3 ding4|assuredly; definitely" : [
     "放心吧，他肯定会来的。"
   ],
   "肯定|ken3 ding4|to give recognition; to affirm" : [
     "领导在会上肯定了我们这一年的工作。"
+  ],
+  "脱颖而出|tuo1 ying3 er2 chu1|to reveal one's talent (idiom)" : [
+    "她在上千名选手中脱颖而出。"
   ],
   "脸色|lian3 se4|look" : [
     "我不想再看老板的脸色过日子了。"
@@ -1459,8 +1558,17 @@
   "萌|meng2|(coll.) cute; adorable (orthographic borrowing from Japanese 萌え \"moe\", affection for an anime or manga character)" : [
     "这只小猫太萌了，我想养一只。"
   ],
+  "营养|ying2 yang3|nutrition" : [
+    "这种文章没什么营养，别浪费时间。"
+  ],
   "蜗居|wo1 ju1|to live (in a tiny, cramped space)" : [
     "一家三口蜗居在不到二十平米的小屋里。"
+  ],
+  "行者|xing2 zhe3|itinerant monk" : [
+    "唐僧身边最得力的徒弟就是孙行者。"
+  ],
+  "街道|jie1 dao4|subdistrict" : [
+    "开证明得先去街道办盖个章。"
   ],
   "补|bu3|to make up for" : [
     "我上周请假了，这周要把课补上。"
@@ -1484,6 +1592,9 @@
   "裸婚|luo3 hun1|no-frills civil wedding ceremony lacking a material foundation: no car, house, reception, rings, or honeymoon" : [
     "他们没买房也没办婚礼，选择了裸婚。"
   ],
+  "观念|guan1 nian4|notion" : [
+    "老一辈的婚姻观念和年轻人很不一样。"
+  ],
   "规则|gui1 ze2|regular; orderly; fixed" : [
     "这块石头的形状很规则。"
   ],
@@ -1497,6 +1608,9 @@
   "解放|jie3 fang4|to liberate" : [
     "考完试了，终于解放了！",
     "妇女解放运动争取男女平等。"
+  ],
+  "触目惊心|chu4 mu4 jing1 xin1|lit. shocks the eye, astonishes the heart (idiom); shocking" : [
+    "这份污染报告里的数据触目惊心。"
   ],
   "计算|ji4 suan4|to calculate; to compute" : [
     "这道题要先计算面积。"
