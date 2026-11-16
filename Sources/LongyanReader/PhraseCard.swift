@@ -376,6 +376,11 @@ private struct WordColumnKey: PreferenceKey {
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
 }
 
+extension PhraseState {
+    /// What Copy puts on the clipboard: the highlighted text.
+    var copyText: String { selection.text }
+}
+
 struct PhraseView: View {
     @ObservedObject var state: PhraseState
     @Environment(\.cardScale) private var scale
@@ -387,13 +392,19 @@ struct PhraseView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.m * scale) {
+            // The highlighted Chinese first, with Copy and Pin beside it, then its
+            // translation: source over translation, as in Translate.
             VStack(alignment: .leading, spacing: Space.xs * scale) {
+                HStack(alignment: .firstTextBaseline, spacing: Space.s * scale) {
+                    Text(state.selection.text)
+                        .cardFont(14)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(4)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    ActionSlot(centerAboveBaseline: 5 * scale)
+                }
                 translation
-                Text(state.selection.text)
-                    .cardFont(14)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(4)
-                    .fixedSize(horizontal: false, vertical: true)
             }
             VStack(alignment: .leading, spacing: Space.s * scale) {
                 CardDivider()

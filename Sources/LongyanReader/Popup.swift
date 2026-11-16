@@ -92,6 +92,11 @@ final class LookupState: ObservableObject {
     }
 }
 
+extension LookupState {
+    /// What Copy puts on the clipboard: the word that was looked up, as it appears in the text.
+    var copyText: String { context.word }
+}
+
 extension Array {
     subscript(safe i: Int) -> Element? { indices.contains(i) ? self[i] : nil }
 }
@@ -151,23 +156,35 @@ struct LookupView: View {
         .animation(cardMotion, value: state.partOf?.meaning)
     }
 
-    /// The word large, its pinyin beside it on the same baseline.
+    /// The word large, its pinyin beside it on the same baseline, and Copy and Pin at the end
+    /// of the line, beside the word they copy. A word too long for that line keeps its size
+    /// and takes the line for itself, with the pinyin under it; it never squeezes.
     private var header: some View {
         let syllables = Pinyin.syllables(state.headerPinyin)
-        return HStack(alignment: .firstTextBaseline, spacing: Space.s * scale) {
-            HStack(spacing: 0) {
-                ForEach(Array(state.context.word.enumerated()), id: \.offset) { i, ch in
-                    Text(String(ch)).foregroundStyle(hanziColor(syllables[safe: i]?.tone ?? 5))
-                }
+        let headword = state.context.word.enumerated().reduce(Text("")) { text, item in
+            text + Text(String(item.element)).foregroundStyle(hanziColor(syllables[safe: item.offset]?.tone ?? 5))
+        }
+        .cardFont(TextSize.headword, .medium)
+        let pinyin = syllables.enumerated().reduce(Text("")) { text, item in
+            text + Text((item.offset > 0 ? " " : "") + item.element.text).foregroundStyle(pinyinColor(item.element.tone))
+        }
+        .cardFont(TextSize.title3)
+        let slot = ActionSlot(centerAboveBaseline: 12 * scale)
+        return ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: Space.s * scale) {
+                headword.fixedSize()
+                pinyin.fixedSize().contentTransition(.opacity)
+                Spacer(minLength: Space.s * scale)
+                slot
             }
-            .cardFont(TextSize.headword, .medium)
-            HStack(spacing: 3 * scale) {
-                ForEach(Array(syllables.enumerated()), id: \.offset) { _, s in
-                    Text(s.text).foregroundStyle(pinyinColor(s.tone))
+            VStack(alignment: .leading, spacing: Space.xxs * scale) {
+                HStack(alignment: .firstTextBaseline, spacing: Space.s * scale) {
+                    headword.lineLimit(1).minimumScaleFactor(0.5)
+                    Spacer(minLength: Space.s * scale)
+                    slot
                 }
+                pinyin.fixedSize(horizontal: false, vertical: true).contentTransition(.opacity)
             }
-            .cardFont(TextSize.title3)
-            .contentTransition(.opacity)
         }
     }
 
@@ -366,6 +383,10 @@ final class PopupController {
     /// Set by the usage simulation so the reader's own clicks and typing elsewhere don't
     /// close its cards mid-check.
     var ignoresOutsideInput = false
+    /// False for the controller that shows hints beside a pinned card: those always open by
+    /// the selection and close as usual.
+    var followsPin = true
+    private var pinned: Bool { followsPin && CardPin.shared.isOn }
     /// Which kind of card is open, and a token that changes with every new card.
     private(set) var kind: CardLayout.Kind?
     private(set) var generation = 0
@@ -373,12 +394,23 @@ final class PopupController {
     /// Shows a card just below `anchor` (the selection, or a small box at the cursor).
     /// The card fades and springs in once its content has been measured. With `holdFor`, it
     /// waits up to that long for `endHold`, so an answer on its way is there when it opens.
-    func show<V: View>(_ view: V, kind: CardLayout.Kind, near anchor: NSRect, holdFor hold: TimeInterval = 0) {
-        close()
+    func show<V: View>(_ view: V, kind: CardLayout.Kind, near anchor: NSRect, holdFor hold: TimeInterval = 0,
+                       copyText: (() -> String)? = nil) {
+        // A pinned card is replaced in place: the old one stays up until the new one is ready.
+        let pinned = self.pinned
+        if pinned, let old = panel {
+            swapping?.orderOut(nil)
+            swapping = old
+            monitors.forEach(NSEvent.removeMonitor)
+            monitors = []
+            panel = nil; hosting = nil; layout = nil; self.kind = nil
+        } else {
+            close()
+        }
         wasMoved = false
         revealPending = false
         held = hold > 0
-        self.anchor = anchor
+        self.anchor = pinned ? (pinnedAnchor ?? anchor) : anchor
         let layout = CardLayout(kind: kind)
         self.kind = kind
         generation += 1
@@ -401,6 +433,10 @@ final class PopupController {
         self.panel = panel
         self.hosting = host
         self.layout = layout
+        layout.copyText = copyText
+        layout.togglePin = { [weak self] in self?.togglePin() }
+        layout.closeCard = { [weak self] in self?.close() }
+        layout.onResize = { [weak self] edges, mouse in self?.resize(edges, to: mouse) }
         layout.onChange = { [weak self, weak layout] animated in
             self?.applySize(animated: animated)
             if let layout, layout.contentHeight > 0 { self?.measured(layout) }
@@ -422,15 +458,15 @@ final class PopupController {
         }
 
         // Close on a click elsewhere, scrolling (unless the card was dragged aside to read
-        // past it), or Esc. Global monitors only see events for other apps, so clicks and
-        // drags inside the card are unaffected.
+        // past it), or Esc; a pinned card ignores all three. Global monitors only see events
+        // for other apps, so clicks and drags inside the card are unaffected.
         if let m = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .scrollWheel],
                                                      handler: { [weak self] e in
-            guard let self, !self.ignoresOutsideInput else { return }
+            guard let self, !self.ignoresOutsideInput, !self.pinned else { return }
             if e.type == .scrollWheel { self.scrolledOutside() } else { self.close() }
         }) { monitors.append(m) }
         if let m = NSEvent.addGlobalMonitorForEvents(matching: [.keyDown], handler: { [weak self] e in
-            guard let self, !self.ignoresOutsideInput else { return }
+            guard let self, !self.ignoresOutsideInput, !self.pinned else { return }
             if e.keyCode == 53 { self.close() }
         }) { monitors.append(m) }
         if let m = NSEvent.addLocalMonitorForEvents(matching: [.keyDown], handler: { [weak self] e in
@@ -472,6 +508,18 @@ final class PopupController {
         guard self.layout === layout, !layout.appeared, !held, let panel else { return }
         revealPending = false
         panel.displayIfNeeded()
+        if let old = swapping {
+            // Pinned: the new content fades in over the old card, in the same spot, then
+            // the old one goes. No spring, since the card hasn't moved.
+            swapping = nil
+            var t = Transaction(); t.disablesAnimations = true
+            withTransaction(t) { layout.appeared = true }
+            NSAnimationContext.runAnimationGroup({ ctx in
+                ctx.duration = 0.12
+                panel.animator().alphaValue = 1
+            }, completionHandler: { old.orderOut(nil) })
+            return
+        }
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 0.14
             panel.animator().alphaValue = 1
@@ -479,12 +527,46 @@ final class PopupController {
         withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) { layout.appeared = true }
     }
 
+    /// The old card, kept on screen while a pinned card's next content gets ready.
+    private var swapping: PopupPanel?
+
+    /// Where a pinned card opens: its saved top-left corner, as the anchor a card hangs below.
+    private var pinnedAnchor: NSRect? {
+        CardPin.shared.topLeft.map { NSRect(x: $0.x, y: $0.y + 8, width: 1, height: 1) }
+    }
+
+    /// The open card's top-left corner on screen.
+    private var cardTopLeft: NSPoint? {
+        guard let panel, let layout else { return nil }
+        let m = CardChrome<EmptyView>.margin
+        let top = placedBelow ? panel.frame.maxY - m : panel.frame.minY + m + layout.height
+        return NSPoint(x: panel.frame.minX + m, y: top)
+    }
+
+    /// Pins the card where it is (it hangs from that corner from now on), or unpins it, when
+    /// it stays open until the next click elsewhere, as an unpinned card does.
+    func togglePin() {
+        let pin = CardPin.shared
+        if pin.isOn {
+            pin.isOn = false
+            return
+        }
+        guard let corner = cardTopLeft, let layout else { pin.isOn = true; return }
+        pin.topLeft = corner
+        pin.isOn = true
+        anchor = NSRect(x: corner.x, y: corner.y + 8, width: 1, height: 1)
+        placedBelow = true
+        layout.placedBelow = true
+        fitMaxHeight(layout)
+        applySize(animated: false)
+    }
+
     /// Below the selection when the card fits there, else whichever side has more room. The
     /// card scrolls past that room, so it never slides over the selection as it fills in.
     private func choosePlacement(for layout: CardLayout) {
         let visible = visibleFrame()
         let below = anchor.minY - 16 - visible.minY, above = visible.maxY - anchor.maxY - 16
-        placedBelow = below >= max(layout.contentHeight, 320) || below >= above
+        placedBelow = pinned || below >= max(layout.contentHeight, 320) || below >= above
         layout.placedBelow = placedBelow
         fitMaxHeight(layout)
     }
@@ -493,6 +575,57 @@ final class PopupController {
         let visible = visibleFrame()
         let room = placedBelow ? anchor.minY - 16 - visible.minY : visible.maxY - anchor.maxY - 16
         layout.maxHeight = max(200, min(room, visible.height * 0.8))
+    }
+
+    private var resizeStart: (mouse: NSPoint, card: NSRect, size: CardLayout.SizeState)?
+
+    /// The side edges set the card's width as a window's do: the grabbed edge follows the
+    /// pointer and the opposite one stays put, within the screen and the width limits; the
+    /// height follows the content. Corners scale the card, text and all, for reading: the
+    /// opposite corner stays put and the dragged one follows the pointer along the card's
+    /// diagonal. Nil ends it.
+    func resize(_ edges: CardLayout.Edges, to mouse: NSPoint?) {
+        guard let layout else { return }
+        guard let mouse else {
+            resizeStart = nil
+            layout.endResize()
+            if pinned, let corner = cardTopLeft { CardPin.shared.topLeft = corner }
+            fitMaxHeight(layout)
+            applySize(animated: false)
+            return
+        }
+        if resizeStart == nil {
+            guard let card = cardScreenRect else { return }
+            resizeStart = (mouse, card, layout.sizeState)
+            layout.beginResize()
+            wasMoved = true
+        }
+        guard let start = resizeStart else { return }
+        let dx = mouse.x - start.mouse.x, dy = mouse.y - start.mouse.y
+        let visible = visibleFrame().insetBy(dx: 8, dy: 8)
+        func clamp(_ v: CGFloat, _ lo: CGFloat, _ hi: CGFloat) -> CGFloat { min(max(v, lo), max(lo, hi)) }
+        var minX = start.card.minX, maxX = start.card.maxX, minY = start.card.minY, maxY = start.card.maxY
+        if edges.count2 {
+            let w = start.card.width, h = start.card.height
+            let outX = edges.contains(.right) ? dx : -dx, outY = edges.contains(.bottom) ? -dy : dy
+            let applied = layout.scaleCard(from: start.size, by: 1 + (outX * w + outY * h) / (w * w + h * h))
+            let newW = layout.width, newH = h * applied
+            if edges.contains(.left) { minX = maxX - newW } else { maxX = minX + newW }
+            if edges.contains(.top) { maxY = minY + newH } else { minY = maxY - newH }
+            anchor.origin.x = minX
+            anchor.origin.y = placedBelow ? maxY + 8 : minY - 8 - anchor.height
+            fitMaxHeight(layout)
+            applySize(animated: false)
+            return
+        }
+        if edges.contains(.right) { maxX = minX + clamp(start.card.width + dx, CardLayout.minWidth, min(CardLayout.maxWidth, visible.maxX - minX)) }
+        if edges.contains(.left) { minX = maxX - clamp(start.card.width - dx, CardLayout.minWidth, min(CardLayout.maxWidth, maxX - visible.minX)) }
+        layout.width = maxX - minX
+        // The card hangs from its anchor (below the selection) or stands on it (above).
+        anchor.origin.x = minX
+        anchor.origin.y = placedBelow ? maxY + 8 : minY - 8 - anchor.height
+        fitMaxHeight(layout)
+        applySize(animated: false)
     }
 
     /// The screen showing most of the anchor, else the one with the pointer.
@@ -555,14 +688,19 @@ final class PopupController {
         if frame != panel.frame { panel.setFrame(frame, display: true) }
     }
 
-    /// Anywhere on the card except the grip.
+    /// Anywhere on the card except its side edges and corners, which resize it.
     private func canMove(from point: NSPoint) -> Bool {
         guard let panel, let layout, layout.kind != .hint else { return false }
         let m = CardChrome<EmptyView>.margin
         let card = NSRect(x: m, y: layout.placedBelow ? panel.frame.height - m - layout.height : m,
                           width: layout.width, height: layout.height)
-        guard card.contains(point) else { return false }
-        return !(point.x > card.maxX - 22 && point.y < card.minY + 22)
+        // Not from the side edges' resize bands, or the corners.
+        let inner = card.insetBy(dx: ResizeHandles.inside, dy: 0)
+        guard inner.contains(point) else { return false }
+        let c = ResizeHandles.corner - ResizeHandles.outside
+        let nearX = point.x < card.minX + c || point.x > card.maxX - c
+        let nearY = point.y < card.minY + c || point.y > card.maxY - c
+        return !(nearX && nearY)
     }
 
     private var moveStart: (mouse: NSPoint, anchor: NSRect)?
@@ -582,6 +720,7 @@ final class PopupController {
             anchor.origin.x = panel.frame.minX + m
             anchor.origin.y = placedBelow ? panel.frame.maxY + 8 - m : panel.frame.minY - 8 + m - anchor.height
             moveStart = nil
+            if pinned, let corner = cardTopLeft { CardPin.shared.topLeft = corner }
             if let layout { fitMaxHeight(layout); applySize(animated: true) }
             return
         }
@@ -590,6 +729,14 @@ final class PopupController {
         guard let start = moveStart else { return }
         anchor = start.anchor.offsetBy(dx: mouse.x - start.mouse.x, dy: mouse.y - start.mouse.y)
         setWindow(panel.frame.size)
+    }
+
+    /// Debug: the card itself on screen (AppKit coordinates).
+    var cardScreenRect: NSRect? {
+        guard let panel, let layout else { return nil }
+        let m = CardChrome<EmptyView>.margin
+        let y = layout.placedBelow ? panel.frame.maxY - m - layout.height : panel.frame.minY + m
+        return NSRect(x: panel.frame.minX + m, y: y, width: layout.width, height: layout.height)
     }
 
     /// Debug: the card window's position.
@@ -620,6 +767,8 @@ final class PopupController {
         }
         monitors.forEach(NSEvent.removeMonitor)
         monitors = []
+        swapping?.orderOut(nil)
+        swapping = nil
         if let old = panel {
             NSAnimationContext.runAnimationGroup({ ctx in
                 ctx.duration = 0.12
@@ -671,6 +820,19 @@ final class PopupController {
         }
     }
 
+    /// Debug: scrolls the open card's content to `y`.
+    func debugScroll(to y: CGFloat) {
+        guard let hosting else { return }
+        func scrollViews(_ v: NSView) -> [NSScrollView] {
+            if let s = v as? NSScrollView { return [s] }
+            return v.subviews.flatMap(scrollViews)
+        }
+        for s in scrollViews(hosting) {
+            s.contentView.scroll(to: NSPoint(x: 0, y: y))
+            s.reflectScrolledClipView(s.contentView)
+        }
+    }
+
     /// Debug: writes the open card's window, as drawn, to a PNG.
     func saveImage(to url: URL) {
         guard let hosting, let rep = hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds) else { return }
@@ -693,13 +855,32 @@ final class PopupController {
 
     /// Debug: drive the corner grip as if dragged by (dx, dy) screen points.
     func debugDrag(dx: CGFloat, dy: CGFloat) {
-        guard let panel, let layout else { return }
-        let start = NSPoint(x: panel.frame.maxX, y: panel.frame.minY)
+        guard let card = cardScreenRect else { return }
+        let start = NSPoint(x: card.maxX, y: card.minY)
         for step in 0...10 {
             let t = CGFloat(step) / 10
-            layout.resize(to: NSPoint(x: start.x + dx * t, y: start.y + dy * t))
+            resize([.bottom, .right], to: NSPoint(x: start.x + dx * t, y: start.y + dy * t))
         }
-        layout.endResize()
+        resize([.bottom, .right], to: nil)
+    }
+
+    /// Debug: resizes from edges the way a hand would, over about a second at 60 steps a
+    /// second. `d` is outward: right/left/down/up for those edges.
+    func debugEdgeDrag(_ edges: CardLayout.Edges, by d: CGFloat) {
+        guard let card = cardScreenRect else { return }
+        let origin = NSPoint(x: edges.contains(.left) ? card.minX : card.maxX, y: edges.contains(.top) ? card.maxY : card.minY)
+        let steps = 60
+        for step in 0...steps {
+            DispatchQueue.main.asyncAfter(deadline: .now() + Double(step) / 60) { [weak self] in
+                guard let self else { return }
+                let t = CGFloat(step) / CGFloat(steps)
+                let e = t * t * (3 - 2 * t)   // ease in and out, like a hand starting and stopping
+                let x = edges.contains(.right) ? d * e : edges.contains(.left) ? -d * e : 0
+                let y = edges.contains(.top) ? d * e : edges.contains(.bottom) ? -d * e : 0
+                self.resize(edges, to: NSPoint(x: origin.x + x, y: origin.y + y))
+                if step == steps { self.resize(edges, to: nil) }
+            }
+        }
     }
 
     /// PNG of the current popup, for checking output without looking at the screen.

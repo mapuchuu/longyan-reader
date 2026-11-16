@@ -31,13 +31,23 @@ extension AppDelegate {
         let savedAppearance = UserDefaults.standard.string(forKey: "appearance")
         let savedZoom = UserDefaults.standard.object(forKey: CardLayout.zoomKey)
         UserDefaults.standard.removeObject(forKey: CardLayout.zoomKey)
+        let sizeKeys = ["card.width.word", "card.width.phrase", "card.height.word", "card.height.phrase"]
+        let savedSizes = sizeKeys.map { UserDefaults.standard.object(forKey: $0) }
+        sizeKeys.forEach { UserDefaults.standard.removeObject(forKey: $0) }
+        let savedPin = CardPin.shared.isOn, savedSpot = CardPin.shared.topLeft
+        CardPin.shared.isOn = false
         popup.ignoresOutsideInput = true
         defer {
             popup.ignoresOutsideInput = false
+            CardPin.shared.isOn = savedPin
+            CardPin.shared.topLeft = savedSpot
             if let savedModel { LocalModel.select(savedModel) } else { UserDefaults.standard.removeObject(forKey: "senseModel") }
             UserDefaults.standard.set(savedStyle, forKey: "cardStyle")
             UserDefaults.standard.set(savedAppearance, forKey: "appearance")
-            if let savedZoom { UserDefaults.standard.set(savedZoom, forKey: CardLayout.zoomKey) }
+            if let savedZoom { UserDefaults.standard.set(savedZoom, forKey: CardLayout.zoomKey) } else { UserDefaults.standard.removeObject(forKey: CardLayout.zoomKey) }
+            for (key, value) in zip(sizeKeys, savedSizes) {
+                if let value { UserDefaults.standard.set(value, forKey: key) } else { UserDefaults.standard.removeObject(forKey: key) }
+            }
             applyAppearance()
         }
 
@@ -461,6 +471,124 @@ extension AppDelegate {
         }
         await wait(0.6)
         check(PopupController.visibleCardWindows == 1, "rapid lookups leave one card (found \(PopupController.visibleCardWindows))")
+
+        // 7. A pinned card stays where it is while new lookups replace it, a hint opens
+        //    beside it rather than in its place, and Copy has the card's text.
+        show(word("这本书很有意思。", 2), near: anchor)
+        await wait(0.8)
+        popup.togglePin()
+        let pinnedFrame = popup.windowFrame
+        let far = anchor.offsetBy(dx: -260, dy: -180)
+        show(word("他们的关系很好。", 3, 2), near: far)
+        await waitForAnswer(lastLookupState)
+        await wait(0.8)
+        let swappedFrame = popup.windowFrame
+        lines.append("  pinned card top-left \(pinnedFrame.map { "\($0.minX), \($0.maxY)" } ?? "none") → \(swappedFrame.map { "\($0.minX), \($0.maxY)" } ?? "none")")
+        check(pinnedFrame != nil && pinnedFrame?.minX == swappedFrame?.minX && pinnedFrame?.maxY == swappedFrame?.maxY,
+              "a pinned card's next lookup opens in the same place")
+        check(PopupController.visibleCardWindows == 1, "a pinned card is replaced, not stacked (found \(PopupController.visibleCardWindows))")
+        hint("Highlight some Chinese text first", near: far)
+        await wait(0.6)
+        check(popup.isShowing && popup.kind == .word && PopupController.visibleCardWindows == 2,
+              "a hint opens beside a pinned card, not in its place (\(PopupController.visibleCardWindows) cards, main \(popup.kind?.rawValue ?? "none"))")
+        await wait(2.0)
+        check(popup.isShowing && PopupController.visibleCardWindows == 1, "the pinned card outlasts the hint")
+        check(lastLookupState?.copyText == "关系", "Copy on a word card copies just the word")
+        if let phrase = lastPhraseState {
+            check(phrase.copyText == phrase.selection.text, "Copy on a phrase card copies just the highlighted text")
+        }
+
+        // 8. The side edges set the width (the text keeps its size and the height follows
+        //    the content); the corners scale the card, text and all; pinching zooms too.
+        if let l = popup.currentLayout, l.placedBelow {
+            func rect() -> NSRect { popup.cardScreenRect ?? .zero }
+            func drag(_ e: CardLayout.Edges, _ dx: CGFloat, _ dy: CGFloat) async {
+                let r = rect()
+                let from = NSPoint(x: e.contains(.left) ? r.minX : r.maxX, y: e.contains(.top) ? r.maxY : r.minY)
+                popup.resize(e, to: from)
+                popup.resize(e, to: NSPoint(x: from.x + dx, y: from.y + dy))
+                popup.resize(e, to: nil)
+                await wait(0.4)
+            }
+            func near(_ a: CGFloat, _ b: CGFloat) -> Bool { abs(a - b) < 0.6 }
+            let z0 = l.zoom
+            var r0 = rect()
+            await drag([.right], 40, 0)
+            var r = rect()
+            check(near(r.width, r0.width + 40) && near(r.minX, r0.minX) && near(r.maxY, r0.maxY) && l.zoom == z0
+                  && near(r.height, l.contentHeight),
+                  "the right edge widens the card, the text keeps its size and the height fits it (\(Int(r0.width)) → \(Int(r.width)))")
+            r0 = rect()
+            await drag([.left], -30, 0)
+            r = rect()
+            check(near(r.width, r0.width + 30) && near(r.maxX, r0.maxX) && near(r.minX, r0.minX - 30), "the left edge widens the card to the left")
+            await drag([.right], -200, 0)
+            check(near(rect().height, l.contentHeight), "a narrower card grows downward to fit its content (\(Int(rect().height)))")
+            l.resetSize()
+            await wait(0.4)
+            r0 = rect()
+            var z = l.zoom
+            await drag([.bottom, .right], r0.width * 0.2, -r0.height * 0.2)
+            r = rect()
+            check(abs(l.zoom - z * 1.2) < 0.001 && near(r.width, r0.width * 1.2) && near(r.minX, r0.minX) && near(r.maxY, r0.maxY)
+                  && near(r.height, l.contentHeight),
+                  "the bottom-right corner scales the card and its text (zoom \(String(format: "%.2f", z)) → \(String(format: "%.2f", l.zoom)))")
+            r0 = rect()
+            z = l.zoom
+            await drag([.top, .left], r0.width * 0.1, -r0.height * 0.1)
+            r = rect()
+            check(abs(l.zoom - z * 0.9) < 0.001 && near(r.maxX, r0.maxX) && abs(r.minY - r0.minY) < 2,
+                  "the top-left corner scales it down, the opposite corner staying put")
+            l.resetSize([.bottom, .right], zoomToo: true)
+            await wait(0.4)
+            check(l.zoom == 1 && l.width == l.baseWidth, "double-clicking a corner restores the actual size")
+            let w2 = l.width
+            l.magnify(by: 1.2)
+            l.endMagnify()
+            check(abs(l.zoom - 1.2) < 0.001 && abs(l.width - w2 * 1.2) < 0.5, "pinching zooms the text and the card with it")
+            l.resetSize(zoomToo: true)
+            await wait(0.4)
+        }
+        // Real drags on the edges and a corner resize the card rather than moving it.
+        if let height = NSScreen.screens.first?.frame.height {
+            let back = NSEvent.mouseLocation
+            func post(_ type: CGEventType, _ p: NSPoint) {
+                CGEvent(mouseEventSource: nil, mouseType: type, mouseCursorPosition: CGPoint(x: p.x, y: height - p.y), mouseButton: .left)?.post(tap: .cghidEventTap)
+            }
+            func drag(from: NSPoint, by d: CGVector) async {
+                post(.mouseMoved, from); await wait(0.15)
+                post(.leftMouseDown, from); await wait(0.08)
+                for step in 1...8 {
+                    post(.leftMouseDragged, NSPoint(x: from.x + d.dx * CGFloat(step) / 8, y: from.y + d.dy * CGFloat(step) / 8))
+                    await wait(0.02)
+                }
+                post(.leftMouseUp, NSPoint(x: from.x + d.dx, y: from.y + d.dy)); await wait(0.4)
+            }
+            // Just outside each edge, where a window's resize area also reaches.
+            for (name, at, d) in [("right edge", { (r: NSRect) in NSPoint(x: r.maxX + 2, y: r.midY) }, CGVector(dx: 36, dy: 0)),
+                                  ("left edge", { (r: NSRect) in NSPoint(x: r.minX - 2, y: r.midY) }, CGVector(dx: -36, dy: 0))] {
+                guard let card = popup.cardScreenRect, let l = popup.currentLayout, l.placedBelow else { break }
+                await drag(from: at(card), by: d)
+                let after = popup.cardScreenRect ?? .zero
+                check(abs(after.width - (card.width + abs(d.dx))) < 1 && after.maxY == card.maxY
+                      && (d.dx > 0 ? after.minX == card.minX : after.maxX == card.maxX),
+                      "a real drag on the \(name) resizes the card in place (\(Int(card.width))×\(Int(card.height)) → \(Int(after.width))×\(Int(after.height)))")
+                l.resetSize()
+                await wait(0.4)
+            }
+            if let card = popup.cardScreenRect, let l = popup.currentLayout, l.placedBelow {
+                let z = l.zoom
+                await drag(from: NSPoint(x: card.maxX + 1, y: card.minY - 1), by: CGVector(dx: card.width * 0.15, dy: -card.height * 0.15))
+                let after = popup.cardScreenRect ?? .zero
+                check(l.zoom > z * 1.1 && after.width > card.width * 1.1 && after.minX == card.minX && after.maxY == card.maxY,
+                      "a real drag on the bottom-right corner scales the card in place (zoom \(String(format: "%.2f", z)) → \(String(format: "%.2f", l.zoom)))")
+                l.resetSize([.bottom, .right], zoomToo: true)
+                await wait(0.4)
+            }
+            post(.mouseMoved, back)
+        }
+        popup.togglePin()
+        check(!CardPin.shared.isOn, "unpinning")
 
         popup.close()
         await wait(0.3)

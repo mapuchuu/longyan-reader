@@ -25,6 +25,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hotKey: HotKey?
     private(set) var dict: CEDict?
     let popup = PopupController()
+    /// Hints shown while a pinned card is open, so they don't replace it.
+    private lazy var hintPopup: PopupController = {
+        let c = PopupController()
+        c.followsPin = false
+        return c
+    }()
     private let chip = SelectionChip()
     private var lookupTask: Task<Void, Never>?
     /// The most recent cards' state, for the usage simulation.
@@ -126,6 +132,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 if let state = self.lastPhraseState, let token = state.tokens.first(where: { $0.text == word }) {
                     withAnimation(cardMotion) { state.toggle(token) }
                 }
+                return
+            }
+            if arg.hasPrefix("zoomdrag:") {
+                // Debug: resize the card from edges over a second. zoomdrag:<right|left|top|bottom, joined by +>|<points outward>
+                let f = arg.dropFirst(9).split(separator: "|").map(String.init)
+                let names: [String: CardLayout.Edges] = ["right": .right, "left": .left, "top": .top, "bottom": .bottom]
+                let edges = (f.first ?? "").split(separator: "+").reduce(into: CardLayout.Edges()) { $0.formUnion(names[String($1)] ?? []) }
+                self.popup.debugEdgeDrag(edges.isEmpty ? [.bottom, .right] : edges, by: CGFloat(Double(f.last ?? "") ?? 80))
+                return
+            }
+            if arg.hasPrefix("scroll:") {
+                // Debug: scroll the card's content. scroll:<points>
+                self.popup.debugScroll(to: CGFloat(Double(arg.dropFirst(7)) ?? 0))
                 return
             }
             if arg.hasPrefix("pick:") {
@@ -239,6 +258,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let tones = appearanceMenu.addItem(withTitle: "Tone Colors", action: #selector(toggleToneColors), keyEquivalent: "")
         tones.target = self
         tones.state = ToneColors.enabled ? .on : .off
+        appearanceMenu.addItem(.separator())
+        for (title, key, steps) in [("Bigger Text", "+", 1), ("Smaller Text", "-", -1), ("Actual Size", "0", 0)] {
+            let item = appearanceMenu.addItem(withTitle: title, action: #selector(changeTextSize(_:)), keyEquivalent: key)
+            item.target = self
+            item.tag = steps
+        }
         let appearanceItem = menu.addItem(withTitle: "Appearance", action: nil, keyEquivalent: "")
         menu.setSubmenu(appearanceMenu, for: appearanceItem)
         menu.addItem(withTitle: "History…", action: #selector(showHistory), keyEquivalent: "y").target = self
@@ -283,6 +308,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         UserDefaults.standard.set(id, forKey: "cardStyle")
         popup.refreshStyle()
         rebuildMenu()
+    }
+
+    /// Bigger, Smaller or Actual Size: the open card follows at once; with none open, the
+    /// next one opens at the new size. Pinching a card does the same.
+    @objc private func changeTextSize(_ sender: NSMenuItem) {
+        let open = popup.currentLayout.flatMap { $0.kind == .hint ? nil : $0 }
+        // Each kind keeps its own width and height; changing either one's zoom rescales both.
+        let layout = open ?? CardLayout(kind: .word)
+        if sender.tag == 0 { layout.resetSize(zoomToo: true) } else { layout.stepZoom(sender.tag) }
+        if open == nil || sender.tag == 0 {
+            // Actual Size resets the other kind's size too.
+            let other = CardLayout(kind: layout.kind == .word ? .phrase : .word)
+            if sender.tag == 0 { other.resetSize(zoomToo: true) }
+        }
     }
 
     @objc private func toggleToneColors() {
@@ -499,7 +538,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         phrasePrep = nil
         let pick: Task<SenseChoice, Error>? = !modelReady ? nil : prepared ?? Task { try await SenseChooser.choose(for: context, senses: senses) }
         if let pick { cardTasks.append(pick) }
-        popup.show(LookupView(state: state), kind: .word, near: anchor, holdFor: modelReady ? 0.4 : 0)
+        popup.show(LookupView(state: state), kind: .word, near: anchor, holdFor: modelReady ? 0.4 : 0,
+                   copyText: { [weak state] in state?.copyText ?? "" })
         var record: [String: Any] = ["event": "word", "word": context.word, "sentence": context.sentence,
                                      "app": appName ?? "", "senses": senses.count]
         // A meaning picked on the card after its lookup was logged: History shows that one.
@@ -576,7 +616,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // rows fill in from the top as each word's sense is chosen.
         state.resolving = !prep.done
         state.follow(prep)
-        popup.show(PhraseView(state: state), kind: .phrase, near: anchor)
+        popup.show(PhraseView(state: state), kind: .phrase, near: anchor, copyText: { [weak state] in state?.copyText ?? "" })
         let started = Date()
         let readyAtClick = prep.done
         lookupTask = Task {
@@ -627,11 +667,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// A short message that closes itself, but only if it's still the card on screen:
     /// a lookup opened in the meantime stays open.
     func hint(_ text: String, near anchor: NSRect) {
-        popup.show(HintView(text: text), kind: .hint, near: anchor)
-        let generation = popup.generation
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) { [weak self] in
-            guard let self, self.popup.generation == generation, self.popup.kind == .hint else { return }
-            self.popup.close()
+        // Beside a pinned card, not in its place.
+        let target = CardPin.shared.isOn && popup.isShowing ? hintPopup : popup
+        target.show(HintView(text: text), kind: .hint, near: anchor)
+        let generation = target.generation
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+            guard target.generation == generation, target.kind == .hint else { return }
+            target.close()
         }
     }
 }

@@ -653,6 +653,7 @@ enum CLI {
     static func renderLayout(_ kind: CardLayout.Kind) -> CardLayout {
         let layout = CardLayout(kind: kind)
         let scale = Double(ProcessInfo.processInfo.environment["LONGYAN_CARD_SCALE"] ?? "") ?? 1
+        layout.zoom = scale
         layout.width = layout.baseWidth * scale
         return layout
     }
