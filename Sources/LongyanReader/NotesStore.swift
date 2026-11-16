@@ -82,20 +82,18 @@ enum ExamplesStore {
     }
 }
 
-/// The tag label and note, shared by both cards.
+/// The tag label and note, shared by both cards: a quiet grey block with a sentence-case
+/// label like the card's other section labels, no icon or colour (on the cards, colour
+/// only marks the reader's choice).
 struct NuanceView: View {
     let note: StoredNote
     @Environment(\.cardScale) private var scale
     var body: some View {
         let lost = note.tag == "lost_in_translation"
         VStack(alignment: .leading, spacing: Space.xs * scale) {
-            HStack(spacing: 5 * scale) {
-                Image(systemName: lost ? "character.bubble" : "building.columns")
-                    .foregroundStyle(noteTint(note.tag))
-                Text(lost ? "Lost in Translation" : "Cultural Context")
-                    .foregroundStyle(.secondary)
-            }
-            .cardFont(TextSize.subheadline, .semibold)
+            Text(lost ? "Lost in translation" : "Cultural context")
+                .cardFont(TextSize.subheadline, .semibold)
+                .foregroundStyle(.secondary)
             Text(note.note)
                 .cardFont(TextSize.body)
                 .lineSpacing(2 * scale)

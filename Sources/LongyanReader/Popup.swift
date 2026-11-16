@@ -121,11 +121,6 @@ func hanziColor(_ t: Int) -> Color { ToneColors.enabled ? toneColor(t) : .primar
 /// A pinyin syllable's colour: its tone's when tone colours are on, else the secondary label.
 func pinyinColor(_ t: Int) -> Color { ToneColors.enabled ? toneColor(t) : .secondary }
 
-/// Note colours in the same muted family: amber for lost in translation, teal for cultural context.
-let lostTint = tone(light: (0.66, 0.44, 0.20), dark: (0.91, 0.74, 0.52))
-let cultureTint = tone(light: (0.22, 0.50, 0.52), dark: (0.58, 0.80, 0.80))
-func noteTint(_ tag: String) -> Color { tag == "lost_in_translation" ? lostTint : cultureTint }
-
 struct LookupView: View {
     @ObservedObject var state: LookupState
     @Environment(\.cardScale) private var scale

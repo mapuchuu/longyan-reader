@@ -576,9 +576,7 @@ struct PhraseView: View {
             }
             if senses.isEmpty { Text("Not in the dictionary").cardFont(TextSize.callout).foregroundStyle(.secondary) }
         }
-        .padding(.leading, column + gutter)
-        // Clear of the row's chevron column, so the checkmarks line up with the chevrons.
-        .padding(.trailing, 0)
+        // The detail uses the card's full width, from its leading edge like everything else.
         .padding(.top, Space.xxs * scale)
         .padding(.bottom, Space.s * scale)
     }
