@@ -69,6 +69,10 @@ final class OnboardingModel: ObservableObject {
     @Published var spaceProblem = ModelDownloader.shared.spaceProblem()
     /// "About 4 minutes left", once the download has run long enough to tell.
     @Published var timeLeft: String?
+    @Published var openAtLogin = LoginItem.isEnabled {
+        didSet { if !rendering, openAtLogin != oldValue { LoginItem.set(openAtLogin) } }
+    }
+    private var rendering = false
     var foundInOllama = false
     private var rateStart: (at: Date, progress: Double)?
 
@@ -77,6 +81,14 @@ final class OnboardingModel: ObservableObject {
          spaceProblem: String? = nil, timeLeft: String? = nil) {
         self.trusted = trusted; self.download = download; modelFound = found; foundInOllama = ollama
         self.spaceProblem = spaceProblem; self.timeLeft = timeLeft
+        rendering = true; openAtLogin = true
+    }
+
+    /// Ticked the first time the reader gets past Accessibility; after that it's theirs to change.
+    func offerOpenAtLogin() {
+        guard !rendering, LoginItem.available, !UserDefaults.standard.bool(forKey: "onboarding.loginOffered") else { return }
+        UserDefaults.standard.set(true, forKey: "onboarding.loginOffered")
+        openAtLogin = true
     }
 
     init() {
@@ -214,7 +226,10 @@ private struct ModelStep: View {
                 choice(model.spaceProblem == nil ? "Download" : "Try Again")
             }
         }
-        .onAppear { if !CommandLine.arguments.contains("--render-onboarding") { OnboardingModel.markModelAsked() } }
+        .onAppear {
+            if !CommandLine.arguments.contains("--render-onboarding") { OnboardingModel.markModelAsked() }
+            model.offerOpenAtLogin()
+        }
     }
 
     private var intro: some View {
@@ -245,8 +260,15 @@ private struct ModelStep: View {
         }
     }
 
+    /// The step's buttons, with Open at Login beside them in every state.
     private func buttons(@ViewBuilder _ content: () -> some View) -> some View {
-        HStack { Spacer(); content() }
+        HStack {
+            if LoginItem.available || CommandLine.arguments.contains("--render-onboarding") {
+                Toggle("Open at login", isOn: $model.openAtLogin).toggleStyle(.checkbox)
+            }
+            Spacer()
+            content()
+        }
     }
 }
 

@@ -331,6 +331,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(withTitle: "Open Accessibility Settings…", action: #selector(openAccessibility), keyEquivalent: "").target = self
         menu.addItem(withTitle: "Refresh Status", action: #selector(refresh), keyEquivalent: "").target = self
         menu.addItem(.separator())
+        if LoginItem.available {
+            let login = menu.addItem(withTitle: "Open at Login", action: #selector(toggleOpenAtLogin), keyEquivalent: "")
+            login.target = self
+            login.state = LoginItem.isEnabled ? .on : .off
+        }
         if Updates.available {
             menu.addItem(withTitle: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "").target = self
         }
@@ -371,6 +376,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let other = CardLayout(kind: layout.kind == .word ? .phrase : .word)
             if sender.tag == 0 { other.resetSize(zoomToo: true) }
         }
+    }
+
+    @objc private func toggleOpenAtLogin() {
+        LoginItem.set(!LoginItem.isEnabled)
+        rebuildMenu()
     }
 
     @objc private func toggleToneColors() {
