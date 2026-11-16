@@ -390,7 +390,9 @@ final class PopupController {
     /// The card fades and springs in once its content has been measured. With `holdFor`, it
     /// waits up to that long for `endHold`, so an answer on its way is there when it opens.
     func show<V: View>(_ view: V, kind: CardLayout.Kind, near anchor: NSRect, holdFor hold: TimeInterval = 0,
-                       copyText: (() -> String)? = nil) {
+                       copyText: (() -> String)? = nil, speech: (() -> SpeechPlan)? = nil) {
+        // A new card silences the last one's reading; a hint beside it doesn't.
+        if kind != .hint { Speaker.shared.stop() }
         // A pinned card is replaced in place: the old one stays up until the new one is ready.
         let pinned = self.pinned
         if pinned, let old = panel {
@@ -429,6 +431,7 @@ final class PopupController {
         self.hosting = host
         self.layout = layout
         layout.copyText = copyText
+        layout.speech = Speaker.shared.available ? speech : nil
         layout.togglePin = { [weak self] in self?.togglePin() }
         layout.closeCard = { [weak self] in self?.close() }
         layout.onResize = { [weak self] edges, mouse in self?.resize(edges, to: mouse) }
@@ -763,6 +766,7 @@ final class PopupController {
             let trace = Thread.callStackSymbols.prefix(8).joined(separator: "\n")
             try? trace.write(to: Log.directory.appendingPathComponent("close-trace.txt"), atomically: true, encoding: .utf8)
         }
+        if kind != nil && kind != .hint { Speaker.shared.stop() }
         monitors.forEach(NSEvent.removeMonitor)
         monitors = []
         swapping?.orderOut(nil)

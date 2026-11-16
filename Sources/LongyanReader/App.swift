@@ -539,7 +539,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let pick: Task<SenseChoice, Error>? = !modelReady ? nil : prepared ?? Task { try await SenseChooser.choose(for: context, senses: senses) }
         if let pick { cardTasks.append(pick) }
         popup.show(LookupView(state: state), kind: .word, near: anchor, holdFor: modelReady ? 0.4 : 0,
-                   copyText: { [weak state] in state?.copyText ?? "" })
+                   copyText: { [weak state] in state?.copyText ?? "" },
+                   speech: { [weak state] in state?.speech ?? SpeechPlan(text: "", help: "") })
         var record: [String: Any] = ["event": "word", "word": context.word, "sentence": context.sentence,
                                      "app": appName ?? "", "senses": senses.count]
         // A meaning picked on the card after its lookup was logged: History shows that one.
@@ -616,7 +617,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // rows fill in from the top as each word's sense is chosen.
         state.resolving = !prep.done
         state.follow(prep)
-        popup.show(PhraseView(state: state), kind: .phrase, near: anchor, copyText: { [weak state] in state?.copyText ?? "" })
+        popup.show(PhraseView(state: state), kind: .phrase, near: anchor, copyText: { [weak state] in state?.copyText ?? "" },
+                   speech: { [weak state] in SpeechPlan(text: state?.selection.text ?? "", help: "Listen") })
         let started = Date()
         let readyAtClick = prep.done
         lookupTask = Task {

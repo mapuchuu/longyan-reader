@@ -22,6 +22,8 @@ final class CardLayout: ObservableObject {
     var onChange: (_ animated: Bool) -> Void = { _ in }
     /// The highlighted text, for Copy; nil hides the button (hints).
     var copyText: (() -> String)?
+    /// What Listen reads; nil hides the button (hints, or no Chinese voice installed).
+    var speech: (() -> SpeechPlan)?
     var togglePin: () -> Void = {}
     var closeCard: () -> Void = {}
     /// While an edge is dragged or the card pinched, size changes follow the hand with no animation.
@@ -767,7 +769,7 @@ struct ReadingHeader: View {
 
 }
 
-/// The room a card's first line keeps at its trailing end for Copy and Pin, which the card
+/// The room a card's first line keeps at its trailing end for Listen, Copy and Pin, which the card
 /// draws there (fixed, so they stay put when the card scrolls). `centerAboveBaseline` puts
 /// the buttons' centre on the line's visual middle: about half the cap height of its text.
 struct ActionSlot: View {
@@ -775,7 +777,7 @@ struct ActionSlot: View {
     static let height: CGFloat = 22
     /// Space between a button's edge and its symbol's.
     static let glyphInset: CGFloat = 6
-    static let width: CGFloat = 2 * 26 + 2 - glyphInset
+    static let width: CGFloat = 3 * 26 + 2 * 2 - glyphInset
     let centerAboveBaseline: CGFloat
 
     var body: some View {
@@ -793,17 +795,28 @@ struct ActionSlotKey: PreferenceKey {
     static func reduce(value: inout CGFloat?, nextValue: () -> CGFloat?) { value = value ?? nextValue() }
 }
 
-/// Copy and Pin: plain symbols in the tertiary label colour, a step brighter while the
+/// Listen, Copy and Pin: plain symbols in the tertiary label colour, a step brighter while the
 /// pointer is on the card, with a soft rounded highlight under the one being pointed at.
 struct CardActions: View {
     @ObservedObject var layout: CardLayout
     let cardHovered: Bool
     @ObservedObject private var pin = CardPin.shared
+    @ObservedObject private var speaker = Speaker.shared
     @State private var copied = false
     @State private var resetCopied: DispatchWorkItem?
 
     var body: some View {
         HStack(spacing: 2) {
+            if let speech = layout.speech {
+                let plan = speech()
+                let playing = speaker.speaking != nil && speaker.speaking == plan.text
+                FooterButton(help: playing ? "Stop" : plan.help, cardHovered: cardHovered,
+                             tint: playing ? Color.accentColor : nil,
+                             action: { let now = speech(); if !now.text.isEmpty { speaker.toggle(now.text) } }) {
+                    Image(systemName: "speaker.wave.2")
+                        .symbolEffect(.variableColor.iterative.dimInactiveLayers.nonReversing, isActive: playing)
+                }
+            }
             if layout.copyText != nil {
                 FooterButton(help: copied ? "Copied" : copyHelp, cardHovered: cardHovered,
                              tint: copied ? Color.accentColor : nil, action: copy) {

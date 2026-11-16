@@ -655,6 +655,9 @@ enum CLI {
         let scale = Double(ProcessInfo.processInfo.environment["LONGYAN_CARD_SCALE"] ?? "") ?? 1
         layout.zoom = scale
         layout.width = layout.baseWidth * scale
+        // The card's buttons as they appear in the app (nothing is copied or read aloud here).
+        layout.copyText = { "" }
+        layout.speech = { SpeechPlan(text: "", help: "") }
         return layout
     }
 }

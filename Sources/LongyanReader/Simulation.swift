@@ -498,6 +498,40 @@ extension AppDelegate {
             check(phrase.copyText == phrase.selection.text, "Copy on a phrase card copies just the highlighted text")
         }
 
+        // 7b. Listen reads the word alone when the voice will say it the way the card reads
+        //     it, else in context; it stops when the next card opens. Silent here.
+        Speaker.shared.volume = 0
+        defer { Speaker.shared.volume = 1 }
+        check(Speaker.shared.available, "a Mandarin voice is installed")
+        check(Reading.same("guan1 xi5", "guan1 xi4") && !Reading.same("hao3", "hao4"), "readings match across a neutral tone, not across other tones")
+        let backTo = lastLookupState?.context
+        check(lastLookupState?.speech.text == "关系", "Listen reads a word with one reading alone (关系 → \(lastLookupState?.speech.text ?? "nil"))")
+        show(word("他很好学。", 2), near: anchor)
+        await wait(0.8)
+        await waitForAnswer(lastLookupState)
+        if let hao = lastLookupState, hao.context.word == "好",
+           let rare = hao.senses.firstIndex(where: { $0.pinyin == "hao4" }), let usual = hao.senses.firstIndex(where: { $0.pinyin == "hao3" }) {
+            hao.pick(rare)
+            let inContext = hao.speech.text
+            check(inContext != "好" && inContext.contains("好"), "a rarer reading (好 as hào) is read in context (\(inContext))")
+            hao.pick(usual)
+            check(hao.speech.text == "好", "the everyday reading (好 as hǎo) is read alone")
+            Speaker.shared.toggle(inContext)
+            check(Speaker.shared.speaking == inContext, "Listen starts reading")
+            Speaker.shared.toggle(inContext)
+            check(Speaker.shared.speaking == nil, "pressing Listen again stops it")
+            Speaker.shared.toggle(inContext)
+        } else {
+            check(false, "a card for 好 with both readings")
+        }
+        if let backTo {
+            show(Selection(passage: backTo.passage, range: backTo.wordRange, bounds: nil, source: .accessibility, appName: "Simulation"), near: anchor)
+            await wait(0.3)
+            check(Speaker.shared.speaking == nil, "the next card stops the reading")
+            await wait(1.2)
+            await waitForAnswer(lastLookupState)
+        }
+
         // 8. The side edges set the width (the text keeps its size and the height follows
         //    the content); the corners scale the card, text and all; pinching zooms too.
         if let l = popup.currentLayout, l.placedBelow {
