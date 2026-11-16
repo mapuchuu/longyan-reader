@@ -11,6 +11,9 @@
   "一个|yi1 ge5|the whole (afternoon, summer vacation etc)" : [
     "他一个下午都在睡觉。"
   ],
+  "一刀切|yi1 dao1 qie1|lit. to cut all at one stroke (idiom); to impose uniformity" : [
+    "这项规定不能一刀切，要看各地情况。"
+  ],
   "一定|yi1 ding4|a certain ...; a given ..." : [
     "这件事在一定程度上影响了销量。"
   ],
@@ -49,6 +52,9 @@
     "九十年代工厂倒闭，我爸妈都下岗了。",
     "下岗以后，他在街边摆摊卖早点。"
   ],
+  "下放|xia4 fang4|to demote a party cadre to work on the shop floor or in the countryside" : [
+    "那几年他被下放到农村劳动。"
+  ],
   "下海|xia4 hai3|(fig.) to take the plunge (e.g. leave a secure job, or enter prostitution etc)" : [
     "九十年代他辞掉了铁饭碗，下海经商。",
     "很多老师当年都下海做生意了。"
@@ -65,6 +71,9 @@
   "不会|bu4 hui4|will not (act, happen etc)" : [
     "放心，他不会告诉别人的。"
   ],
+  "不在|bu4 zai4|(euphemism) to pass away" : [
+    "我奶奶已经不在了，走了三年了。"
+  ],
   "不平|bu4 ping2|indignant" : [
     "听说这件事，大家都愤愤不平。"
   ],
@@ -76,6 +85,9 @@
   ],
   "不是|bu4 shi5|fault; blame" : [
     "这件事是我的不是，我向你道歉。"
+  ],
+  "不行|bu4 xing2|be no good" : [
+    "今天爬了一天山，累得不行。"
   ],
   "不过|bu4 guo4|however" : [
     "这件衣服很好看，不过有点贵。"
@@ -104,6 +116,9 @@
   "东西|dong1 xi5|thing" : [
     "我去超市买点东西。",
     "你的东西都收拾好了吗？"
+  ],
+  "个体户|ge4 ti3 hu4|self-employed" : [
+    "他辞了工作，在街口开店当了个体户。"
   ],
   "主动|zhu3 dong4|active" : [
     "这种药要主动运输才能进入细胞。"
@@ -140,6 +155,9 @@
   "事业|shi4 ye4|career" : [
     "她现在一心扑在事业上。"
   ],
+  "二奶|er4 nai3|mistress" : [
+    "他在外地偷偷包了二奶。"
+  ],
   "人家|ren2 jia5|I, me (referring to oneself as \"one\" or \"people\")" : [
     "人家不想去嘛，你别逼我。"
   ],
@@ -162,6 +180,9 @@
   ],
   "什么|shen2 me5|what?" : [
     "你刚才说什么？"
+  ],
+  "什么人|shen2 me5 ren2|what (kind of) person?" : [
+    "你是什么人？凭什么管我的事？"
   ],
   "仁|ren2|humane" : [
     "孔子说，仁者爱人。",
@@ -189,7 +210,7 @@
     "这幅画的价值超过一百万。"
   ],
   "估计|gu1 ji4|(coll.) to reckon; to think (that ...)" : [
-    "都这么晚了，他估计不来了。"
+    "估计他今天又要加班了。"
   ],
   "估计|gu1 ji4|to estimate; to assess; to calculate" : [
     "专家估计今年的产量会增加一成。"
@@ -235,6 +256,9 @@
   "修行|xiu1 xing2|to devote oneself to spiritual development (esp. Buddhism or Daoism)" : [
     "他出家修行，每天念经打坐。",
     "师父领进门，修行在个人。"
+  ],
+  "倒爷|dao3 ye2|(coll.) a profiteer" : [
+    "八十年代他当过倒爷，赚了第一桶金。"
   ],
   "先生|xian1 sheng5|gentleman; sir; mister (Mr.)" : [
     "李先生，您的电话。",
@@ -300,11 +324,17 @@
   "前景|qian2 jing3|foreground" : [
     "照片的前景是一片花，后面才是山。"
   ],
+  "功夫|gong1 fu5|effort" : [
+    "他在书法上下了很多功夫。"
+  ],
   "加入|jia1 ru4|to add in" : [
     "煮开后加入一勺盐。"
   ],
   "加入|jia1 ru4|to join" : [
     "他去年加入了学校的篮球队。"
+  ],
+  "加油|jia1 you2|(fig.) to make an extra effort; to cheer sb on" : [
+    "明天就要考试了，加油！"
   ],
   "动手|dong4 shou3|to raise a hand to hit sb" : [
     "有话好好说，千万别动手。"
@@ -314,6 +344,9 @@
   ],
   "动手|dong4 shou3|to touch; to handle (typically used in cautioning sb *not* to touch sth)" : [
     "展品请勿动手触摸。"
+  ],
+  "北漂|bei3 piao1|migrant worker living and working in Beijing or Taipei without a residence permit" : [
+    "在北京做了五年北漂，他还是租着地下室。"
   ],
   "半天|ban4 tian1|a long time" : [
     "我找了半天，钥匙原来在口袋里。"
@@ -375,6 +408,9 @@
   "反正|fan3 zheng4|to come over from the enemy's side" : [
     "这支部队后来阵前反正，投向了我军。"
   ],
+  "发小|fa4 xiao3|(dialect) close childhood friend whom one grew up with" : [
+    "我和他是发小，从小在一个院里长大。"
+  ],
   "发达|fa1 da2|(literary) to achieve fame and fortune; to prosper" : [
     "等他发达了，就不认识我们了。"
   ],
@@ -397,12 +433,24 @@
   "可是|ke3 shi4|but; however" : [
     "我很想去，可是没时间。"
   ],
+  "右派|you4 pai4|rightist" : [
+    "他父亲五七年被打成右派。"
+  ],
   "吃亏|chi1 kui1|to lose out" : [
     "你太老实了，这样会吃亏的。",
     "跟他做生意，我从来没吃过亏。"
   ],
   "吃亏|chi1 kui1|unfortunately" : [
     "他吃亏在没有学历，所以升不上去。"
+  ],
+  "吃货|chi1 huo4|foodie" : [
+    "作为一个吃货，到哪儿都要先找好吃的。"
+  ],
+  "吃饭|chi1 fan4|to have a meal" : [
+    "今天我请你吃饭，别跟我抢着付钱。"
+  ],
+  "吃饭|chi1 fan4|to make a living" : [
+    "他没什么学历，全靠手艺吃饭。"
   ],
   "同志|tong2 zhi4|(slang) homosexual" : [
     "他是同志，最近刚和男朋友出柜。"
@@ -435,6 +483,15 @@
   "和谐|he2 xie2|harmonious" : [
     "他们一家人生活得很和谐。"
   ],
+  "喜酒|xi3 jiu3|wedding feast" : [
+    "下个月我要回老家喝喜酒。"
+  ],
+  "嘀咕|di2 gu5|to feel apprehensive" : [
+    "他这么热情，我心里直犯嘀咕。"
+  ],
+  "回扣|hui2 kou4|a kickback" : [
+    "这位采购经理因为收回扣被公司开除了。"
+  ],
   "圈子|quan1 zi5|(social) circle" : [
     "他不在我们这个圈子里，大家都不太熟。",
     "娱乐圈的圈子很小，谁和谁都认识。"
@@ -449,14 +506,29 @@
     "你这身衣服太土了，像我爸年轻时候穿的。",
     "他觉得自己的名字太土，想改个洋气点的。"
   ],
+  "土豪|tu3 hao2|(slang) nouveau riche" : [
+    "他开着跑车来上班，真是个土豪。"
+  ],
+  "土豪|tu3 hao2|local tyrant" : [
+    "旧社会的土豪霸占了村里大半的地。"
+  ],
   "地下|di4 xia4|covert; clandestine" : [
     "他们的恋情一直是地下的。"
+  ],
+  "坑爹|keng1 die1|(vulgar) (of sth that makes one feel misled or let down etc) to be a big disappointment" : [
+    "花了这么多钱，结果这么坑爹。"
   ],
   "埋头|mai2 tou2|to immerse oneself in" : [
     "他整天埋头写论文，饭都顾不上吃。"
   ],
   "埋头|mai2 tou2|to lower the head (e.g. to avoid rain)" : [
     "雨太大了，他埋头往家跑。"
+  ],
+  "城中村|cheng2 zhong1 cun1|village within a city" : [
+    "刚毕业时，他在城中村租了个单间。"
+  ],
+  "城管|cheng2 guan3|local government bylaw enforcement officer" : [
+    "城管来了，小贩们赶紧收摊。"
   ],
   "基准|ji1 zhun3|standard; criterion; benchmark" : [
     "这次考核以去年的业绩作为基准。"
@@ -470,17 +542,26 @@
   "处理|chu3 li3|to sell at reduced prices" : [
     "这批衣服过季了，打五折处理。"
   ],
+  "备案|bei4 an4|to put on record" : [
+    "新网站上线前要先去备案。"
+  ],
   "外人|wai4 ren2|foreigner" : [
     "这是我们的内政，不容外人干涉。"
   ],
   "外人|wai4 ren2|outsider" : [
     "这是家里的事，不好跟外人说。"
   ],
+  "外卖|wai4 mai4|takeout (meal)" : [
+    "太累了，今晚点个外卖吧。"
+  ],
   "多久|duo1 jiu3|(not) a long time" : [
     "他走了没多久，你就来了。"
   ],
   "多久|duo1 jiu3|(of time) how long?" : [
     "你在这儿等了多久？"
+  ],
+  "大妈|da4 ma1|aunt (affectionate term for an elderly woman)" : [
+    "几个大妈在小区门口聊天。"
   ],
   "大姐|da4 jie3|elder sister" : [
     "我大姐比我大十岁，已经当奶奶了。"
@@ -500,11 +581,20 @@
   "大概|da4 gai4|roughly" : [
     "从这儿到车站大概要十分钟。"
   ],
+  "大爷|da4 ye2|arrogant idler" : [
+    "他在家里什么都不干，像个大爷。"
+  ],
+  "大爷|da4 ye5|term of respect for older man" : [
+    "楼下的王大爷每天早上都去公园遛鸟。"
+  ],
   "大约|da4 yue1|approximately" : [
     "这儿离机场大约三十公里。"
   ],
   "大约|da4 yue1|probably" : [
     "他这么晚没到，大约是堵车了。"
+  ],
+  "太太|tai4 tai5|Mrs." : [
+    "王太太今天没来打麻将。"
   ],
   "奇葩|qi2 pa1|(slang) weirdo" : [
     "我们公司有个奇葩，上班穿睡衣。",
@@ -512,6 +602,9 @@
   ],
   "奇葩|qi2 pa1|exotic flower" : [
     "这朵奇葩只在高山上开放。"
+  ],
+  "套路|tao4 lu4|routine" : [
+    "别信他的甜言蜜语，全是套路。"
   ],
   "委屈|wei3 qu5|to inconvenience; to put (sb) at a disadvantage; to do sb wrong" : [
     "这么小的房间，委屈你了，先将就住几天。",
@@ -543,6 +636,18 @@
   "孝|xiao4|mourning apparel" : [
     "家里有人去世，晚辈们都穿着孝。"
   ],
+  "学历|xue2 li4|educational background" : [
+    "这个岗位要求本科以上学历。"
+  ],
+  "守岁|shou3 sui4|to stay up all night on lunar New Year's Eve" : [
+    "除夕夜全家人坐在一起守岁，一直聊到天亮。"
+  ],
+  "安插|an1 cha1|to assign to a job" : [
+    "新领导一来就把亲信安插到各个部门。"
+  ],
+  "安插|an1 cha1|to plant" : [
+    "他们在对手公司里安插了眼线。"
+  ],
   "安顿|an1 dun4|peaceful" : [
     "孩子这几天睡得挺安顿。"
   ],
@@ -555,6 +660,9 @@
   "完全|wan2 quan2|totally; entirely" : [
     "我完全同意你的看法。"
   ],
+  "官僚|guan1 liao2|bureaucratic" : [
+    "这个办事员态度太官僚了，问什么都说不知道。"
+  ],
   "实在|shi2 zai4|honest" : [
     "他这个人很实在，从不说空话。",
     "这家店的老板很实在，东西又好又便宜。"
@@ -562,6 +670,9 @@
   "实在|shi2 zai4|really" : [
     "这道题实在太难了。",
     "我实在想不起来他叫什么名字了。"
+  ],
+  "审查|shen3 cha2|censorship" : [
+    "这部电影还没通过审查，暂时不能上映。"
   ],
   "对象|dui4 xiang4|partner; boyfriend; girlfriend" : [
     "你有对象了吗？妈妈帮你介绍一个。",
@@ -575,6 +686,9 @@
   ],
   "导游|dao3 you2|tour guide" : [
     "这位导游对长城的历史特别熟。"
+  ],
+  "小三|xiao3 san1|mistress" : [
+    "她发现丈夫外面有了小三。"
   ],
   "小人|xiao3 ren2|I, me (used to refer humbly to oneself)" : [
     "小人不敢，请大人明察。"
@@ -599,6 +713,18 @@
   "小姐|xiao3 jie5|young lady" : [
     "她是大户人家的小姐，从小什么活都没干过。"
   ],
+  "小姐姐|xiao3 jie3 jie5|(neologism c. 2017) (slang) young lady (amiable form of address for a young woman of about one's own age or a little older)" : [
+    "前台的小姐姐很耐心地帮我解答。"
+  ],
+  "小康|xiao3 kang1|moderately affluent" : [
+    "这几年村里不少人家过上了小康生活。"
+  ],
+  "小金库|xiao3 jin1 ku4|private hoard" : [
+    "她发现丈夫偷偷藏了一个小金库。"
+  ],
+  "小金库|xiao3 jin1 ku4|slush fund" : [
+    "审计发现这个单位私设小金库。"
+  ],
   "就是|jiu4 shi4|(used correlatively with 也[ye3]) even; even if" : [
     "就是下大雨，我也要去。"
   ],
@@ -610,6 +736,9 @@
   ],
   "尽管|jin3 guan3|do not hesitate (to ask, complain etc)" : [
     "有什么需要尽管开口。"
+  ],
+  "山寨|shan1 zhai4|(fig.) knockoff (goods)" : [
+    "这款手机是山寨货，用了一个月就坏了。"
   ],
   "崛起|jue2 qi3|the emergence (e.g. of a power)" : [
     "中国的崛起改变了世界格局。",
@@ -680,6 +809,9 @@
   "底层|di3 ceng2|lowest level; lowest rung (of society etc)" : [
     "他从公司的底层一步步做到了经理。"
   ],
+  "开后门|kai1 hou4 men2|to do a secret or dishonest deal" : [
+    "他托关系给儿子开后门进了那所学校。"
+  ],
   "开放|kai1 fang4|to be open (to the public)" : [
     "博物馆周一不开放。"
   ],
@@ -704,6 +836,9 @@
   "当时|dang4 shi2|immediately; right then" : [
     "他听完当时就翻脸了。"
   ],
+  "形式主义|xing2 shi4 zhu3 yi4|excessive concern with form over substance" : [
+    "每周写三份总结，纯粹是形式主义。"
+  ],
   "待遇|dai4 yu4|pay" : [
     "那家公司待遇高，就是经常加班。"
   ],
@@ -715,6 +850,9 @@
   ],
   "得罪|de2 zui5|to offend sb" : [
     "他说话太直，得罪了不少人。"
+  ],
+  "心机|xin1 ji1|scheme" : [
+    "这个女人很有心机，你要小心。"
   ],
   "心疼|xin1 teng2|to feel sorry for sb" : [
     "看你每天加班到半夜，妈妈真心疼你。",
@@ -733,11 +871,17 @@
   "心虚|xin1 xu1|to have a guilty conscience" : [
     "一问起那笔钱，他就心虚了，不敢看我。"
   ],
+  "志愿|zhi4 yuan4|aspiration" : [
+    "她的第一志愿是北京的一所大学。"
+  ],
   "怎么|zen3 me5|how?" : [
     "这个字怎么读？"
   ],
   "怎么|zen3 me5|why?" : [
     "你怎么还没走？"
+  ],
+  "总结|zong3 jie2|summary" : [
+    "年底了，每个人都要交一份工作总结。"
   ],
   "悠悠|you1 you1|lasting for ages" : [
     "悠悠千年的历史，都写在这些石头上。"
@@ -774,6 +918,9 @@
   "意见|yi4 jian4|objection" : [
     "他对老板很有意见。"
   ],
+  "感情|gan3 qing2|affection; feelings between two persons" : [
+    "他们俩结婚十年，感情一直很好。"
+  ],
   "户口|hu4 kou3|(in Hong Kong and Macau) bank account" : [
     "我在香港开了一个银行户口。"
   ],
@@ -794,6 +941,18 @@
   "打击|da3 ji1|(psychological) shock" : [
     "这次失败对他打击很大。"
   ],
+  "打卡|da3 ka3|(on social media) to check in to a location" : [
+    "周末我们去那家网红咖啡馆打卡吧。"
+  ],
+  "打太极|da3 tai4 ji2|(fig.) to avoid responsibility" : [
+    "记者追问了三次，发言人一直在打太极。"
+  ],
+  "打官腔|da3 guan1 qiang1|to talk officiously" : [
+    "有问题就直说，别跟我打官腔。"
+  ],
+  "打酱油|da3 jiang4 you2|it's none of my business (\"I’m just here to buy some soy sauce\")" : [
+    "这次比赛我就是去打酱油的。"
+  ],
   "打量|da3 liang5|to size sb up" : [
     "门卫上下打量了我一番。"
   ],
@@ -813,11 +972,17 @@
   "报告|bao4 gao4|speech" : [
     "校长在大会上作了一个报告。"
   ],
+  "拍马屁|pai1 ma3 pi4|to flatter" : [
+    "他就知道拍马屁，同事都看不起他。"
+  ],
   "拒接|ju4 jie1|to refuse to take a call" : [
     "我给他打了三次电话，都被拒接了。"
   ],
   "拒接|ju4 jie1|to reject" : [
     "这家酒店拒接没有预约的客人。"
+  ],
+  "拜年|bai4 nian2|to pay a New Year call" : [
+    "大年初一一早，我们去给爷爷奶奶拜年。"
   ],
   "接着|jie1 zhe5|then" : [
     "他先去了北京，接着又去了上海。"
@@ -828,6 +993,9 @@
   "接着|jie1 zhe5|to continue" : [
     "你接着说，我听着呢。"
   ],
+  "摆架子|bai3 jia4 zi5|to put on airs" : [
+    "新来的经理一点也不摆架子，很好说话。"
+  ],
   "摸鱼|mo1 yu2|(fig.) to loaf on the job; to be slack; to take it easy" : [
     "今天老板不在，大家都在摸鱼。",
     "上班摸鱼刷手机，被领导抓到了。"
@@ -835,11 +1003,20 @@
   "摸鱼|mo1 yu2|to catch fish" : [
     "小时候我们常在小河里摸鱼。"
   ],
+  "擦边球|ca1 bian1 qiu2|(fig.) actions that are technically legal but perhaps not respectable" : [
+    "这家公司靠打擦边球赚钱，迟早出事。"
+  ],
+  "教养|jiao4 yang3|upbringing; breeding; culture" : [
+    "在公共场合大喊大叫，真没教养。"
+  ],
   "文职|wen2 zhi2|administration" : [
     "公司招一名文职，主要负责整理合同。"
   ],
   "文职|wen2 zhi2|civilian post (as opposed to military)" : [
     "她在部队里是文职，不用上前线。"
+  ],
+  "方便|fang1 bian4|convenient; suitable" : [
+    "现在说话方便吗？我有点事想问你。"
   ],
   "方面|fang1 mian4|aspect" : [
     "这个问题要从两个方面来看。"
@@ -865,6 +1042,9 @@
   ],
   "有些|you3 xie1|somewhat; rather; a bit" : [
     "听到这个消息，我有些难过。"
+  ],
+  "朋友圈|Peng2 you5 quan1|Moments (social networking function of smartphone app WeChat 微信[Wei1 xin4])" : [
+    "她每天都在朋友圈晒孩子的照片。"
   ],
   "机关|ji1 guan1|mechanism; gear" : [
     "这只箱子有机关，一按就开。"
@@ -957,6 +1137,9 @@
   "没事|mei2 shi4|to have nothing to do" : [
     "周末没事的话，来我家吃饭吧。"
   ],
+  "流浪|liu2 lang4|homeless" : [
+    "小区里有几只流浪猫，邻居常去喂。"
+  ],
   "混|hun4|to mix" : [
     "把面粉和水混在一起。"
   ],
@@ -973,6 +1156,9 @@
   ],
   "清明|qing1 ming2|clear and bright" : [
     "雨后的天空格外清明。"
+  ],
+  "爱人|ai4 ren5|spouse (PRC)" : [
+    "这是我爱人，我们结婚十年了。"
   ],
   "爽快|shuang3 kuai5|frank and straightforward" : [
     "他很爽快，当场就把合同签了。"
@@ -1009,6 +1195,9 @@
   "理论|li3 lun4|to argue" : [
     "他不服气，非要去找老板理论理论。"
   ],
+  "瓜分|gua1 fen1|to partition" : [
+    "几家大公司瓜分了整个市场。"
+  ],
   "生产|sheng1 chan3|to give birth to a child" : [
     "她下个月就要生产了。"
   ],
@@ -1032,6 +1221,9 @@
   ],
   "电话|dian4 hua4|phone number" : [
     "把你的电话留给我吧。"
+  ],
+  "直播|zhi2 bo1|(Internet) to livestream" : [
+    "她每天晚上在网上直播卖衣服。"
   ],
   "相亲|xiang1 qin1|arranged interview to evaluate a proposed marriage partner (Taiwan pr. [xiang4 qin1])" : [
     "妈妈又给她安排了一次相亲，对方是个公务员。",
@@ -1107,6 +1299,9 @@
     "他想找一份稳定的工作，不想再换了。",
     "病人的情况已经稳定了。"
   ],
+  "空巢|kong1 chao2|empty nest" : [
+    "孩子都去外地工作了，家里成了空巢。"
+  ],
   "窝囊|wo1 nang5|good-for-nothing" : [
     "他是个窝囊废，什么事都办不成。"
   ],
@@ -1137,6 +1332,9 @@
   ],
   "算计|suan4 ji5|to scheme" : [
     "你小心点，别被他算计了。"
+  ],
+  "粉丝|fen3 si1|fan; enthusiast for sb or sth (loanword from \"fans\")" : [
+    "她的微博已经有一百万粉丝了。"
   ],
   "精神|jing1 shen5|vigor; vitality" : [
     "他穿上新西装，看起来特别精神。"
@@ -1199,6 +1397,9 @@
   "编制|bian1 zhi4|to compile; to put together (a lesson plan, budget etc)" : [
     "财务部正在编制明年的预算。"
   ],
+  "网红|wang3 hong2|(attributive) popular on the Internet" : [
+    "这家网红店每天都排长队。"
+  ],
   "群众|qun2 zhong4|mass" : [
     "广场上聚集了大量群众观看烟花。"
   ],
@@ -1222,6 +1423,9 @@
   ],
   "肯定|ken3 ding4|to give recognition; to affirm" : [
     "领导在会上肯定了我们这一年的工作。"
+  ],
+  "脸色|lian3 se4|look" : [
+    "我不想再看老板的脸色过日子了。"
   ],
   "脾气|pi2 qi5|bad temper" : [
     "他一喝酒就发脾气，家里人都怕他。"
@@ -1252,6 +1456,12 @@
     "要搬家了，我真舍不得这些老邻居。",
     "毕业的时候，大家都舍不得分开。"
   ],
+  "萌|meng2|(coll.) cute; adorable (orthographic borrowing from Japanese 萌え \"moe\", affection for an anime or manga character)" : [
+    "这只小猫太萌了，我想养一只。"
+  ],
+  "蜗居|wo1 ju1|to live (in a tiny, cramped space)" : [
+    "一家三口蜗居在不到二十平米的小屋里。"
+  ],
   "补|bu3|to make up for" : [
     "我上周请假了，这周要把课补上。"
   ],
@@ -1270,6 +1480,9 @@
   ],
   "表现|biao3 xian4|to show off" : [
     "他在领导面前总爱表现自己。"
+  ],
+  "裸婚|luo3 hun1|no-frills civil wedding ceremony lacking a material foundation: no car, house, reception, rings, or honeymoon" : [
+    "他们没买房也没办婚礼，选择了裸婚。"
   ],
   "规则|gui1 ze2|regular; orderly; fixed" : [
     "这块石头的形状很规则。"
@@ -1291,6 +1504,12 @@
   "计算|ji4 suan4|to plot; to scheme" : [
     "他心里一直在计算着怎么报复。"
   ],
+  "说法|shuo1 fa5|one's version (of events)" : [
+    "东西坏了没人管，我一定要讨个说法。"
+  ],
+  "调休|tiao2 xiu1|to compensate for working on a holiday by resting on a workday" : [
+    "这个周六加班，下周一我调休。"
+  ],
   "负担|fu4 dan1|burden" : [
     "孩子的学费成了家里的沉重负担。"
   ],
@@ -1302,6 +1521,9 @@
   ],
   "负责|fu4 ze2|to be responsible for; to be in charge of; to bear responsibility for" : [
     "这个项目由小王负责，有问题直接找他。"
+  ],
+  "资产阶级|zi1 chan3 jie1 ji2|the capitalist class" : [
+    "那时候喝咖啡会被说成资产阶级作风。"
   ],
   "资源|zi1 yuan2|natural resource (such as water or minerals)" : [
     "这个地区的矿产资源很丰富。"
@@ -1333,11 +1555,20 @@
   "走后门|zou3 hou4 men2|(lit.) to enter through the back door" : [
     "前门锁了，我们从后门走吧。"
   ],
+  "走心|zou3 xin1|to take care" : [
+    "这份生日礼物准备得很走心。"
+  ],
+  "起义|qi3 yi4|uprising" : [
+    "历史课上讲了好几次农民起义。"
+  ],
   "跟着|gen1 zhe5|immediately afterwards" : [
     "雷声一响，跟着就下起了大雨。"
   ],
   "跟着|gen1 zhe5|to follow after" : [
     "你跟着导游走，别走丢了。"
+  ],
+  "踢皮球|ti1 pi2 qiu2|(fig.) to mutually shirk responsibility" : [
+    "几个部门互相踢皮球，问题半年没解决。"
   ],
   "身上|shen1 shang5|at hand" : [
     "我身上没带现金，能扫码吗？"
@@ -1388,6 +1619,9 @@
   "过失|guo4 shi1|error" : [
     "这次事故是我的过失，我来承担。"
   ],
+  "还好|hai2 hao3|not bad; pretty good" : [
+    "这部电影怎么样？还好吧，没什么特别的。"
+  ],
   "还是|hai2 shi5|had better" : [
     "天快黑了，我们还是回去吧。"
   ],
@@ -1396,6 +1630,9 @@
   ],
   "还有|hai2 you3|there still remain(s); there is (or are) still" : [
     "离开车还有半个小时。"
+  ],
+  "进士|jin4 shi4|successful candidate in the highest imperial civil service examination" : [
+    "他的祖上出过三位进士。"
   ],
   "进门|jin4 men2|to enter a door" : [
     "一进门就闻到饭菜的香味。"
@@ -1447,6 +1684,9 @@
   "错误|cuo4 wu4|mistaken; false; wrong" : [
     "你这种想法是错误的。"
   ],
+  "闺女|gui1 nu:5|(coll.) daughter" : [
+    "他闺女今年考上了北京的大学。"
+  ],
   "阿姨|a1 yi2|childcare worker; nanny" : [
     "家里请了个阿姨，每天来做饭打扫。",
     "我们找了个阿姨帮忙带孩子。"
@@ -1489,6 +1729,9 @@
   "难过|nan2 guo4|to feel unwell" : [
     "我胃里很难过，想吐。"
   ],
+  "雷人|lei2 ren2|(Internet slang) shocking" : [
+    "这部剧的台词太雷人了。"
+  ],
   "青天|qing1 tian1|clear sky" : [
     "白日青天，万里无云。"
   ],
@@ -1511,6 +1754,12 @@
   "革命|ge2 ming4|to revolutionize (sth)" : [
     "智能手机彻底革命了人们的生活方式。"
   ],
+  "鞭炮|bian1 pao4|firecrackers" : [
+    "新店开张那天，门口放了好几挂鞭炮。"
+  ],
+  "韭菜|jiu3 cai4|(coll.) naive or easily exploited people (esp. small investors or consumers), likened to chives that can be repeatedly harvested for profit" : [
+    "股市一跌，散户又被割了韭菜。"
+  ],
   "领导|ling3 dao3|leader" : [
     "领导说明天要开会，大家准备一下材料。",
     "酒桌上要先给领导敬酒。"
@@ -1524,6 +1773,9 @@
   ],
   "风骨|feng1 gu3|vigorous style (of calligraphy)" : [
     "他的书法很有风骨，笔力遒劲。"
+  ],
+  "饭圈|fan4 quan1|fan community" : [
+    "饭圈的粉丝常常为偶像刷数据。"
   ],
   "骨干|gu3 gan4|diaphysis (long segment of a bone)" : [
     "X光显示他的骨干有一处裂缝。"
@@ -1547,5 +1799,8 @@
   ],
   "麻烦|ma2 fan5|trouble; inconvenience" : [
     "出了点麻烦，电脑坏了。"
+  ],
+  "黄牛|huang2 niu2|scalper of tickets etc" : [
+    "演唱会的票都被黄牛抢光了。"
   ]
 }

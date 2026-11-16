@@ -1,0 +1,4279 @@
+[
+  {
+    "rank" : 0,
+    "word" : "体积",
+    "senses" : [
+      {
+        "index" : 1,
+        "pinyin" : "ti3 ji1",
+        "gloss" : "volume (amount of space an object occupies)"
+      }
+    ],
+    "kind" : "frequent"
+  },
+  {
+    "kind" : "frequent",
+    "rank" : 0,
+    "word" : "当天",
+    "senses" : [
+      {
+        "index" : 1,
+        "pinyin" : "dang1 tian1",
+        "gloss" : "on that day"
+      },
+      {
+        "index" : 2,
+        "gloss" : "the same day",
+        "pinyin" : "dang4 tian1"
+      }
+    ]
+  },
+  {
+    "kind" : "frequent",
+    "rank" : 0,
+    "word" : "拿到",
+    "senses" : [
+      {
+        "pinyin" : "na2 dao4",
+        "gloss" : "to get",
+        "index" : 1
+      },
+      {
+        "pinyin" : "na2 dao4",
+        "gloss" : "to obtain",
+        "index" : 2
+      }
+    ]
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "mei2 fa3",
+        "index" : 1,
+        "gloss" : "at a loss"
+      },
+      {
+        "pinyin" : "mei2 fa3",
+        "index" : 2,
+        "gloss" : "unable to do anything about it"
+      },
+      {
+        "pinyin" : "mei2 fa3",
+        "index" : 3,
+        "gloss" : "to have no choice"
+      }
+    ],
+    "word" : "没法",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "hai2 hao3",
+        "index" : 1,
+        "gloss" : "not bad; pretty good"
+      },
+      {
+        "pinyin" : "hai2 hao3",
+        "index" : 2,
+        "gloss" : "fortunately; luckily"
+      }
+    ],
+    "word" : "还好",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "xie2 tiao2",
+        "index" : 1,
+        "gloss" : "to coordinate"
+      },
+      {
+        "pinyin" : "xie2 tiao2",
+        "index" : 2,
+        "gloss" : "to harmonize"
+      },
+      {
+        "pinyin" : "xie2 tiao2",
+        "index" : 3,
+        "gloss" : "to fit together"
+      },
+      {
+        "pinyin" : "xie2 tiao2",
+        "index" : 4,
+        "gloss" : "to match (colors etc)"
+      },
+      {
+        "pinyin" : "xie2 tiao2",
+        "index" : 5,
+        "gloss" : "harmonious"
+      },
+      {
+        "pinyin" : "xie2 tiao2",
+        "index" : 6,
+        "gloss" : "concerted"
+      }
+    ],
+    "word" : "协调",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "pai4 jian4",
+        "index" : 1,
+        "gloss" : "to deliver parcels (of a courier)"
+      }
+    ],
+    "word" : "派件",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "huang1 tang2",
+        "index" : 1,
+        "gloss" : "beyond belief"
+      },
+      {
+        "pinyin" : "huang1 tang2",
+        "index" : 2,
+        "gloss" : "preposterous"
+      },
+      {
+        "pinyin" : "huang1 tang2",
+        "index" : 3,
+        "gloss" : "absurd"
+      },
+      {
+        "pinyin" : "huang1 tang2",
+        "index" : 4,
+        "gloss" : "intemperate"
+      },
+      {
+        "pinyin" : "huang1 tang2",
+        "index" : 5,
+        "gloss" : "dissipated"
+      }
+    ],
+    "word" : "荒唐",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "yi1 hui4 r5",
+        "index" : 1,
+        "gloss" : "a moment"
+      },
+      {
+        "pinyin" : "yi1 hui4 r5",
+        "index" : 2,
+        "gloss" : "a while"
+      },
+      {
+        "pinyin" : "yi1 hui4 r5",
+        "index" : 3,
+        "gloss" : "in a moment"
+      },
+      {
+        "pinyin" : "yi1 hui4 r5",
+        "index" : 4,
+        "gloss" : "now...now..."
+      },
+      {
+        "pinyin" : "yi1 hui4 r5",
+        "index" : 5,
+        "gloss" : "also pr. [yi1 hui3 r5]"
+      }
+    ],
+    "word" : "一会儿",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "ye3 jiu4 shi4 shuo1",
+        "index" : 1,
+        "gloss" : "in other words"
+      },
+      {
+        "pinyin" : "ye3 jiu4 shi4 shuo1",
+        "index" : 2,
+        "gloss" : "that is to say"
+      },
+      {
+        "pinyin" : "ye3 jiu4 shi4 shuo1",
+        "index" : 3,
+        "gloss" : "so"
+      },
+      {
+        "pinyin" : "ye3 jiu4 shi4 shuo1",
+        "index" : 4,
+        "gloss" : "thus"
+      }
+    ],
+    "word" : "也就是说",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "dai4 shou1 huo4 kuan3",
+        "index" : 1,
+        "gloss" : "collect on delivery (COD)"
+      }
+    ],
+    "word" : "代收货款",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "fa1 yan2",
+        "index" : 1,
+        "gloss" : "to become inflamed"
+      },
+      {
+        "pinyin" : "fa1 yan2",
+        "index" : 2,
+        "gloss" : "inflammation"
+      }
+    ],
+    "word" : "发炎",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "na3 ge5",
+        "index" : 1,
+        "gloss" : "which"
+      },
+      {
+        "pinyin" : "na3 ge5",
+        "index" : 2,
+        "gloss" : "who"
+      }
+    ],
+    "word" : "哪个",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "an1 cha1",
+        "index" : 1,
+        "gloss" : "to place in a certain position"
+      },
+      {
+        "pinyin" : "an1 cha1",
+        "index" : 2,
+        "gloss" : "to assign to a job"
+      },
+      {
+        "pinyin" : "an1 cha1",
+        "index" : 3,
+        "gloss" : "to plant"
+      },
+      {
+        "pinyin" : "an1 cha1",
+        "index" : 4,
+        "gloss" : "resettlement (old)"
+      }
+    ],
+    "word" : "安插",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "zong3 jie2",
+        "index" : 1,
+        "gloss" : "to sum up"
+      },
+      {
+        "pinyin" : "zong3 jie2",
+        "index" : 2,
+        "gloss" : "to conclude"
+      },
+      {
+        "pinyin" : "zong3 jie2",
+        "index" : 3,
+        "gloss" : "summary"
+      },
+      {
+        "pinyin" : "zong3 jie2",
+        "index" : 4,
+        "gloss" : "résumé"
+      }
+    ],
+    "word" : "总结",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "ti2 yi4",
+        "index" : 1,
+        "gloss" : "to propose; to suggest; proposal; suggestion"
+      }
+    ],
+    "word" : "提议",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "shu4 zhi2",
+        "index" : 1,
+        "gloss" : "numerical value"
+      }
+    ],
+    "word" : "数值",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "man3 yuan2",
+        "index" : 1,
+        "gloss" : "full complement"
+      },
+      {
+        "pinyin" : "man3 yuan2",
+        "index" : 2,
+        "gloss" : "at full strength"
+      },
+      {
+        "pinyin" : "man3 yuan2",
+        "index" : 3,
+        "gloss" : "no vacancies"
+      }
+    ],
+    "word" : "满员",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "wu4 jian4",
+        "index" : 1,
+        "gloss" : "object"
+      }
+    ],
+    "word" : "物件",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "kong4 que1",
+        "index" : 1,
+        "gloss" : "vacancy"
+      }
+    ],
+    "word" : "空缺",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "suo3 xing4",
+        "index" : 1,
+        "gloss" : "you might as well (do it)"
+      },
+      {
+        "pinyin" : "suo3 xing4",
+        "index" : 2,
+        "gloss" : "simply"
+      },
+      {
+        "pinyin" : "suo3 xing4",
+        "index" : 3,
+        "gloss" : "just"
+      }
+    ],
+    "word" : "索性",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "zhuan3 zheng4",
+        "index" : 1,
+        "gloss" : "to transfer to full membership"
+      },
+      {
+        "pinyin" : "zhuan3 zheng4",
+        "index" : 2,
+        "gloss" : "to obtain tenure"
+      }
+    ],
+    "word" : "转正",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "bu4 ke3 yi3",
+        "index" : 1,
+        "gloss" : "may not"
+      }
+    ],
+    "word" : "不可以",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "bu4 zai4",
+        "index" : 1,
+        "gloss" : "not to be present"
+      },
+      {
+        "pinyin" : "bu4 zai4",
+        "index" : 2,
+        "gloss" : "to be out"
+      },
+      {
+        "pinyin" : "bu4 zai4",
+        "index" : 3,
+        "gloss" : "(euphemism) to pass away"
+      },
+      {
+        "pinyin" : "bu4 zai4",
+        "index" : 4,
+        "gloss" : "to be deceased"
+      }
+    ],
+    "word" : "不在",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "bu4 liao4",
+        "index" : 1,
+        "gloss" : "unexpectedly"
+      },
+      {
+        "pinyin" : "bu4 liao4",
+        "index" : 2,
+        "gloss" : "to one's surprise"
+      }
+    ],
+    "word" : "不料",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "bu4 nai4 fan2",
+        "index" : 1,
+        "gloss" : "impatient"
+      },
+      {
+        "pinyin" : "bu4 nai4 fan2",
+        "index" : 2,
+        "gloss" : "to lose patience"
+      }
+    ],
+    "word" : "不耐烦",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "yan2 li4",
+        "index" : 1,
+        "gloss" : "severe"
+      },
+      {
+        "pinyin" : "yan2 li4",
+        "index" : 2,
+        "gloss" : "strict"
+      }
+    ],
+    "word" : "严厉",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "wu3 xian3",
+        "index" : 1,
+        "gloss" : "the five social insurances (pension, medical, unemployment, work injury and maternity)"
+      }
+    ],
+    "word" : "五险",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "shen2 me5 ren2",
+        "index" : 1,
+        "gloss" : "who?"
+      },
+      {
+        "pinyin" : "shen2 me5 ren2",
+        "index" : 2,
+        "gloss" : "what (kind of) person?"
+      }
+    ],
+    "word" : "什么人",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "xin4 ren4",
+        "index" : 1,
+        "gloss" : "to trust"
+      },
+      {
+        "pinyin" : "xin4 ren4",
+        "index" : 2,
+        "gloss" : "to have confidence in"
+      }
+    ],
+    "word" : "信任",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "jia4 qi1",
+        "index" : 1,
+        "gloss" : "holiday period; vacation"
+      }
+    ],
+    "word" : "假期",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "chu3 cun2",
+        "index" : 1,
+        "gloss" : "stockpile"
+      },
+      {
+        "pinyin" : "chu3 cun2",
+        "index" : 2,
+        "gloss" : "to store"
+      },
+      {
+        "pinyin" : "chu3 cun2",
+        "index" : 3,
+        "gloss" : "to stockpile"
+      },
+      {
+        "pinyin" : "chu3 cun2",
+        "index" : 4,
+        "gloss" : "storage"
+      }
+    ],
+    "word" : "儲存",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "sheng4 xia4",
+        "index" : 1,
+        "gloss" : "to remain; to be left over"
+      }
+    ],
+    "word" : "剩下",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "ban4 li3",
+        "index" : 1,
+        "gloss" : "to handle; to transact; to conduct"
+      }
+    ],
+    "word" : "办理",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "fan3 fu4",
+        "index" : 1,
+        "gloss" : "repeatedly"
+      },
+      {
+        "pinyin" : "fan3 fu4",
+        "index" : 2,
+        "gloss" : "over and over"
+      },
+      {
+        "pinyin" : "fan3 fu4",
+        "index" : 3,
+        "gloss" : "to upend"
+      },
+      {
+        "pinyin" : "fan3 fu4",
+        "index" : 4,
+        "gloss" : "unstable"
+      },
+      {
+        "pinyin" : "fan3 fu4",
+        "index" : 5,
+        "gloss" : "to come and go"
+      },
+      {
+        "pinyin" : "fan3 fu4",
+        "index" : 6,
+        "gloss" : "(of an illness) to return"
+      }
+    ],
+    "word" : "反复",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "fa1 gei3",
+        "index" : 1,
+        "gloss" : "to issue"
+      },
+      {
+        "pinyin" : "fa1 gei3",
+        "index" : 2,
+        "gloss" : "to grant"
+      },
+      {
+        "pinyin" : "fa1 gei3",
+        "index" : 3,
+        "gloss" : "to distribute"
+      }
+    ],
+    "word" : "发给",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "chi1 fan4",
+        "index" : 1,
+        "gloss" : "to have a meal"
+      },
+      {
+        "pinyin" : "chi1 fan4",
+        "index" : 2,
+        "gloss" : "to eat"
+      },
+      {
+        "pinyin" : "chi1 fan4",
+        "index" : 3,
+        "gloss" : "to make a living"
+      }
+    ],
+    "word" : "吃饭",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "he2 yong4",
+        "index" : 1,
+        "gloss" : "to share"
+      },
+      {
+        "pinyin" : "he2 yong4",
+        "index" : 2,
+        "gloss" : "to use in common"
+      },
+      {
+        "pinyin" : "he2 yong4",
+        "index" : 3,
+        "gloss" : "suitable"
+      },
+      {
+        "pinyin" : "he2 yong4",
+        "index" : 4,
+        "gloss" : "fit for purpose"
+      },
+      {
+        "pinyin" : "he2 yong4",
+        "index" : 5,
+        "gloss" : "useable"
+      }
+    ],
+    "word" : "合用",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "han2 yi4",
+        "index" : 1,
+        "gloss" : "meaning (implicit in a phrase)"
+      },
+      {
+        "pinyin" : "han2 yi4",
+        "index" : 2,
+        "gloss" : "implied meaning"
+      },
+      {
+        "pinyin" : "han2 yi4",
+        "index" : 3,
+        "gloss" : "hidden meaning"
+      },
+      {
+        "pinyin" : "han2 yi4",
+        "index" : 4,
+        "gloss" : "hint"
+      },
+      {
+        "pinyin" : "han2 yi4",
+        "index" : 5,
+        "gloss" : "connotation"
+      }
+    ],
+    "word" : "含义",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "ai1 ya1",
+        "index" : 1,
+        "gloss" : "interjection of wonder, shock or admiration"
+      }
+    ],
+    "word" : "哎呀",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "di2 gu5",
+        "index" : 1,
+        "gloss" : "to mutter"
+      },
+      {
+        "pinyin" : "di2 gu5",
+        "index" : 2,
+        "gloss" : "to feel apprehensive"
+      }
+    ],
+    "word" : "嘀咕",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "hui2 jia1",
+        "index" : 1,
+        "gloss" : "to return home"
+      }
+    ],
+    "word" : "回家",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "hui2 yi4",
+        "index" : 1,
+        "gloss" : "to recall"
+      },
+      {
+        "pinyin" : "hui2 yi4",
+        "index" : 2,
+        "gloss" : "memories"
+      }
+    ],
+    "word" : "回忆",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "fu4 yin4 jian4",
+        "index" : 1,
+        "gloss" : "photocopy; duplicate"
+      }
+    ],
+    "word" : "复印件",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "xue2 li4",
+        "index" : 1,
+        "gloss" : "educational background"
+      },
+      {
+        "pinyin" : "xue2 li4",
+        "index" : 2,
+        "gloss" : "academic qualifications"
+      }
+    ],
+    "word" : "学历",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "xiao3 sheng1",
+        "index" : 1,
+        "gloss" : "in a low voice"
+      },
+      {
+        "pinyin" : "xiao3 sheng1",
+        "index" : 2,
+        "gloss" : "(speak) in whispers"
+      }
+    ],
+    "word" : "小声",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "gong1 hao4",
+        "index" : 1,
+        "gloss" : "employee number"
+      }
+    ],
+    "word" : "工号",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "di3 xin1",
+        "index" : 1,
+        "gloss" : "basic salary"
+      },
+      {
+        "pinyin" : "di3 xin1",
+        "index" : 2,
+        "gloss" : "base pay"
+      },
+      {
+        "pinyin" : "di3 xin1",
+        "index" : 3,
+        "gloss" : "salary floor"
+      }
+    ],
+    "word" : "底薪",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "yi4 chang2",
+        "index" : 1,
+        "gloss" : "unusual; abnormal"
+      },
+      {
+        "pinyin" : "yi4 chang2",
+        "index" : 2,
+        "gloss" : "extremely; exceptionally"
+      }
+    ],
+    "word" : "异常",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "nong4 xu1 zuo4 jia3",
+        "index" : 1,
+        "gloss" : "to practice fraud (idiom); by trickery"
+      }
+    ],
+    "word" : "弄虚作假",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "zong3 bu4",
+        "index" : 1,
+        "gloss" : "headquarters"
+      }
+    ],
+    "word" : "总部",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "yi4 yuan4",
+        "index" : 1,
+        "gloss" : "aspiration"
+      },
+      {
+        "pinyin" : "yi4 yuan4",
+        "index" : 2,
+        "gloss" : "wish (for)"
+      },
+      {
+        "pinyin" : "yi4 yuan4",
+        "index" : 3,
+        "gloss" : "desire"
+      }
+    ],
+    "word" : "意愿",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "tao1 qian2",
+        "index" : 1,
+        "gloss" : "to pay"
+      },
+      {
+        "pinyin" : "tao1 qian2",
+        "index" : 2,
+        "gloss" : "to spend money"
+      },
+      {
+        "pinyin" : "tao1 qian2",
+        "index" : 3,
+        "gloss" : "to fork out"
+      }
+    ],
+    "word" : "掏钱",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "ti2 cheng2",
+        "index" : 1,
+        "gloss" : "to take a percentage (from a sum of money)"
+      },
+      {
+        "pinyin" : "ti2 cheng2",
+        "index" : 2,
+        "gloss" : "a commission; a cut"
+      }
+    ],
+    "word" : "提成",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "jiao4 yang3",
+        "index" : 1,
+        "gloss" : "to educate; to bring up; to nurture"
+      },
+      {
+        "pinyin" : "jiao4 yang3",
+        "index" : 2,
+        "gloss" : "upbringing; breeding; culture"
+      }
+    ],
+    "word" : "教养",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "wu2 ke3 nai4 he2",
+        "index" : 1,
+        "gloss" : "have no way out"
+      },
+      {
+        "pinyin" : "wu2 ke3 nai4 he2",
+        "index" : 2,
+        "gloss" : "have no alternative"
+      },
+      {
+        "pinyin" : "wu2 ke3 nai4 he2",
+        "index" : 3,
+        "gloss" : "abbr. to 無奈|无奈[wu2 nai4]"
+      }
+    ],
+    "word" : "无可奈何",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "pu3 tong1 hua4",
+        "index" : 1,
+        "gloss" : "Putonghua; standard Mandarin"
+      }
+    ],
+    "word" : "普通话",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "ban3 qi3 lian3",
+        "index" : 1,
+        "gloss" : "to put on a stern face"
+      }
+    ],
+    "word" : "板起脸",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "bu4 bu4",
+        "index" : 1,
+        "gloss" : "step by step"
+      },
+      {
+        "pinyin" : "bu4 bu4",
+        "index" : 2,
+        "gloss" : "at every step"
+      }
+    ],
+    "word" : "步步",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "chen2 yu2 luo4 yan4",
+        "index" : 1,
+        "gloss" : "lit. fish sink, goose alights (idiom, from Zhuangzi 莊子|庄子[Zhuang1 zi3]); fig. female beauty captivating even the birds and beasts"
+      }
+    ],
+    "word" : "沉魚落雁",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "huo2 r5",
+        "index" : 1,
+        "gloss" : "work"
+      },
+      {
+        "pinyin" : "huo2 r5",
+        "index" : 2,
+        "gloss" : "(lots of) things to do"
+      }
+    ],
+    "word" : "活儿",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "pai4 gou4",
+        "index" : 1,
+        "gloss" : "fixed government purchase (esp of farm products)"
+      }
+    ],
+    "word" : "派购",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "liu2 lang4",
+        "index" : 1,
+        "gloss" : "to drift about"
+      },
+      {
+        "pinyin" : "liu2 lang4",
+        "index" : 2,
+        "gloss" : "to wander"
+      },
+      {
+        "pinyin" : "liu2 lang4",
+        "index" : 3,
+        "gloss" : "to roam"
+      },
+      {
+        "pinyin" : "liu2 lang4",
+        "index" : 4,
+        "gloss" : "nomadic"
+      },
+      {
+        "pinyin" : "liu2 lang4",
+        "index" : 5,
+        "gloss" : "homeless"
+      },
+      {
+        "pinyin" : "liu2 lang4",
+        "index" : 6,
+        "gloss" : "unsettled (e.g. population)"
+      },
+      {
+        "pinyin" : "liu2 lang4",
+        "index" : 7,
+        "gloss" : "vagrant"
+      }
+    ],
+    "word" : "流浪",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "zhao4 li4",
+        "index" : 1,
+        "gloss" : "as a rule"
+      },
+      {
+        "pinyin" : "zhao4 li4",
+        "index" : 2,
+        "gloss" : "as usual"
+      },
+      {
+        "pinyin" : "zhao4 li4",
+        "index" : 3,
+        "gloss" : "usually"
+      }
+    ],
+    "word" : "照例",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "yu4 nu:3",
+        "index" : 1,
+        "gloss" : "beautiful woman"
+      },
+      {
+        "pinyin" : "yu4 nu:3",
+        "index" : 2,
+        "gloss" : "fairy maiden attending the Daoist immortals"
+      },
+      {
+        "pinyin" : "yu4 nu:3",
+        "index" : 3,
+        "gloss" : "(polite) sb else's daughter"
+      },
+      {
+        "pinyin" : "yu4 nu:3",
+        "index" : 4,
+        "gloss" : "Chinese dodder (Cuscuta chinensis), plant whose seeds are used for TCM"
+      }
+    ],
+    "word" : "玉女",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "li3 ying1",
+        "index" : 1,
+        "gloss" : "should; ought to"
+      }
+    ],
+    "word" : "理应",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "gua1 fen1",
+        "index" : 1,
+        "gloss" : "to partition"
+      },
+      {
+        "pinyin" : "gua1 fen1",
+        "index" : 2,
+        "gloss" : "to divide up"
+      }
+    ],
+    "word" : "瓜分",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "zhao2 ji2",
+        "index" : 1,
+        "gloss" : "to worry; to feel anxious"
+      },
+      {
+        "pinyin" : "zhao2 ji2",
+        "index" : 2,
+        "gloss" : "to feel a sense of urgency; to be in a hurry"
+      }
+    ],
+    "word" : "着急",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "si1 xia4",
+        "index" : 1,
+        "gloss" : "in private"
+      }
+    ],
+    "word" : "私下",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "qian1 zheng4",
+        "index" : 1,
+        "gloss" : "visa"
+      },
+      {
+        "pinyin" : "qian1 zheng4",
+        "index" : 2,
+        "gloss" : "to issue a visa"
+      }
+    ],
+    "word" : "签证",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "jin3 bi1",
+        "index" : 1,
+        "gloss" : "to press hard"
+      },
+      {
+        "pinyin" : "jin3 bi1",
+        "index" : 2,
+        "gloss" : "to close in on"
+      }
+    ],
+    "word" : "紧逼",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "zhi2 yuan2",
+        "index" : 1,
+        "gloss" : "office worker"
+      },
+      {
+        "pinyin" : "zhi2 yuan2",
+        "index" : 2,
+        "gloss" : "staff member"
+      }
+    ],
+    "word" : "职员",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "lian3 se4",
+        "index" : 1,
+        "gloss" : "complexion"
+      },
+      {
+        "pinyin" : "lian3 se4",
+        "index" : 2,
+        "gloss" : "look"
+      }
+    ],
+    "word" : "脸色",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "xue4 zhi1",
+        "index" : 1,
+        "gloss" : "blood lipid"
+      }
+    ],
+    "word" : "血脂",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "xing2 cheng2",
+        "index" : 1,
+        "gloss" : "journey; travel route; itinerary"
+      },
+      {
+        "pinyin" : "xing2 cheng2",
+        "index" : 2,
+        "gloss" : "distance of travel"
+      },
+      {
+        "pinyin" : "xing2 cheng2",
+        "index" : 3,
+        "gloss" : "course (of history)"
+      },
+      {
+        "pinyin" : "xing2 cheng2",
+        "index" : 4,
+        "gloss" : "stroke (of a piston)"
+      },
+      {
+        "pinyin" : "xing2 cheng2",
+        "index" : 5,
+        "gloss" : "(Tw) (computing) process"
+      }
+    ],
+    "word" : "行程",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "ji4 cheng2 che1",
+        "index" : 1,
+        "gloss" : "(Tw) taxi; cab"
+      }
+    ],
+    "word" : "計程車",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "qing3 jia4",
+        "index" : 1,
+        "gloss" : "to request leave of absence"
+      }
+    ],
+    "word" : "请假",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "tiao2 xiu1",
+        "index" : 1,
+        "gloss" : "to compensate for working on a holiday by resting on a workday"
+      },
+      {
+        "pinyin" : "tiao2 xiu1",
+        "index" : 2,
+        "gloss" : "to compensate for resting on a workday by working on a holiday"
+      }
+    ],
+    "word" : "调休",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "ruan3 ti3",
+        "index" : 1,
+        "gloss" : "(of an animal) soft-bodied"
+      },
+      {
+        "pinyin" : "ruan3 ti3",
+        "index" : 2,
+        "gloss" : "(Tw) software"
+      }
+    ],
+    "word" : "軟體",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "zhuan3 tou2",
+        "index" : 1,
+        "gloss" : "to turn one's head"
+      },
+      {
+        "pinyin" : "zhuan3 tou2",
+        "index" : 2,
+        "gloss" : "to change direction"
+      },
+      {
+        "pinyin" : "zhuan3 tou2",
+        "index" : 3,
+        "gloss" : "U-turn"
+      },
+      {
+        "pinyin" : "zhuan3 tou2",
+        "index" : 4,
+        "gloss" : "volte face"
+      },
+      {
+        "pinyin" : "zhuan3 tou2",
+        "index" : 5,
+        "gloss" : "to repent"
+      },
+      {
+        "pinyin" : "zhuan4 tou2",
+        "index" : 6,
+        "gloss" : "nutation (plants turning to face the sun)"
+      }
+    ],
+    "word" : "转头",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "fan3 xiao4",
+        "index" : 1,
+        "gloss" : "to return to school"
+      }
+    ],
+    "word" : "返校",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "zhe4 tian1",
+        "index" : 1,
+        "gloss" : "this day"
+      }
+    ],
+    "word" : "这天",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "lian2 mang2",
+        "index" : 1,
+        "gloss" : "promptly; at once"
+      }
+    ],
+    "word" : "连忙",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "na4 shi2 hou5",
+        "index" : 1,
+        "gloss" : "at that time"
+      }
+    ],
+    "word" : "那时候",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "you2 xiang1",
+        "index" : 1,
+        "gloss" : "mailbox"
+      },
+      {
+        "pinyin" : "you2 xiang1",
+        "index" : 2,
+        "gloss" : "post office box"
+      },
+      {
+        "pinyin" : "you2 xiang1",
+        "index" : 3,
+        "gloss" : "email"
+      },
+      {
+        "pinyin" : "you2 xiang1",
+        "index" : 4,
+        "gloss" : "email inbox"
+      }
+    ],
+    "word" : "邮箱",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "xian2 xia2",
+        "index" : 1,
+        "gloss" : "leisure"
+      },
+      {
+        "pinyin" : "xian2 xia2",
+        "index" : 2,
+        "gloss" : "free time"
+      },
+      {
+        "pinyin" : "xian2 xia2",
+        "index" : 3,
+        "gloss" : "unoccupied"
+      },
+      {
+        "pinyin" : "xian2 xia2",
+        "index" : 4,
+        "gloss" : "not in use"
+      }
+    ],
+    "word" : "闲暇",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "ding3 ti4",
+        "index" : 1,
+        "gloss" : "to replace"
+      }
+    ],
+    "word" : "顶替",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "ma3 shang4",
+        "index" : 1,
+        "gloss" : "at once"
+      },
+      {
+        "pinyin" : "ma3 shang4",
+        "index" : 2,
+        "gloss" : "right away"
+      },
+      {
+        "pinyin" : "ma3 shang4",
+        "index" : 3,
+        "gloss" : "immediately"
+      },
+      {
+        "pinyin" : "ma3 shang4",
+        "index" : 4,
+        "gloss" : "on horseback (i.e. by military force)"
+      }
+    ],
+    "word" : "马上",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "bu4 jin1",
+        "index" : 1,
+        "gloss" : "can't help (doing sth)"
+      },
+      {
+        "pinyin" : "bu4 jin1",
+        "index" : 2,
+        "gloss" : "can't refrain from"
+      }
+    ],
+    "word" : "不禁",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "bai3 xing4",
+        "index" : 1,
+        "gloss" : "common people"
+      }
+    ],
+    "word" : "百姓",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "que1 fa2",
+        "index" : 1,
+        "gloss" : "to lack; to be short of"
+      }
+    ],
+    "word" : "缺乏",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "yuan4 xiao4",
+        "index" : 1,
+        "gloss" : "college"
+      },
+      {
+        "pinyin" : "yuan4 xiao4",
+        "index" : 2,
+        "gloss" : "academy"
+      },
+      {
+        "pinyin" : "yuan4 xiao4",
+        "index" : 3,
+        "gloss" : "educational institution"
+      }
+    ],
+    "word" : "院校",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "gong1 fu5",
+        "index" : 1,
+        "gloss" : "skill"
+      },
+      {
+        "pinyin" : "gong1 fu5",
+        "index" : 2,
+        "gloss" : "art"
+      },
+      {
+        "pinyin" : "gong1 fu5",
+        "index" : 3,
+        "gloss" : "kung fu"
+      },
+      {
+        "pinyin" : "gong1 fu5",
+        "index" : 4,
+        "gloss" : "labor"
+      },
+      {
+        "pinyin" : "gong1 fu5",
+        "index" : 5,
+        "gloss" : "effort"
+      }
+    ],
+    "word" : "功夫",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "lao3 shi1",
+        "index" : 1,
+        "gloss" : "teacher"
+      }
+    ],
+    "word" : "老师",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "li4 hai5",
+        "index" : 1,
+        "gloss" : "(used to describe sb or sth that makes a very strong impression, whether favorable or unfavorable) terrible; intense; severe; devastating; amazing; awesome; outstanding"
+      },
+      {
+        "pinyin" : "li4 hai5",
+        "index" : 2,
+        "gloss" : "(of a person) stern; strict; harsh; shrewd; tough"
+      },
+      {
+        "pinyin" : "li4 hai5",
+        "index" : 3,
+        "gloss" : "(of an animal) fierce"
+      },
+      {
+        "pinyin" : "li4 hai5",
+        "index" : 4,
+        "gloss" : "(of a resemblance) striking"
+      },
+      {
+        "pinyin" : "li4 hai5",
+        "index" : 5,
+        "gloss" : "(of liquor or chili pepper) strong"
+      },
+      {
+        "pinyin" : "li4 hai5",
+        "index" : 6,
+        "gloss" : "(of bacteria) virulent"
+      }
+    ],
+    "word" : "厉害",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "fang1 bian4",
+        "index" : 1,
+        "gloss" : "convenient; suitable"
+      },
+      {
+        "pinyin" : "fang1 bian4",
+        "index" : 2,
+        "gloss" : "to facilitate; to make things easy"
+      },
+      {
+        "pinyin" : "fang1 bian4",
+        "index" : 3,
+        "gloss" : "having money to spare"
+      },
+      {
+        "pinyin" : "fang1 bian4",
+        "index" : 4,
+        "gloss" : "(euphemism) to relieve oneself"
+      }
+    ],
+    "word" : "方便",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "you3 dian3",
+        "index" : 1,
+        "gloss" : "a little"
+      }
+    ],
+    "word" : "有点",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "hao3 xiang4",
+        "index" : 1,
+        "gloss" : "as if"
+      },
+      {
+        "pinyin" : "hao3 xiang4",
+        "index" : 2,
+        "gloss" : "to seem like"
+      }
+    ],
+    "word" : "好像",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "ying1 gai1",
+        "index" : 1,
+        "gloss" : "ought to; should; must"
+      }
+    ],
+    "word" : "应该",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "an1 pai2",
+        "index" : 1,
+        "gloss" : "to arrange"
+      },
+      {
+        "pinyin" : "an1 pai2",
+        "index" : 2,
+        "gloss" : "to plan"
+      },
+      {
+        "pinyin" : "an1 pai2",
+        "index" : 3,
+        "gloss" : "to set up"
+      },
+      {
+        "pinyin" : "an1 pai2",
+        "index" : 4,
+        "gloss" : "arrangements"
+      },
+      {
+        "pinyin" : "an1 pai2",
+        "index" : 5,
+        "gloss" : "plans"
+      }
+    ],
+    "word" : "安排",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "lao3 po2",
+        "index" : 1,
+        "gloss" : "(coll.) wife"
+      }
+    ],
+    "word" : "老婆",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "tai4 tai5",
+        "index" : 1,
+        "gloss" : "married woman"
+      },
+      {
+        "pinyin" : "tai4 tai5",
+        "index" : 2,
+        "gloss" : "Mrs."
+      },
+      {
+        "pinyin" : "tai4 tai5",
+        "index" : 3,
+        "gloss" : "Madam"
+      },
+      {
+        "pinyin" : "tai4 tai5",
+        "index" : 4,
+        "gloss" : "wife"
+      }
+    ],
+    "word" : "太太",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "jia1 you2",
+        "index" : 1,
+        "gloss" : "to add oil; to top up with gas; to refuel"
+      },
+      {
+        "pinyin" : "jia1 you2",
+        "index" : 2,
+        "gloss" : "to accelerate; to step on the gas"
+      },
+      {
+        "pinyin" : "jia1 you2",
+        "index" : 3,
+        "gloss" : "(fig.) to make an extra effort; to cheer sb on"
+      }
+    ],
+    "word" : "加油",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "piao4 liang5",
+        "index" : 1,
+        "gloss" : "pretty; beautiful"
+      }
+    ],
+    "word" : "漂亮",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "bu4 xing2",
+        "index" : 1,
+        "gloss" : "won't do"
+      },
+      {
+        "pinyin" : "bu4 xing2",
+        "index" : 2,
+        "gloss" : "be out of the question"
+      },
+      {
+        "pinyin" : "bu4 xing2",
+        "index" : 3,
+        "gloss" : "be no good"
+      },
+      {
+        "pinyin" : "bu4 xing2",
+        "index" : 4,
+        "gloss" : "not work"
+      },
+      {
+        "pinyin" : "bu4 xing2",
+        "index" : 5,
+        "gloss" : "not be capable"
+      }
+    ],
+    "word" : "不行",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "fu4 qin1",
+        "index" : 1,
+        "gloss" : "father"
+      },
+      {
+        "pinyin" : "fu4 qin1",
+        "index" : 2,
+        "gloss" : "also pr. [fu4 qin5]"
+      }
+    ],
+    "word" : "父亲",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "qi1 zi3",
+        "index" : 1,
+        "gloss" : "wife and children"
+      },
+      {
+        "pinyin" : "qi1 zi5",
+        "index" : 2,
+        "gloss" : "wife"
+      }
+    ],
+    "word" : "妻子",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "qi3 yi4",
+        "index" : 1,
+        "gloss" : "uprising"
+      },
+      {
+        "pinyin" : "qi3 yi4",
+        "index" : 2,
+        "gloss" : "insurrection"
+      },
+      {
+        "pinyin" : "qi3 yi4",
+        "index" : 3,
+        "gloss" : "revolt"
+      }
+    ],
+    "word" : "起义",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "gan3 qing2",
+        "index" : 1,
+        "gloss" : "emotion; sentiment"
+      },
+      {
+        "pinyin" : "gan3 qing2",
+        "index" : 2,
+        "gloss" : "affection; feelings between two persons"
+      }
+    ],
+    "word" : "感情",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "zhi4 yuan4",
+        "index" : 1,
+        "gloss" : "aspiration"
+      },
+      {
+        "pinyin" : "zhi4 yuan4",
+        "index" : 2,
+        "gloss" : "ambition"
+      },
+      {
+        "pinyin" : "zhi4 yuan4",
+        "index" : 3,
+        "gloss" : "to volunteer"
+      }
+    ],
+    "word" : "志愿",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "yin2 zi5",
+        "index" : 1,
+        "gloss" : "money"
+      },
+      {
+        "pinyin" : "yin2 zi5",
+        "index" : 2,
+        "gloss" : "silver"
+      }
+    ],
+    "word" : "银子",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "zhi2 bo1",
+        "index" : 1,
+        "gloss" : "(TV, radio) to broadcast live"
+      },
+      {
+        "pinyin" : "zhi2 bo1",
+        "index" : 2,
+        "gloss" : "live broadcast"
+      },
+      {
+        "pinyin" : "zhi2 bo1",
+        "index" : 3,
+        "gloss" : "(Internet) to livestream"
+      },
+      {
+        "pinyin" : "zhi2 bo1",
+        "index" : 4,
+        "gloss" : "(agriculture) direct seeding"
+      }
+    ],
+    "word" : "直播",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "gong1 zhu3",
+        "index" : 1,
+        "gloss" : "princess"
+      }
+    ],
+    "word" : "公主",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "bei4 an4",
+        "index" : 1,
+        "gloss" : "to put on record"
+      },
+      {
+        "pinyin" : "bei4 an4",
+        "index" : 2,
+        "gloss" : "to file"
+      }
+    ],
+    "word" : "备案",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "shen3 cha2",
+        "index" : 1,
+        "gloss" : "to examine"
+      },
+      {
+        "pinyin" : "shen3 cha2",
+        "index" : 2,
+        "gloss" : "to investigate"
+      },
+      {
+        "pinyin" : "shen3 cha2",
+        "index" : 3,
+        "gloss" : "to censor out"
+      },
+      {
+        "pinyin" : "shen3 cha2",
+        "index" : 4,
+        "gloss" : "censorship"
+      }
+    ],
+    "word" : "审查",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "shuo1 fa3",
+        "index" : 1,
+        "gloss" : "to expound Buddhist teachings"
+      },
+      {
+        "pinyin" : "shuo1 fa5",
+        "index" : 2,
+        "gloss" : "way of speaking"
+      },
+      {
+        "pinyin" : "shuo1 fa5",
+        "index" : 3,
+        "gloss" : "wording"
+      },
+      {
+        "pinyin" : "shuo1 fa5",
+        "index" : 4,
+        "gloss" : "formulation"
+      },
+      {
+        "pinyin" : "shuo1 fa5",
+        "index" : 5,
+        "gloss" : "one's version (of events)"
+      },
+      {
+        "pinyin" : "shuo1 fa5",
+        "index" : 6,
+        "gloss" : "statement"
+      },
+      {
+        "pinyin" : "shuo1 fa5",
+        "index" : 7,
+        "gloss" : "theory"
+      },
+      {
+        "pinyin" : "shuo1 fa5",
+        "index" : 8,
+        "gloss" : "hypothesis"
+      },
+      {
+        "pinyin" : "shuo1 fa5",
+        "index" : 9,
+        "gloss" : "interpretation"
+      }
+    ],
+    "word" : "说法",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "jin4 shi4",
+        "index" : 1,
+        "gloss" : "successful candidate in the highest imperial civil service examination"
+      },
+      {
+        "pinyin" : "jin4 shi4",
+        "index" : 2,
+        "gloss" : "palace graduate"
+      }
+    ],
+    "word" : "进士",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "ye2 ye5",
+        "index" : 1,
+        "gloss" : "(coll.) paternal grandfather; grandpa"
+      }
+    ],
+    "word" : "爷爷",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "nai3 nai5",
+        "index" : 1,
+        "gloss" : "(informal) grandma (paternal grandmother)"
+      },
+      {
+        "pinyin" : "nai3 nai5",
+        "index" : 2,
+        "gloss" : "(respectful) mistress of the house"
+      },
+      {
+        "pinyin" : "nai3 nai5",
+        "index" : 3,
+        "gloss" : "(coll.) boobies"
+      },
+      {
+        "pinyin" : "nai3 nai5",
+        "index" : 4,
+        "gloss" : "breasts"
+      }
+    ],
+    "word" : "奶奶",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "da4 ren5",
+        "index" : 1,
+        "gloss" : "adult"
+      },
+      {
+        "pinyin" : "da4 ren5",
+        "index" : 2,
+        "gloss" : "grownup"
+      },
+      {
+        "pinyin" : "da4 ren5",
+        "index" : 3,
+        "gloss" : "title of respect toward superiors"
+      }
+    ],
+    "word" : "大人",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "zhao4 gu5",
+        "index" : 1,
+        "gloss" : "to take care of"
+      },
+      {
+        "pinyin" : "zhao4 gu5",
+        "index" : 2,
+        "gloss" : "to show consideration"
+      },
+      {
+        "pinyin" : "zhao4 gu5",
+        "index" : 3,
+        "gloss" : "to attend to"
+      },
+      {
+        "pinyin" : "zhao4 gu5",
+        "index" : 4,
+        "gloss" : "to look after"
+      }
+    ],
+    "word" : "照顾",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "zi1 chan3 jie1 ji2",
+        "index" : 1,
+        "gloss" : "the capitalist class"
+      },
+      {
+        "pinyin" : "zi1 chan3 jie1 ji2",
+        "index" : 2,
+        "gloss" : "the bourgeoisie"
+      }
+    ],
+    "word" : "资产阶级",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "gu1 ji4",
+        "index" : 1,
+        "gloss" : "to estimate; to assess; to calculate"
+      },
+      {
+        "pinyin" : "gu1 ji4",
+        "index" : 2,
+        "gloss" : "(coll.) to reckon; to think (that ...)"
+      }
+    ],
+    "word" : "估计",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "ai4 ren5",
+        "index" : 1,
+        "gloss" : "spouse (PRC)"
+      },
+      {
+        "pinyin" : "ai4 ren5",
+        "index" : 2,
+        "gloss" : "lover (non-PRC)"
+      }
+    ],
+    "word" : "爱人",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "da4 ye2",
+        "index" : 1,
+        "gloss" : "arrogant idler"
+      },
+      {
+        "pinyin" : "da4 ye2",
+        "index" : 2,
+        "gloss" : "self-centered show-off"
+      },
+      {
+        "pinyin" : "da4 ye5",
+        "index" : 3,
+        "gloss" : "(coll.) father's older brother"
+      },
+      {
+        "pinyin" : "da4 ye5",
+        "index" : 4,
+        "gloss" : "uncle"
+      },
+      {
+        "pinyin" : "da4 ye5",
+        "index" : 5,
+        "gloss" : "term of respect for older man"
+      }
+    ],
+    "word" : "大爷",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "da4 ma1",
+        "index" : 1,
+        "gloss" : "father's elder brother's wife"
+      },
+      {
+        "pinyin" : "da4 ma1",
+        "index" : 2,
+        "gloss" : "aunt (affectionate term for an elderly woman)"
+      }
+    ],
+    "word" : "大妈",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "chi1 cu4",
+        "index" : 1,
+        "gloss" : "to feel jealous (esp. because of a rival in love or affection)"
+      }
+    ],
+    "word" : "吃醋",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "zuo4 yue4 zi5",
+        "index" : 1,
+        "gloss" : "to convalesce for a month following childbirth, following a special diet, and observing various taboos to protect the body from exposure to the \"wind\""
+      }
+    ],
+    "word" : "坐月子",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "xi3 jiu3",
+        "index" : 1,
+        "gloss" : "wedding feast"
+      },
+      {
+        "pinyin" : "xi3 jiu3",
+        "index" : 2,
+        "gloss" : "liquor drunk at a wedding feast"
+      }
+    ],
+    "word" : "喜酒",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "fen4 zi5 qian2",
+        "index" : 1,
+        "gloss" : "gift money (on the occasion of a wedding etc)"
+      }
+    ],
+    "word" : "份子钱",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "ya1 sui4 qian2",
+        "index" : 1,
+        "gloss" : "money given to children as a gift on Chinese New Year's Eve"
+      }
+    ],
+    "word" : "压岁钱",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "yue4 bing3",
+        "index" : 1,
+        "gloss" : "mooncake (esp. for the Mid-Autumn Festival)"
+      }
+    ],
+    "word" : "月饼",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "zong4 zi5",
+        "index" : 1,
+        "gloss" : "glutinous rice and choice of filling wrapped in leaves and steamed or boiled"
+      }
+    ],
+    "word" : "粽子",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "suan4 ming4",
+        "index" : 1,
+        "gloss" : "fortune-telling"
+      },
+      {
+        "pinyin" : "suan4 ming4",
+        "index" : 2,
+        "gloss" : "to tell fortune"
+      }
+    ],
+    "word" : "算命",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "ben3 ming4 nian2",
+        "index" : 1,
+        "gloss" : "year of one's birth sign, according to the cycle of 12 animals of the earthly branches 地支[di4 zhi1]"
+      }
+    ],
+    "word" : "本命年",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "huang2 niu2",
+        "index" : 1,
+        "gloss" : "ox; cattle"
+      },
+      {
+        "pinyin" : "huang2 niu2",
+        "index" : 2,
+        "gloss" : "scalper of tickets etc"
+      },
+      {
+        "pinyin" : "huang2 niu2",
+        "index" : 3,
+        "gloss" : "(dialect) to fail to show up"
+      },
+      {
+        "pinyin" : "huang2 niu2",
+        "index" : 4,
+        "gloss" : "(dialect) to break a promise"
+      }
+    ],
+    "word" : "黄牛",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "shan1 zhai4",
+        "index" : 1,
+        "gloss" : "fortified hill village"
+      },
+      {
+        "pinyin" : "shan1 zhai4",
+        "index" : 2,
+        "gloss" : "mountain stronghold (esp. of bandits)"
+      },
+      {
+        "pinyin" : "shan1 zhai4",
+        "index" : 3,
+        "gloss" : "(fig.) knockoff (goods)"
+      },
+      {
+        "pinyin" : "shan1 zhai4",
+        "index" : 4,
+        "gloss" : "counterfeit"
+      },
+      {
+        "pinyin" : "shan1 zhai4",
+        "index" : 5,
+        "gloss" : "imitation"
+      }
+    ],
+    "word" : "山寨",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "tu3 hao2",
+        "index" : 1,
+        "gloss" : "local tyrant"
+      },
+      {
+        "pinyin" : "tu3 hao2",
+        "index" : 2,
+        "gloss" : "local strong man"
+      },
+      {
+        "pinyin" : "tu3 hao2",
+        "index" : 3,
+        "gloss" : "(slang) nouveau riche"
+      }
+    ],
+    "word" : "土豪",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "gao1 fu4 shuai4",
+        "index" : 1,
+        "gloss" : "\"Mr Perfect\" (i.e. tall, rich and handsome) (Internet slang)"
+      }
+    ],
+    "word" : "高富帅",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "bai2 fu4 mei3",
+        "index" : 1,
+        "gloss" : "\"Ms Perfect\" (i.e. fair-skinned, rich and beautiful) (Internet slang)"
+      }
+    ],
+    "word" : "白富美",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "da3 ka3",
+        "index" : 1,
+        "gloss" : "(of an employee) to clock on (or off); to punch in (or out)"
+      },
+      {
+        "pinyin" : "da3 ka3",
+        "index" : 2,
+        "gloss" : "(on social media) to check in to a location"
+      }
+    ],
+    "word" : "打卡",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "wang3 hong2",
+        "index" : 1,
+        "gloss" : "Internet celebrity; influencer"
+      },
+      {
+        "pinyin" : "wang3 hong2",
+        "index" : 2,
+        "gloss" : "(attributive) popular on the Internet"
+      }
+    ],
+    "word" : "网红",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "zhong4 cao3",
+        "index" : 1,
+        "gloss" : "(neologism) (slang) to spark interest in a product or idea (esp. on social media)"
+      }
+    ],
+    "word" : "种草",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "chi1 gua1",
+        "index" : 1,
+        "gloss" : "(neologism c. 2016) (slang) to watch an entertaining spectacle from the sidelines and-or engage in gossip about it"
+      }
+    ],
+    "word" : "吃瓜",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "gang4 jing1",
+        "index" : 1,
+        "gloss" : "(slang) (neologism c. 2018) argumentative person"
+      }
+    ],
+    "word" : "杠精",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "lao3 tie3",
+        "index" : 1,
+        "gloss" : "(slang) very close friend; bro"
+      }
+    ],
+    "word" : "老铁",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "xiao3 xian1 rou4",
+        "index" : 1,
+        "gloss" : "(coll.) teen idol (male)"
+      }
+    ],
+    "word" : "小鲜肉",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "fu4 er4 dai4",
+        "index" : 1,
+        "gloss" : "children of entrepreneurs who became wealthy under Deng Xiaoping's economic reforms in the 1980s"
+      }
+    ],
+    "word" : "富二代",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "guan1 er4 dai4",
+        "index" : 1,
+        "gloss" : "children of officials"
+      },
+      {
+        "pinyin" : "guan1 er4 dai4",
+        "index" : 2,
+        "gloss" : "word created by analogy with 富二代[fu4 er4 dai4]"
+      }
+    ],
+    "word" : "官二代",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "pin1 die1",
+        "index" : 1,
+        "gloss" : "(slang) to rely on one's father's wealth or prestige to get ahead"
+      }
+    ],
+    "word" : "拼爹",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "ken3 lao3",
+        "index" : 1,
+        "gloss" : "(coll.) to live with and depend on one's parents even upon reaching adulthood"
+      }
+    ],
+    "word" : "啃老",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "luo3 hun1",
+        "index" : 1,
+        "gloss" : "lit. naked wedding"
+      },
+      {
+        "pinyin" : "luo3 hun1",
+        "index" : 2,
+        "gloss" : "no-frills civil wedding ceremony lacking a material foundation: no car, house, reception, rings, or honeymoon"
+      }
+    ],
+    "word" : "裸婚",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "fang2 nu2",
+        "index" : 1,
+        "gloss" : "a slave to one's mortgage"
+      }
+    ],
+    "word" : "房奴",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "xue2 qu1 fang2",
+        "index" : 1,
+        "gloss" : "a residential property located within the designated catchment area of a desirable school, often sought after by parents to secure school admission for their children"
+      }
+    ],
+    "word" : "学区房",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "wai4 mai4",
+        "index" : 1,
+        "gloss" : "(of a restaurant) to provide a takeout or home delivery meal"
+      },
+      {
+        "pinyin" : "wai4 mai4",
+        "index" : 2,
+        "gloss" : "takeout (business)"
+      },
+      {
+        "pinyin" : "wai4 mai4",
+        "index" : 3,
+        "gloss" : "takeout (meal)"
+      }
+    ],
+    "word" : "外卖",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "peng2 you5 quan1",
+        "index" : 1,
+        "gloss" : "circle of friends; social circle"
+      },
+      {
+        "pinyin" : "Peng2 you5 quan1",
+        "index" : 2,
+        "gloss" : "Moments (social networking function of smartphone app WeChat 微信[Wei1 xin4])"
+      }
+    ],
+    "word" : "朋友圈",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "peng4 ci2",
+        "index" : 1,
+        "gloss" : "(coll.) to scam sb by setting up an \"accident\" in which one appears to have sustained damage or injury caused by the scam victim, then demanding compensation (variations include putting \"expensive\" porcelain in a place where it is likely to be knocked over by passers-by, and stepping into the path of a slow-moving car)"
+      }
+    ],
+    "word" : "碰瓷",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "cheng2 guan3",
+        "index" : 1,
+        "gloss" : "local government bylaw enforcement officer"
+      },
+      {
+        "pinyin" : "cheng2 guan3",
+        "index" : 2,
+        "gloss" : "city management (abbr. for 城市管理行政執法局|城市管理行政执法局[Cheng2 shi4 Guan3 li3 Xing2 zheng4 Zhi2 fa3 ju2])"
+      }
+    ],
+    "word" : "城管",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "shang4 fang3",
+        "index" : 1,
+        "gloss" : "to seek an audience with higher-ups (esp. government officials) to petition for sth"
+      }
+    ],
+    "word" : "上访",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "chai1 qian1",
+        "index" : 1,
+        "gloss" : "to demolish a building and relocate the inhabitants"
+      }
+    ],
+    "word" : "拆迁",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "ding1 zi5 hu4",
+        "index" : 1,
+        "gloss" : "householder who refuses to vacate his home despite pressure from property developers"
+      }
+    ],
+    "word" : "钉子户",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "xiao3 san1",
+        "index" : 1,
+        "gloss" : "mistress"
+      },
+      {
+        "pinyin" : "xiao3 san1",
+        "index" : 2,
+        "gloss" : "the other woman (coll.)"
+      },
+      {
+        "pinyin" : "xiao3 san1",
+        "index" : 3,
+        "gloss" : "grade 3 in elementary school"
+      }
+    ],
+    "word" : "小三",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "er4 nai3",
+        "index" : 1,
+        "gloss" : "mistress"
+      },
+      {
+        "pinyin" : "er4 nai3",
+        "index" : 2,
+        "gloss" : "second wife"
+      },
+      {
+        "pinyin" : "er4 nai3",
+        "index" : 3,
+        "gloss" : "lover"
+      }
+    ],
+    "word" : "二奶",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "jiu3 cai4",
+        "index" : 1,
+        "gloss" : "garlic chives (Allium tuberosum), aka Chinese chives"
+      },
+      {
+        "pinyin" : "jiu3 cai4",
+        "index" : 2,
+        "gloss" : "(coll.) naive or easily exploited people (esp. small investors or consumers), likened to chives that can be repeatedly harvested for profit"
+      }
+    ],
+    "word" : "韭菜",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "bei1 guo1",
+        "index" : 1,
+        "gloss" : "(slang) (neologism derived from 背黑鍋|背黑锅[bei1 hei1 guo1]) to carry the can; to be a scapegoat"
+      }
+    ],
+    "word" : "背锅",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "shuai3 guo1",
+        "index" : 1,
+        "gloss" : "(neologism, attested by 2017) to shift the blame; to pass the buck"
+      }
+    ],
+    "word" : "甩锅",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "tao4 lu4",
+        "index" : 1,
+        "gloss" : "sequence of movements in martial arts"
+      },
+      {
+        "pinyin" : "tao4 lu4",
+        "index" : 2,
+        "gloss" : "routine"
+      },
+      {
+        "pinyin" : "tao4 lu4",
+        "index" : 3,
+        "gloss" : "pattern"
+      },
+      {
+        "pinyin" : "tao4 lu4",
+        "index" : 4,
+        "gloss" : "standard method"
+      }
+    ],
+    "word" : "套路",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "xin1 ji1",
+        "index" : 1,
+        "gloss" : "thinking"
+      },
+      {
+        "pinyin" : "xin1 ji1",
+        "index" : 2,
+        "gloss" : "scheme"
+      }
+    ],
+    "word" : "心机",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "zou3 xin1",
+        "index" : 1,
+        "gloss" : "to take care"
+      },
+      {
+        "pinyin" : "zou3 xin1",
+        "index" : 2,
+        "gloss" : "to be mindful"
+      },
+      {
+        "pinyin" : "zou3 xin1",
+        "index" : 3,
+        "gloss" : "poignant"
+      },
+      {
+        "pinyin" : "zou3 xin1",
+        "index" : 4,
+        "gloss" : "to have deep feelings for sb"
+      },
+      {
+        "pinyin" : "zou3 xin1",
+        "index" : 5,
+        "gloss" : "to lose one's heart to sb"
+      },
+      {
+        "pinyin" : "zou3 xin1",
+        "index" : 6,
+        "gloss" : "(Internet slang) to be moved by sth"
+      }
+    ],
+    "word" : "走心",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "da3 jiang4 you2",
+        "index" : 1,
+        "gloss" : "to buy soy sauce"
+      },
+      {
+        "pinyin" : "da3 jiang4 you2",
+        "index" : 2,
+        "gloss" : "it's none of my business (\"I’m just here to buy some soy sauce\")"
+      }
+    ],
+    "word" : "打酱油",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "lei2 ren2",
+        "index" : 1,
+        "gloss" : "appalling"
+      },
+      {
+        "pinyin" : "lei2 ren2",
+        "index" : 2,
+        "gloss" : "terrifying"
+      },
+      {
+        "pinyin" : "lei2 ren2",
+        "index" : 3,
+        "gloss" : "terrific"
+      },
+      {
+        "pinyin" : "lei2 ren2",
+        "index" : 4,
+        "gloss" : "(Internet slang) shocking"
+      }
+    ],
+    "word" : "雷人",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "keng1 die1",
+        "index" : 1,
+        "gloss" : "to get one's father involved in a difficult situation"
+      },
+      {
+        "pinyin" : "keng1 die1",
+        "index" : 2,
+        "gloss" : "(vulgar) (of sth that makes one feel misled or let down etc) to be a big disappointment"
+      }
+    ],
+    "word" : "坑爹",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "meng2",
+        "index" : 1,
+        "gloss" : "(coll.) cute; adorable (orthographic borrowing from Japanese 萌え \"moe\", affection for an anime or manga character)"
+      },
+      {
+        "pinyin" : "meng2",
+        "index" : 2,
+        "gloss" : "(bound form) to sprout; to bud"
+      }
+    ],
+    "word" : "萌",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "zhai2 nan2",
+        "index" : 1,
+        "gloss" : "a guy who stays at home all the time, typically spending a lot of time playing online games (derived from Japanese \"otaku\")"
+      }
+    ],
+    "word" : "宅男",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "fen3 si1",
+        "index" : 1,
+        "gloss" : "bean vermicelli; mung bean starch noodles; cellophane noodles"
+      },
+      {
+        "pinyin" : "fen3 si1",
+        "index" : 2,
+        "gloss" : "fan; enthusiast for sb or sth (loanword from \"fans\")"
+      }
+    ],
+    "word" : "粉丝",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "fan4 quan1",
+        "index" : 1,
+        "gloss" : "fan community"
+      },
+      {
+        "pinyin" : "fan4 quan1",
+        "index" : 2,
+        "gloss" : "fandom"
+      }
+    ],
+    "word" : "饭圈",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "xiao3 jie3 jie5",
+        "index" : 1,
+        "gloss" : "little girl who is older than another young child (e.g. her playmate)"
+      },
+      {
+        "pinyin" : "xiao3 jie3 jie5",
+        "index" : 2,
+        "gloss" : "(neologism c. 2017) (slang) young lady (amiable form of address for a young woman of about one's own age or a little older)"
+      }
+    ],
+    "word" : "小姐姐",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "guang3 chang3 wu3",
+        "index" : 1,
+        "gloss" : "square dancing, an exercise routine performed to music in public squares, parks and plazas, popular esp. among middle-aged and retired women in China"
+      }
+    ],
+    "word" : "广场舞",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "xiong2 hai2 zi5",
+        "index" : 1,
+        "gloss" : "(dialect) little devil; brat"
+      }
+    ],
+    "word" : "熊孩子",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "ma1 bao3",
+        "index" : 1,
+        "gloss" : "mama's boy"
+      }
+    ],
+    "word" : "妈宝",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "feng4 huang2 nan2",
+        "index" : 1,
+        "gloss" : "(Internet slang) guy who grew up in the countryside and gained a foothold in the city through hard work"
+      }
+    ],
+    "word" : "凤凰男",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "sheng4 nan2",
+        "index" : 1,
+        "gloss" : "(coll.) \"leftover man\" – a man who remains single beyond the typical marrying age"
+      }
+    ],
+    "word" : "剩男",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "ding1 ke4",
+        "index" : 1,
+        "gloss" : "Dual Income, No Kids (DINK) (loanword)"
+      }
+    ],
+    "word" : "丁克",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "du2 sheng1 zi3 nu:3",
+        "index" : 1,
+        "gloss" : "an only child"
+      }
+    ],
+    "word" : "独生子女",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "ji4 hua4 sheng1 yu4",
+        "index" : 1,
+        "gloss" : "family planning"
+      }
+    ],
+    "word" : "计划生育",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "liu2 shou3 er2 tong2",
+        "index" : 1,
+        "gloss" : "\"left-behind children\", rural children whose parents have to make a living as migrant workers in distant urban areas, but cannot afford to keep the family with them"
+      }
+    ],
+    "word" : "留守儿童",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "kong1 chao2",
+        "index" : 1,
+        "gloss" : "empty nest"
+      },
+      {
+        "pinyin" : "kong1 chao2",
+        "index" : 2,
+        "gloss" : "a home where the kids have grown up and moved out"
+      }
+    ],
+    "word" : "空巢",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "xiao3 kang1",
+        "index" : 1,
+        "gloss" : "moderately affluent"
+      },
+      {
+        "pinyin" : "xiao3 kang1",
+        "index" : 2,
+        "gloss" : "well-off"
+      },
+      {
+        "pinyin" : "xiao3 kang1",
+        "index" : 3,
+        "gloss" : "a period of peace and prosperity"
+      },
+      {
+        "pinyin" : "Xiao3 kang1",
+        "index" : 4,
+        "gloss" : "Xiaokang, a Confucian near-ideal state of society, second only to Datong 大同[Da4 tong2]"
+      }
+    ],
+    "word" : "小康",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "zou3 qin1 qi5",
+        "index" : 1,
+        "gloss" : "to visit relatives"
+      }
+    ],
+    "word" : "走亲戚",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "bai4 nian2",
+        "index" : 1,
+        "gloss" : "to pay a New Year call"
+      },
+      {
+        "pinyin" : "bai4 nian2",
+        "index" : 2,
+        "gloss" : "to wish sb a Happy New Year"
+      }
+    ],
+    "word" : "拜年",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "shou3 sui4",
+        "index" : 1,
+        "gloss" : "to see in the New Year"
+      },
+      {
+        "pinyin" : "shou3 sui4",
+        "index" : 2,
+        "gloss" : "to stay up all night on lunar New Year's Eve"
+      }
+    ],
+    "word" : "守岁",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "nian2 ye4 fan4",
+        "index" : 1,
+        "gloss" : "reunion dinner on Lunar New Year's Eve (Chinese New Year tradition)"
+      }
+    ],
+    "word" : "年夜饭",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "bian1 pao4",
+        "index" : 1,
+        "gloss" : "firecrackers"
+      },
+      {
+        "pinyin" : "bian1 pao4",
+        "index" : 2,
+        "gloss" : "string of small firecrackers"
+      }
+    ],
+    "word" : "鞭炮",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "chun1 lian2",
+        "index" : 1,
+        "gloss" : "Spring Festival couplet (the first line of which is pasted on the right side of a doorway at New Year, and the second on the left side)"
+      }
+    ],
+    "word" : "春联",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "mei2 ren5",
+        "index" : 1,
+        "gloss" : "matchmaker"
+      }
+    ],
+    "word" : "媒人",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "ru4 zhui4",
+        "index" : 1,
+        "gloss" : "to go and live with one's wife's family, in effect becoming a member of her family"
+      }
+    ],
+    "word" : "入赘",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "dao4 cha1 men2",
+        "index" : 1,
+        "gloss" : "(of the husband) to marry into and live with the wife's family (inverting traditional Chinese expectations)"
+      }
+    ],
+    "word" : "倒插门",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "zhou2 li5",
+        "index" : 1,
+        "gloss" : "wives of brothers; sisters-in-law"
+      }
+    ],
+    "word" : "妯娌",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "lao3 zhang4 ren5",
+        "index" : 1,
+        "gloss" : "(coll.) father-in-law (wife's father)"
+      }
+    ],
+    "word" : "老丈人",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "gan1 die1",
+        "index" : 1,
+        "gloss" : "adoptive father (traditional adoption, i.e. without legal ramifications)"
+      }
+    ],
+    "word" : "干爹",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "fa4 xiao3",
+        "index" : 1,
+        "gloss" : "a couple who grew up as childhood friends"
+      },
+      {
+        "pinyin" : "fa4 xiao3",
+        "index" : 2,
+        "gloss" : "(dialect) close childhood friend whom one grew up with"
+      }
+    ],
+    "word" : "发小",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "gui1 nu:5",
+        "index" : 1,
+        "gloss" : "maiden; unmarried woman"
+      },
+      {
+        "pinyin" : "gui1 nu:5",
+        "index" : 2,
+        "gloss" : "(coll.) daughter"
+      }
+    ],
+    "word" : "闺女",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "yang3 sheng1",
+        "index" : 1,
+        "gloss" : "to maintain good health"
+      },
+      {
+        "pinyin" : "yang3 sheng1",
+        "index" : 2,
+        "gloss" : "to raise a child or animal"
+      },
+      {
+        "pinyin" : "yang3 sheng1",
+        "index" : 3,
+        "gloss" : "curing (of concrete etc)"
+      }
+    ],
+    "word" : "养生",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "zhong1 yao4",
+        "index" : 1,
+        "gloss" : "traditional Chinese medicine"
+      }
+    ],
+    "word" : "中药",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "zhen1 jiu3",
+        "index" : 1,
+        "gloss" : "acupuncture and moxibustion"
+      },
+      {
+        "pinyin" : "zhen1 jiu3",
+        "index" : 2,
+        "gloss" : "to give or have acupuncture and moxibustion"
+      }
+    ],
+    "word" : "针灸",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "bu3 pin3",
+        "index" : 1,
+        "gloss" : "tonic"
+      }
+    ],
+    "word" : "补品",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "chi1 huo4",
+        "index" : 1,
+        "gloss" : "chowhound"
+      },
+      {
+        "pinyin" : "chi1 huo4",
+        "index" : 2,
+        "gloss" : "foodie"
+      },
+      {
+        "pinyin" : "chi1 huo4",
+        "index" : 3,
+        "gloss" : "a good-for-nothing"
+      }
+    ],
+    "word" : "吃货",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "ye4 xiao1",
+        "index" : 1,
+        "gloss" : "midnight snack"
+      }
+    ],
+    "word" : "夜宵",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "hui2 kou4",
+        "index" : 1,
+        "gloss" : "brokerage"
+      },
+      {
+        "pinyin" : "hui2 kou4",
+        "index" : 2,
+        "gloss" : "a commission paid to a middleman"
+      },
+      {
+        "pinyin" : "hui2 kou4",
+        "index" : 3,
+        "gloss" : "euphemism for a bribe"
+      },
+      {
+        "pinyin" : "hui2 kou4",
+        "index" : 4,
+        "gloss" : "a kickback"
+      }
+    ],
+    "word" : "回扣",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "song4 li3",
+        "index" : 1,
+        "gloss" : "to give a present"
+      }
+    ],
+    "word" : "送礼",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "pai1 ma3 pi4",
+        "index" : 1,
+        "gloss" : "to flatter"
+      },
+      {
+        "pinyin" : "pai1 ma3 pi4",
+        "index" : 2,
+        "gloss" : "to fawn on"
+      },
+      {
+        "pinyin" : "pai1 ma3 pi4",
+        "index" : 3,
+        "gloss" : "to butter sb up"
+      },
+      {
+        "pinyin" : "pai1 ma3 pi4",
+        "index" : 4,
+        "gloss" : "toadying"
+      },
+      {
+        "pinyin" : "pai1 ma3 pi4",
+        "index" : 5,
+        "gloss" : "bootlicking"
+      }
+    ],
+    "word" : "拍马屁",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "chuan1 xiao3 xie2",
+        "index" : 1,
+        "gloss" : "to have one's life made difficult by sb (usu. by sb in a position of authority) (lit. to be made to wear tight shoes)"
+      }
+    ],
+    "word" : "穿小鞋",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "da3 guan1 qiang1",
+        "index" : 1,
+        "gloss" : "to talk officiously"
+      },
+      {
+        "pinyin" : "da3 guan1 qiang1",
+        "index" : 2,
+        "gloss" : "to assume the air of a functionary"
+      },
+      {
+        "pinyin" : "da3 guan1 qiang1",
+        "index" : 3,
+        "gloss" : "to talk in official jargon"
+      }
+    ],
+    "word" : "打官腔",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "da3 tai4 ji2",
+        "index" : 1,
+        "gloss" : "to practice tai chi"
+      },
+      {
+        "pinyin" : "da3 tai4 ji2",
+        "index" : 2,
+        "gloss" : "(fig.) to avoid responsibility"
+      },
+      {
+        "pinyin" : "da3 tai4 ji2",
+        "index" : 3,
+        "gloss" : "to pass the buck"
+      }
+    ],
+    "word" : "打太极",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "ca1 bian1 qiu2",
+        "index" : 1,
+        "gloss" : "(table tennis) edge ball"
+      },
+      {
+        "pinyin" : "ca1 bian1 qiu2",
+        "index" : 2,
+        "gloss" : "(fig.) actions that are technically legal but perhaps not respectable"
+      }
+    ],
+    "word" : "擦边球",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "ti1 pi2 qiu2",
+        "index" : 1,
+        "gloss" : "to kick a ball around"
+      },
+      {
+        "pinyin" : "ti1 pi2 qiu2",
+        "index" : 2,
+        "gloss" : "(fig.) to mutually shirk responsibility"
+      },
+      {
+        "pinyin" : "ti1 pi2 qiu2",
+        "index" : 3,
+        "gloss" : "to pass the buck"
+      }
+    ],
+    "word" : "踢皮球",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "bei1 hei1 guo1",
+        "index" : 1,
+        "gloss" : "to be made a scapegoat; to be unjustly blamed"
+      }
+    ],
+    "word" : "背黑锅",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "zou3 guo4 chang3",
+        "index" : 1,
+        "gloss" : "to go through the motions"
+      }
+    ],
+    "word" : "走过场",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "yi1 dao1 qie1",
+        "index" : 1,
+        "gloss" : "lit. to cut all at one stroke (idiom); to impose uniformity"
+      },
+      {
+        "pinyin" : "yi1 dao1 qie1",
+        "index" : 2,
+        "gloss" : "one solution fits a diversity of problems"
+      },
+      {
+        "pinyin" : "yi1 dao1 qie1",
+        "index" : 3,
+        "gloss" : "one size fits all"
+      }
+    ],
+    "word" : "一刀切",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "xing2 shi4 zhu3 yi4",
+        "index" : 1,
+        "gloss" : "formalism (in philosophy, art, or literary theory)"
+      },
+      {
+        "pinyin" : "xing2 shi4 zhu3 yi4",
+        "index" : 2,
+        "gloss" : "excessive concern with form over substance"
+      }
+    ],
+    "word" : "形式主义",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "guan1 liao2",
+        "index" : 1,
+        "gloss" : "bureaucrat"
+      },
+      {
+        "pinyin" : "guan1 liao2",
+        "index" : 2,
+        "gloss" : "bureaucracy"
+      },
+      {
+        "pinyin" : "guan1 liao2",
+        "index" : 3,
+        "gloss" : "bureaucratic"
+      }
+    ],
+    "word" : "官僚",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "bai3 jia4 zi5",
+        "index" : 1,
+        "gloss" : "to put on airs"
+      },
+      {
+        "pinyin" : "bai3 jia4 zi5",
+        "index" : 2,
+        "gloss" : "to assume great airs"
+      }
+    ],
+    "word" : "摆架子",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "kai1 hou4 men2",
+        "index" : 1,
+        "gloss" : "to open the back door"
+      },
+      {
+        "pinyin" : "kai1 hou4 men2",
+        "index" : 2,
+        "gloss" : "fig. under the counter"
+      },
+      {
+        "pinyin" : "kai1 hou4 men2",
+        "index" : 3,
+        "gloss" : "to do a secret or dishonest deal"
+      },
+      {
+        "pinyin" : "kai1 hou4 men2",
+        "index" : 4,
+        "gloss" : "to let sth in by the back door"
+      }
+    ],
+    "word" : "开后门",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "qian2 gui1 ze2",
+        "index" : 1,
+        "gloss" : "unspoken rules (usually ones that codify improper behaviors such as leveraging guanxi to get favorable treatment, or coercing employees for sexual favors)"
+      }
+    ],
+    "word" : "潜规则",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "xiao3 jin1 ku4",
+        "index" : 1,
+        "gloss" : "supplementary cash reserve"
+      },
+      {
+        "pinyin" : "xiao3 jin1 ku4",
+        "index" : 2,
+        "gloss" : "private fund"
+      },
+      {
+        "pinyin" : "xiao3 jin1 ku4",
+        "index" : 3,
+        "gloss" : "private hoard"
+      },
+      {
+        "pinyin" : "xiao3 jin1 ku4",
+        "index" : 4,
+        "gloss" : "slush fund"
+      }
+    ],
+    "word" : "小金库",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "fan3 fu3",
+        "index" : 1,
+        "gloss" : "anti-corruption"
+      }
+    ],
+    "word" : "反腐",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "shuang1 gui1",
+        "index" : 1,
+        "gloss" : "shuanggui, an extralegal system within the CCP for detaining and interrogating cadres who fall from grace"
+      }
+    ],
+    "word" : "双规",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "xia4 fang4",
+        "index" : 1,
+        "gloss" : "to delegate"
+      },
+      {
+        "pinyin" : "xia4 fang4",
+        "index" : 2,
+        "gloss" : "to decentralize"
+      },
+      {
+        "pinyin" : "xia4 fang4",
+        "index" : 3,
+        "gloss" : "to demote a party cadre to work on the shop floor or in the countryside"
+      }
+    ],
+    "word" : "下放",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "ping2 fan3",
+        "index" : 1,
+        "gloss" : "to redress (an injustice); to rehabilitate (sb whose reputation was unjustly sullied)"
+      }
+    ],
+    "word" : "平反",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "you4 pai4",
+        "index" : 1,
+        "gloss" : "(political) right"
+      },
+      {
+        "pinyin" : "you4 pai4",
+        "index" : 2,
+        "gloss" : "right wing"
+      },
+      {
+        "pinyin" : "you4 pai4",
+        "index" : 3,
+        "gloss" : "rightist"
+      }
+    ],
+    "word" : "右派",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "yang4 ban3 xi4",
+        "index" : 1,
+        "gloss" : "model theater (operas and ballets produced during the Cultural Revolution)"
+      }
+    ],
+    "word" : "样板戏",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "liang2 piao4",
+        "index" : 1,
+        "gloss" : "coupons for food or grain used in a PRC economic program c. 1955-1993"
+      }
+    ],
+    "word" : "粮票",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "wan4 yuan2 hu4",
+        "index" : 1,
+        "gloss" : "household with savings or annual income of 10,000 yuan or more (considered a large amount in the 1970s, when the term became established)"
+      }
+    ],
+    "word" : "万元户",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "ge4 ti3 hu4",
+        "index" : 1,
+        "gloss" : "self-employed"
+      },
+      {
+        "pinyin" : "ge4 ti3 hu4",
+        "index" : 2,
+        "gloss" : "a private firm (PRC usage)"
+      }
+    ],
+    "word" : "个体户",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "dao3 ye2",
+        "index" : 1,
+        "gloss" : "(coll.) a profiteer"
+      },
+      {
+        "pinyin" : "dao3 ye2",
+        "index" : 2,
+        "gloss" : "(business) wheeler-dealer"
+      }
+    ],
+    "word" : "倒爷",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "bei3 piao1",
+        "index" : 1,
+        "gloss" : "to migrate to Beijing or Taipei in search of better job opportunities"
+      },
+      {
+        "pinyin" : "bei3 piao1",
+        "index" : 2,
+        "gloss" : "migrant worker living and working in Beijing or Taipei without a residence permit"
+      }
+    ],
+    "word" : "北漂",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "wo1 ju1",
+        "index" : 1,
+        "gloss" : "humble abode"
+      },
+      {
+        "pinyin" : "wo1 ju1",
+        "index" : 2,
+        "gloss" : "to live (in a tiny, cramped space)"
+      }
+    ],
+    "word" : "蜗居",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "cheng2 zhong1 cun1",
+        "index" : 1,
+        "gloss" : "village within a city"
+      },
+      {
+        "pinyin" : "cheng2 zhong1 cun1",
+        "index" : 2,
+        "gloss" : "shantytown"
+      },
+      {
+        "pinyin" : "cheng2 zhong1 cun1",
+        "index" : 3,
+        "gloss" : "ghetto"
+      }
+    ],
+    "word" : "城中村",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "nong2 jia1 le4",
+        "index" : 1,
+        "gloss" : "a property providing rural accommodation (farm stay, boutique hotel etc)"
+      }
+    ],
+    "word" : "农家乐",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "gan3 ji2",
+        "index" : 1,
+        "gloss" : "to go to a local market or country fair (on market day)"
+      }
+    ],
+    "word" : "赶集",
+    "rank" : 0
+  },
+  {
+    "kind" : "frequent",
+    "senses" : [
+      {
+        "pinyin" : "miao4 hui4",
+        "index" : 1,
+        "gloss" : "temple fair"
+      }
+    ],
+    "word" : "庙会",
+    "rank" : 0
+  }
+]
