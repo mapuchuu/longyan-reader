@@ -143,9 +143,15 @@ enum NotesBuilder {
     Set tag to "cultural_context" if understanding that sense requires knowledge specific to Chinese history, politics, society or culture (e.g. 农民起义 is a Marxist historiographic category, not a neutral descriptor).
     Set tag to "none" for everything else. Do not over-tag: most senses of most words are "none", including most common words. A sense is not tagged just because it is Chinese, polite, formal, or has a near synonym.
 
-    When tag is not "none", write the note in two parts: (1) a one-line plain-English definition; (2) one sentence on what a native speaker actually feels or pictures when using the word in this sense, present tense, first or second person. If the word carries a physical or emotional sensation, lead with that. Write like a knowledgeable friend whispering context, not a historian citing sources. At most two sentences in total. The register to aim for: "This isn't just 'isolationism'; it's a word Chinese people use when they're still a little embarrassed about what that era cost them."
+    When tag is not "none", write a short, plain usage note, like a good learner's dictionary (notes/style.md). The card already shows the meaning, so don't restate it: lead with what it can't say. Say who uses the word and when (in offices, online, in official language, sarcastically, as an insult), and give a short Chinese phrase with its English when that shows the point best. One or two sentences, under about 160 characters when possible.
 
-    Never use em dashes. Never use the words "historiographic", "invokes" or "refers to". No meta-commentary about translation, language, English, or cultural gaps: don't say what the word does, say what it means to someone who grew up with it.
+    Don't start a sentence with "You" or put the reader in an imagined scene ("You picture", "You hear", "you feel"). Don't describe feelings the reader is assumed to share, end on a neat aphorism, or use soft filler (warm, stings, quietly, faint, a wink). Examples of the voice:
+    研究: In an office, 我们研究研究 ("we'll look into it") often means no, or not soon.
+    小人: Someone who schemes against others behind their back. A strong insult; 防小人 means watching out for backstabbers.
+    好意思: Mostly heard in accusations: 你还好意思说？ "How can you say that with a straight face?"
+    饺子: The traditional New Year's Eve food in northern China, usually made together by the whole family.
+
+    Never use em dashes. Never use the words "historiographic", "invokes" or "refers to". No meta-commentary about translation, language, English, or cultural gaps.
 
     When tag is "none", note is an empty string. Return one entry per sense, using the sense numbers given.
     """
@@ -357,6 +363,22 @@ enum NotesBuilder {
         for banned in ["historiographic", "invokes", "refers to", "translat", "in english", "english word"] where lower.contains(banned) {
             out.append("uses \"\(banned)\"")
         }
+        out += styleProblems(in: note)
+        return out
+    }
+
+    /// The voice of notes/style.md: no imagined scenes or assumed feelings, no neat endings or
+    /// soft filler, short.
+    static func styleProblems(in note: String) -> [String] {
+        var out: [String] = []
+        if note.range(of: #"(^|[.!?]\s+)You\b"#, options: .regularExpression) != nil { out.append("a sentence starts with You") }
+        let lower = note.lowercased()
+        for phrase in ["you picture", "you hear", "you feel", "makes you feel", "you grew up", "imagine", "picture the",
+                       "whole point", "no questions asked", "a wink", "stings", "quietly", "a small bow", "faint "]
+            where lower.contains(phrase) {
+            out.append("style: \"\(phrase.trimmingCharacters(in: .whitespaces))\"")
+        }
+        if note.count > 200 { out.append("long (\(note.count) characters)") }
         return out
     }
 

@@ -365,6 +365,19 @@ enum CLI {
             let judged = try NotesBuilder.judgedWords().filter { $0.kind != "skipped" }
             let notes = try JSONDecoder().decode([NotesBuilder.Note].self, from: Data(contentsOf: URL(fileURLWithPath: "Resources/notes.json")))
             print("\(judged.count) words judged, target 5000; \(Set(notes.map(\.word)).count) words have notes (\(notes.count) notes); \(try NotesBuilder.unjudgedLookups().count) looked-up words waiting")
+        case "--notes-lint":
+            // --notes-lint [notes.json]: the style checks on every distinct note, with counts.
+            let url = URL(fileURLWithPath: args.count >= 3 ? args[2] : "Resources/notes.json")
+            let notes = try JSONDecoder().decode([NotesBuilder.Note].self, from: Data(contentsOf: url))
+            var seen = Set<String>(), counts: [String: Int] = [:], flagged = 0
+            for n in notes where seen.insert(n.note).inserted {
+                let found = NotesBuilder.problems(in: n.note)
+                if !found.isEmpty { flagged += 1 }
+                for p in found { counts[p.hasPrefix("long") ? "long" : p, default: 0] += 1 }
+                if args.contains("--list"), !found.isEmpty { print("\(n.word)\t\(found.joined(separator: ", "))\t\(n.note)") }
+            }
+            print("\(seen.count) distinct notes, \(flagged) flagged")
+            for (p, c) in counts.sorted(by: { $0.value > $1.value }) { print("  \(c)\t\(p)") }
         case "--notes-merge" where args.count >= 4:
             // --notes-merge batch-notes.json batch-examples.json: adds a batch to Resources/. A sense
             // that's already there keeps its place and takes the batch's text.
