@@ -460,6 +460,7 @@ struct CardChrome<Content: View>: View {
                 .liquidGlass(in: shape)
                 .overlay(alignment: .topTrailing) { actions }
                 .overlay(alignment: .bottomTrailing) { grip.padding(5) }
+                .overlay(alignment: .trailing) { edgeGrabber }
         } else {
             view
                 .background {
@@ -477,6 +478,7 @@ struct CardChrome<Content: View>: View {
                 .overlay(shape.strokeBorder(Color.primary.opacity(0.10), lineWidth: 0.5))
                 .overlay(alignment: .topTrailing) { actions }
                 .overlay(alignment: .bottomTrailing) { grip.padding(3) }
+                .overlay(alignment: .trailing) { edgeGrabber }
                 .clipShape(shape)
         }
     }
@@ -486,6 +488,20 @@ struct CardChrome<Content: View>: View {
     @ViewBuilder private var grip: some View {
         if layout.kind != .hint {
             ResizeGrip(hovering: layout.isResizing)
+                .opacity(hovering || layout.isResizing ? 1 : 0)
+                .animation(.easeOut(duration: 0.15), value: hovering)
+                .allowsHitTesting(false)
+        }
+    }
+
+    /// A short bar at the middle of the right edge, while the pointer is on the card: that
+    /// edge drags the card wider or narrower.
+    @ViewBuilder private var edgeGrabber: some View {
+        if layout.kind != .hint && layout.height > 60 {
+            Capsule()
+                .fill(Color.primary.opacity(layout.isResizing ? 0.4 : 0.2))
+                .frame(width: 3, height: min(22, layout.height * 0.3))
+                .padding(.trailing, 3)
                 .opacity(hovering || layout.isResizing ? 1 : 0)
                 .animation(.easeOut(duration: 0.15), value: hovering)
                 .allowsHitTesting(false)
@@ -549,6 +565,8 @@ struct ResizeGrip: View {
 struct ResizeHandles: View {
     @ObservedObject var layout: CardLayout
     static let outside: CGFloat = 4, inside: CGFloat = 4, corner: CGFloat = 14
+    /// The bottom-right corner, the one people reach for: bigger, and easy to hit.
+    static let bigCorner: CGFloat = 26
 
     var body: some View {
         let band = Self.outside + Self.inside
@@ -559,7 +577,7 @@ struct ResizeHandles: View {
             handle([.top, .left]).frame(width: c, height: c).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             handle([.top, .right]).frame(width: c, height: c).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
             handle([.bottom, .left]).frame(width: c, height: c).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-            handle([.bottom, .right]).frame(width: c, height: c).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+            handle([.bottom, .right]).frame(width: Self.bigCorner, height: Self.bigCorner).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
         }
         .padding(-Self.outside)
     }

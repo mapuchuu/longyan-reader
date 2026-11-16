@@ -695,6 +695,9 @@ final class PopupController {
         let c = ResizeHandles.corner - ResizeHandles.outside
         let nearX = point.x < card.minX + c || point.x > card.maxX - c
         let nearY = point.y < card.minY + c || point.y > card.maxY - c
+        // The bottom-right corner, the one people reach for, is bigger than the others.
+        let b = ResizeHandles.bigCorner - ResizeHandles.outside
+        if point.x > card.maxX - b && point.y < card.minY + b { return false }
         return !(nearX && nearY)
     }
 

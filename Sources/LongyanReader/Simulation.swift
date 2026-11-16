@@ -585,6 +585,26 @@ extension AppDelegate {
                 l.resetSize([.bottom, .right], zoomToo: true)
                 await wait(0.4)
             }
+            // The bottom-right corner reaches well into the card, and stops where moving starts.
+            if let card = popup.cardScreenRect, let l = popup.currentLayout, l.placedBelow {
+                let z = l.zoom
+                let deep = ResizeHandles.bigCorner - ResizeHandles.outside - 3
+                await drag(from: NSPoint(x: card.maxX - deep, y: card.minY + deep), by: CGVector(dx: card.width * 0.15, dy: -card.height * 0.15))
+                let after = popup.cardScreenRect ?? .zero
+                check(l.zoom > z * 1.1 && after.minX == card.minX && after.maxY == card.maxY,
+                      "a drag \(Int(deep)) pt inside the bottom-right corner still scales the card (zoom \(String(format: "%.2f", z)) → \(String(format: "%.2f", l.zoom)))")
+                l.resetSize([.bottom, .right], zoomToo: true)
+                await wait(0.4)
+            }
+            if let card = popup.cardScreenRect, let l = popup.currentLayout, l.placedBelow {
+                let z = l.zoom
+                let past = ResizeHandles.bigCorner - ResizeHandles.outside + 6
+                await drag(from: NSPoint(x: card.maxX - past, y: card.minY + past), by: CGVector(dx: 30, dy: -20))
+                let after = popup.cardScreenRect ?? .zero
+                check(l.zoom == z && after.size == card.size && abs(after.minX - card.minX - 30) < 1,
+                      "a drag just past the corner (\(Int(past)) pt in) moves the card instead")
+                await drag(from: NSPoint(x: after.maxX - past, y: after.minY + past), by: CGVector(dx: -30, dy: 20))
+            }
             post(.mouseMoved, back)
         }
         popup.togglePin()
