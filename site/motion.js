@@ -20,7 +20,7 @@
     const live = new IntersectionObserver((entries) => {
       for (const e of entries) e.target.classList.toggle("live", e.isIntersecting);
     });
-    document.querySelectorAll(".stage").forEach((el) => live.observe(el));
+    document.querySelectorAll(".glass-box").forEach((el) => live.observe(el));
   }
 
   // The statement: one line at a time beside the app's card, which shows a little more with

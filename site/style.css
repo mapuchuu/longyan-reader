@@ -601,85 +601,7 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .features { padding: 220px 0 0; }
 .features .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 56px 24px; }
 .tile { margin: 0; }
-.tile .paper-box { aspect-ratio: 11 / 8; display: grid; place-items: center; padding: 36px; }
-/* The tiles are bright, each in a colour of its own, as the page around them is dark: a pale
-   corner deepening into its colour, with big panes of light laid over it, a disc and a block,
-   hard-edged like folded glass. The panes drift, very slowly, while the tile is in view. The
-   colours: rose for the notes, amber for the tones, blue for the history (its Export button's
-   blue), violet for the menu (Longyan's own), teal for installing. */
-.stage {
-  --a: 150deg; --disc: 16% 92%; --block: 84%;
-  background: linear-gradient(var(--a), var(--c0) 0%, var(--c1) 52%, var(--c2) 100%);
-  box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .22);
-}
-.stage-notes { --c0: #ffe4f0; --c1: #ff74b1; --c2: #d93a86; }
-.stage-tones { --c0: #fff1d8; --c1: #ffb54d; --c2: #f0781c; --a: 210deg; --disc: 86% 96%; --block: 10%; }
-.stage-history { --c0: #dfeaff; --c1: #5591ff; --c2: #1f56e0; --a: 170deg; --disc: 10% 18%; --block: 80%; }
-.stage-menu { --c0: #efe6ff; --c1: #9d7cff; --c2: #6438e0; --a: 30deg; --disc: 20% 104%; --block: 74%; }
-.stage-install { --c0: #dcfbf3; --c1: #33d1b0; --c2: #0d9585; --a: 200deg; --disc: 88% 12%; --block: 8%; }
-.stage::before {
-  content: ""; position: absolute; inset: -12%; z-index: 0; pointer-events: none;
-  background:
-    radial-gradient(circle at var(--disc), rgba(255, 255, 255, .34) 0 31%, rgba(255, 255, 255, 0) 31.3%),
-    radial-gradient(circle at var(--disc), rgba(255, 255, 255, 0) 0 40%, rgba(255, 255, 255, .13) 40.3% 49%, rgba(255, 255, 255, 0) 49.3%),
-    linear-gradient(rgba(255, 255, 255, .3), rgba(255, 255, 255, .3)) var(--block) 100% / 24% 34% no-repeat,
-    linear-gradient(90deg, rgba(0, 0, 0, 0) 61%, color-mix(in srgb, var(--c2) 40%, transparent) 61.2% 74%, rgba(0, 0, 0, 0) 74.2%);
-}
-.stage::after { opacity: .12; }
-.motion .stage::before { animation: drift 26s ease-in-out infinite alternate; animation-play-state: paused; }
-.motion .stage.live::before { animation-play-state: running; }
-@keyframes drift {
-  from { transform: translate3d(-2.5%, 1.5%, 0) rotate(-1.5deg); }
-  to { transform: translate3d(2.5%, -1.5%, 0) rotate(1.5deg); }
-}
-.stage .ui { box-shadow: 0 0 0 .5px rgba(0, 0, 0, .08), 0 28px 60px color-mix(in srgb, var(--c2) 45%, rgba(0, 0, 0, .3)), 0 4px 14px rgba(0, 0, 0, .08); }
 
-/* Notes: they come in one after the other. */
-.motion .ui-notes .note { opacity: 0; transform: translateY(14px); transition: opacity .8s var(--ease-out), transform 1s var(--ease-out); }
-.motion .in .ui-notes .note { opacity: 1; transform: none; transition-delay: .5s; }
-.motion .in .ui-notes .note + .note { transition-delay: 1s; }
-
-/* Tones: each character is said in turn, its column lit in its tone's colour. */
-.ui-tones > div { border-radius: 14px; padding: 8px 0 9px; }
-.ui-tones > div:nth-child(1) { --tc: var(--t1); } .ui-tones > div:nth-child(2) { --tc: var(--t2); --k: 1; }
-.ui-tones > div:nth-child(3) { --tc: var(--t3); --k: 2; } .ui-tones > div:nth-child(4) { --tc: var(--t4); --k: 3; }
-.motion .ui-tones > div { animation: say 7.2s cubic-bezier(.4, 0, .2, 1) infinite; animation-delay: calc(var(--k, 0) * 1.8s + .6s); animation-play-state: paused; }
-.motion .live .ui-tones > div { animation-play-state: running; }
-@keyframes say {
-  0%, 25%, 100% { background: transparent; transform: none; }
-  5%, 17% { background: color-mix(in srgb, var(--tc) 26%, transparent); transform: translateY(-3px); }
-}
-
-/* History: the words you looked up, the newest coming in on top, with the ones before it
-   stacked behind. */
-.stage-history .stack { position: relative; width: 100%; max-width: 380px; margin-top: 30px; }
-.stage-history .ui { position: relative; z-index: 1; }
-.stage-history .ghost { position: absolute; inset: 0; border-radius: 20px; background: rgba(255, 255, 255, .38); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .5); transform: translateY(-30px) scale(.88); transform-origin: 50% 0; }
-.stage-history .ghost + .ghost { background: rgba(255, 255, 255, .6); transform: translateY(-15px) scale(.94); }
-.motion .ui-history .history-row { opacity: 0; transform: translateY(-8px); transition: opacity .6s var(--ease-out), transform .7s var(--ease-out); }
-.motion .in .ui-history .history-row { opacity: 1; transform: none; }
-.motion .in .ui-history .history-row:nth-child(2) { transition-delay: .5s; }
-.motion .in .ui-history .history-row:nth-child(3) { transition-delay: .7s; }
-.motion .in .ui-history .history-row:nth-child(4) { transition-delay: .9s; }
-.motion .in .ui-history .history-row:nth-child(5) { transition-delay: 1.1s; }
-
-/* Menu: it hangs from its eye in a menu bar across the top, right-aligned at the edge as a
-   status menu too wide to start at its icon is. It drops open, and the pointer runs down it. */
-.tile .stage-menu { place-items: start end; padding: 36px 10px 30px 30px; }
-.stage .menubar {
-  position: absolute; z-index: 1; left: 0; right: 0; top: 0; height: 30px; display: flex; justify-content: flex-end; align-items: center; gap: 16px; padding: 0 18px;
-  font-size: 13px; font-weight: 500; color: rgba(255, 255, 255, .95);
-  background: rgba(255, 255, 255, .16); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
-}
-.menubar-eye { display: grid; place-items: center; width: 34px; height: 22px; border-radius: 5px; background: rgba(255, 255, 255, .28); }
-.menubar-eye svg { width: 20px; height: auto; }
-.motion .ui-menu { opacity: 0; transform: scale(.96) translateY(-6px); transform-origin: 88% 0; transition: opacity .35s ease-out, transform .5s var(--ease-out); }
-.motion .in .ui-menu { opacity: 1; transform: none; transition-delay: .7s; }
-.motion .ui-menu .menu-item:not(.dim) { animation: hover-row 9s steps(1) infinite; animation-delay: calc(var(--k, 0) * 1.1s + 1.8s); animation-play-state: paused; }
-.motion .live .ui-menu .menu-item:not(.dim) { animation-play-state: running; }
-.ui-menu .menu-item:nth-of-type(3) { --k: 1; } .ui-menu .menu-item:nth-of-type(4) { --k: 2; }
-.ui-menu .menu-item:nth-of-type(5) { --k: 3; } .ui-menu .menu-item:nth-of-type(6) { --k: 4; }
-@keyframes hover-row { 0% { background: #2f7bf6; color: #fff; } 12%, 100% { background: transparent; color: inherit; } }
 figcaption { margin: 20px 4px 0; font-size: 17px; line-height: 1.47; color: var(--graphite); max-width: 31em; }
 figcaption b { color: var(--ink); font-weight: 600; }
 
@@ -723,40 +645,341 @@ figcaption b { color: var(--ink); font-weight: 600; }
 .note.culture .note-head { color: var(--culture); }
 .note p { margin: 0; font-size: 14px; line-height: 1.42; color: #1d1d1f; }
 
-/* Install */
-.install { padding: 220px 0 170px; }
-.install-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
-.install-art { aspect-ratio: 5 / 4; display: grid; place-items: center; padding: 32px; }
-.steps { margin: 0; padding: 0; list-style: none; counter-reset: step; }
-.steps li { text-wrap: pretty; counter-increment: step; position: relative; padding: 0 0 24px 50px; font-size: 19px; line-height: 1.45; color: rgba(245, 245, 247, .82); letter-spacing: -0.014em; }
-.steps li::before {
-  content: counter(step); position: absolute; left: 0; top: 0;
-  width: 30px; height: 30px; border-radius: 50%; background: rgba(245, 245, 247, .1);
-  display: grid; place-items: center; font-size: 14px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums;
+/* The tiles. Each is one colour of its own, as bright as the page around it is dark, seen
+   through the same pane of glass: a great soft disc of light, a lighter strip along the foot,
+   a lighter pane at one side. One glass for all four, so they read as a set; the glass drifts,
+   slowly, while a tile is on screen, and every other tile sees it mirrored. On each, a piece of
+   the app does what it does: notes come and go, the tones are said in turn, words arrive in
+   History, the menu runs. Rose, amber, blue (the Export button's), violet (Longyan's own). */
+.glass-box {
+  position: relative; overflow: hidden; isolation: isolate; border-radius: 26px;
+  aspect-ratio: 11 / 8; display: grid; place-items: center; padding: 36px; box-sizing: border-box;
+  background: linear-gradient(160deg, var(--c1) 10%, var(--c2) 90%);
+  box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .25);
+  --flip: 1;
 }
-.steps b { color: var(--ink); font-weight: 600; }
-.aside { text-wrap: pretty; font-size: 15px; color: var(--graphite); margin: 4px 0 0 50px; max-width: 32em; }
+.tone-rose { --c1: #ff8cc0; --c2: #dc3f8c; --deep: #8a1650; }
+.tone-amber { --c1: #ffb84d; --c2: #f27d1c; --deep: #9a3e05; --flip: -1; }
+.tone-blue { --c1: #74a8ff; --c2: #2a5fe8; --deep: #0f2c8c; }
+.tone-violet { --c1: #b097ff; --c2: #6a43e4; --deep: #33178f; --flip: -1; }
+.glass-box::before {
+  content: ""; position: absolute; inset: -5%; z-index: 0; pointer-events: none;
+  background: url("media/glass-1.svg") center / 100% 100% no-repeat;
+  transform: scaleX(var(--flip));
+}
+.glass-box::after {
+  content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background-image: var(--grain); background-size: 128px; opacity: .1; mix-blend-mode: overlay;
+}
+.glass-box > * { position: relative; z-index: 2; }
+.motion .glass-box::before { animation: drift 24s ease-in-out infinite alternate; animation-play-state: paused; }
+.motion .glass-box.live::before { animation-play-state: running; }
+@keyframes drift {
+  from { transform: scaleX(var(--flip)) translate3d(-2.5%, 1.5%, 0) scale(1.02); }
+  to { transform: scaleX(var(--flip)) translate3d(2.5%, -1.5%, 0) scale(1.06); }
+}
+.glass-box .ui {
+  box-shadow: 0 0 0 .5px rgba(0, 0, 0, .06), 0 30px 60px color-mix(in srgb, var(--deep) 42%, transparent), 0 6px 16px color-mix(in srgb, var(--deep) 18%, transparent);
+}
+.tile .glass-box { width: 100%; }
+
+/* Notes: one in front, the two before it stepping back behind it; every few seconds the next
+   comes up from below and the last goes. Real notes from the app. */
+.notes-stack { width: 100%; max-width: 390px; height: 132px; margin-top: 30px; }
+.notes-stack .note {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 132px; box-sizing: border-box;
+  background: #fff; border-radius: 18px; padding: 14px 16px;
+  box-shadow: 0 0 0 .5px rgba(0, 0, 0, .05), 0 24px 50px color-mix(in srgb, var(--deep) 40%, transparent), 0 4px 12px color-mix(in srgb, var(--deep) 14%, transparent);
+  opacity: 0; transform: translateY(46px) scale(.98); transform-origin: 50% 0;
+}
+.notes-stack .note-head { font-size: 12.5px; margin-bottom: 5px; }
+.notes-stack .note p { font-size: 14.5px; line-height: 1.45; }
+.notes-stack .n-front { opacity: 1; transform: none; z-index: 3; }
+.notes-stack .n-back1 { opacity: .66; transform: translateY(-15px) scale(.94); z-index: 2; }
+.notes-stack .n-back2 { opacity: .36; transform: translateY(-29px) scale(.88); z-index: 1; }
+.motion .notes-stack .note { animation: note-cycle 17.5s cubic-bezier(.4, 0, .2, 1) infinite both; animation-play-state: paused; }
+.motion .live .notes-stack .note { animation-play-state: running; }
+.motion .notes-stack .note:nth-child(1) { animation-delay: -1.75s; }
+.motion .notes-stack .note:nth-child(2) { animation-delay: -15.75s; }
+.motion .notes-stack .note:nth-child(3) { animation-delay: -12.25s; }
+.motion .notes-stack .note:nth-child(4) { animation-delay: -8.75s; }
+.motion .notes-stack .note:nth-child(5) { animation-delay: -5.25s; }
+@keyframes note-cycle {
+  0% { opacity: 0; transform: translateY(46px) scale(.98); z-index: 4; }
+  1.2% { opacity: 1; }
+  4%, 20% { opacity: 1; transform: none; z-index: 3; }
+  24%, 40% { opacity: .66; transform: translateY(-15px) scale(.94); z-index: 2; }
+  44%, 60% { opacity: .36; transform: translateY(-29px) scale(.88); z-index: 1; }
+  64%, 100% { opacity: 0; transform: translateY(-40px) scale(.83); z-index: 0; }
+}
+
+/* Tones: the four, each with its pitch drawn over it; one at a time is said, its column lit
+   in its colour while its pitch traces across. */
+.ui-tones { max-width: 440px; padding: 18px 14px 20px; }
+.ui-tones > div { border-radius: 14px; padding: 6px 0 10px; }
+.ui-tones > div:nth-child(1) { --tc: var(--t1); --ink: var(--t1-ink); }
+.ui-tones > div:nth-child(2) { --tc: var(--t2); --ink: var(--t2-ink); --k: 1; }
+.ui-tones > div:nth-child(3) { --tc: var(--t3); --ink: var(--t3-ink); --k: 2; }
+.ui-tones > div:nth-child(4) { --tc: var(--t4); --ink: var(--t4-ink); --k: 3; }
+.contour { display: block; width: 44px; height: 33px; margin: 0 auto 2px; overflow: visible; color: var(--ink); }
+.contour path { fill: none; stroke: currentColor; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; }
+.contour .base { opacity: .16; }
+.motion .ui-tones > div { animation: say 7.2s cubic-bezier(.4, 0, .2, 1) infinite both; animation-delay: calc(var(--k, 0) * 1.8s + .4s); animation-play-state: paused; }
+.motion .ui-tones .draw { stroke-dasharray: 1 1; animation: trace 7.2s cubic-bezier(.45, 0, .25, 1) infinite both; animation-delay: calc(var(--k, 0) * 1.8s + .4s); animation-play-state: paused; }
+.motion .live .ui-tones > div, .motion .live .ui-tones .draw { animation-play-state: running; }
+@keyframes say {
+  0%, 25%, 100% { background: transparent; transform: none; }
+  4%, 19% { background: color-mix(in srgb, var(--tc) 24%, transparent); transform: translateY(-3px); }
+}
+@keyframes trace {
+  0%, 3% { stroke-dashoffset: 1; opacity: 1; }
+  14%, 22% { stroke-dashoffset: 0; opacity: 1; }
+  27%, 100% { stroke-dashoffset: 0; opacity: 0; }
+}
+
+/* History: the panel runs off the foot of the tile, as a long list would, and each new word
+   arrives on top. */
+.tile .stage-history { place-items: start center; padding: 40px 0 0; }
+.stage-history .ui-history { width: min(400px, 86%); max-width: none; height: calc(100% + 60px); overflow: hidden; padding: 4px 0 0; }
+.history-rows { overflow: hidden; }
+.history-row.arrive { animation: arrive .8s cubic-bezier(.2, .8, .2, 1) both; }
+.history-row.arrive::before { content: none; }
+@keyframes arrive {
+  from { margin-top: calc(var(--h, 56px) * -1); opacity: 0; background: #e6efff; }
+  40% { opacity: 1; background: #e6efff; }
+  to { margin-top: 0; opacity: 1; background: transparent; }
+}
+
+/* Menu: it hangs from its eye in a menu bar across the top, right-aligned at the edge as a
+   status menu too wide to start at its icon is. It drops open, and the highlight runs down. */
+.tile .stage-menu { place-items: start end; padding: 38px 12px 30px 30px; }
+.stage-menu .menubar {
+  position: absolute; z-index: 3; left: 0; right: 0; top: 0; height: 30px; display: flex; justify-content: flex-end; align-items: center; gap: 16px; padding: 0 18px;
+  font-size: 13px; font-weight: 500; color: #fff;
+  background: rgba(255, 255, 255, .14); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+  box-shadow: inset 0 -.5px 0 rgba(255, 255, 255, .18);
+}
+.menubar-eye { display: grid; place-items: center; width: 34px; height: 22px; border-radius: 6px; background: rgba(255, 255, 255, .3); }
+.menubar-eye svg { width: 20px; height: auto; }
+.stage-menu .ui-menu { background: rgba(248, 247, 252, .88); }
+.motion .ui-menu { opacity: 0; transform: scale(.96) translateY(-6px); transform-origin: 90% 0; transition: opacity .35s ease-out, transform .5s var(--ease-out); }
+.motion .in .ui-menu { opacity: 1; transform: none; transition-delay: .7s; }
+.ui-menu .menu-item:nth-of-type(3) { --k: 1; } .ui-menu .menu-item:nth-of-type(4) { --k: 2; }
+.ui-menu .menu-item:nth-of-type(5) { --k: 3; } .ui-menu .menu-item:nth-of-type(6) { --k: 4; }
+.motion .ui-menu .menu-item:not(.dim) { animation: hover-row 9s steps(1) infinite; animation-delay: calc(var(--k, 0) * 1.1s + 1.8s); animation-play-state: paused; }
+.motion .live .ui-menu .menu-item:not(.dim) { animation-play-state: running; }
+@keyframes hover-row { 0% { background: #2f7bf6; color: #fff; } 12%, 100% { background: transparent; color: inherit; } }
+@media (prefers-reduced-motion: reduce) { .glass-box::before, .glass-box * { animation: none !important; } }
+
+/* Install: its own thing, not a fifth tile. A Mac's screen on the night, a wallpaper of the
+   site's own colour drifting on it, playing the four steps as they happen, the step it's on
+   lit beside it with a bar filling as it plays, as the opening's do. Click a step to see it. */
+.install { padding: 180px 0 150px; }
+.install-grid {
+  display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 8fr); column-gap: 72px; align-items: center;
+}
+.steps { margin: 0; padding: 0; list-style: none; counter-reset: step; }
+.steps li { position: relative; counter-increment: step; padding: 0 0 26px 48px; }
+.steps li::before {
+  content: counter(step); position: absolute; left: 0; top: 1px;
+  width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums;
+  background: rgba(245, 245, 247, .08); color: rgba(245, 245, 247, .45);
+  transition: background .4s, color .4s;
+}
+.steps li.on::before { background: #f5f5f7; color: #000; }
+.steps button {
+  all: unset; display: block; cursor: pointer; text-wrap: pretty;
+  font-size: 19px; line-height: 1.45; letter-spacing: -0.014em; color: rgba(245, 245, 247, .4);
+  transition: color .4s;
+}
+.steps button:hover { color: rgba(245, 245, 247, .7); }
+.steps button:focus-visible { outline: 2px solid #0a84ff; outline-offset: 4px; border-radius: 6px; }
+.steps li.on button { color: #f5f5f7; }
+.steps b { font-weight: 600; color: inherit; }
+.step-bar { display: block; height: 3px; margin-top: 12px; border-radius: 2px; background: rgba(255, 255, 255, .12); overflow: hidden; opacity: 0; transition: opacity .4s; }
+.step-bar b { display: block; height: 100%; background: rgba(245, 245, 247, .85); transform: scaleX(0); transform-origin: left; border-radius: inherit; }
+.motion .steps li.on .step-bar { opacity: 1; }
+.aside { text-wrap: pretty; font-size: 15px; line-height: 1.5; color: var(--graphite); max-width: 32em; }
 .started { display: none; color: var(--t2); font-weight: 500; }
 .started.on { display: block; }
-.settings {
-  width: 100%; max-width: 440px; color: #1d1d1f;
-  background: rgba(246, 246, 248, .94); border-radius: 16px; padding: 20px 20px 24px;
-  -webkit-backdrop-filter: blur(30px); backdrop-filter: blur(30px);
-  box-shadow: 0 0 0 .5px rgba(0, 0, 0, .08), 0 28px 60px color-mix(in srgb, var(--c2, #0d9585) 45%, rgba(0, 0, 0, .3)), 0 4px 14px rgba(0, 0, 0, .08);
-  font-size: 13px; text-align: left;
+.install .aside { margin: 2px 0 0 48px; }
+
+.mac { position: relative; }
+.mac-screen {
+  position: relative; aspect-ratio: 16 / 10; border-radius: 18px; overflow: hidden; background: #0b0a24;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .06), 0 0 0 10px #0e0e11, 0 0 0 11px rgba(255, 255, 255, .12), 0 50px 100px rgba(0, 0, 0, .6);
+  container-type: inline-size;
 }
-.settings-title { font-size: 15px; font-weight: 600; margin-bottom: 18px; }
-.settings-label { font-weight: 600; margin: 0 0 8px 4px; }
-.settings-group { background: #fff; border-radius: 10px; box-shadow: 0 0 0 .5px rgba(0, 0, 0, .06); }
-.settings-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 14px; }
-.settings-row + .settings-row { border-top: .5px solid rgba(0, 0, 0, .1); }
-.settings-value { color: #8e8e93; white-space: nowrap; }
-.settings-button { background: #e8e8ed; padding: 4px 11px; border-radius: 6px; white-space: nowrap; font-weight: 500; }
-.settings-row.highlight .settings-button { background: #0a84ff; color: #fff; box-shadow: 0 0 0 4px rgba(10, 132, 255, .25); }
-/* The button to click pulses, gently, while it's in view. */
-.motion .live .settings-row.highlight .settings-button { animation: nudge 2.4s ease-out infinite; }
-@keyframes nudge { 0% { box-shadow: 0 0 0 0 rgba(10, 132, 255, .5); } 70%, 100% { box-shadow: 0 0 0 12px rgba(10, 132, 255, 0); } }
-@media (prefers-reduced-motion: reduce) { .stage::before, .stage *, .stage .settings-button { animation: none !important; } }
+.mac-screen .paper { z-index: 0; }
+.desk {
+  position: absolute; left: 0; top: 0; z-index: 1; width: 760px; height: 475px; transform-origin: 0 0; transform: scale(var(--k, 1));
+  font: 12px/1.35 var(--text); color: #1d1d1f; letter-spacing: 0; -webkit-font-smoothing: antialiased;
+}
+.mb {
+  position: absolute; z-index: 5; left: 0; right: 0; top: 0; height: 24px; display: flex; align-items: center; gap: 17px; padding: 0 14px;
+  font-size: 12.5px; font-weight: 500; color: #fff; background: rgba(10, 8, 30, .28);
+  -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+}
+.mb-app { font-weight: 700; }
+.mb-menus { display: flex; gap: 17px; }
+.mb-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+.mb-eye { display: grid; place-items: center; width: 22px; opacity: 0; transition: opacity .4s; }
+.mb-eye svg { width: 19px; height: auto; }
+.desk.s3 .mb-eye { opacity: 1; }
+.layer { position: absolute; inset: 0; }
+.scene { position: absolute; inset: 0; opacity: 0; visibility: hidden; transition: opacity .45s ease, visibility 0s .45s; }
+.s0 .sc0, .s1 .sc1, .s2 .sc2, .s3 .sc3 { opacity: 1; visibility: visible; transition: opacity .45s ease .1s, visibility 0s; }
+.win {
+  position: absolute; overflow: hidden; border-radius: 12px; background: rgba(251, 251, 253, .97);
+  box-shadow: 0 0 0 .5px rgba(0, 0, 0, .3), inset 0 0 0 .5px rgba(255, 255, 255, .6), 0 22px 60px rgba(0, 0, 0, .5), 0 4px 14px rgba(0, 0, 0, .25);
+}
+.win-bar { position: absolute; z-index: 2; left: 0; right: 0; top: 0; height: 38px; display: flex; align-items: center; gap: 16px; padding: 0 14px; font-size: 13px; font-weight: 700; }
+.lights { display: flex; gap: 8px; }
+.lights i { width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; box-shadow: inset 0 0 0 .5px rgba(0, 0, 0, .15); }
+.lights i + i { background: #febc2e; } .lights i + i + i { background: #28c840; }
+.pointer { position: absolute; z-index: 9; left: 0; top: 0; width: 17px; height: 24px; transform: translate(600px, 425px); filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .35)); }
+
+/* 1. Finder. */
+.finder { left: 110px; top: 70px; width: 540px; height: 320px; }
+.finder .win-bar { left: 150px; padding-left: 18px; }
+.finder .lights { position: absolute; left: -136px; }
+.finder-side { position: absolute; left: 0; top: 0; bottom: 0; width: 150px; padding: 44px 8px 0; box-sizing: border-box; background: rgba(234, 233, 240, .94); display: flex; flex-direction: column; }
+.finder-side small { height: 18px; padding-left: 8px; font-size: 10.5px; font-weight: 700; color: #8e8e93; }
+.finder-side span { height: 22px; display: flex; align-items: center; padding-left: 8px; border-radius: 6px; font-size: 12.5px; }
+.finder-side span::before { content: ""; width: 13px; height: 10px; margin-right: 7px; border-radius: 2px; background: #3a8ef6; opacity: .9; }
+.finder-side .f-sel { background: rgba(0, 0, 0, .08); }
+.finder-main { position: absolute; left: 150px; top: 38px; right: 0; bottom: 0; background: #fff; }
+.file { position: absolute; top: 30px; width: 96px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.file span { font-size: 11.5px; padding: 1px 5px; border-radius: 4px; white-space: nowrap; }
+.f-zip { left: 40px; } .f-app { left: 150px; }
+.f-app img, .ghost-icon { width: 60px; height: 60px; }
+.zip { position: relative; width: 46px; height: 60px; border-radius: 4px; background: linear-gradient(#fdfdfd, #e9e9ee); box-shadow: 0 0 0 .5px rgba(0, 0, 0, .2), 0 2px 4px rgba(0, 0, 0, .12); }
+.zip::before { content: ""; position: absolute; left: 50%; top: 0; height: 30px; width: 6px; margin-left: -3px; background: repeating-linear-gradient(#8e8e93 0 3px, transparent 3px 6px); }
+.zip::after { content: ""; position: absolute; left: 50%; top: 30px; width: 10px; height: 12px; margin-left: -5px; border-radius: 2px; background: #8e8e93; }
+.ghost-icon { position: absolute; left: 0; top: 0; z-index: 8; opacity: 0; transform: translate(420px, 140px); }
+.s0 .pointer { animation: cur0 5.6s cubic-bezier(.45, 0, .25, 1) both; }
+@keyframes cur0 {
+  0% { transform: translate(600px, 425px); }
+  15%, 24% { transform: translate(346px, 168px); }
+  36%, 42% { transform: translate(456px, 166px); }
+  70%, 78% { transform: translate(176px, 185px); }
+  100% { transform: translate(600px, 425px); }
+}
+.s0 .f-zip span { animation: pick 5.6s steps(1) both; }
+@keyframes pick { 0% { background: none; color: inherit; } 15% { background: #0a63e0; color: #fff; } 34%, 100% { background: none; color: inherit; } }
+.s0 .f-app { animation: unzip 5.6s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes unzip {
+  0%, 24% { opacity: 0; transform: scale(.6); }
+  30%, 42% { opacity: 1; transform: none; }
+  45%, 76% { opacity: .45; transform: none; }
+  82%, 100% { opacity: 0; transform: none; }
+}
+.s0 .ghost-icon { animation: drag 5.6s cubic-bezier(.45, 0, .25, 1) both; }
+@keyframes drag {
+  0%, 42% { opacity: 0; transform: translate(426px, 136px); }
+  45% { opacity: .9; transform: translate(426px, 138px); }
+  70% { opacity: .9; transform: translate(146px, 157px) scale(.9); }
+  78%, 100% { opacity: 0; transform: translate(146px, 157px) scale(.35); }
+}
+.s0 .f-apps { animation: target 5.6s steps(1) both; }
+@keyframes target { 0% { background: none; color: inherit; } 62% { background: #0a63e0; color: #fff; } 80%, 100% { background: none; color: inherit; } }
+
+/* 2. The first open. */
+.alert {
+  position: absolute; left: 250px; top: 108px; width: 260px; height: 244px; box-sizing: border-box; padding: 20px 16px 16px;
+  border-radius: 14px; background: rgba(242, 241, 247, .95); -webkit-backdrop-filter: blur(30px); backdrop-filter: blur(30px);
+  box-shadow: 0 0 0 .5px rgba(0, 0, 0, .3), inset 0 0 0 .5px rgba(255, 255, 255, .6), 0 22px 60px rgba(0, 0, 0, .5);
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+}
+.alert img { width: 56px; height: 56px; }
+.alert b { margin-top: 10px; font-size: 13px; }
+.alert p { margin: 6px 0 0; font-size: 11px; line-height: 1.4; color: #3a3a3c; }
+.alert-buttons { position: absolute; left: 16px; right: 16px; bottom: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.alert-buttons span, .ob-buttons span {
+  height: 26px; display: grid; place-items: center; border-radius: 7px; font-size: 12px; font-weight: 500;
+  background: rgba(0, 0, 0, .07);
+}
+.alert-buttons .default, .ob-buttons .default { background: #0a84ff; color: #fff; }
+.s1 .pointer { animation: cur1 5.2s cubic-bezier(.45, 0, .25, 1) both; }
+@keyframes cur1 { 0%, 10% { transform: translate(600px, 425px); } 46%, 56% { transform: translate(437px, 323px); } 100% { transform: translate(600px, 425px); } }
+.s1 .alert { animation: alert 5.2s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes alert { 0% { opacity: 0; transform: scale(.9); } 8%, 57% { opacity: 1; transform: none; } 61%, 100% { opacity: 0; transform: scale(.97); } }
+.s1 .alert .default { animation: press 5.2s steps(1) both; }
+@keyframes press { 0% { background: #0a84ff; } 50% { background: #0062cc; } 58%, 100% { background: #0a84ff; } }
+
+/* 3. System Settings. */
+.settings-win { left: 90px; top: 52px; width: 580px; height: 380px; }
+.settings-win .win-bar { left: 170px; padding-left: 20px; }
+.settings-win .lights { position: absolute; left: -156px; }
+.set-side { position: absolute; left: 0; top: 0; bottom: 0; width: 170px; padding: 44px 9px 0; box-sizing: border-box; background: rgba(234, 233, 240, .94); display: flex; flex-direction: column; }
+.set-side span { height: 24px; display: flex; align-items: center; gap: 7px; padding-left: 6px; border-radius: 6px; font-size: 12px; }
+.set-side span i { width: 17px; height: 17px; border-radius: 5px; background: var(--c); }
+.set-side .set-search { height: 24px; margin-bottom: 8px; padding-left: 10px; background: rgba(0, 0, 0, .06); color: #8e8e93; }
+.set-side .gap { margin-top: 10px; }
+.set-side .sel { background: #0a63e0; color: #fff; }
+.set-main { position: absolute; left: 170px; top: 38px; right: 0; bottom: 0; overflow: hidden; background: #f6f6f8; }
+.set-scroll { padding: 16px 20px; transform: translateY(-150px); }
+.set-group { background: #fff; border-radius: 10px; box-shadow: 0 0 0 .5px rgba(0, 0, 0, .08); }
+.set-group span { height: 32px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 12px; font-size: 12px; }
+.set-group span + span { border-top: .5px solid rgba(0, 0, 0, .1); }
+.set-group em { font-style: normal; color: #8e8e93; }
+.set-label { display: block; height: 18px; margin: 16px 0 6px 4px; font-size: 12px; font-weight: 700; }
+.set-group .blocked { height: 52px; }
+.blocked u { flex: none; width: 92px; height: 24px; display: grid; place-items: center; border-radius: 6px; text-decoration: none; font-weight: 500; background: rgba(0, 0, 0, .07); }
+.s2 .set-scroll { animation: scroll 5.6s cubic-bezier(.45, 0, .25, 1) both; }
+@keyframes scroll { 0%, 12% { transform: none; } 38%, 100% { transform: translateY(-150px); } }
+.s2 .pointer { animation: cur2 5.6s cubic-bezier(.45, 0, .25, 1) both; }
+@keyframes cur2 { 0% { transform: translate(600px, 425px); } 14%, 38% { transform: translate(470px, 250px); } 58%, 68% { transform: translate(590px, 217px); } 100% { transform: translate(600px, 425px); } }
+.s2 .blocked u { animation: open 5.6s steps(1) both; }
+@keyframes open { 0% { background: rgba(0, 0, 0, .07); color: inherit; } 61% { background: #0a84ff; color: #fff; } 67%, 100% { background: rgba(0, 0, 0, .07); color: inherit; } }
+
+/* 4. The app's own first window. */
+.onboard { left: 200px; top: 98px; width: 340px; height: 258px; }
+.onboard .win-bar { height: 28px; }
+.ob-body { position: absolute; left: 16px; right: 16px; top: 36px; bottom: 16px; }
+.ob-head { display: block; font-size: 12.5px; line-height: 1.35; }
+.ob-a, .ob-b { position: absolute; left: 0; right: 0; top: 46px; bottom: 0; }
+.ob-body p { margin: 0 0 8px; font-size: 11.5px; line-height: 1.38; }
+.ob-body .dim { color: #86868b; }
+.ob-b > b { display: block; font-size: 12px; margin-bottom: 3px; }
+.ob-b .ok { color: #1f9d3a; display: flex; align-items: center; gap: 6px; }
+.ob-b .ok::before { content: "✓"; width: 15px; height: 15px; border-radius: 50%; background: #28c840; color: #fff; font-size: 10px; font-weight: 700; display: grid; place-items: center; }
+.ob-b hr { border: 0; height: .5px; background: rgba(0, 0, 0, .15); margin: 8px 0 9px; }
+.ob-bar { display: block; height: 5px; margin: 4px 0 6px; border-radius: 3px; background: rgba(0, 0, 0, .08); overflow: hidden; }
+.ob-bar b { display: block; height: 100%; border-radius: inherit; background: #0a84ff; transform: scaleX(.44); transform-origin: left; }
+.ob-progress { font-variant-numeric: tabular-nums; }
+.ob-buttons { position: absolute; right: 0; bottom: 0; display: flex; gap: 8px; }
+.ob-buttons span { width: 64px; height: 24px; }
+.ob-a .ob-buttons .default { width: 150px; }
+.ob-a { opacity: 0; }
+.ax { left: 470px; top: 150px; width: 250px; height: 116px; opacity: 0; }
+.ax .win-bar { height: 34px; font-size: 12.5px; }
+.ax p { margin: 34px 14px 0; height: 32px; font-size: 11px; line-height: 1.38; color: #86868b; }
+.ax .set-group { margin: 8px 14px 0; }
+.ax .set-group span { justify-content: flex-start; gap: 8px; }
+.ax .set-group img { width: 20px; height: 20px; }
+.toggle { margin-left: auto; width: 32px; height: 18px; border-radius: 9px; background: #0a84ff; position: relative; }
+.toggle::after { content: ""; position: absolute; top: 2px; left: 16px; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .3); }
+.s3 .pointer { animation: cur3 7.2s cubic-bezier(.45, 0, .25, 1) both; }
+@keyframes cur3 { 0% { transform: translate(600px, 425px); } 20%, 26% { transform: translate(446px, 331px); } 44%, 50% { transform: translate(676px, 243px); } 72%, 100% { transform: translate(600px, 425px); } }
+.s3 .ob-a { animation: ob-a 7.2s ease both; }
+@keyframes ob-a { 0%, 58% { opacity: 1; } 64%, 100% { opacity: 0; } }
+.s3 .ob-b { animation: ob-b 7.2s ease both; }
+@keyframes ob-b { 0%, 60% { opacity: 0; } 66%, 100% { opacity: 1; } }
+.s3 .ax { animation: ax 7.2s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes ax { 0%, 28% { opacity: 0; transform: translateY(12px) scale(.97); } 34%, 56% { opacity: 1; transform: none; } 62%, 100% { opacity: 0; transform: none; } }
+.s3 .toggle { animation: toggle-bg 7.2s steps(1) both; }
+.s3 .toggle::after { animation: toggle-knob 7.2s cubic-bezier(.3, .7, .2, 1) both; }
+@keyframes toggle-bg { 0% { background: rgba(0, 0, 0, .14); } 48%, 100% { background: #0a84ff; } }
+@keyframes toggle-knob { 0%, 47% { left: 2px; } 52%, 100% { left: 16px; } }
+.s3 .ob-a .default { animation: press-ob 7.2s steps(1) both; }
+@keyframes press-ob { 0% { background: #0a84ff; } 23% { background: #0062cc; } 28%, 100% { background: #0a84ff; } }
+
+/* Stopped: off screen, or by a click on a step while motion is reduced. */
+.desk.paused, .desk.paused * { animation-play-state: paused !important; }
+.desk.still *, .desk.still { animation: none !important; transition: none !important; }
+.desk.still .ob-a { opacity: 0; }
 
 /* Closing */
 .closing { padding: 170px 0 180px; text-align: center; overflow: hidden; background: #252a6c; }
@@ -805,7 +1028,8 @@ footer a { color: #a1a1a6; }
 @media (max-width: 900px) {
   h2, .closing h2 { font-size: 40px; }
   .features .grid { grid-template-columns: 1fr; gap: 56px; }
-  .install-grid { grid-template-columns: 1fr; gap: 48px; }
+  .install-grid { grid-template-columns: minmax(0, 1fr); row-gap: 44px; }
+  .mac { order: -1; }
 }
 @media (max-width: 600px) {
   .lit-stage { padding: 16px 14px 18px; border-radius: 20px; min-height: 384px; }
@@ -822,17 +1046,27 @@ footer a { color: #a1a1a6; }
   .watch { padding-bottom: 90px; }
   .screen { margin-top: 40px; border-radius: 12px; }
   .features { padding-top: 130px; }
-  .paper-box { border-radius: 20px; }
-  .tile .paper-box { padding: 18px; aspect-ratio: auto; min-height: 320px; }
+  .paper-box, .glass-box { border-radius: 20px; }
+  .tile .glass-box { padding: 18px; aspect-ratio: 20 / 21; }
+  .tile .stage-history { padding: 30px 0 0; }
+  .stage-history .ui-history { width: 90%; }
   .tile .stage-menu { padding: 40px 8px 18px 18px; }
-  .stage .menubar { padding: 0 12px; }
+  .stage-menu .menubar { padding: 0 12px; }
+  .notes-stack { height: 152px; }
+  .notes-stack .note { height: 152px; }
   .ui-tones span { font-size: 40px; }
-  .steps li { font-size: 17px; padding-left: 44px; }
-  .aside { margin-left: 44px; }
+  .ui-tones { padding: 14px 8px 16px; }
+  .contour { width: 36px; height: 27px; }
+  .steps li { padding-left: 44px; }
+  .steps button { font-size: 17px; }
+  .install .aside { margin-left: 44px; }
   .ui-menu { white-space: normal; max-width: 100%; }
-  .install { margin-top: 130px; padding: 100px 0; }
-  .install-art { padding: 16px; aspect-ratio: auto; min-height: 280px; }
-  .settings-row { flex-wrap: wrap; }
+  .install { padding: 130px 0 110px; }
+  /* On a phone the screen shows the middle of the desk, where everything happens, larger. */
+  .mac-screen { aspect-ratio: 620 / 450; }
+  .desk { width: 620px; height: 450px; }
+  .layer { transform: translateX(-70px); }
+  .mac-screen { border-radius: 12px; box-shadow: 0 0 0 1px rgba(255, 255, 255, .06), 0 0 0 6px #0e0e11, 0 0 0 7px rgba(255, 255, 255, .12), 0 30px 60px rgba(0, 0, 0, .6); }
   .closing { padding: 120px 0 130px; }
   .hero-sub { margin: 16px 0 24px; }
   .hero-actions { gap: 22px; }
