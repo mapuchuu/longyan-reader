@@ -1,4 +1,4 @@
-// Paper: pieces of sky, deep blue with high cloud drifting across it, under a fine grain. One WebGL context draws
+// Paper: pieces of night sky, moonlit cloud drifting across it, under a fine grain. One WebGL context draws
 // every backdrop on the page into its own 2D canvas. Backdrops marked data-live drift slowly
 // while they're on screen; the rest are drawn once. The grain is a CSS overlay at full
 // resolution, so the color can be rendered at a lower one.
@@ -8,13 +8,15 @@
   if (!targets.length) return;
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  // Each backdrop is a piece of sky: deep, mid and bright blue, the colour of its wisps,
-  // and the colour it drifts toward in one corner. One family of blues across the site.
+  // Each backdrop is a piece of sky late at night, in the opening's moonlit tints: deep,
+  // mid and bright, the colour of its cloud, and the colour it turns toward in one corner.
+  // The closing's is toward dawn, its corner warming.
   const PAPERS = {
-    azure:  { c: ["#0a3db2", "#166fdf", "#2e9feb", "#d2e8ff", "#1cb0c6"] },
-    cobalt: { c: ["#13289c", "#2450d6", "#4887ec", "#d8e5ff", "#3b9fe6"] },
-    sky:    { c: ["#0a52b4", "#1384de", "#2fb3ea", "#d8f2ff", "#1fbfc4"] },
-    indigo: { c: ["#171987", "#2f37c2", "#556ce4", "#dee1ff", "#4c8cee"] },
+    azure:  { c: ["#050919", "#0d1844", "#1f3378", "#b3c5ea", "#2c2a6e"] },
+    cobalt: { c: ["#080722", "#18134d", "#2f2f7c", "#c4b5e5", "#1f3b7a"] },
+    sky:    { c: ["#05091c", "#0e1b4a", "#213d82", "#b9cdee", "#30296f"] },
+    indigo: { c: ["#09061f", "#1d1450", "#38307e", "#cbb8e6", "#233a78"] },
+    dawn:   { c: ["#0b0f30", "#252a6c", "#4d55a6", "#e3d3ec", "#c98a8e"] },
   };
 
   const VERT = "attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}";
