@@ -17,7 +17,8 @@
 
   // The statement: the card, then its three sentences, in order. How many should be showing
   // comes from the scroll; they're shown (or hidden, going back up) one step at a time, a
-  // beat apart, so even a fast scroll brings them in one after another.
+  // few seconds apart, so even a fast scroll brings them in one after another, each settled
+  // before the next.
   const statement = document.getElementById("statement");
   const steps = statement ? [statement.querySelector(".lit-demo"), ...statement.querySelectorAll(".lit-line")].filter(Boolean) : [];
   let shown = 0, want = 0, stepper = 0;
@@ -28,7 +29,8 @@
     if (want > shown) { shown++; if (shown === 1 && steps.length > 1) shown = 2; }
     else { shown--; if (shown === 1) shown = 0; }
     steps.forEach((el, i) => el.classList.toggle("on", i < shown));
-    if (shown !== want) stepper = setTimeout(step, 420);
+    // Forward, each waits until the last line and the card's change for it have settled.
+    if (shown !== want) stepper = setTimeout(step, want > shown ? 1800 : 300);
     syncCard();
   }
 
@@ -44,7 +46,7 @@
     if (cardShown === cardWant) return;
     cardShown += cardWant > cardShown ? 1 : -1;
     document.dispatchEvent(new CustomEvent("longyan:card-stage", { detail: cardShown }));
-    if (cardShown !== cardWant) cardTimer = setTimeout(cardStep, cardWant > cardShown ? 1000 : 250);
+    if (cardShown !== cardWant) cardTimer = setTimeout(cardStep, cardWant > cardShown ? 1800 : 250);
   }
   function syncCard() {
     if (!demo) return;
@@ -54,17 +56,17 @@
       n = Math.min(n, top < 0.5 ? 3 : top < 0.68 ? 2 : 1);
     }
     cardWant = n;
-    if (cardWant !== cardShown && !cardTimer) cardTimer = setTimeout(cardStep, cardWant > cardShown ? 550 : 0);
+    if (cardWant !== cardShown && !cardTimer) cardTimer = setTimeout(cardStep, cardWant > cardShown ? 600 : 0);
   }
   function wantSteps(vh) {
     if (!steps.length) return 0;
     const r = statement.getBoundingClientRect();
     if (getComputedStyle(statement.firstElementChild).position === "sticky") {
       // Pinned: the first as soon as the content comes into view, just as the demo sentence
-      // above leaves, so there's no empty screen between them; the rest a third of a screen
+      // above leaves, so there's no empty screen between them; the rest just under half a screen
       // of scrolling apart.
       const d = vh * 0.55 - r.top;
-      return d < 0 ? 0 : Math.min(steps.length, 2 + Math.floor(d / (vh * 0.33)));
+      return d < 0 ? 0 : Math.min(steps.length, 2 + Math.floor(d / (vh * 0.45)));
     }
     // In the flow: each as it comes up into view.
     let n = 0;

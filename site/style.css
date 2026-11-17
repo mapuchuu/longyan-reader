@@ -174,7 +174,7 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 @media (prefers-reduced-motion: reduce) { .line .hi { animation: none; } }
 
 /* Once the heading is in, "Highlight" is selected the way the sentence will be, a sweep left
-   to right that lets go; then the sentence catches the light, character by character, so it
+   to right, and it stays selected; then the sentence catches the light, character by character, so it
    reads as the thing to select. A quiet "Try it!" shows under it and goes. */
 .hl { position: relative; z-index: 0; }
 .hl::before {
@@ -184,12 +184,10 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
     rgba(120, 132, 255, .62) 54%, rgba(40, 156, 255, .64) 68%, rgba(10, 132, 255, .64) 100%);
   background-size: 200% 100%; opacity: 0; clip-path: inset(0 100% 0 0 round .09em);
 }
-.is-formed .hl::before { animation: hl-select 1.6s var(--glide) .9s both, hi-sheen 4.5s linear infinite; }
+.is-formed .hl::before { animation: hl-select .6s var(--glide) .9s both, hi-sheen 4.5s linear infinite; }
 @keyframes hl-select {
-  0% { opacity: 1; clip-path: inset(0 100% 0 0 round .09em); }
-  34% { opacity: 1; clip-path: inset(0 0 0 0 round .09em); }
-  72% { opacity: 1; clip-path: inset(0 0 0 0 round .09em); }
-  100% { opacity: 0; clip-path: inset(0 0 0 0 round .09em); }
+  from { opacity: 1; clip-path: inset(0 100% 0 0 round .09em); }
+  to { opacity: 1; clip-path: inset(0 0 0 0 round .09em); }
 }
 .is-formed .line.current .c { animation: iri 1s ease-in-out both; animation-delay: calc(2s + var(--i) * 55ms); }
 @keyframes iri { 0%, 100% { color: var(--ink); } 25% { color: #5ea8ff; } 50% { color: #a78bfa; } 75% { color: #f0a3d8; } }
@@ -200,7 +198,10 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .is-formed .try-cue { animation: cue 2.6s ease-in-out 3s both; }
 .used .try-cue { animation: none; opacity: 0; }
 @keyframes cue { 0% { opacity: 0; transform: translateY(6px); } 20%, 65% { opacity: 1; transform: none; } 100% { opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .is-formed .hl::before, .is-formed .line.current .c { animation: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .is-formed .hl::before, .is-formed .line.current .c { animation: none; }
+  .is-formed .hl::before { opacity: 1; clip-path: none; }
+}
 
 
 /* The lookup card (card.js), as the app draws it in dark appearance on Liquid Glass. Every
@@ -268,13 +269,13 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
   transition: background-color .2s ease-out;
 }
 /* The statement's card: the picked meaning lights up as its check comes in, the others step back. */
-.lc-row.lc-flash { animation: lc-flash 1.4s cubic-bezier(.4, 0, .2, 1); }
-@keyframes lc-flash { 0% { background-color: rgba(10, 132, 255, 0); } 22% { background-color: rgba(10, 132, 255, .26); } 100% { background-color: rgba(10, 132, 255, 0); } }
-.lc-def.lc-dimming { animation: lc-dim .6s ease-out; }
+.lc-def.lc-dimming { animation: lc-dim .8s ease-out; }
 @keyframes lc-dim { from { color: var(--primary); } }
 .lc-row.tight { padding-top: calc(3 * var(--u)); padding-bottom: calc(3 * var(--u)); }
 .lc-row:hover { background: rgba(255, 255, 255, .05); transition-duration: .08s; }
 .lc-row:active { background: rgba(255, 255, 255, .09); transition-duration: .08s; }
+/* The statement's card: the meaning in the sentence stays lit in the checkmark's blue. */
+.lc-row.lc-picked, .lc-row.lc-picked:hover { background: rgba(10, 132, 255, .2); transition: background-color .9s cubic-bezier(.22, 1, .36, 1); }
 .lc-row:disabled { background: none; }
 .lc-sense { flex: 1; display: flex; align-items: baseline; gap: calc(6 * var(--u)); min-width: 0; }
 .lc-sense.body { font-size: calc(13 * var(--u)); } .lc-sense.callout { font-size: calc(12 * var(--u)); }
@@ -397,7 +398,7 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 @media (min-width: 1101px) {
   /* Pulled up over the opening's last stretch, so its content rises in right behind the
      demo sentence instead of a screen later. Clicks pass through its empty parts. */
-  .statement { height: 160vh; padding: 0; margin-top: -35vh; position: relative; pointer-events: none; }
+  .statement { height: 200vh; padding: 0; margin-top: -35vh; position: relative; pointer-events: none; }
   .statement .lit, .statement .lit-demo { pointer-events: auto; }
   /* The card grows as it shows more; it hangs from the top of its column so the pinned lines,
      centred on their own height, never move while you read them. */
