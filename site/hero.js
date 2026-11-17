@@ -514,13 +514,13 @@
 
   // Once the sentence has formed it plays on its own, in seconds, while the page holds still
   // (it never scrolls itself): a beat to see it, then "Highlight" is selected as if dragged
-  // across (the first bar), then the second bar fills while you try it. Scrolling back above
-  // the sentence resets it, to play again next time.
+  // across (the first bar), then the second bar fills while you try it, and Continue comes
+  // in to move on. Scrolling back above the sentence resets it, to play again next time.
   const LEAD = 0.6, SELECT = 1.6, TRY = 7.6;
   const bars = story ? [...story.querySelectorAll(".try-progress b")] : [];
   let lastHold = -1, formedAt = null;
   function holdAt(p) {
-    if (p < FORMED) { if (formedAt != null) story.classList.remove("tried"); formedAt = null; }
+    if (p < FORMED) { if (formedAt != null) story.classList.remove("tried", "try-done"); formedAt = null; }
     else if (formedAt == null) formedAt = performance.now();
     const u = formedAt == null ? 0 : still ? TRY : (performance.now() - formedAt) / 1000;
     if (Math.abs(u - lastHold) < 0.0005) return;
@@ -532,6 +532,7 @@
     const cls = story.classList;
     if (hl >= 0.999) cls.add("hl-done");
     else if (hl < 0.85) cls.remove("hl-done");
+    if (u >= TRY) cls.add("try-done");
   }
 
   // The eye's characters floating out into the lines: up and over in an arc, growing, their

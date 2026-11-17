@@ -1,4 +1,4 @@
-// Paper: pieces of night sky, moonlit cloud drifting across it, under a fine grain. One WebGL context draws
+// Paper: sheets of colour folded over a night ground, like a Mac wallpaper, under a fine grain. One WebGL context draws
 // every backdrop on the page into its own 2D canvas. Backdrops marked data-live drift slowly
 // while they're on screen; the rest are drawn once. The grain is a CSS overlay at full
 // resolution, so the color can be rendered at a lower one.
@@ -8,62 +8,65 @@
   if (!targets.length) return;
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  // Each backdrop is a piece of sky late at night, in the opening's moonlit tints: deep,
-  // mid and bright, the colour of its cloud, and the colour it turns toward in one corner.
-  // The closing's is toward dawn, its corner warming.
+  // Each backdrop is a few sheets of colour folded over a deep night ground, the way a Mac
+  // wallpaper is: lit along their top edges, shading deeper below, each casting a soft shadow
+  // on the one behind. The colours are the demo selection's own sheen (system blue through
+  // violet to rose), so the glass over them has something to catch. Per backdrop: the ground,
+  // the three sheets back to front, and the light along their edges. The closing's turns
+  // toward dawn.
   const PAPERS = {
-    azure:  { c: ["#050919", "#0d1844", "#1f3378", "#b3c5ea", "#2c2a6e"] },
-    cobalt: { c: ["#080722", "#18134d", "#2f2f7c", "#c4b5e5", "#1f3b7a"] },
-    sky:    { c: ["#05091c", "#0e1b4a", "#213d82", "#b9cdee", "#30296f"] },
-    indigo: { c: ["#09061f", "#1d1450", "#38307e", "#cbb8e6", "#233a78"] },
-    dawn:   { c: ["#0b0f30", "#252a6c", "#4d55a6", "#e3d3ec", "#c98a8e"] },
+    azure:  { c: ["#040720", "#1a2a9e", "#2f6dff", "#9a5cf5", "#d6e4ff"] },
+    cobalt: { c: ["#07051c", "#3a1f9e", "#7a4df2", "#e05bc8", "#ffd6f4"] },
+    sky:    { c: ["#030a1c", "#0d3c9e", "#1b8cf5", "#36d0e0", "#d0f6ff"] },
+    indigo: { c: ["#08061c", "#2d1f8a", "#5a48e8", "#ff6a9a", "#ffd9e4"] },
+    dawn:   { c: ["#0b0c2c", "#3b2c9a", "#8a5ce0", "#ff8a6a", "#ffe6d2"] },
   };
 
   const VERT = "attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}";
   const FRAG = `
 precision highp float;
-uniform vec2 uRes; uniform float uTime; uniform float uSeed;
+uniform vec2 uRes; uniform float uTime; uniform float uSeed; uniform float uDrop;
 uniform vec3 uC0, uC1, uC2, uC3, uC4;
 float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f);
   return mix(mix(h(i), h(i+vec2(1,0)), f.x), mix(h(i+vec2(0,1)), h(i+vec2(1,1)), f.x), f.y); }
-float fbm(vec2 p){ float s = 0., a = .5; for (int i = 0; i < 5; i++){ s += a*n(p); p = p*2.02 + 17.1; a *= .5; } return s; }
-// Wisps of high cloud along a direction: noise stretched along it, bent by a slower noise,
-// kept only where it's strong, with finer fibres running through.
-float wisps(vec2 p, float ang, float stretch, float seed, float t){
-  vec2 d = vec2(cos(ang), sin(ang)), m = vec2(-d.y, d.x);
-  vec2 r = vec2(dot(p, d), dot(p, m));
-  r.y += .22*(fbm(r*.9 + seed + t) - .5);
-  r.x += .4*(fbm(r*.6 - seed) - .5);
-  float body = fbm(vec2(r.x*.55, r.y*stretch) + seed);
-  float streak = smoothstep(.44, .84, body);
-  float fibre = fbm(vec2(r.x*1.6, r.y*stretch*3.4) + seed*1.7 + t*.5);
-  return streak * (.6 + .55*fibre);
+// One sheet: its top edge a long, uneven wave across the frame. Returns the colour over
+// what's behind it.
+vec3 sheet(vec3 under, vec2 p, float k, vec3 c, vec3 next, float off, float ang, float t, float px){
+  float s = uSeed + k*7.31;
+  vec2 d = vec2(cos(ang), sin(ang));
+  float x = dot(p, d), y = dot(p, vec2(-d.y, d.x));
+  float edge = off
+    + .10*sin(x*1.15 + s*1.7 + t)
+    + .045*sin(x*2.6 - s*.9 - t*.8)
+    + .07*(n(vec2(x*.9 + s, s*3.1 + t*.3)) - .5);
+  float dist = y - edge;                       // below the edge (inside the sheet) is > 0
+  float inside = smoothstep(-px, px, dist);
+  // Behind the edge, the sheet's shadow on what's under it.
+  under *= 1. - .5*exp(-max(-dist, 0.)*9.)*(1. - inside);
+  // The sheet: its colour drifting toward the next one along its length, lit at the edge,
+  // deepening away from it.
+  vec3 col = mix(c, next, .35 + .35*sin(x*1.3 + s));
+  col = mix(col, uC0*.6 + col*.25, smoothstep(.04, .85, dist));
+  col = mix(col, uC4, .55*exp(-max(dist, 0.)*26.));
+  return mix(under, col, inside);
 }
 void main(){
   vec2 uv = gl_FragCoord.xy / uRes; uv.y = 1. - uv.y;
   float asp = uRes.x / uRes.y;
-  vec2 p = vec2(uv.x * asp, uv.y) * (1.4 / max(1., asp*.75));
-  float t = uTime * .012;
-  // The sky: deeper above, brighter below, uneven everywhere (a field warped by itself).
-  vec2 q = p*.8 + uSeed;
-  vec2 wq = vec2(fbm(q + t), fbm(q + 5.2 - t));
-  float g = fbm(q*.9 + 1.6*wq);
-  float lift = clamp(.18 + .55*uv.y + .12*uv.x + .7*(g - .5), 0., 1.);
-  vec3 col = lift < .5 ? mix(uC0, uC1, lift*2.) : mix(uC1, uC2, lift*2. - 1.);
-  // Toward one corner it turns, as a real sky does near the horizon.
-  float turn = smoothstep(.35, 1., uv.y*.7 + uv.x*.5 + .5*(fbm(q*.7 + 9.) - .5));
-  col = mix(col, uC4, turn*.55);
-  // High cloud: one broad set of wisps, a finer set at a slightly different angle, and a
-  // faint haze across both.
-  float w1 = wisps(p, -.42 + .08*sin(uSeed), 3.2, uSeed + 3., t);
-  float w2 = wisps(p, -.3 + .1*cos(uSeed*1.3), 7., uSeed + 11., t);
-  float w3 = wisps(p*.55, -.5, 1.8, uSeed + 23., t);
-  // Cloud gathers in some places and clears in others.
-  float gather = smoothstep(.24, .66, fbm(p*.45 + uSeed + 40.));
-  float cloud = clamp((w1*.78 + w2*.28 + w3*.5) * (.35 + 1.*gather), 0., 1.);
-  col = mix(col, uC3, cloud*.76);
-  col += (uC3 - col) * pow(cloud, 3.) * .35;
+  vec2 p = vec2((uv.x - .5) * asp, uv.y - .5) / max(1., asp*.62);
+  float px = 1.6 / uRes.y;
+  float t = uTime * .035;
+  // The ground: deep at the top, a glow of the middle sheet's colour low down.
+  vec3 col = mix(uC0, uC1*.5 + uC0*.5, smoothstep(-.2, 1.1, uv.y));
+  col += uC2 * .22 * exp(-dot(p - vec2(.25*sin(uSeed), .35), p - vec2(.25*sin(uSeed), .35)) * 3.);
+  // Three sheets, back to front, each a little lower and at its own angle.
+  // Some rise to the right, some to the left, at angles of their own.
+  float a = (fract(uSeed*.618) < .5 ? -1. : 1.) * (.22 + .14*fract(uSeed*1.37));
+  // uDrop sets them lower, for a backdrop with words across its top.
+  col = sheet(col, p, 0., uC1, uC2, -.12 + uDrop, a + .06, t, px*2.);
+  col = sheet(col, p, 1., uC2, uC3, .06 + uDrop, a - .05, t*.8, px*1.5);
+  col = sheet(col, p, 2., uC3, uC1, .24 + uDrop, a + .1, t*.6, px);
   gl_FragColor = vec4(col, 1.);
 }`;
 
@@ -83,13 +86,14 @@ void main(){
   gl.enableVertexAttribArray(loc);
   gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
   const U = {};
-  ["uRes", "uTime", "uSeed", "uC0", "uC1", "uC2", "uC3", "uC4"].forEach((k) => (U[k] = gl.getUniformLocation(prog, k)));
+  ["uRes", "uTime", "uSeed", "uDrop", "uC0", "uC1", "uC2", "uC3", "uC4"].forEach((k) => (U[k] = gl.getUniformLocation(prog, k)));
   const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
 
   const items = targets.map((canvas, i) => ({
     canvas, ctx: canvas.getContext("2d"),
     paper: PAPERS[canvas.dataset.paper] || PAPERS.azure,
     seed: +(canvas.dataset.seed || i * 3.7 + 1.3),
+    drop: +(canvas.dataset.drop || 0),
     live: canvas.hasAttribute("data-live") && !reduce,
     visible: false, w: 0, h: 0,
   }));
@@ -109,6 +113,7 @@ void main(){
     gl.uniform2f(U.uRes, it.w, it.h);
     gl.uniform1f(U.uTime, time);
     gl.uniform1f(U.uSeed, it.seed);
+    gl.uniform1f(U.uDrop, it.drop);
     p.c.forEach((hex, k) => gl.uniform3fv(U["uC" + k], rgb(hex)));
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     it.ctx.drawImage(glc, 0, 0);

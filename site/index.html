@@ -13,7 +13,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/png" href="images/favicon.png">
 <link rel="apple-touch-icon" href="images/icon.png">
-<link rel="stylesheet" href="style.css?v=1118n">
+<link rel="stylesheet" href="style.css?v=1118t">
 <script>
   // Scroll motion, unless the visitor asked for less (or ?still, for screenshots).
   if (!matchMedia("(prefers-reduced-motion: reduce)").matches && !/[?&]still/.test(location.search)) document.documentElement.classList.add("motion");
@@ -49,11 +49,11 @@
     </div>
     <div class="try" id="try">
       <div class="try-head">
-        <h2><span class="hl">Highlight</span> any chunk of this Chinese text.</h2>
+        <h2><span class="hl">Highlight</span> any chunk of this Chinese&nbsp;text.<span class="try-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10.5"/><path d="M12 6.75v10M7.75 12.75 12 17l4.25-4.25"/></svg></span></h2>
       </div>
       <div class="lines" id="lines" lang="zh-CN"></div>
-      <p class="try-cue" aria-hidden="true"><span>Try it here<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.75"/><path d="M8 11.25v-6.5M5.25 7.25 8 4.5l2.75 2.75"/></svg></span></p>
       <div class="try-progress" aria-hidden="true"><i><b></b></i><i><b></b></i></div>
+      <button type="button" class="button try-continue" data-continue>Continue <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5"/></svg></button>
     </div>
   </div>
 </section>
@@ -65,9 +65,9 @@
     <div class="wrap">
       <div class="lit" id="lit">
         <div class="lit-lines">
-          <p class="lit-line">Traditional dictionaries give you <span class="every">every</span> meaning.</p>
-          <p class="lit-line">Longyan shows you <span class="one">which one</span> your sentence means…</p>
-          <p class="lit-line">and flags words that need more <span class="ctx">cultural context</span>.</p>
+          <p class="lit-line">Ordinary dictionaries throw <span class="every">every</span> meaning at you.</p>
+          <p class="lit-line">Longyan shows you which <span class="one">one</span> your sentence means…</p>
+          <p class="lit-line">and teaches you the <span class="ctx">cultural context</span> you need to know.</p>
         </div>
         <div class="lit-progress" aria-hidden="true"><i><b></b></i><i><b></b></i><i><b></b></i></div>
       </div>
@@ -90,22 +90,18 @@
 <main>
 
 <section class="watch">
-  <canvas class="paper" data-paper="azure" data-live aria-hidden="true"></canvas>
+  <canvas class="paper" data-paper="azure" data-drop=".16" data-live aria-hidden="true"></canvas>
   <div class="wrap watch-copy" data-reveal>
-    <h2>Works where you read.</h2>
-    <p>Safari, Chrome, Mail, Notes, and most other apps. Highlight some Chinese, click the eye, and the card opens right next to the text.</p>
+    <h2>Works everywhere you want to read.</h2>
+    <p>Safari, Chrome, Mail, Notes, you name it. Highlight some Chinese, click the eye, and the smart pop-up card opens right next to the text.</p>
   </div>
   <div class="wrap">
-    <div class="window video-window" id="video-window">
-      <div class="window-bar"><span></span><span></span><span></span></div>
-      <div class="video-slot">
-        <!-- To add the recording: put it at media/demo.mp4 and set data-src="media/demo.mp4". -->
-        <video muted loop playsinline preload="none" data-src="" aria-label="Longyan Reader looking up words in Safari"></video>
-        <div class="video-placeholder" aria-hidden="true">
-          <svg viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z"/></svg>
-        </div>
-      </div>
-    </div>
+    <figure class="screen" id="screen">
+      <video muted loop playsinline preload="none" poster="media/reading.jpg" aria-label="Longyan Reader explaining a sentence in Chrome and a phrase in a PDF in Preview">
+        <source data-src="media/reading.mp4" type='video/mp4; codecs="hvc1"'>
+        <source data-src="media/reading-h264.mp4" type="video/mp4">
+      </video>
+    </figure>
   </div>
 </section>
 
@@ -233,11 +229,11 @@
   </div>
 </footer>
 
-<script src="data.js?v=1118n"></script>
-<script src="card.js?v=1118n"></script>
-<script src="hero.js?v=1118n"></script>
-<script src="try.js?v=1118n"></script>
-<script src="paper.js?v=1118n"></script>
-<script src="motion.js?v=1118n"></script>
+<script src="data.js?v=1118t"></script>
+<script src="card.js?v=1118t"></script>
+<script src="hero.js?v=1118t"></script>
+<script src="try.js?v=1118t"></script>
+<script src="paper.js?v=1118t"></script>
+<script src="motion.js?v=1118t"></script>
 </body>
 </html>

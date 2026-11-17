@@ -180,8 +180,8 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 /* Once the heading is in, scrolling selects "Highlight", the way you'd drag across it: the
    selection follows the scroll (hero.js sets --hl, 0 to 1), and it shrinks again going back.
    Once the word is selected the sentence catches the light, character by character, so it
-   reads as the thing to select, and a quiet "Try it here", with an arrow pointing up at it, comes in under it and stays. Two bars
-   under it fill as you scroll: the first with the selection, the second while you try it. */
+   reads as the thing to select, and an arrow after the heading points down at it. Two bars
+   under it fill on their own: the first with the selection, the second while you try it. */
 .hl { position: relative; z-index: 0; }
 .hl::before {
   content: ""; position: absolute; z-index: -1; left: -.07em; right: -.05em; top: .02em; bottom: -.04em; border-radius: .09em;
@@ -201,24 +201,27 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .lit-progress i, .try-progress i { width: 40px; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, .14); overflow: hidden; }
 .lit-progress b, .try-progress b { display: block; height: 100%; border-radius: inherit; background: rgba(245, 245, 247, .85); transform: scaleX(0); transform-origin: left; }
 .lit-progress b { transition: transform .15s linear; }
-/* "Try it here" under the sentence, its arrow nudging up at it. It steps back once you've
-   selected something. */
-.try-cue {
-  position: absolute; left: 0; right: 0; margin: 0; text-align: center; pointer-events: none;
-  top: calc(var(--bottom-y) + 24px); opacity: 0;
+/* After the heading, an arrow in a circle points down at the sentence once "Highlight" is
+   selected (the first bar full). Then the heading and its arrow bob gently together, down
+   toward the sentence and back, until you've selected something there yourself. */
+.try-arrow { display: inline-block; width: .6em; height: .6em; margin-left: .2em; vertical-align: -.02em; opacity: 0; transform: translateY(-4px); transition: opacity .3s ease-out, transform .3s ease-out; }
+.try-arrow svg { display: block; width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2.3; stroke-linecap: round; stroke-linejoin: round; }
+.hl-done .try-arrow { opacity: .92; transform: none; transition: opacity .7s var(--ease-out) .25s, transform .8s var(--ease-out) .25s; }
+.hl-done .try-head h2 { animation: bob 2.6s ease-in-out 1s infinite; }
+@keyframes bob { 0%, 100% { transform: none; } 50% { transform: translateY(5px); } }
+.hl-done.tried .try-arrow { opacity: .4; transition: opacity .6s var(--ease-out); }
+.tried .try-head h2 { animation: none; transition: transform .6s var(--ease-out); }
+/* Once the second bar is full, Continue takes you on to the statement. Until then it isn't
+   there at all, to the pointer or the keyboard. */
+.try-continue {
+  position: absolute; left: 50%; top: calc(var(--bottom-y) + 116px); height: 44px; padding: 0 22px; font-size: 16px;
+  visibility: hidden; opacity: 0; transform: translate(-50%, 8px); transition: opacity .3s ease-out, transform .3s ease-out, visibility 0s .3s, background .2s;
+  border: 0; cursor: pointer; pointer-events: auto;
 }
-.try-cue span {
-  display: inline-flex; align-items: center; gap: 7px;
-  font-size: 19px; font-weight: 500; letter-spacing: -0.01em; color: rgba(245, 245, 247, .9);
-}
-.try-cue svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-.hl-done .try-cue svg { animation: cue-nudge 1.8s ease-in-out .9s infinite; }
-@keyframes cue-nudge { 0%, 55%, 100% { transform: none; } 25% { transform: translateY(-3px); } }
-.try-cue { transform: translateY(6px); transition: opacity .3s ease-out, transform .3s ease-out; }
-.hl-done .try-cue { opacity: 1; transform: none; transition: opacity .7s var(--ease-out) .25s, transform .8s var(--ease-out) .25s; }
-.hl-done.tried .try-cue { opacity: .45; transition: opacity .6s var(--ease-out); }
-.tried .try-cue svg { animation: none; }
-@media (prefers-reduced-motion: reduce) { .try-cue svg { animation: none !important; } }
+.try-continue:active { transform: translate(-50%, 0) scale(.97); }
+.try-done .try-continue { visibility: visible; opacity: 1; transform: translate(-50%, 0); transition: opacity .7s var(--ease-out), transform .8s var(--ease-out), visibility 0s, background .2s; }
+.button:focus-visible { border-radius: 999px; }
+@media (prefers-reduced-motion: reduce) { .try-head h2 { animation: none !important; } }
 @media (prefers-reduced-motion: reduce) { .hl::before, .hl-done .line.current .c { animation: none; } }
 
 
@@ -558,41 +561,34 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 
 /* Paper: the color comes from paper.js; grain is laid over it here. */
 .paper { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.paper-fallback { background: linear-gradient(135deg, #0d1844, #1f3378); }
+.paper-fallback { background: linear-gradient(160deg, #040720 20%, #1a2a9e 55%, #2f6dff 75%, #9a5cf5); }
 .paper-box, .watch, .closing { isolation: isolate; }
 .paper-box::after, .watch::after, .closing::after {
   content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
-  background-image: var(--grain); background-size: 128px; opacity: .5; mix-blend-mode: overlay;
+  background-image: var(--grain); background-size: 128px; opacity: .28; mix-blend-mode: overlay;
 }
 .paper-box { position: relative; overflow: hidden; border-radius: 26px; background: #1f1f24; }
 .paper-box > :not(.paper) { position: relative; z-index: 2; }
 
-/* Works where you read: full-bleed paper with the window cut off by its bottom edge. */
-.watch { padding: 150px 0 0; overflow: hidden; text-align: center; background: #1f6fe0; }
+/* Works everywhere you want to read: full-bleed paper, and the recording on it whole. The recording
+   brings its own desktop and windows, so it gets no window of ours, just a screen's rounded
+   corners and shadow. It's never taller than the window, less room for breathing, so all of
+   it is in view at once. */
+.watch { padding: 150px 0 150px; overflow: hidden; text-align: center; background: #1f6fe0; }
 .watch .paper { z-index: 0; }
 .watch > .wrap { position: relative; z-index: 2; }
+.watch-copy { isolation: isolate; }
 .watch-copy p { font-size: 21px; line-height: 1.45; color: rgba(255, 255, 255, .86); max-width: 31em; margin: 16px auto 0; text-wrap: balance; letter-spacing: -0.016em; }
 .watch h2 { color: #fff; }
-.video-window {
-  margin: 64px auto -120px; max-width: 980px; text-align: left;
-  background: rgba(28, 28, 32, .5); border-radius: 14px; overflow: hidden;
-  -webkit-backdrop-filter: blur(40px) saturate(150%); backdrop-filter: blur(40px) saturate(150%);
-  box-shadow: 0 0 0 .5px rgba(0, 0, 0, .5), inset 0 0 0 .5px rgba(255, 255, 255, .14), 0 40px 100px rgba(0, 20, 80, .45);
+.screen {
+  position: relative; margin: 64px auto 0; aspect-ratio: 3262 / 2010;
+  width: min(100%, 1080px, calc((100svh - 120px) * 3262 / 2010));
+  border-radius: 18px; overflow: hidden; background: #fefefe;
+  box-shadow: 0 0 0 .5px rgba(0, 0, 0, .45), 0 24px 60px rgba(4, 6, 30, .5), 0 60px 120px rgba(4, 6, 30, .35);
   transform-origin: 50% 0; will-change: transform;
 }
-.window-bar { position: relative; height: 38px; display: flex; align-items: center; gap: 8px; padding: 0 15px; background: rgba(255, 255, 255, .06); border-bottom: .5px solid rgba(0, 0, 0, .35); }
-.window-bar span { width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; }
-.window-bar span:nth-child(2) { background: #febc2e; }
-.window-bar span:nth-child(3) { background: #28c840; }
-.video-slot { position: relative; aspect-ratio: 16 / 10; }
-.video-slot video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .6s; }
-.video-slot video.ready { opacity: 1; }
-.video-placeholder { position: absolute; inset: 0; display: grid; place-items: center; }
-.video-placeholder svg {
-  width: 72px; height: 72px; padding: 22px 20px 22px 24px; border-radius: 50%;
-  fill: #fff; background: rgba(255, 255, 255, .12);
-  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
-}
+.screen::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .18); pointer-events: none; }
+.screen video { display: block; width: 100%; height: 100%; object-fit: cover; }
 
 /* Features */
 .features { padding: 220px 0 0; }
@@ -677,6 +673,8 @@ figcaption b { color: var(--ink); font-weight: 600; }
 .closing { padding: 170px 0 180px; text-align: center; overflow: hidden; background: #252a6c; }
 .closing .paper { z-index: 0; }
 .closing .wrap { position: relative; z-index: 2; }
+/* A soft dusk behind the words, so they read even where the sheets are at their brightest. */
+.closing .wrap::before, .watch-copy::before { content: ""; position: absolute; z-index: -1; inset: -90px 0; background: radial-gradient(closest-side, rgba(10, 8, 34, .5), rgba(10, 8, 34, 0)); pointer-events: none; }
 .closing img { margin: 0 auto 30px; filter: drop-shadow(0 16px 30px rgba(5, 8, 30, .45)); }
 .closing h2 { color: #fff; font-size: 56px; }
 .closing p { text-wrap: balance; font-size: 21px; color: rgba(255, 255, 255, .84); margin: 16px auto 36px; max-width: 30em; letter-spacing: -0.016em; }
@@ -717,7 +715,6 @@ footer a { color: #a1a1a6; }
   h2, .closing h2 { font-size: 40px; }
   .features .grid { grid-template-columns: 1fr; gap: 56px; }
   .install-grid { grid-template-columns: 1fr; gap: 48px; }
-  .video-window { margin-bottom: -60px; }
 }
 @media (max-width: 600px) {
   .lit-stage { padding: 16px 14px 18px; border-radius: 20px; min-height: 384px; }
@@ -731,9 +728,8 @@ footer a { color: #a1a1a6; }
   .hide-small { display: none; }
   .bar-links { gap: 18px; }
   .watch { padding-top: 100px; }
-  .video-window { margin: 40px auto -30px; border-radius: 10px; }
-  .window-bar { height: 28px; gap: 6px; padding: 0 10px; }
-  .window-bar span { width: 9px; height: 9px; }
+  .watch { padding-bottom: 90px; }
+  .screen { margin-top: 40px; border-radius: 12px; }
   .features { padding-top: 130px; }
   .paper-box { border-radius: 20px; }
   .tile .paper-box { padding: 18px; aspect-ratio: auto; min-height: 320px; }

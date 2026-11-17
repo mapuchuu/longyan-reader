@@ -287,6 +287,13 @@
     }
   }));
 
+  // Continue, once the sentence has had its turn: on to the statement, the same slow glide.
+  // The statement's first line comes in as its pinned stretch reaches the top.
+  document.querySelectorAll("[data-continue]").forEach((b) => b.addEventListener("click", () => {
+    const st = document.getElementById("statement");
+    if (st) glideTo(st.getBoundingClientRect().top + window.scrollY);
+  }));
+
   // After a download starts, point to the install steps.
   document.querySelectorAll("[data-download]").forEach((a) => a.addEventListener("click", () => {
     const note = document.getElementById("started");

@@ -1,5 +1,5 @@
 // Scroll motion below the opening: sections rise into place once, the statement's lines
-// come one at a time, the video window lifts out of its backdrop, and the bar tucks away while you
+// come one at a time, the recording lifts out of its backdrop, and the bar tucks away while you
 // scroll down. The "motion" class is set in the page head unless motion is reduced.
 (function () {
   "use strict";
@@ -94,7 +94,7 @@
     }, wait);
   }
 
-  const win = document.getElementById("video-window");
+  const win = document.getElementById("screen");
   const bar = document.querySelector(".bar");
   let lastY = window.scrollY, ticking = false;
 
@@ -120,14 +120,18 @@
   window.addEventListener("resize", update);
   update();
 
-  // The recording, once it exists, loads and plays only while it's visible.
-  const video = document.querySelector("video[data-src]");
-  if (video && video.dataset.src) {
+  // The recording loads and plays only while it's on screen; until then it shows its poster.
+  // HEVC where the browser has it (much smaller for the same sharpness), else H.264.
+  const video = document.querySelector("#screen video");
+  if (video) {
+    // Without motion it doesn't play by itself, so it gets the usual controls instead.
+    if (!moving) video.controls = true;
     new IntersectionObserver((entries) => {
       const on = entries[0].isIntersecting;
-      if (on && !video.src) {
-        video.src = video.dataset.src;
-        video.addEventListener("loadeddata", () => video.classList.add("ready"), { once: true });
+      if (on && !video.dataset.loaded) {
+        video.dataset.loaded = "1";
+        video.querySelectorAll("source[data-src]").forEach((s) => (s.src = s.dataset.src));
+        video.load();
       }
       if (on && moving) video.play().catch(() => {});
       else video.pause();
