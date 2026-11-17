@@ -176,7 +176,7 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 /* Once the heading is in, scrolling selects "Highlight", the way you'd drag across it: the
    selection follows the scroll (hero.js sets --hl, 0 to 1), and it shrinks again going back.
    Once the word is selected the sentence catches the light, character by character, so it
-   reads as the thing to select, and a quiet "Try it!" shows under it and goes. Two bars
+   reads as the thing to select, and a quiet "Try it here", with an arrow pointing up at it, comes in under it and stays. Two bars
    under it fill as you scroll: the first with the selection, the second while you try it. */
 .hl { position: relative; z-index: 0; }
 .hl::before {
@@ -201,9 +201,9 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
   position: absolute; left: 0; right: 0; margin: 0; text-align: center; pointer-events: none;
   top: calc(var(--bottom-y) + 20px); font-size: 17px; letter-spacing: -0.01em; color: var(--graphite); opacity: 0;
 }
-.hl-done .try-cue { animation: cue 2.6s ease-in-out 1.1s both; }
-.used .try-cue { animation: none; opacity: 0; }
-@keyframes cue { 0% { opacity: 0; transform: translateY(6px); } 20%, 65% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.try-cue svg { width: 15px; height: 15px; margin-left: 5px; vertical-align: -2px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.try-cue { transform: translateY(6px); transition: opacity .3s ease-out, transform .3s ease-out; }
+.hl-done .try-cue { opacity: 1; transform: none; transition: opacity .8s var(--ease-out) 1.1s, transform .9s var(--ease-out) 1.1s; }
 @media (prefers-reduced-motion: reduce) { .hl::before, .hl-done .line.current .c { animation: none; } }
 
 
@@ -308,6 +308,7 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 
 /* In the word card the note keeps its 12 pt above it inside its own slot, so the space goes with it. */
 .lc-v.m > .lc-note-slot { margin-top: calc(-12 * var(--u)); }
+.lc-note-wrap { display: flow-root; }
 .lc-note-wrap > .lc-note { margin-top: calc(12 * var(--u)); }
 
 /* PhraseView */
@@ -441,16 +442,17 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .lc-light.still, .lc-light.still > i { transition: none; }
 .lc-light.on { opacity: 1; transition: top var(--lc-motion-t) var(--lc-motion), height var(--lc-motion-t) var(--lc-motion), opacity .8s cubic-bezier(.22, 1, .36, 1); }
 .lc-light > i { position: absolute; inset: 0; border-radius: inherit; transition: opacity .55s cubic-bezier(.4, 0, .2, 1); }
-.lc-light > .amber { background: rgba(255, 184, 48, .19); box-shadow: inset 0 0 0 1px rgba(255, 184, 48, .3); }
-.lc-light > .blue { background: rgba(10, 132, 255, .22); box-shadow: inset 0 0 0 1px rgba(64, 156, 255, .38); opacity: 0; }
-.lc-light.blue > .amber { opacity: 0; transition: opacity .3s cubic-bezier(.4, 0, .2, 1); }
+/* Apple's tinted fills: the system colour (dark appearance) as a plain wash, no outline. */
+.lc-light > .amber { background: rgba(255, 214, 10, .36); }
+.lc-light > .blue { background: rgba(10, 132, 255, .24); opacity: 0; }
+.lc-light.blue > .amber { opacity: 0; transition: opacity .22s cubic-bezier(.4, 0, .2, 1); }
 .lc-light.blue > .blue { opacity: 1; transition: opacity .4s cubic-bezier(.22, 1, .36, 1); }
 .lc-card.lc-locked { pointer-events: none; }
 #lit-card .lc-def { transition: color .8s cubic-bezier(.22, 1, .36, 1); }
 #lit-card .lc-def.chosen { font-weight: inherit; }
-#lit-card .lc-note { background: rgba(48, 209, 88, .1); box-shadow: inset 0 0 0 1px rgba(48, 209, 88, .3); }
+#lit-card .lc-note { background: rgba(48, 209, 88, .14); }
 #lit-card .lc-note-head, #lit-card .lc-note-head .culture { color: #30d158; }
-.lit .every { color: #ffb830; }
+.lit .every { color: #ffd60a; }
 .lit .ctx { color: #30d158; }
 /* It is as tall as its content, so it has nothing to scroll: a swipe on it scrolls the page. */
 .lc-inline .lc-scroll { overflow: visible; overscroll-behavior: auto; }

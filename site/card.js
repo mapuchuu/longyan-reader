@@ -108,7 +108,9 @@
     const from = el._collapse ? el.offsetHeight : 0, fromOpacity = el._collapse ? getComputedStyle(el).opacity : "0";
     clearTimeout(el._collapse); el._collapse = 0;
     if (reduce) { el.style.cssText = ""; return; }
-    el.style.cssText = "";
+    // Measured as it will be while it opens, clipped, so a margin inside it counts and the
+    // height it opens to is the height it ends at: nothing more appears when it lets go.
+    el.style.cssText = "overflow: hidden";
     const end = el.offsetHeight;
     el.style.height = from + "px"; el.style.opacity = fromOpacity; el.style.transform = from ? "none" : `translateY(${dy}px)`; el.style.overflow = "hidden";
     el.getBoundingClientRect();
@@ -503,8 +505,8 @@
 
   // `staged`: the card starts as a dictionary would show it, the word and every meaning, none
   // picked, and the returned card's stage(n) brings in the rest. One light does it: 1 lights
-  // every meaning in amber; 2 opens the meaning in the sentence under the word, then the
-  // light draws in onto that meaning as it turns blue, its check springs in and the other
+  // every meaning in amber; 2 opens the meaning in the sentence under the word as the
+  // light draws in onto that meaning and turns blue, its check springs in and the other
   // meaning steps back; 3 opens the note as the light fades. Until then the card can't be
   // clicked, so nothing breaks the sequence. Nothing in it changes size or re-wraps as it
   // goes: the pick isn't set in bold and there's no note mark.
@@ -640,7 +642,7 @@
       render();
     }, inline);
     if (staged) card.el.classList.add("lc-locked");
-    let pickTimer = 0, unlockTimer = 0;
+    let unlockTimer = 0;
     card.stage = (n) => {
       if (!render || (n === st.stage && !st.touched)) return;
       // Picked something, then went back up: the story starts over from the card as it was.
@@ -648,17 +650,15 @@
         if (n >= 3) return;
         st.touched = false; st.userPicked = false; st.choice = st.suggested; st.showAll = false;
       }
-      const was = st.stage;
       st.stage = n;
-      clearTimeout(pickTimer); clearTimeout(unlockTimer);
+      clearTimeout(unlockTimer);
       // It can be clicked once its note has opened, and not before.
       if (n >= 3) unlockTimer = setTimeout(() => card.el.classList.remove("lc-locked"), reduce ? 0 : 500);
       else card.el.classList.add("lc-locked");
-      if (n < 2) st.pickShown = false;
+      // As the meaning opens in, the light draws in onto it, turning blue, its check springs
+      // in and the other meaning steps back, all at once.
+      st.pickShown = n >= 2;
       render();
-      // A beat after the meaning opens in, the light draws in onto it, turning blue, its check
-      // springs in and the other meaning steps back.
-      if (n >= 2 && !st.pickShown) pickTimer = setTimeout(() => { st.pickShown = true; render(); }, reduce || was >= 2 ? 0 : 450);
     };
     return card;
   }
