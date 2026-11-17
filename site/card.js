@@ -545,7 +545,7 @@
 
   // `staged`: the card starts as a dictionary would show it, the word and every meaning, none
   // picked, and the returned card's stage(n) brings in the rest. One light does it: 1 lights
-  // every meaning in amber; 2 opens the meaning in the sentence under the word as the
+  // every meaning in purple; 2 opens the meaning in the sentence under the word as the
   // light draws in onto that meaning and turns blue, its check springs in and the other
   // meaning steps back; 3 opens the note as the light fades. Until then the card can't be
   // clicked, so nothing breaks the sequence. Nothing in it changes size or re-wraps as it
@@ -655,7 +655,7 @@
         first = false;
       };
 
-      // The statement's light: one box behind the meanings, amber over all of them, then blue
+      // The statement's light: one box behind the meanings, purple over all of them, then blue
       // over the one picked, then gone. It moves and changes colour as one thing; each colour
       // is its own layer so they cross-fade rather than mixing.
       let light = null;
@@ -663,7 +663,7 @@
         const senses = q(".lc-senses"), rows = [...q(".lc-list").querySelectorAll(".lc-row[data-i]")];
         if (!rows.length) return;
         if (!light) {
-          light = h("div", "lc-light", '<i class="amber"></i><i class="blue"></i>');
+          light = h("div", "lc-light", '<i class="purple"></i><i class="blue"></i>');
           senses.prepend(light);
         }
         const target = picked != null ? rows.find((r) => +r.dataset.i === picked) : null;

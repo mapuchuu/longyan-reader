@@ -94,14 +94,16 @@ section { position: relative; }
 .is-away .hero-copy { opacity: 0; transform: translateY(calc(-50% - 40px)); pointer-events: none; }
 /* Two lines on a wide screen, "Read & Learn Chinese" and "anywhere.", sized to the space
    beside the eye. */
+.eyebrow { margin: 0 0 18px; font-size: 19px; font-weight: 600; letter-spacing: -0.012em; color: #a1a1a6; }
 h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 @media (min-width: 901px) and (orientation: landscape), (min-width: 1101px) { h1 { width: max-content; } h1 .rise > span { white-space: nowrap; } }
 .rise { display: block; overflow: hidden; padding-bottom: .08em; margin-bottom: -.08em; }
 .rise > span { display: block; }
 .hero-sub { font-size: 21px; line-height: 1.42; color: rgba(245, 245, 247, .62); margin: 24px 0 34px; max-width: 21em; text-wrap: balance; letter-spacing: -0.016em; }
 .hero-actions { display: flex; align-items: flex-start; gap: 28px; flex-wrap: wrap; }
-.download { display: flex; flex-direction: column; align-items: center; }
-.download .fine { margin: 14px 0 0; }
+.download { display: flex; flex-direction: column; align-items: flex-start; }
+/* Under the button, from its left edge, in line with the text above. */
+.download .fine { margin: 14px 0 0 2px; font-size: 14px; color: #a1a1a6; white-space: nowrap; }
 .hero-actions .button-quiet { height: 50px; }
 .button-quiet { display: inline-flex; align-items: center; gap: 6px; font-size: 17px; font-weight: 500; text-decoration: none; color: rgba(245, 245, 247, .86); transition: color .2s; }
 .button-quiet svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: transform .3s var(--ease-out); }
@@ -123,10 +125,11 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 
 /* The opening plays in once: the lines rise, then the rest fades up. */
 .motion .rise > span { transform: translateY(105%); }
-.motion .hero-sub, .motion .hero-actions, .motion .fine { opacity: 0; transform: translateY(12px); }
+.motion .eyebrow, .motion .hero-sub, .motion .hero-actions, .motion .fine { opacity: 0; transform: translateY(12px); }
 .motion.hero-ready .rise > span { transform: none; transition: transform 1s var(--glide) .25s; }
 .motion.hero-ready .rise + .rise > span { transition-delay: .37s; }
-.motion.hero-ready .hero-sub, .motion.hero-ready .hero-actions, .motion.hero-ready .fine { opacity: 1; transform: none; transition: opacity .8s var(--glide), transform .9s var(--glide); }
+.motion.hero-ready .eyebrow, .motion.hero-ready .hero-sub, .motion.hero-ready .hero-actions, .motion.hero-ready .fine { opacity: 1; transform: none; transition: opacity .8s var(--glide), transform .9s var(--glide); }
+.motion.hero-ready .eyebrow { transition-delay: .1s; }
 .motion.hero-ready .hero-sub { transition-delay: .7s; }
 .motion.hero-ready .hero-actions { transition-delay: .82s; }
 .motion.hero-ready .fine { transition-delay: .94s; }
@@ -460,7 +463,7 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 }
 .lc-card.lc-inline { position: relative; z-index: auto; max-width: 100%; will-change: auto; }
 
-/* The statement's card, as its lines go: one light behind the meanings, amber over all of
+/* The statement's card, as its lines go: one light behind the meanings, purple over all of
    them ("every"), then drawn in onto the meaning in the sentence in the checkmark's blue
    ("one") while the other steps back, then fading as the note opens in green ("context").
    It moves and changes colour as one thing, on the app's spring; each colour is its own
@@ -475,17 +478,17 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .lc-light.on { opacity: 1; transition: top var(--lc-motion-t) var(--lc-motion), height var(--lc-motion-t) var(--lc-motion), opacity .8s cubic-bezier(.22, 1, .36, 1); }
 .lc-light > i { position: absolute; inset: 0; border-radius: inherit; transition: opacity .55s cubic-bezier(.4, 0, .2, 1); }
 /* Apple's tinted fills: the system colour (dark appearance) as a plain wash, no outline. */
-/* A touch warmer than the system yellow: over the dark card the pure hue goes olive. */
-.lc-light > .amber { background: rgba(255, 200, 0, .34); }
+/* The system purple: warm hues go muddy over the dark card; purple stays clean. */
+.lc-light > .purple { background: rgba(191, 90, 242, .22); }
 .lc-light > .blue { background: rgba(10, 132, 255, .24); opacity: 0; }
-.lc-light.blue > .amber { opacity: 0; transition: opacity .22s cubic-bezier(.4, 0, .2, 1); }
+.lc-light.blue > .purple { opacity: 0; transition: opacity .22s cubic-bezier(.4, 0, .2, 1); }
 .lc-light.blue > .blue { opacity: 1; transition: opacity .4s cubic-bezier(.22, 1, .36, 1); }
 .lc-card.lc-locked { pointer-events: none; }
 #lit-card .lc-def { transition: color .8s cubic-bezier(.22, 1, .36, 1); }
 #lit-card .lc-def.chosen { font-weight: inherit; }
 #lit-card .lc-note { background: rgba(48, 209, 88, .14); }
 #lit-card .lc-note-head, #lit-card .lc-note-head .culture { color: #30d158; }
-.lit .every { color: #ffd60a; }
+.lit .every { color: #bf5af2; }
 .lit .ctx { color: #30d158; }
 /* It is as tall as its content, so it has nothing to scroll: a swipe on it scrolls the page. */
 .lc-inline .lc-scroll { overflow: visible; overscroll-behavior: auto; }
@@ -679,6 +682,7 @@ footer a { color: #a1a1a6; }
   .closing { padding: 120px 0 130px; }
   .hero-sub { margin: 16px 0 24px; }
   .hero-actions { gap: 22px; }
+  .eyebrow { font-size: 16px; margin-bottom: 12px; }
   .try-head p { font-size: 16px; }
   .lit-line { font-size: 30px; }
   .statement { padding: 60px 0 150px; }

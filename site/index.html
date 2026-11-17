@@ -3,17 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Longyan Reader: read Chinese in any app on your Mac</title>
-<meta name="description" content="Highlight Chinese text in any app on your Mac and see what each word means in that context. Free, open source, and it runs entirely on your Mac.">
+<title>Longyan Reader: the Chinese popup reader for Mac</title>
+<meta name="description" content="A Chinese popup reader for Mac. Highlight Chinese in any app and see what it means in that context. Free, open source, and works offline.">
 <meta name="theme-color" content="#000000">
 <meta property="og:title" content="Longyan Reader">
-<meta property="og:description" content="Highlight Chinese text in any app on your Mac and see what each word means in that context.">
+<meta property="og:description" content="The Chinese popup reader for Mac. Highlight Chinese in any app and see what it means in that context.">
 <meta property="og:image" content="https://longyan.app/images/og.jpg">
 <meta property="og:url" content="https://longyan.app/">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/png" href="images/favicon.png">
 <link rel="apple-touch-icon" href="images/icon.png">
-<link rel="stylesheet" href="style.css?v=1117v">
+<link rel="stylesheet" href="style.css?v=1117w">
 <script>
   // Scroll motion, unless the visitor asked for less (or ?still, for screenshots).
   if (!matchMedia("(prefers-reduced-motion: reduce)").matches && !/[?&]still/.test(location.search)) document.documentElement.classList.add("motion");
@@ -39,19 +39,20 @@
     <canvas id="field" aria-hidden="true"></canvas>
     <p class="hint" id="hint" aria-hidden="true"><span class="fine-pointer">Point at a word in the eye.</span><span class="coarse-pointer">Tap a word in the eye.</span></p>
     <div class="hero-copy">
+      <p class="eyebrow">The Chinese popup reader for Mac</p>
       <h1><span class="rise"><span>Read &amp; learn</span></span> <span class="rise"><span>Chinese anywhere.</span></span></h1>
       <p class="hero-sub">Highlight Chinese in any app, and Longyan tells you what it means in that context.</p>
       <div class="hero-actions">
         <div class="download">
           <a class="button" href="https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip" data-download>Download for Mac</a>
-          <p class="fine">Windows coming soon</p>
+          <p class="fine">Free, open source, and works offline.</p>
         </div>
-        <a class="button-quiet" href="#try" data-try>How it works <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5"/></svg></a>
+        <a class="button-quiet" href="#try" data-try>See how it works <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5"/></svg></a>
       </div>
     </div>
     <div class="try" id="try">
       <div class="try-head">
-        <h2><span class="hl">Highlight</span> anything.</h2>
+        <h2><span class="hl">Highlight</span> any chunk of Chinese text.</h2>
       </div>
       <div class="lines" id="lines" lang="zh-CN"></div>
       <p class="try-cue" aria-hidden="true">Try it here<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.75"/><path d="M8 11.25v-6.5M5.25 7.25 8 4.5l2.75 2.75"/></svg></p>
@@ -214,7 +215,7 @@
     <h2>Free, and open source.</h2>
     <p>No account, no subscription. The code is on <a href="https://github.com/mapuchuu/longyan-reader">GitHub</a> under the MIT license.</p>
     <a class="button" href="https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip" data-download>Download for Mac</a>
-    <p class="closing-fine">Apple silicon, macOS 15 or later.</p>
+    <p class="closing-fine">Apple silicon, macOS 15 or later. Windows coming soon.</p>
   </div>
 </section>
 
@@ -227,11 +228,11 @@
   </div>
 </footer>
 
-<script src="data.js?v=1117v"></script>
-<script src="card.js?v=1117v"></script>
-<script src="hero.js?v=1117v"></script>
-<script src="try.js?v=1117v"></script>
-<script src="paper.js?v=1117v"></script>
-<script src="motion.js?v=1117v"></script>
+<script src="data.js?v=1117w"></script>
+<script src="card.js?v=1117w"></script>
+<script src="hero.js?v=1117w"></script>
+<script src="try.js?v=1117w"></script>
+<script src="paper.js?v=1117w"></script>
+<script src="motion.js?v=1117w"></script>
 </body>
 </html>
