@@ -29,6 +29,32 @@
     else { shown--; if (shown === 1) shown = 0; }
     steps.forEach((el, i) => el.classList.toggle("on", i < shown));
     if (shown !== want) stepper = setTimeout(step, 420);
+    syncCard();
+  }
+
+  // The card beside them shows a little more with each line: every meaning with the first, the
+  // one picked with the second, its note with the third (try.js). Each change waits for its
+  // line to start fading in, then takes its time, so they come one after another. On a narrow
+  // screen, where the card sits below the lines, each also waits for the card to come up the
+  // screen, so it happens where you can see it.
+  const demo = statement && statement.querySelector(".lit-demo");
+  let cardShown = 1, cardWant = 1, cardTimer = 0;
+  function cardStep() {
+    cardTimer = 0;
+    if (cardShown === cardWant) return;
+    cardShown += cardWant > cardShown ? 1 : -1;
+    document.dispatchEvent(new CustomEvent("longyan:card-stage", { detail: cardShown }));
+    if (cardShown !== cardWant) cardTimer = setTimeout(cardStep, cardWant > cardShown ? 1000 : 250);
+  }
+  function syncCard() {
+    if (!demo) return;
+    let n = shown < 2 ? 1 : Math.min(3, shown - 1);
+    if (getComputedStyle(statement.firstElementChild).position !== "sticky") {
+      const top = demo.getBoundingClientRect().top / window.innerHeight;
+      n = Math.min(n, top < 0.5 ? 3 : top < 0.68 ? 2 : 1);
+    }
+    cardWant = n;
+    if (cardWant !== cardShown && !cardTimer) cardTimer = setTimeout(cardStep, cardWant > cardShown ? 550 : 0);
   }
   function wantSteps(vh) {
     if (!steps.length) return 0;
@@ -58,6 +84,7 @@
     if (moving && steps.length) {
       want = wantSteps(vh);
       if (want !== shown && !stepper) step();
+      syncCard();
     }
     if (moving && win) {
       const r = win.getBoundingClientRect();

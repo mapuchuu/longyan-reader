@@ -460,15 +460,19 @@
 
   // MARK: Word card (LookupView)
 
-  function openWord(data, anchor, inline) {
+  // `staged`: the card starts as a dictionary would show it, every meaning and none picked,
+  // and the returned card's stage(n) brings in the rest: 2 checks and flashes the meaning in
+  // the sentence, 3 adds its note. A click on a meaning shows it all.
+  function openWord(data, anchor, inline, staged) {
     const senses = data.senses, info = data.card;
     const st = {
       choice: info.chosen != null ? { n: info.chosen, meaning: info.meaning } : null,
       suggested: info.chosen != null ? { n: info.chosen, meaning: info.meaning } : null,
-      userPicked: false, showAll: false,
+      userPicked: false, showAll: false, stage: staged ? 1 : 3, touched: false,
     };
+    let render = null;
     const chosenIndex = () => (st.choice ? st.choice.n - 1 : null);
-    return show("word", anchor, { speech: info.speech, copy: info.word }, (card) => {
+    const card = show("word", anchor, { speech: info.speech, copy: info.word }, (card) => {
       const c = card.content;
       c.innerHTML = `
         <div class="lc-v m">
@@ -486,8 +490,8 @@
         </div>`;
       const q = (s) => c.querySelector(s);
       let noteKey = null, first = true;
-      function render() {
-        const ci = chosenIndex();
+      render = function () {
+        const ci = chosenIndex(), picked = st.stage >= 2 ? ci : null;
         const sense = ci != null && ci >= 0 ? senses[ci] : null;
         const header = !st.userPicked && info.grammar ? info.header : (senses[ci != null && ci >= 0 ? ci : 0] || { syl: info.header }).syl;
         q(".lc-hw").innerHTML = chars(info.word, header);
@@ -511,7 +515,7 @@
         else if (info.viaTranslation && !st.userPicked) status.append(h("div", "lc-caption", "Matched to the sentence translation"));
         status.hidden = !status.childElementCount;
         // The note for the meaning shown, sliding in under the headline.
-        const note = sense && sense.note;
+        const note = st.stage >= 3 && sense && sense.note;
         const key = note ? note.text : null;
         if (key !== noteKey) {
           const slot = q(".lc-note-slot");
@@ -523,10 +527,11 @@
         }
         const showReading = new Set(senses.map((s) => s.pinyin)).size > 1;
         meaningList(q(".lc-list"), {
-          senses, chosen: ci, listed: info.grammar ? info.grammar.listed : null, showAll: st.showAll,
+          senses, chosen: picked, listed: info.grammar ? info.grammar.listed : null, showAll: st.showAll,
           headed: showReading && (!info.grammar || st.showAll), size: "body",
-          dimUnchosen: st.choice != null, noteMarks: true, animate: !first,
+          dimUnchosen: picked != null, noteMarks: st.stage >= 3, animate: !first,
           onPick: (i) => {
+            if (st.stage < 3) { st.stage = 3; st.touched = true; }
             if (st.choice && st.choice.n === i + 1) return;
             if (st.suggested && st.suggested.n === i + 1) { st.userPicked = false; st.choice = st.suggested; }
             else { st.userPicked = true; st.choice = { n: i + 1, meaning: senses[i].short }; }
@@ -535,9 +540,26 @@
           onToggle: () => { st.showAll = !st.showAll; render(); },
         });
         first = false;
-      }
+      };
       render();
     }, inline);
+    card.stage = (n) => {
+      if (st.touched || n === st.stage || !render) return;
+      const was = st.stage;
+      st.stage = n;
+      render();
+      // The check springs in on the picked meaning, and the row lights up for a moment.
+      const ci = chosenIndex();
+      if (n < 2) card.content.querySelectorAll(".lc-flash").forEach((r) => r.classList.remove("lc-flash"));
+      if (was < 2 && n >= 2 && ci != null) {
+        const row = card.content.querySelector(`.lc-row[data-i="${ci}"]`);
+        const check = row && row.querySelector(".lc-check");
+        if (check && !reduce) { check.classList.remove("on"); check.getBoundingClientRect(); check.classList.add("on"); }
+        if (row && !reduce) { row.classList.remove("lc-flash"); row.getBoundingClientRect(); row.classList.add("lc-flash"); }
+        if (!reduce) card.content.querySelectorAll(".lc-def.dim").forEach((d) => d.classList.add("lc-dimming"));
+      }
+    };
+    return card;
   }
 
   // MARK: Phrase card (PhraseView)

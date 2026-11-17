@@ -35,6 +35,17 @@
   const SPARSE = /[一二三十八人入了个上下几儿小大卜七九工口]/;
   const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
   const smooth = (a, b, x) => { const u = clamp((x - a) / (b - a)); return u * u * (3 - 2 * u); };
+  // Glide: an even pace for most of the way, then easing to a stop. Its first 60% of the time
+  // covers 75% of the distance at a steady speed; the rest slows evenly to nothing.
+  const GA = 0.6, GS = 2 / (1 + GA);
+  const glide = (t) => (t <= GA ? GS * t : GS * GA + GS * (t - GA) - (GS * (t - GA) ** 2) / (2 * (1 - GA)));
+  // The time at which glide reaches u.
+  const glideAt = (u) => {
+    if (u <= GS * GA) return u / GS;
+    const r = Math.min(u - GS * GA, GS * (1 - GA) / 2);
+    return GA + (1 - GA) * (1 - Math.sqrt(Math.max(0, 1 - (2 * r) / (GS * (1 - GA)))));
+  };
+  const SWEEP = 1.2;   // seconds for the eye to come in, left to right
   const easeInOut = (u) => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2);
   const hash = (i) => { const s = Math.sin(i * 12.9898) * 43758.5453; return s - Math.floor(s); };
   const mix = (a, b, u) => a.map((v, k) => Math.round(v + (b[k] - v) * clamp(u)));
@@ -395,7 +406,7 @@
   // The mountains: four ranges, far to near, each a ridge line with a bright rim that fades
   // into the body below it, and mist drifting through the valleys.
   function drawLand(t, sink) {
-    const intro = still ? 0 : (1 - smooth(0, 1.4, t)) * 0.25;
+    const intro = still ? 0 : (1 - glide(clamp(t / 1.4))) * 0.25;
     const asp = W / H;
     if (!tops.length || tops[0].length !== cols) tops = [0, 1, 2, 3].map(() => new Float32Array(cols));
     let highest = 1;
@@ -443,7 +454,7 @@
   }
 
   function drawStars(t, p) {
-    const fade = (1 - smooth(0.02, 0.2, p)) * (still ? 1 : smooth(0.2, 1.2, t));
+    const fade = (1 - smooth(0.02, 0.2, p)) * (still ? 1 : glide(clamp(t - 0.2)));
     if (fade < 0.02) return;
     for (let i = 0; i < star.length; i++) {
       if (!star[i]) continue;
@@ -470,7 +481,7 @@
     // just where its characters are.
     if (p < 0.24) {
       ctx.save();
-      const settled = still || t > 0.5 + 1.0 + 0.25 + 0.2;
+      const settled = still || t > 0.5 + SWEEP + 0.25;
       if (settled && p <= 0.035) ctx.drawImage(lit, 0, 0, W, H);
       else {
         const flying = new Set();
@@ -478,7 +489,7 @@
         ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = "#fff";
         for (let k = 0; k < fine.glyphs.length; k++) {
           const g = fine.glyphs[k];
-          const at = 0.5 + ((g.x - eye.x) / eye.w) * 1.0 + g.rnd * 0.25, leave = 0.035 + g.rnd * 0.15;
+          const at = 0.5 + glideAt(clamp((g.x - eye.x) / eye.w + (g.rnd - 0.5) * 0.14)) * SWEEP, leave = 0.035 + g.rnd * 0.15;
           if ((!still && t < at) || p > leave + 0.02 || flying.has(k)) continue;
           if ((!still && t < at + 0.2) || p > leave) {
             ctx.font = `600 ${g.w * 0.94}px ${ZH}`;
@@ -575,7 +586,7 @@
     card.peek({ text: w.text, syl: w.syl, gloss: w.gloss },
       { left: box.left + g.x - 1, top: box.top + g.y - 1, right: box.left + g.x + g.w + 1, bottom: box.top + g.y + g.w + 1 });
   }
-  const ready = () => fine && progress <= 0.02 && (reduce || (performance.now() - started) / 1000 > 1.8);
+  const ready = () => fine && progress <= 0.02 && (reduce || (performance.now() - started) / 1000 > 0.5 + SWEEP + 0.25);
   // The eye's character under the pointer, or null off the mark.
   function charAt(e) {
     if (!ready()) return null;

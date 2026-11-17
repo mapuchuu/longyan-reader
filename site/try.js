@@ -247,11 +247,13 @@
 
   if (window.LongyanHero && window.LongyanHero.lines().length) build({ lines: window.LongyanHero.lines(), current: 0 });
 
-  // The statement's card, built into the page: 躺平 in the first sentence, its literal
-  // meaning a click away and the app's note on the one it picks.
+  // The statement's card, built into the page for 躺平. With motion it starts with just the
+  // meanings and shows more as the statement's lines come in (motion.js); without, all at once.
   const litCard = document.getElementById("lit-card");
   if (litCard && Card()) {
     const d = demo[0], k = Object.keys(d.cards).find((i) => d.cards[i].word === "躺平");
-    if (k != null) Card().openWord({ senses: d.words["躺平"] || [], card: d.cards[k] }, null, litCard);
+    const staged = document.documentElement.classList.contains("motion");
+    const c = k != null && Card().openWord({ senses: d.words["躺平"] || [], card: d.cards[k] }, null, litCard, staged);
+    if (c && staged) document.addEventListener("longyan:card-stage", (e) => c.stage(e.detail));
   }
 })();
