@@ -49,7 +49,7 @@ PAGE = [
 
 
 def read(s):
-    r = subprocess.run([BIN, "--site-json", s], capture_output=True, text=True, cwd=ROOT)
+    r = subprocess.run([BIN, "--site-words", s], capture_output=True, text=True, cwd=ROOT)
     return json.loads(r.stdout)
 
 
@@ -60,7 +60,7 @@ def page(cache):
         d = cache[s] if s in cache else read(s)
         words = []
         for t in d["tokens"]:
-            c = d["cards"].get(str(t["range"][0]))
+            c = d["cards"].get(f'{t["range"][0]}-{t["range"][1]}')
             if not c:
                 continue
             words.append([t["range"][0], t["range"][1], [[x["t"], x["tone"]] for x in c["header"]], c["meaning"]])
@@ -71,7 +71,8 @@ def page(cache):
 
 def demo():
     """Each sentence as the app's cards show it: `--site-json` runs the cards' own state classes
-    on every word and every run of words, with the reading model's picks and translations."""
+    on every selection the sentence allows (trimmed of punctuation, otherwise as selected), with
+    the reading model's picks and translations."""
     out = []
     for s in DEMO:
         r = subprocess.run([BIN, "--site-json", s], capture_output=True, text=True, cwd=ROOT)

@@ -1,7 +1,7 @@
 // The app's lookup card, rebuilt for the web from its SwiftUI source (CardChrome.swift,
 // Popup.swift, PhraseView in PhraseCard.swift, NuanceView in NotesStore.swift): the same
 // spacing scale, text sizes, colors (dark appearance), Liquid Glass surface, springs, row
-// highlights, Listen and Copy, resizing and moving. Pin is left out. The content comes from
+// highlights, Listen, Copy and Pin, resizing and moving. The content comes from
 // the app itself (scripts/site-data.py runs its cards' own state classes), so the picks,
 // notes and lists here are exactly what the app shows for these sentences.
 (function () {
@@ -79,6 +79,9 @@
     bubble: svg('<path d="M3.6 2.6h8.8c1 0 1.8.8 1.8 1.8v5.4c0 1-.8 1.8-1.8 1.8H8.2l-3.1 2.4v-2.4H3.6c-1 0-1.8-.8-1.8-1.8V4.4c0-1 .8-1.8 1.8-1.8z"/><path d="M5 5.9h6M5 8.3h4"/>'),
     translate: svg('<path class="lc-fill" d="M2.6 1.8h6.6c.9 0 1.6.7 1.6 1.6v4.4c0 .9-.7 1.6-1.6 1.6H6.4L4.2 11.2V9.4H2.6c-.9 0-1.6-.7-1.6-1.6V3.4c0-.9.7-1.6 1.6-1.6z"/><path class="lc-knock" d="M3.6 3.9h4.6M5.9 3.1v.8M4.5 3.9c.3 1.4 1.3 2.6 2.9 3.1M7.3 3.9c-.3 1.4-1.3 2.6-2.9 3.1"/><path class="lc-fill" d="M11.6 6.4h1.8c.9 0 1.6.7 1.6 1.6v4.2c0 .9-.7 1.6-1.6 1.6h-.9v1.6l-2-1.6H8.6c-.9 0-1.6-.7-1.6-1.6v-1.6h2.2c1.3 0 2.4-1.1 2.4-2.4z"/><path class="lc-knock" d="M9.4 12.6l1.6-4.1 1.6 4.1M9.9 11.4h2.2"/>'),
     globe: svg('<circle class="lc-fill" cx="8" cy="8" r="6.8"/><path class="lc-knock-fill" d="M5.1 3.4c1 .2 1.9.9 2 1.8.1.8-.6 1.2-1.3 1.3-.8.1-1 .9-.6 1.5.5.7.2 1.5-.6 1.6-.8.1-1.4-.6-1.6-1.4C2.8 6.6 3.6 4.4 5.1 3.4zM10.4 8.6c.9-.3 1.9.2 2.1 1.1.2 1-.4 2-1.4 2.4-.9.3-1.7-.2-1.7-1.1 0-.6.4-.9.4-1.4 0-.4.2-.8.6-1z"/>'),
+    pin: svg('<path d="M5.4 2.2h5.2M6.2 2.2v4.1L4.2 9h7.6L9.8 6.3V2.2M8 9v4.8"/>'),
+    pinFill: svg('<path class="lc-fill" d="M5.4 1.6h5.2c.3 0 .6.3.6.6s-.3.6-.6.6h-.2v3.3l1.9 2.5c.3.4 0 1-.5 1H8.6v4.2c0 .3-.3.6-.6.6s-.6-.3-.6-.6V9.6H4.6c-.5 0-.8-.6-.5-1l1.9-2.5V2.8h-.6c-.3 0-.6-.3-.6-.6s.3-.6.6-.6z"/>'),
+    xmark: svg('<path d="M4.6 4.6l6.8 6.8M11.4 4.6l-6.8 6.8"/>'),
     uturn: svg('<path d="M5.6 3.2 2.6 6.2l3 3"/><path d="M2.8 6.2h6.6c2.2 0 4 1.8 4 4s-1.8 4-4 4H7.6"/>'),
   };
 
@@ -150,6 +153,10 @@
   // MARK: The card
 
   let open = null;          // the card on screen
+  // Pinned, as in the app: the card stays where it is, a new lookup replaces what it shows
+  // in place, and only its close button or Esc closes it. Remembered for the visit.
+  let pinned = false;
+  try { pinned = sessionStorage.getItem("lc-pinned") === "1"; } catch (_) {}
   const BASE = { word: 360, phrase: 390 };
   const MIN_W = 240, MAX_W = 1000;
   const zoomFor = () => (window.innerWidth < 760 ? 1 : 1.1);
@@ -197,6 +204,26 @@
       reset = setTimeout(() => { swapSymbol(c, SYM.copy); c.classList.remove("on"); name(label); }, 1500);
     });
     bar.append(c);
+    if (!card.inline) {
+      const p = h("button", "lc-action lc-pin", `<span class="lc-swap">${pinned ? SYM.pinFill : SYM.pin}</span>`);
+      const pinName = () => { const t = pinned ? "Unpin: close when you click elsewhere" : "Pin: keep the card here for every lookup"; p.title = t; p.setAttribute("aria-label", t); p.setAttribute("aria-pressed", pinned); };
+      p.type = "button"; p.classList.toggle("on", pinned); pinName();
+      p.addEventListener("click", () => {
+        pinned = !pinned;
+        try { sessionStorage.setItem("lc-pinned", pinned ? "1" : "0"); } catch (_) {}
+        swapSymbol(p, pinned ? SYM.pinFill : SYM.pin); p.classList.toggle("on", pinned); pinName();
+        // Pinned, it stays where it is now, scrolling or not.
+        if (pinned && !card.movedTo) { const r = card.el.getBoundingClientRect(); card.movedTo = { x: r.left, y: r.top }; place(card, false); }
+        card.el.classList.toggle("pinned", pinned);
+      });
+      bar.append(p);
+      // The close button a pinned card shows while the pointer is on it.
+      const x = h("button", "lc-close", SYM.xmark);
+      x.type = "button"; x.title = "Close Card"; x.setAttribute("aria-label", "Close Card");
+      x.addEventListener("click", () => close(false, true));
+      card.el.append(x);
+      card.el.classList.toggle("pinned", pinned);
+    }
     card.el.append(bar);
     // The first line keeps room for them, less the 6 pt they reach past the padding.
     const n = bar.children.length;
@@ -229,12 +256,15 @@
   // there, else on the side with more room, its left edge on the selection's, 8 pt away.
   // With `inline` (an element), the card is built into the page there instead: it stays put,
   // isn't moved or resized, and isn't closed by clicks or scrolling.
-  function show(kind, anchor, model, build, inline) {
-    if (!inline) close(true);
-    const z = zoomFor();
+  function show(kind, anchor, model, build, inline, inPlace) {
+    // A pinned card, or one whose "Part of" row was clicked, is replaced where it stands.
+    const prev = !inline && open && (pinned || inPlace) ? open.el.getBoundingClientRect() : null;
+    const prevZoom = prev ? open.zoom : null, prevWidth = prev ? open.width : null;
+    if (!inline) close(true, true);
+    const z = prevZoom || zoomFor();
     const card = makeChrome(kind, z);
     card.kind = kind; card.model = model; card.anchor = anchor; card.zoom = z; card.inline = inline || null;
-    card.width = Math.min(BASE[kind] * z, window.innerWidth - 16);
+    card.width = prevWidth || Math.min(BASE[kind] * z, window.innerWidth - 16);
     card.el.style.width = card.width + "px";
     if (inline) { card.el.classList.add("lc-inline"); card.el.removeAttribute("role"); inline.replaceChildren(card.el); }
     else document.body.append(card.el);
@@ -248,6 +278,16 @@
       // only one: nothing lags behind it, spills past the edge or gets faded at the bottom.
       card.maxH = Infinity;
       relayout(card);
+      return card;
+    }
+    if (prev) {
+      card.movedTo = { x: prev.left, y: prev.top };
+      if (pinned) card.wasMoved = true;
+      place(card, true);
+      card.height.set(prev.height, false);
+      relayout(card);
+      if (!reduce) card.content.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, easing: "ease-out" });
+      open = card;
       return card;
     }
     place(card, true);
@@ -310,9 +350,9 @@
     card.height.set(Math.min(natural, card.maxH), animated);
   }
 
-  function close(instant) {
+  function close(instant, force) {
     const card = open;
-    if (!card) return;
+    if (!card || (pinned && !force)) return;
     open = null;
     if (window.speechSynthesis) speechSynthesis.cancel();
     if (card.ro) card.ro.disconnect();
@@ -527,6 +567,7 @@
           <div class="lc-v xs">
             <div class="lc-head"><span class="lc-hw"></span><span class="lc-py"></span><span class="lc-spacer"></span><span class="lc-slot"></span></div>
             <div class="lc-meaning"><div class="lc-headline"></div><div class="lc-sub">Meaning in this sentence</div></div>
+            ${info.partOf ? `<button type="button" class="lc-part" title="Look up ${esc(info.partOf.word)}"><span class="lc-part-of">Part of</span><span class="lc-part-word" lang="zh-CN">${esc(info.partOf.word)}</span><span class="lc-part-py">${esc(info.partOf.pinyin)}</span>${info.partOf.meaning ? `<span class="lc-part-meaning">${esc(info.partOf.meaning)}</span>` : ""}<span class="lc-part-chev">${SYM.chevronRight}</span></button>` : ""}
             <div class="lc-status"></div>
           </div>
           <div class="lc-note-slot"></div>
@@ -538,6 +579,8 @@
         </div>`;
       const q = (s) => c.querySelector(s);
       let noteKey = null, first = true;
+      // A lone character inside a longer word: its row opens that word's card in place.
+      if (info.partOf && data.onPart) q(".lc-part").addEventListener("click", () => data.onPart(info.partOf));
       render = function () {
         const ci = chosenIndex(), picked = st.stage >= 2 && st.pickShown ? ci : null;
         const sense = ci != null && ci >= 0 ? senses[ci] : null;
@@ -640,8 +683,8 @@
         new ResizeObserver(() => { const ci = chosenIndex(); placeLight(st.stage >= 2 && st.pickShown ? ci : null, true); }).observe(q(".lc-list"));
       }
       render();
-    }, inline);
-    if (staged) card.el.classList.add("lc-locked");
+    }, inline, data.inPlace);
+    if (staged) { card.el.classList.add("lc-locked"); card.el.inert = true; }
     let unlockTimer = 0;
     card.stage = (n) => {
       if (!render || (n === st.stage && !st.touched)) return;
@@ -653,8 +696,9 @@
       st.stage = n;
       clearTimeout(unlockTimer);
       // It can be clicked once its note has opened, and not before.
-      if (n >= 3) unlockTimer = setTimeout(() => card.el.classList.remove("lc-locked"), reduce ? 0 : 500);
-      else card.el.classList.add("lc-locked");
+      // Locked, it can't be reached by Tab either.
+      if (n >= 3) unlockTimer = setTimeout(() => { card.el.classList.remove("lc-locked"); card.el.inert = false; }, reduce ? 0 : 500);
+      else { card.el.classList.add("lc-locked"); card.el.inert = true; }
       // As the meaning opens in, the light draws in onto it, turning blue, its check springs
       // in and the other meaning steps back, all at once.
       st.pickShown = n >= 2;
@@ -828,12 +872,13 @@
     if (!open || e.target.closest(".lc-card") || (open.keepFor && e.target.closest(open.keepFor))) return;
     close();
   }, true);
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && open) close(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && open) close(false, true); });
   window.addEventListener("scroll", () => { if (open && !open.wasMoved) close(); }, { passive: true });
-  window.addEventListener("resize", () => { if (open) close(true); });
+  window.addEventListener("resize", () => { if (open) close(true, true); });
 
   window.LongyanCard = {
     openWord, openPhrase, close, peek,
     get open() { return open; },
+    get pinned() { return pinned; },
   };
 })();

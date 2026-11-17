@@ -226,6 +226,7 @@
   }
 
   let W = 0, H = 0, dpr = 1, narrow = false;
+  const STACKED = matchMedia("(max-width: 900px), (max-width: 1100px) and (orientation: portrait)");
   let fine = null;                     // the eye's characters: { unit, glyphs, owner… }
   let eye = { x: 0, y: 0, w: 1, h: 1, cx: 0, cy: 0, s: 1 };
   let lit = null;                      // the eye's text, pre-drawn
@@ -286,7 +287,8 @@
     dpr = Math.min(window.devicePixelRatio || 1, 2);
     W = canvas.clientWidth; H = canvas.clientHeight;
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
-    narrow = W < 760;
+    // Stacked, as style.css lays out the headline: phones, and tablets held upright.
+    narrow = STACKED.matches;
     // The eye: on wide screens, beside the headline and second to it, about as tall as the
     // headline and the line under it, centred on the text; on narrow ones, at the top.
     let ew, cx, cy;

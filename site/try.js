@@ -1,8 +1,10 @@
 // The demo sentence lifted from the eye, as text to read the way the app does. Selecting
 // works as it does in any Mac text: drag across characters, double-click for a word (and drag
-// on by words), triple-click for the sentence, shift-click to extend. Let go and the
-// selection settles onto whole words, and the card opens. The cards are card.js, filled with
-// the app's own answers (scripts/site-data.py).
+// on by words), triple-click for the sentence, shift-click to extend. Let go and the card
+// opens for exactly what was selected, less any punctuation at its ends: one character stays
+// one character (and its card says which word it's part of), and half a word stays half a
+// word. The cards are card.js, filled with the app's own answers for every selection the
+// sentence allows (scripts/site-data.py).
 (function () {
   "use strict";
   const demo = window.LONGYAN && window.LONGYAN.demo;
@@ -70,11 +72,13 @@
 
   // MARK: Selecting, as text is
 
-  // sel: the settled selection, in words (lo..hi) and characters (start..end).
-  function clear() {
+  // sel: the settled selection, as the characters the app reads (start..end) and whether
+  // that's one word (a word card) or more (a phrase card).
+  // `all`: the card goes too, even pinned (the sentences have gone).
+  function clear(all) {
     sel = null; press = null;
     for (const el of els) el.querySelector(".hi").classList.remove("on", "snap");
-    if (Card() && Card().open) Card().close();
+    if (Card() && Card().open) Card().close(false, !!all);
   }
 
   // Draw the selection over characters a..b of the current line.
@@ -87,31 +91,41 @@
     hiEl.classList.add("on");
   }
 
-  // The words a run of characters touches; null if it's only punctuation.
-  function wordsIn(a, b) {
-    const d = demo[indexOf(0)];
-    const ts = d.tokens.map((t, i) => i).filter((i) => d.tokens[i].range[0] < b && d.tokens[i].range[1] > a);
-    return ts.length ? [ts[0], ts[ts.length - 1]] : null;
-  }
-  function settle(lo, hi) {
-    const el = currentEl(), d = demo[indexOf(0)];
-    sel = { lo, hi, start: d.tokens[lo].range[0], end: d.tokens[hi].range[1], d, el };
+  // What the app makes of characters a..b: null for punctuation alone.
+  function settle(a, b) {
+    const d = demo[indexOf(0)], r = d.selections[`${a}-${b}`];
+    if (!r) return null;
+    sel = { start: r[0], end: r[1], word: r[2] === 1, d, el: currentEl() };
+    return sel;
   }
 
   const selRect = () => sel.el.querySelector(".hi").getBoundingClientRect();
 
-  function lookUp() {
+  function lookUp(inPlace) {
     if (!sel || !Card()) return;
     root.classList.add("used");
-    const { d, lo, hi, start, end, el } = sel, size = sizeOf(el), box = el.getBoundingClientRect();
+    const { d, start, end, word, el } = sel, size = sizeOf(el), box = el.getBoundingClientRect();
     // Where the selection will be once it has settled, not where it is mid-way.
     const r = { left: box.left + start * size, right: box.left + end * size, top: selRect().top, bottom: selRect().bottom };
-    if (lo === hi) {
-      Card().openWord({ senses: d.words[d.tokens[lo].text] || [], card: d.cards[String(start)] }, r);
+    const key = `${start}-${end}`;
+    if (word) {
+      const card = d.cards[key];
+      if (!card) return;
+      Card().openWord({ senses: d.words[card.word] || [], card, inPlace, onPart: (part) => openPart(part) }, r);
     } else {
-      const phrase = d.phrases[`${start}-${end}`];
+      const phrase = d.phrases[key];
       if (phrase) Card().openPhrase({ phrase, words: d.words }, r);
     }
+  }
+
+  // "Part of 躺平" on a character's card: the selection takes in the whole word and its card
+  // replaces this one where it stands, as the app opens it.
+  function openPart(part) {
+    if (!sel || !part.range) return;
+    const [a, b] = part.range;
+    sel = { ...sel, start: a, end: b, word: true };
+    paint(a, b, true);
+    lookUp(true);
   }
 
   // Positions on the current line: the gap between characters nearest x (0..length), and
@@ -131,17 +145,18 @@
     return t < 0 ? d.tokens.length - 1 : t;
   }
 
-  // Let go: the selection settles onto the words it touches, and the card opens for them.
+  // Let go: the card opens for what was selected. If that ends in punctuation, the selection
+  // eases off it first.
   function release() {
     const p = press;
     press = null;
     if (!p) return;
-    let ws = null;
-    if (p.mode === "char") ws = p.a === p.b ? null : wordsIn(Math.min(p.a, p.b), Math.max(p.a, p.b));
-    else ws = [Math.min(p.a, p.b), Math.max(p.a, p.b)];
-    if (!ws) { clear(); return; }
-    settle(ws[0], ws[1]);
-    const moved = p.mode === "char" && (Math.min(p.a, p.b) !== sel.start || Math.max(p.a, p.b) !== sel.end);
+    const d = demo[indexOf(0)];
+    let a, b;
+    if (p.mode === "char") { if (p.a === p.b) { clear(); return; } a = Math.min(p.a, p.b); b = Math.max(p.a, p.b); }
+    else { a = d.tokens[Math.min(p.a, p.b)].range[0]; b = d.tokens[Math.max(p.a, p.b)].range[1]; }
+    if (!settle(a, b)) { clear(); return; }
+    const moved = sel.start !== a || sel.end !== b;
     paint(sel.start, sel.end, moved);
     if (moved && !reduce) setTimeout(() => { if (sel && !press) lookUp(); }, 150);
     else lookUp();
@@ -212,8 +227,8 @@
     if (!w || (e.key !== "Enter" && e.key !== " ")) return;
     e.preventDefault();
     const t = +w.dataset.t, d = demo[indexOf(0)];
-    settle(t, t);
-    paint(d.tokens[t].range[0], d.tokens[t].range[1]);
+    if (!settle(d.tokens[t].range[0], d.tokens[t].range[1])) return;
+    paint(sel.start, sel.end);
     lookUp();
   });
   // The app's shortcut: ⌃⌥L looks up what's selected.
@@ -228,14 +243,27 @@
 
 
   // Leaving the story (back up into the eye) puts it all away.
-  new MutationObserver(() => { if (!story.classList.contains("is-formed")) clear(); })
+  new MutationObserver(() => { if (!story.classList.contains("is-formed")) clear(true); })
     .observe(story, { attributes: true, attributeFilter: ["class"] });
+  // So does scrolling on past them: a pinned card stays only while its sentence is there.
+  window.addEventListener("scroll", () => {
+    if (Card() && Card().open && Card().pinned && story.getBoundingClientRect().bottom < innerHeight * 0.5) clear(true);
+  }, { passive: true });
 
   // "Try it" jumps to the formed sentences.
   document.querySelectorAll("[data-try]").forEach((a) => a.addEventListener("click", (e) => {
     if (!window.LongyanHero) return;
     e.preventDefault();
     window.scrollTo({ top: window.LongyanHero.formedY(), behavior: reduce ? "auto" : "smooth" });
+    // From the keyboard, carry on into the sentence: its first word takes the focus once it's there.
+    if (e.detail === 0) {
+      const t0 = performance.now();
+      (function focusFirst() {
+        const w = story.classList.contains("is-formed") && box.querySelector(".line.current .w");
+        if (w) w.focus({ preventScroll: true });
+        else if (performance.now() - t0 < 3000) requestAnimationFrame(focusFirst);
+      })();
+    }
   }));
 
   // After a download starts, point to the install steps.

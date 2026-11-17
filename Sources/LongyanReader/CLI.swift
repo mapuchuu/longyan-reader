@@ -10,6 +10,8 @@ import PDFKit
 ///   --render "<passage>" <word> <out.png>
 ///   --render-phrase "<text>" <out.png> [word-to-expand]
 ///   --site-json "<sentence>"   (everything longyan.app's demo cards show, as JSON)
+///   --site-words "<sentence>"  (the same for just its words, for the hero's eye)
+///   --parts "<sentence>"       (the translation of every run of its words, in the sentence)
 enum CLI {
     /// Keeps the main thread free (SwiftUI rendering needs it) and exits when done.
     static func run(_ args: [String]) -> Never {
@@ -270,6 +272,22 @@ enum CLI {
             }.joined(separator: " / "))
         case "--site-json" where args.count >= 3:
             try await siteJSON(args[2])
+        case "--site-words" where args.count >= 3:
+            try await siteJSON(args[2], everySelection: false)
+        case "--parts" where args.count >= 3:
+            // --parts "<sentence>": the translation of every run of two or more of its words,
+            // read in the sentence, as a phrase card gets it (to check none adds words).
+            let dict = try CEDict.load()
+            let passage = Array(args[2])
+            _ = await LocalModel.isAvailable()
+            let words = Segmenter.phrase(0..<passage.count, in: passage, dict: dict).filter { $0.text.contains(where: isCJK) }
+            for i in words.indices {
+                for j in words.indices where j > i {
+                    let r = words[i].range.lowerBound..<words[j].range.upperBound
+                    let t = try await LocalModel.translate(String(passage[r]), context: Segmenter.translationContext(for: r, in: passage))
+                    print("\(String(passage[r]))\t\(t)")
+                }
+            }
         case "--render-phrase" where args.count >= 4:
             try await renderPhrase(args[2], expand: args.count >= 5 ? args[4] : nil, to: URL(fileURLWithPath: args[3]))
         case "--pdf-context" where args.count >= 5:
@@ -546,7 +564,7 @@ enum CLI {
     /// the phrase card shows for every run of two or more words, worked out by the cards' own
     /// state classes so the website's copy of the card matches the app's.
     @MainActor
-    static func siteJSON(_ sentence: String) async throws {
+    static func siteJSON(_ sentence: String, everySelection: Bool = true) async throws {
         let dict = try CEDict.load()
         let passage = Array(sentence)
         _ = await LocalModel.isAvailable()
@@ -565,23 +583,47 @@ enum CLI {
         let full = Selection(passage: passage, range: 0..<passage.count, bounds: nil, source: .accessibility, appName: nil).trimmed()
         let tokens = Segmenter.phrase(full.range, in: passage, dict: dict)
         var tokenJSON: [[String: Any]] = []
+        for t in tokens { tokenJSON.append(["text": t.text, "range": [t.range.lowerBound, t.range.upperBound]]) }
+        // Every selection a reader can make, one character to the whole sentence, trimmed of
+        // punctuation at its ends and otherwise taken exactly as selected (the website doesn't
+        // widen a selection to whole words, as App.show does): a word card when what's left is
+        // one dictionary word or one character, else a phrase card. Just the words with
+        // `everySelection` off.
+        var selections: [String: Any] = [:]
+        var wordRanges = Set<Range<Int>>(), phraseRanges = Set<Range<Int>>()
+        if !everySelection {
+            for t in tokens where t.text.contains(where: isCJK) { wordRanges.insert(t.range) }
+        }
+        for a in passage.indices where everySelection {
+            for b in (a + 1)...passage.count {
+                let w = Selection(passage: passage, range: a..<b, bounds: nil, source: .accessibility, appName: nil).trimmed()
+                guard w.hasChinese else { continue }
+                let single = w.text.count == 1 || (w.text.allSatisfy(isCJK) && dict.contains(w.text))
+                if single { wordRanges.insert(w.range) } else { phraseRanges.insert(w.range) }
+                selections["\(a)-\(b)"] = [w.range.lowerBound, w.range.upperBound, single ? 1 : 0]
+            }
+        }
         var cards: [String: Any] = [:]
-        for t in tokens {
-            tokenJSON.append(["text": t.text, "range": [t.range.lowerBound, t.range.upperBound]])
-            guard t.text.contains(where: isCJK) else { continue }
-            addWord(t.text)
+        for range in wordRanges.sorted(by: { ($0.lowerBound, $0.upperBound) < ($1.lowerBound, $1.upperBound) }) {
+            let text = String(passage[range])
+            addWord(text)
             // As App.showWord does for a selection of one word.
-            let context = Segmenter.context(for: t.range, in: passage)
+            let context = Segmenter.context(for: range, in: passage)
             let senses = dict.senses(for: context.word)
-            let grammar = GrammarWords.entry(context.word, in: passage, at: t.range.lowerBound)
+            let grammar = GrammarWords.entry(context.word, in: passage, at: range.lowerBound)
             let modelReady = SenseChooser.canChoose && !senses.isEmpty && grammar == nil
             let state = LookupState(context: context, senses: senses,
                                     phase: modelReady ? .choosing : .dictionaryOnly(senses.isEmpty ? "not in dictionary" : SenseChooser.noPickerReason))
-            if let r = Segmenter.enclosingWord(of: t.range, in: passage, dict: dict) {
+            var partRange: Range<Int>?
+            if let r = Segmenter.enclosingWord(of: range, in: passage, dict: dict) {
                 let whole = Segmenter.context(for: r, in: passage), ws = dict.senses(for: whole.word)
-                let c = ws.count > 1 ? try? await SenseChooser.choose(for: whole, senses: ws) : nil
-                let sense = ws[safe: (c?.senseNumber ?? 1) - 1]
-                state.partOf = .init(word: whole.word, pinyin: sense?.pinyin ?? "", meaning: c?.meaningHere ?? sense.map { Gloss.short($0.gloss) })
+                let settled = ws.count == 1 ? 1 : NoteCues.senseNumber(whole.word, at: r, in: passage, senses: ws)
+                let c = settled == nil && ws.count > 1 ? try? await SenseChooser.choose(for: whole, senses: ws) : nil
+                let sense = ws[safe: (settled ?? c?.senseNumber ?? 1) - 1]
+                state.partOf = .init(word: whole.word, pinyin: sense?.pinyin ?? "",
+                                     meaning: c?.meaningHere ?? sense.map { Gloss.short($0.gloss) })
+                partRange = r
+                wordRanges.insert(r)
             }
             if modelReady {
                 do { state.receive(try await SenseChooser.choose(for: context, senses: senses)) }
@@ -590,7 +632,7 @@ enum CLI {
             var phase = "chosen"
             if case .dictionaryOnly(let why) = state.phase { phase = "Dictionary order · " + why }
             if case .failed = state.phase { phase = "Dictionary order · couldn't place this word in the sentence" }
-            cards["\(t.range.lowerBound)"] = [
+            cards["\(range.lowerBound)-\(range.upperBound)"] = [
                 "word": context.word,
                 "chosen": state.choice.map { $0.senseNumber } ?? NSNull(),
                 "meaning": state.choice?.meaningHere ?? NSNull(),
@@ -599,50 +641,54 @@ enum CLI {
                 "header": syl(state.headerPinyin),
                 "phase": phase,
                 "grammar": grammar.map { g in ["summary": g.summary, "listed": senses.indices.filter { g.listed(senses).contains(senses[$0]) }] as [String: Any] } ?? NSNull(),
-                "partOf": state.partOf.map { ["word": $0.word, "pinyin": Pinyin.marked($0.pinyin), "meaning": $0.meaning ?? NSNull()] as [String: Any] } ?? NSNull(),
+                "partOf": state.partOf.map { p -> [String: Any] in
+                    ["word": p.word, "pinyin": Pinyin.marked(p.pinyin), "meaning": p.meaning ?? NSNull(),
+                     "range": partRange.map { [$0.lowerBound, $0.upperBound] } ?? NSNull()]
+                } ?? NSNull(),
                 "speech": state.speech.text,
             ] as [String: Any]
         }
-        // Every run of two or more words, as App.showPhrase and PhrasePrep do it.
-        let wordTokens = tokens.filter { $0.text.contains(where: isCJK) }
-        var phrases: [String: Any] = [:]
-        for i in wordTokens.indices {
-            for j in wordTokens.indices where j > i {
-                let range = wordTokens[i].range.lowerBound..<wordTokens[j].range.upperBound
-                let selection = Selection(passage: passage, range: range, bounds: nil, source: .accessibility, appName: nil)
-                let state = PhraseState(selection: selection, dict: dict)
-                var translation: String?
-                if await LocalModel.isAvailable() {
-                    translation = try? await LocalModel.translate(selection.text, context: Segmenter.translationContext(for: range, in: passage))
-                }
-                if translation == nil { translation = try? await Translator.translate(selection.text) }
-                state.translation = translation
-                var misses: [Int: String] = [:]
-                let picks = await PhraseState.resolve(state.tokens, in: passage, dict: dict, translation: translation,
-                                                      onMiss: { id, why in misses[id] = why })
-                state.apply(picks)
-                for (id, why) in misses where state.choices[id] == nil { state.failures[id] = why }
-                let rows = state.tokens.map { t -> [String: Any] in
-                    addWord(t.text)
-                    let senses = state.senses[t.id] ?? []
-                    let shown = state.shownSense(t)
-                    let listed = state.grammarEntry(t)?.listed(senses)
-                    let preview = senses.preview(chosen: shown)
-                    let collapsed = senses.indices.filter { (listed?.contains(senses[$0]) ?? preview.contains($0)) || (listed != nil && state.grammar(t) == nil && $0 == shown) }
-                    return ["text": t.text, "start": t.range.lowerBound,
-                            "syl": syl(senses[safe: shown ?? 0]?.pinyin ?? ""),
-                            "gloss": state.gloss(t), "dim": particleWords.contains(t.text), "guess": state.isGuess(t),
-                            "failure": state.failures[t.id] ?? NSNull(),
-                            "viaTranslation": state.choices[t.id]?.viaTranslation ?? false,
-                            "canOpen": state.canOpen(t), "here": state.meaningHere(t) ?? NSNull(),
-                            "grammar": state.grammarEntry(t)?.summary ?? NSNull(),
-                            "shown": shown ?? NSNull(), "collapsed": collapsed]
-                }
-                phrases["\(range.lowerBound)-\(range.upperBound)"] = ["text": selection.text, "translation": translation ?? NSNull(), "rows": rows] as [String: Any]
-                FileHandle.standardError.write("\(selection.text) → \(translation ?? "-")\n".data(using: .utf8)!)
-            }
+        // A part's whole word opens from its card: make sure that one is here too.
+        for r in wordRanges where cards["\(r.lowerBound)-\(r.upperBound)"] == nil {
+            FileHandle.standardError.write("missing card for whole word \(String(passage[r]))\n".data(using: .utf8)!)
         }
-        let out: [String: Any] = ["sentence": sentence, "tokens": tokenJSON, "words": words, "cards": cards, "phrases": phrases]
+        // Every phrase a selection can come to, as App.showPhrase and PhrasePrep do it.
+        var phrases: [String: Any] = [:]
+        for range in phraseRanges.sorted(by: { ($0.lowerBound, $0.upperBound) < ($1.lowerBound, $1.upperBound) }) {
+            let selection = Selection(passage: passage, range: range, bounds: nil, source: .accessibility, appName: nil)
+            let state = PhraseState(selection: selection, dict: dict)
+            var translation: String?
+            if await LocalModel.isAvailable() {
+                translation = try? await LocalModel.translate(selection.text, context: Segmenter.translationContext(for: range, in: passage))
+            }
+            if translation == nil { translation = try? await Translator.translate(selection.text) }
+            state.translation = translation
+            var misses: [Int: String] = [:]
+            let picks = await PhraseState.resolve(state.tokens, in: passage, dict: dict, translation: translation,
+                                                  onMiss: { id, why in misses[id] = why })
+            state.apply(picks)
+            for (id, why) in misses where state.choices[id] == nil { state.failures[id] = why }
+            let rows = state.tokens.map { t -> [String: Any] in
+                addWord(t.text)
+                let senses = state.senses[t.id] ?? []
+                let shown = state.shownSense(t)
+                let listed = state.grammarEntry(t)?.listed(senses)
+                let preview = senses.preview(chosen: shown)
+                let collapsed = senses.indices.filter { (listed?.contains(senses[$0]) ?? preview.contains($0)) || (listed != nil && state.grammar(t) == nil && $0 == shown) }
+                return ["text": t.text, "start": t.range.lowerBound,
+                        "syl": syl(senses[safe: shown ?? 0]?.pinyin ?? ""),
+                        "gloss": state.gloss(t), "dim": particleWords.contains(t.text), "guess": state.isGuess(t),
+                        "failure": state.failures[t.id] ?? NSNull(),
+                        "viaTranslation": state.choices[t.id]?.viaTranslation ?? false,
+                        "canOpen": state.canOpen(t), "here": state.meaningHere(t) ?? NSNull(),
+                        "grammar": state.grammarEntry(t)?.summary ?? NSNull(),
+                        "shown": shown ?? NSNull(), "collapsed": collapsed]
+            }
+            phrases["\(range.lowerBound)-\(range.upperBound)"] = ["text": selection.text, "translation": translation ?? NSNull(), "rows": rows] as [String: Any]
+            FileHandle.standardError.write("\(selection.text) → \(translation ?? "-")\n".data(using: .utf8)!)
+        }
+        let out: [String: Any] = ["sentence": sentence, "tokens": tokenJSON, "words": words, "cards": cards, "phrases": phrases,
+                                  "selections": selections]
         let data = try JSONSerialization.data(withJSONObject: out, options: [.sortedKeys, .withoutEscapingSlashes])
         print(String(data: data, encoding: .utf8)!)
     }

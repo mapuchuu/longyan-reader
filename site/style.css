@@ -55,6 +55,8 @@ section { position: relative; }
 }
 .bar.solid { background: rgba(0, 0, 0, .62); border-bottom-color: var(--hairline); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); }
 .bar.tucked { transform: translateY(-100%); }
+/* Tabbing into it brings it back. */
+.bar.tucked:focus-within { transform: none; }
 .bar-inner { max-width: 1120px; margin: 0 auto; padding: 0 28px; height: 52px; display: flex; align-items: center; justify-content: space-between; }
 .brand { white-space: nowrap; display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 15px; text-decoration: none; letter-spacing: -0.01em; }
 /* The mark alone, white on the black bar: the app icon's negative. Its width set so its
@@ -93,7 +95,7 @@ section { position: relative; }
 /* Two lines on a wide screen, "Read & Learn Chinese" and "anywhere.", sized to the space
    beside the eye. */
 h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
-@media (min-width: 761px) { h1 { width: max-content; } h1 .rise > span { white-space: nowrap; } }
+@media (min-width: 901px) and (orientation: landscape), (min-width: 1101px) { h1 { width: max-content; } h1 .rise > span { white-space: nowrap; } }
 .rise { display: block; overflow: hidden; padding-bottom: .08em; margin-bottom: -.08em; }
 .rise > span { display: block; }
 .hero-sub { font-size: 21px; line-height: 1.42; color: rgba(245, 245, 247, .62); margin: 24px 0 34px; max-width: 21em; text-wrap: balance; letter-spacing: -0.016em; }
@@ -117,7 +119,7 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .motion.hero-ready .hint { opacity: 1; transform: none; transition-delay: 2.8s; }
 .hint.done, .motion.hero-ready .hint.done, .is-away .hint, .motion.hero-ready .is-away .hint { opacity: 0; transition-delay: 0s; }
 .og .hint { display: none; }
-@media (max-width: 760px) { .hint { right: 0; left: 0; text-align: center; bottom: 22px; } }
+@media (max-width: 900px), (max-width: 1100px) and (orientation: portrait) { .hint { right: 0; left: 0; text-align: center; bottom: 22px; } }
 
 /* The opening plays in once: the lines rise, then the rest fades up. */
 .motion .rise > span { transform: translateY(105%); }
@@ -263,6 +265,21 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 }
 .lc-back .lc-sym { width: calc(11 * var(--u)); height: calc(11 * var(--u)); flex: none; stroke-width: 1.8; }
 .lc-back:active { opacity: .6; }
+/* "Part of 躺平 tǎng píng to opt out of the rat race ›": the word a lone character belongs to,
+   as a row that opens it (CardRowStyle with a 4 pt bleed, hugging its text). */
+.lc-part {
+  display: inline-flex; align-items: baseline; gap: calc(4 * var(--u)); align-self: flex-start; max-width: calc(100% + 8 * var(--u));
+  margin: 0 calc(-4 * var(--u)); padding: calc(2 * var(--u)) calc(4 * var(--u)); border: 0; border-radius: calc(6 * var(--u));
+  background: transparent; color: var(--primary); font: 400 calc(12 * var(--u))/1.3 var(--text); text-align: left; cursor: default;
+  white-space: nowrap; transition: background-color .2s ease-out;
+}
+.lc-part:hover { background: rgba(255, 255, 255, .05); transition-duration: .08s; }
+.lc-part:active { background: rgba(255, 255, 255, .09); transition-duration: .08s; }
+.lc-part-of, .lc-part-py { color: var(--secondary); flex: none; }
+.lc-part-word { font: 500 calc(13 * var(--u))/1 var(--zh); flex: none; }
+.lc-part-meaning { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.lc-part-chev { flex: none; align-self: center; display: grid; color: var(--tertiary); }
+.lc-part-chev .lc-sym { width: calc(9 * var(--u)); height: calc(9 * var(--u)); stroke-width: 2.1; }
 .lc-divider { height: 1px; background: rgba(255, 255, 255, .08); }
 .lc-label { font-size: calc(11 * var(--u)); font-weight: 600; color: var(--secondary); }
 .lc-list, .lc-rows { display: flex; flex-direction: column; }
@@ -278,6 +295,7 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .lc-row:hover { background: rgba(255, 255, 255, .05); transition-duration: .08s; }
 .lc-row:active { background: rgba(255, 255, 255, .09); transition-duration: .08s; }
 .lc-row:disabled { background: none; }
+.lc-card button:focus-visible { outline: 2px solid rgba(10, 132, 255, .85); outline-offset: 1px; }
 .lc-sense { flex: 1; display: flex; align-items: baseline; gap: calc(6 * var(--u)); min-width: 0; }
 .lc-sense.body { font-size: calc(13 * var(--u)); } .lc-sense.callout { font-size: calc(12 * var(--u)); }
 .lc-num { flex: none; width: calc(9 * var(--u)); text-align: right; font-size: calc(1em - 1 * var(--u)); font-weight: 500; font-variant-numeric: tabular-nums; color: var(--tertiary); }
@@ -351,6 +369,20 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .lc-action .lc-sym { width: 15px; height: 15px; stroke-width: 1.35; }
 .lc-swap { position: absolute; inset: 0; display: grid; place-items: center; }
 .lc-copy.on { color: var(--primary); }
+.lc-card .lc-pin.on { color: var(--accent); }
+/* A pinned card's close button: the round one Notification Center hangs on a banner's corner,
+   shown while the pointer is on the card. */
+.lc-close {
+  position: absolute; z-index: 4; left: -7px; top: -7px; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 50%;
+  display: grid; place-items: center; color: var(--secondary); cursor: default;
+  background: rgba(58, 58, 62, .82); -webkit-backdrop-filter: blur(20px) saturate(1.6); backdrop-filter: blur(20px) saturate(1.6);
+  box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .12), 0 1px 2px rgba(0, 0, 0, .12);
+  opacity: 0; transform: scale(.7); pointer-events: none;
+  transition: opacity .25s cubic-bezier(.2, .9, .3, 1), transform .25s cubic-bezier(.2, .9, .3, 1), color .15s;
+}
+.lc-close .lc-sym { width: 9px; height: 9px; stroke-width: 2.4; }
+.lc-close:hover { color: var(--primary); }
+.lc-card.pinned.hover .lc-close, .lc-card.pinned .lc-close:focus-visible { opacity: 1; transform: none; pointer-events: auto; }
 .lc-listen.on { color: var(--accent) !important; }
 .lc-listen.on .lc-w1 { animation: lc-wave 1s ease-in-out infinite; }
 .lc-listen.on .lc-w2 { animation: lc-wave 1s ease-in-out .2s infinite; }
@@ -401,7 +433,7 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .motion .statement { height: 280vh; padding: 0; position: relative; }
 .motion .statement-pin {
   position: sticky; top: 0; height: 100vh; height: 100svh; display: flex; align-items: flex-start;
-  padding-top: max(88px, calc(50svh - 210px)); box-sizing: border-box;
+  padding-top: max(88px, calc(50svh - 180px)); box-sizing: border-box;
 }
 .motion .statement-pin .wrap { width: 100%; }
 .motion .lit-lines { display: grid; }
@@ -443,7 +475,8 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .lc-light.on { opacity: 1; transition: top var(--lc-motion-t) var(--lc-motion), height var(--lc-motion-t) var(--lc-motion), opacity .8s cubic-bezier(.22, 1, .36, 1); }
 .lc-light > i { position: absolute; inset: 0; border-radius: inherit; transition: opacity .55s cubic-bezier(.4, 0, .2, 1); }
 /* Apple's tinted fills: the system colour (dark appearance) as a plain wash, no outline. */
-.lc-light > .amber { background: rgba(255, 214, 10, .36); }
+/* A touch warmer than the system yellow: over the dark card the pure hue goes olive. */
+.lc-light > .amber { background: rgba(255, 200, 0, .34); }
 .lc-light > .blue { background: rgba(10, 132, 255, .24); opacity: 0; }
 .lc-light.blue > .amber { opacity: 0; transition: opacity .22s cubic-bezier(.4, 0, .2, 1); }
 .lc-light.blue > .blue { opacity: 1; transition: opacity .4s cubic-bezier(.22, 1, .36, 1); }
@@ -545,7 +578,7 @@ figcaption b { color: var(--ink); font-weight: 600; }
 .note p { margin: 0; font-size: 14px; line-height: 1.42; color: #1d1d1f; }
 
 /* Install */
-.install { margin-top: 200px; padding: 140px 0 150px; background: #0c0c0d; border-top: .5px solid var(--hairline); border-bottom: .5px solid var(--hairline); }
+.install { margin-top: 128px; padding: 112px 0 150px; background: #0c0c0d; border-top: .5px solid var(--hairline); border-bottom: .5px solid var(--hairline); }
 .install-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
 .install-art { aspect-ratio: 5 / 4; display: grid; place-items: center; padding: 32px; }
 .steps { margin: 0; padding: 0; list-style: none; counter-reset: step; }
@@ -607,11 +640,13 @@ footer a { color: #a1a1a6; }
   .motion .statement-pin { padding-top: max(76px, calc(50svh - 270px)); }
   .lit-demo { width: 100%; max-width: 396px; }
 }
-@media (max-width: 760px) {
-  .hero-copy { top: auto; bottom: max(40px, 6vh); transform: none; width: auto; right: 16px; left: 16px; }
+/* Phones and upright tablets: the eye on top, the headline under it (hero.js lays the eye
+   out by the same rule). */
+@media (max-width: 900px), (max-width: 1100px) and (orientation: portrait) {
+  .hero-copy { top: auto; bottom: max(40px, 6vh); transform: none; width: auto; right: 28px; left: 28px; }
   .hero-copy::before { content: ""; position: absolute; inset: -60px -16px -60px; z-index: -1; background: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,.75) 30%, rgba(0,0,0,.75)); }
   .is-away .hero-copy { transform: translateY(-30px); }
-  h1 { font-size: 56px; }
+  h1 { font-size: min(72px, 8.4vw); }
 }
 @media (max-width: 900px) {
   h2, .closing h2 { font-size: 40px; }
@@ -621,6 +656,7 @@ footer a { color: #a1a1a6; }
 }
 @media (max-width: 600px) {
   .wrap, .bar-inner { padding: 0 16px; }
+  .hero-copy { left: 16px; right: 16px; }
   h1 { font-size: 42px; }
   h2, .closing h2 { font-size: 32px; }
   .hero-sub, .section-head p, .watch-copy p, .closing p { font-size: 17px; }
@@ -642,6 +678,7 @@ footer a { color: #a1a1a6; }
   .settings-row { flex-wrap: wrap; }
   .closing { padding: 120px 0 130px; }
   .hero-sub { margin: 16px 0 24px; }
+  .hero-actions { gap: 22px; }
   .try-head p { font-size: 16px; }
   .lit-line { font-size: 30px; }
   .statement { padding: 60px 0 150px; }
