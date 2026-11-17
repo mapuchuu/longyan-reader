@@ -9,6 +9,7 @@ import PDFKit
 ///   --phrase "<text>"
 ///   --render "<passage>" <word> <out.png>
 ///   --render-phrase "<text>" <out.png> [word-to-expand]
+///   --site-json "<sentence>"   (everything longyan.app's demo cards show, as JSON)
 enum CLI {
     /// Keeps the main thread free (SwiftUI rendering needs it) and exits when done.
     static func run(_ args: [String]) -> Never {
@@ -267,6 +268,8 @@ enum CLI {
             print("senses: first in \(firstPick ?? 0) ms, all \(picks.count) in \(Int(Date().timeIntervalSince(r) * 1000)) ms: " + tokens.map { t in
                 picks[t.id].map { "\(t.text)=\(headlineGloss(dict.senses(for: t.text)[$0.senseNumber - 1]))" } ?? t.text
             }.joined(separator: " / "))
+        case "--site-json" where args.count >= 3:
+            try await siteJSON(args[2])
         case "--render-phrase" where args.count >= 4:
             try await renderPhrase(args[2], expand: args.count >= 5 ? args[4] : nil, to: URL(fileURLWithPath: args[3]))
         case "--pdf-context" where args.count >= 5:
@@ -539,6 +542,111 @@ enum CLI {
         print("wrote \(url.path)")
     }
 
+    /// For longyan.app's demo: what the word card shows for every word of `sentence`, and what
+    /// the phrase card shows for every run of two or more words, worked out by the cards' own
+    /// state classes so the website's copy of the card matches the app's.
+    @MainActor
+    static func siteJSON(_ sentence: String) async throws {
+        let dict = try CEDict.load()
+        let passage = Array(sentence)
+        _ = await LocalModel.isAvailable()
+        func syl(_ p: String) -> [[String: Any]] { Pinyin.syllables(p).map { ["t": $0.text, "tone": $0.tone] } }
+        func noteJSON(_ n: StoredNote?) -> Any { n.map { ["tag": $0.tag, "text": $0.note] as [String: Any] } ?? NSNull() }
+        var words: [String: Any] = [:]
+        func addWord(_ w: String) {
+            guard words[w] == nil else { return }
+            words[w] = dict.senses(for: w).map { s -> [String: Any] in
+                ["pinyin": s.pinyin, "marked": Pinyin.marked(s.pinyin), "syl": syl(s.pinyin),
+                 "pos": PartOfSpeech.of(s.gloss)?.label ?? NSNull(), "listed": Gloss.listed(s.gloss),
+                 "short": Gloss.short(s.gloss), "readable": Gloss.readable(s.gloss),
+                 "hasNote": NotesStore.hasExactNote(w, s), "note": noteJSON(NotesStore.note(w, s))]
+            }
+        }
+        let full = Selection(passage: passage, range: 0..<passage.count, bounds: nil, source: .accessibility, appName: nil).trimmed()
+        let tokens = Segmenter.phrase(full.range, in: passage, dict: dict)
+        var tokenJSON: [[String: Any]] = []
+        var cards: [String: Any] = [:]
+        for t in tokens {
+            tokenJSON.append(["text": t.text, "range": [t.range.lowerBound, t.range.upperBound]])
+            guard t.text.contains(where: isCJK) else { continue }
+            addWord(t.text)
+            // As App.showWord does for a selection of one word.
+            let context = Segmenter.context(for: t.range, in: passage)
+            let senses = dict.senses(for: context.word)
+            let grammar = GrammarWords.entry(context.word, in: passage, at: t.range.lowerBound)
+            let modelReady = SenseChooser.canChoose && !senses.isEmpty && grammar == nil
+            let state = LookupState(context: context, senses: senses,
+                                    phase: modelReady ? .choosing : .dictionaryOnly(senses.isEmpty ? "not in dictionary" : SenseChooser.noPickerReason))
+            if let r = Segmenter.enclosingWord(of: t.range, in: passage, dict: dict) {
+                let whole = Segmenter.context(for: r, in: passage), ws = dict.senses(for: whole.word)
+                let c = ws.count > 1 ? try? await SenseChooser.choose(for: whole, senses: ws) : nil
+                let sense = ws[safe: (c?.senseNumber ?? 1) - 1]
+                state.partOf = .init(word: whole.word, pinyin: sense?.pinyin ?? "", meaning: c?.meaningHere ?? sense.map { Gloss.short($0.gloss) })
+            }
+            if modelReady {
+                do { state.receive(try await SenseChooser.choose(for: context, senses: senses)) }
+                catch { state.phase = error is NoSenseFits ? .dictionaryOnly("no listed meaning was picked for this sentence") : .failed("\(error)") }
+            }
+            var phase = "chosen"
+            if case .dictionaryOnly(let why) = state.phase { phase = "Dictionary order · " + why }
+            if case .failed = state.phase { phase = "Dictionary order · couldn't place this word in the sentence" }
+            cards["\(t.range.lowerBound)"] = [
+                "word": context.word,
+                "chosen": state.choice.map { $0.senseNumber } ?? NSNull(),
+                "meaning": state.choice?.meaningHere ?? NSNull(),
+                "contextual": state.isContextual,
+                "viaTranslation": state.choice?.viaTranslation ?? false,
+                "header": syl(state.headerPinyin),
+                "phase": phase,
+                "grammar": grammar.map { g in ["summary": g.summary, "listed": senses.indices.filter { g.listed(senses).contains(senses[$0]) }] as [String: Any] } ?? NSNull(),
+                "partOf": state.partOf.map { ["word": $0.word, "pinyin": Pinyin.marked($0.pinyin), "meaning": $0.meaning ?? NSNull()] as [String: Any] } ?? NSNull(),
+                "speech": state.speech.text,
+            ] as [String: Any]
+        }
+        // Every run of two or more words, as App.showPhrase and PhrasePrep do it.
+        let wordTokens = tokens.filter { $0.text.contains(where: isCJK) }
+        var phrases: [String: Any] = [:]
+        for i in wordTokens.indices {
+            for j in wordTokens.indices where j > i {
+                let range = wordTokens[i].range.lowerBound..<wordTokens[j].range.upperBound
+                let selection = Selection(passage: passage, range: range, bounds: nil, source: .accessibility, appName: nil)
+                let state = PhraseState(selection: selection, dict: dict)
+                var translation: String?
+                if await LocalModel.isAvailable() {
+                    translation = try? await LocalModel.translate(selection.text, context: Segmenter.translationContext(for: range, in: passage))
+                }
+                if translation == nil { translation = try? await Translator.translate(selection.text) }
+                state.translation = translation
+                var misses: [Int: String] = [:]
+                let picks = await PhraseState.resolve(state.tokens, in: passage, dict: dict, translation: translation,
+                                                      onMiss: { id, why in misses[id] = why })
+                state.apply(picks)
+                for (id, why) in misses where state.choices[id] == nil { state.failures[id] = why }
+                let rows = state.tokens.map { t -> [String: Any] in
+                    addWord(t.text)
+                    let senses = state.senses[t.id] ?? []
+                    let shown = state.shownSense(t)
+                    let listed = state.grammarEntry(t)?.listed(senses)
+                    let preview = senses.preview(chosen: shown)
+                    let collapsed = senses.indices.filter { (listed?.contains(senses[$0]) ?? preview.contains($0)) || (listed != nil && state.grammar(t) == nil && $0 == shown) }
+                    return ["text": t.text, "start": t.range.lowerBound,
+                            "syl": syl(senses[safe: shown ?? 0]?.pinyin ?? ""),
+                            "gloss": state.gloss(t), "dim": particleWords.contains(t.text), "guess": state.isGuess(t),
+                            "failure": state.failures[t.id] ?? NSNull(),
+                            "viaTranslation": state.choices[t.id]?.viaTranslation ?? false,
+                            "canOpen": state.canOpen(t), "here": state.meaningHere(t) ?? NSNull(),
+                            "grammar": state.grammarEntry(t)?.summary ?? NSNull(),
+                            "shown": shown ?? NSNull(), "collapsed": collapsed]
+                }
+                phrases["\(range.lowerBound)-\(range.upperBound)"] = ["text": selection.text, "translation": translation ?? NSNull(), "rows": rows] as [String: Any]
+                FileHandle.standardError.write("\(selection.text) → \(translation ?? "-")\n".data(using: .utf8)!)
+            }
+        }
+        let out: [String: Any] = ["sentence": sentence, "tokens": tokenJSON, "words": words, "cards": cards, "phrases": phrases]
+        let data = try JSONSerialization.data(withJSONObject: out, options: [.sortedKeys, .withoutEscapingSlashes])
+        print(String(data: data, encoding: .utf8)!)
+    }
+
     @MainActor
     static func renderPhrase(_ text: String, expand: String?, to url: URL) async throws {
         let dict = try CEDict.load()
@@ -578,8 +686,10 @@ enum CLI {
     @MainActor
     static func writePNG<V: View>(_ view: V, to url: URL) async throws {
         _ = NSApplication.shared
+        // LONGYAN_RENDER_CLEAR=1 leaves out the backdrop: just the card, on transparency (for the website).
+        let clear = ProcessInfo.processInfo.environment["LONGYAN_RENDER_CLEAR"] == "1"
         let host = NSHostingView(rootView: view.environment(\.renderingSnapshot, true)
-            .padding(12).background(Color(nsColor: .underPageBackgroundColor)))
+            .padding(clear ? 0 : 12).background(clear ? Color.clear : Color(nsColor: .underPageBackgroundColor)))
         if let mode = ProcessInfo.processInfo.environment["LONGYAN_APPEARANCE"] {
             host.appearance = NSAppearance(named: mode == "dark" ? .darkAqua : .aqua)
         }

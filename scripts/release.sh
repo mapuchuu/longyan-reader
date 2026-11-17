@@ -24,8 +24,11 @@ cp "build/LongyanReader-$version.zip" "$out/"
 "$tools/generate_appcast" --embed-release-notes \
   --download-url-prefix "https://github.com/mapuchuu/longyan-reader/releases/download/v$version/" \
   "$out"
+# The same zip under a fixed name, for the website's download link
+# (releases/latest/download/LongyanReader.zip). Added after the appcast so it isn't listed there.
+cp "$out/LongyanReader-$version.zip" "$out/LongyanReader.zip"
 echo
 echo "release $version (build $build) in $out:"
 ls -1 "$out"
 echo
-echo "publish:  gh release create v$version $out/LongyanReader-$version.zip $out/appcast.xml --title \"Longyan Reader $version\" --notes-file <notes>"
+echo "publish:  gh release create v$version $out/LongyanReader-$version.zip $out/LongyanReader.zip $out/appcast.xml --title \"Longyan Reader $version\" --notes-file <notes>"
