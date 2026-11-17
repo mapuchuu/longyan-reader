@@ -15,6 +15,14 @@
   }, { rootMargin: "0px 0px -12% 0px" });
   document.querySelectorAll("[data-reveal]").forEach((el) => io.observe(el));
 
+  // The feature tiles' slow drift and little loops only run while a tile is on screen.
+  if (moving) {
+    const live = new IntersectionObserver((entries) => {
+      for (const e of entries) e.target.classList.toggle("live", e.isIntersecting);
+    });
+    document.querySelectorAll(".stage").forEach((el) => live.observe(el));
+  }
+
   // The statement: one line at a time beside the app's card, which shows a little more with
   // each (try.js). The section is pinned for three segments of scrolling, SEG of a screen
   // each, one per line; a bar per segment fills as you scroll through it. The next line only

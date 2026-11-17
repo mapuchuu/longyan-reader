@@ -13,7 +13,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/png" href="images/favicon.png">
 <link rel="apple-touch-icon" href="images/icon.png">
-<link rel="stylesheet" href="style.css?v=1118t">
+<link rel="stylesheet" href="style.css?v=1118x">
 <script>
   // Scroll motion, unless the visitor asked for less (or ?still, for screenshots).
   if (!matchMedia("(prefers-reduced-motion: reduce)").matches && !/[?&]still/.test(location.search)) document.documentElement.classList.add("motion");
@@ -53,7 +53,7 @@
       </div>
       <div class="lines" id="lines" lang="zh-CN"></div>
       <div class="try-progress" aria-hidden="true"><i><b></b></i><i><b></b></i></div>
-      <button type="button" class="button try-continue" data-continue>Continue <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5"/></svg></button>
+      <button type="button" class="try-continue" data-continue>Continue <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5"/></svg></button>
     </div>
   </div>
 </section>
@@ -65,8 +65,8 @@
     <div class="wrap">
       <div class="lit" id="lit">
         <div class="lit-lines">
-          <p class="lit-line">Ordinary dictionaries throw <span class="every">every</span> meaning at you.</p>
-          <p class="lit-line">Longyan shows you which <span class="one">one</span> your sentence means…</p>
+          <p class="lit-line">An ordinary dictionary throws <span class="every">every meaning</span> at you.</p>
+          <p class="lit-line">Longyan shows you which <span class="one">one</span> your sentence really means…</p>
           <p class="lit-line">and teaches you the <span class="ctx">cultural context</span> you need to know.</p>
         </div>
         <div class="lit-progress" aria-hidden="true"><i><b></b></i><i><b></b></i><i><b></b></i></div>
@@ -93,13 +93,13 @@
   <canvas class="paper" data-paper="azure" data-drop=".16" data-live aria-hidden="true"></canvas>
   <div class="wrap watch-copy" data-reveal>
     <h2>Works everywhere you want to read.</h2>
-    <p>Safari, Chrome, Mail, Notes, you name it. Highlight some Chinese, click the eye, and the smart pop-up card opens right next to the text.</p>
+    <p>Safari, Chrome, Mail, Notes, you name it. Highlight some Chinese text, click the eye, and the smart card opens up.</p>
   </div>
   <div class="wrap">
     <figure class="screen" id="screen">
-      <video muted loop playsinline preload="none" poster="media/reading.jpg" aria-label="Longyan Reader explaining a sentence in Chrome and a phrase in a PDF in Preview">
-        <source data-src="media/reading.mp4" type='video/mp4; codecs="hvc1"'>
-        <source data-src="media/reading-h264.mp4" type="video/mp4">
+      <video muted loop playsinline preload="none" poster="media/reading-2.jpg" aria-label="Longyan Reader explaining a sentence in Chrome and a phrase in a PDF in Preview">
+        <source data-src="media/reading-2.mp4" type='video/mp4; codecs="hvc1"'>
+        <source data-src="media/reading-2-h264.mp4" type="video/mp4">
       </video>
     </figure>
   </div>
@@ -107,14 +107,13 @@
 
 <section class="features" id="features">
   <div class="wrap section-head" data-reveal>
-    <h2>Made for reading.</h2>
+    <h2>Made for Chinese language learners of every level.</h2>
     <p>The meanings come from CC-CEDICT, a free dictionary of nearly 200,000 words. A model on your Mac picks the one the sentence means.</p>
   </div>
   <div class="wrap grid">
 
     <figure class="tile" data-reveal>
-      <div class="paper-box">
-        <canvas class="paper" data-paper="cobalt" aria-hidden="true"></canvas>
+      <div class="paper-box stage stage-notes">
         <div class="ui ui-notes">
           <div class="note lost">
             <div class="note-head"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 4.5A2.5 2.5 0 0 1 5.5 2h9A2.5 2.5 0 0 1 17 4.5v6a2.5 2.5 0 0 1-2.5 2.5H9l-4 3.5V13h.5A2.5 2.5 0 0 1 3 10.5z"/></svg>Lost in translation</div>
@@ -130,8 +129,7 @@
     </figure>
 
     <figure class="tile" data-reveal>
-      <div class="paper-box">
-        <canvas class="paper" data-paper="sky" aria-hidden="true"></canvas>
+      <div class="paper-box stage stage-tones">
         <div class="ui ui-tones" lang="zh-CN">
           <div><span class="t1">妈</span><i class="t1">mā</i><small>mother</small></div>
           <div><span class="t2">麻</span><i class="t2">má</i><small>hemp</small></div>
@@ -143,22 +141,24 @@
     </figure>
 
     <figure class="tile" data-reveal>
-      <div class="paper-box">
-        <canvas class="paper" data-paper="azure" aria-hidden="true"></canvas>
-        <div class="ui ui-history">
+      <div class="paper-box stage stage-history">
+        <div class="stack">
+          <i class="ghost" aria-hidden="true"></i><i class="ghost" aria-hidden="true"></i>
+          <div class="ui ui-history">
           <div class="history-head"><b>History</b><span class="pill">Export to Anki</span></div>
           <div class="history-row"><span lang="zh-CN" class="hz"><span class="t3">走</span></span><span>to die</span><em lang="zh-CN">奶奶上个月走了</em></div>
           <div class="history-row"><span lang="zh-CN" class="hz"><span class="t3">躺</span><span class="t2">平</span></span><span>to opt out of the rat race</span><em lang="zh-CN">我想躺平</em></div>
           <div class="history-row"><span lang="zh-CN" class="hz"><span class="t1">摸</span><span class="t2">鱼</span></span><span>to loaf on the job</span><em lang="zh-CN">他上班摸鱼</em></div>
           <div class="history-row"><span lang="zh-CN" class="hz"><span class="t4">面</span><span class="t5">子</span></span><span>social prestige</span><em lang="zh-CN">给足了我面子</em></div>
         </div>
+        </div>
       </div>
       <figcaption><b>Every word you look up, saved.</b> With the meaning it had in its sentence. Export them as Anki flashcards or a spreadsheet.</figcaption>
     </figure>
 
     <figure class="tile" data-reveal>
-      <div class="paper-box">
-        <canvas class="paper" data-paper="indigo" aria-hidden="true"></canvas>
+      <div class="paper-box stage stage-menu">
+        <div class="menubar" aria-hidden="true"><span class="menubar-eye"><svg viewBox="0 0 1200 848.53"><path fill="currentColor" fill-rule="evenodd" d="M0 424.26L300 124.26A424.26 424.26 0 0 1 900 124.26L1200 424.26L900 724.26A424.26 424.26 0 0 1 300 724.26ZM225 424.26L412.5 236.76A265.17 265.17 0 0 1 787.5 236.76L975 424.26L787.5 611.76A265.17 265.17 0 0 1 412.5 611.76ZM471.43 424.26L535.71 359.98A90.91 90.91 0 0 1 664.29 359.98L728.57 424.26L664.29 488.55A90.91 90.91 0 0 1 535.71 488.55ZM728.57 424.26L975 424.26L851.79 547.48Z"/></svg></span><span>Tue 9:41</span></div>
         <div class="ui ui-menu">
           <div class="menu-item dim">Highlight Chinese text, then click the eye or press ⌃⌥L</div>
           <hr>
@@ -178,12 +178,11 @@
 
 <section class="install" id="install">
   <div class="wrap section-head center" data-reveal>
-    <h2>Installing takes a minute.</h2>
+    <h2>Installation for macOS</h2>
     <p class="started" id="started" role="status">Your download has started.</p>
   </div>
   <div class="wrap install-grid">
-    <div class="paper-box install-art" data-reveal>
-      <canvas class="paper" data-paper="sky" data-seed="9.2" aria-hidden="true"></canvas>
+    <div class="paper-box stage stage-install install-art" data-reveal>
       <div class="settings" aria-hidden="true">
         <div class="settings-title">Privacy &amp; Security</div>
         <div class="settings-label">Security</div>
@@ -212,8 +211,8 @@
 <section class="closing">
   <canvas class="paper" data-paper="dawn" data-live aria-hidden="true"></canvas>
   <div class="wrap" data-reveal>
-    <img src="images/icon.png" alt="" width="96" height="96">
-    <h2>Free, and open source.</h2>
+    <svg class="closing-mark" viewBox="0 0 1200 848.53" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M0 424.26L300 124.26A424.26 424.26 0 0 1 900 124.26L1200 424.26L900 724.26A424.26 424.26 0 0 1 300 724.26ZM225 424.26L412.5 236.76A265.17 265.17 0 0 1 787.5 236.76L975 424.26L787.5 611.76A265.17 265.17 0 0 1 412.5 611.76ZM471.43 424.26L535.71 359.98A90.91 90.91 0 0 1 664.29 359.98L728.57 424.26L664.29 488.55A90.91 90.91 0 0 1 535.71 488.55ZM728.57 424.26L975 424.26L851.79 547.48Z"/></svg>
+    <h2>Free <span class="plus">+</span> offline <span class="plus">+</span> open source</h2>
     <p>No account, no subscription. The code is on <a href="https://github.com/mapuchuu/longyan-reader">GitHub</a> under the MIT license.</p>
     <a class="button" href="https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip" data-download>Download for Mac</a>
     <p class="closing-fine">Apple silicon, macOS 15 or later. Windows coming soon.</p>
@@ -229,11 +228,11 @@
   </div>
 </footer>
 
-<script src="data.js?v=1118t"></script>
-<script src="card.js?v=1118t"></script>
-<script src="hero.js?v=1118t"></script>
-<script src="try.js?v=1118t"></script>
-<script src="paper.js?v=1118t"></script>
-<script src="motion.js?v=1118t"></script>
+<script src="data.js?v=1118x"></script>
+<script src="card.js?v=1118x"></script>
+<script src="hero.js?v=1118x"></script>
+<script src="try.js?v=1118x"></script>
+<script src="paper.js?v=1118x"></script>
+<script src="motion.js?v=1118x"></script>
 </body>
 </html>
