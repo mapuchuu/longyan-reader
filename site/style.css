@@ -472,7 +472,7 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 /* How far through each line's stretch of scrolling you are. */
 .motion .lit-progress { display: flex; gap: 8px; margin: 30px 0 0 2px; opacity: 0; transition: opacity .6s ease-out; }
 .motion .lit-progress.on { opacity: 1; transition-delay: .3s; }
-@media (min-width: 1101px) {
+@media (min-width: 901px) and (orientation: landscape), (min-width: 1101px) {
   /* Pulled up over the opening's last stretch, so its content rises in right behind the
      demo sentence instead of a screen later. Clicks pass through its empty parts. */
   .motion .statement { margin-top: -35vh; pointer-events: none; }
@@ -1032,7 +1032,12 @@ footer a { color: #a1a1a6; }
 
 @media (max-width: 1100px) {
   .lit-line { font-size: 38px; }
-  .statement .wrap { grid-template-columns: minmax(0, 1fr); gap: 48px; }
+  .statement .wrap { gap: 48px; }
+}
+/* The statement stacks, line over card, on phones and upright tablets only; a landscape
+   screen keeps them side by side, as the hero does. */
+@media (max-width: 900px), (max-width: 1100px) and (orientation: portrait) {
+  .statement .wrap { grid-template-columns: minmax(0, 1fr); }
   .motion .statement .wrap { gap: 40px; }
   .motion .statement-pin { padding-top: max(76px, calc(50svh - 270px)); }
   .lit-demo { width: 100%; max-width: 444px; }
