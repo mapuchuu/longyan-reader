@@ -286,7 +286,8 @@
     if (card.ro) card.ro.disconnect();
     card.el.style.pointerEvents = "none";
     if (instant || reduce) { card.el.remove(); }
-    else card.el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 120, easing: "ease-in-out", fill: "forwards" }).onfinish = () => card.el.remove();
+    // Fades out unhurried, settling back a little toward the selection as it goes.
+    else card.el.animate([{ opacity: 1, transform: "none" }, { opacity: 0, transform: "scale(.985)" }], { duration: 300, easing: "cubic-bezier(.4, 0, .2, 1)", fill: "forwards" }).onfinish = () => card.el.remove();
     if (card.onClose) card.onClose();
   }
 
@@ -657,8 +658,8 @@
         if (peekEl !== el) return;
         peekEl = null;
         if (reduce) el.remove();
-        else el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 120, fill: "forwards" }).onfinish = () => el.remove();
-      }, 90);
+        else el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 280, easing: "cubic-bezier(.4, 0, .2, 1)", fill: "forwards" }).onfinish = () => el.remove();
+      }, 120);
       return;
     }
     const fresh = !peekEl;

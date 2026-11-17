@@ -4,13 +4,14 @@
 // light characters (一, 人) where it's dim, dense ones where it's bright, none where it's
 // dark, on a 4×4 ordered dither. A few faint characters are stars.
 //
-// The eye is set in everyday sentences, in characters of four sizes: big ones where the mark
-// is thick, small ones along its edges, so it reads sharply and still looks like type. The
-// mark itself is a vector built from its geometry (below) and cuts the text, so its edge is as
-// crisp as the screen allows. Characters with too little ink to fill their square (一, 人,
-// 了…) are left out of it. Pointing at a character shows the word it's part of and what it means in its sentence: the app's own
-// reading (scripts/site-data.py). Scrolling breaks the eye up, and characters float out of it
-// from all over into the three demo sentences, which try.js lets you read.
+// The eye is set in everyday sentences, in characters of six sizes: big ones where the mark
+// is thick, smaller and smaller toward its edges. Every character is whole and sits inside
+// the mark, a vector built from its geometry (below); nothing is masked, so the shape is just
+// where the characters are, traced finely by the smallest. Characters with too little ink to
+// fill their square (一, 人, 了…) are left out. Pointing at a character shows the word it's
+// part of and what it means in its sentence: the app's own reading (scripts/site-data.py).
+// Scrolling breaks the eye up, and characters float out of it from all over into the three
+// demo sentences, which try.js lets you read.
 (function () {
   "use strict";
   const canvas = document.getElementById("field");
@@ -95,16 +96,20 @@
     for (let k = o.length - 1; k > 0; k--) { const j = Math.floor(hash(pass * 31 + k * 7.13) * (k + 1)); [o[k], o[j]] = [o[j], o[k]]; }
     return o;
   }
-  // The eye's characters, packed into the mark: squares of 4, 3, 2 and 1 units, the big ones
-  // only where they fit whole, then single units for the rest, so the edges are fine.
+  // The eye's characters, packed into the mark on a grid of half units: squares of 4, 3 and 2
+  // units where they fit, then whole and half units for the rest. Every character sits wholly
+  // inside the mark; nothing is cut. The half units trace the edge finely enough that the
+  // shape still reads.
   function pack(unit) {
-    const ucols = Math.ceil(eye.w / unit) + 2, urows = Math.ceil(eye.h / unit) + 2;
-    const ux0 = eye.cx - (ucols * unit) / 2, uy0 = eye.cy - (urows * unit) / 2;
+    const h = unit / 2;
+    const ucols = Math.ceil(eye.w / h) + 4, urows = Math.ceil(eye.h / h) + 4;
+    const ux0 = eye.cx - (ucols * h) / 2, uy0 = eye.cy - (urows * h) / 2;
     const test = document.createElement("canvas").getContext("2d");
     test.setTransform(...markMatrix());
-    const inU = new Uint8Array(ucols * urows);
-    for (let r = 0; r < urows; r++) for (let c = 0; c < ucols; c++)
-      inU[r * ucols + c] = test.isPointInPath(mark, ux0 + (c + 0.5) * unit, uy0 + (r + 0.5) * unit, "evenodd") ? 1 : 0;
+    // Which corners of the grid are inside the mark.
+    const LC = ucols + 1, lat = new Uint8Array(LC * (urows + 1));
+    for (let r = 0; r <= urows; r++) for (let c = 0; c <= ucols; c++)
+      lat[r * LC + c] = test.isPointInPath(mark, ux0 + c * h, uy0 + r * h, "evenodd") ? 1 : 0;
     const owner = new Int32Array(ucols * urows).fill(-1);
     const out = [];
     let seq = 0, pass = 50, queue = [];
@@ -112,37 +117,35 @@
       while (!queue.length) for (const sIdx of order(pass++)) [...PAGE[sIdx].s].forEach((ch, i) => { if (!PUNCT.test(ch) && !SPARSE.test(ch)) queue.push({ ch, s: sIdx, i }); });
       return queue.shift();
     };
-    const fits = (c, r, n) => {
-      if (c + n > ucols || r + n > urows) return false;
-      for (let y = r; y < r + n; y++) for (let x = c; x < c + n; x++) if (!inU[y * ucols + x] || owner[y * ucols + x] >= 0) return false;
+    // A square n half units on a side fits if it's free and all of it, with `m` half units
+    // of room around it, is inside the mark.
+    const fits = (c, r, n, m = 0) => {
+      if (c - m < 0 || r - m < 0 || c + n + m > ucols || r + n + m > urows) return false;
+      for (let y = r; y < r + n; y++) for (let x = c; x < c + n; x++) if (owner[y * ucols + x] >= 0) return false;
+      for (let y = r - m; y <= r + n + m; y++) for (let x = c - m; x <= c + n + m; x++) if (!lat[y * LC + x]) return false;
       return true;
     };
     const place = (c, r, n) => {
       const k = out.length;
       for (let y = r; y < r + n; y++) for (let x = c; x < c + n; x++) owner[y * ucols + x] = k;
-      const e = next();
-      out.push({ ...e, c, r, n, x: ux0 + c * unit, y: uy0 + r * unit, w: n * unit, rnd: hash(++seq * 1.37 + 0.2) });
+      out.push({ ...next(), x: ux0 + c * h, y: uy0 + r * h, w: n * h, rnd: hash(++seq * 1.37 + 0.2) });
     };
-    // How much of the area each size tries for: a few big, more middling.
-    const area = inU.reduce((a, b) => a + b, 0);
-    for (const [n, share] of [[4, 0.4], [3, 0.24], [2, 0.18]]) {
-      let tries = Math.round((area * share) / (n * n)) * 6, want = Math.round((area * share) / (n * n)), got = 0;
-      for (let k = 0; k < tries && got < want; k++) {
+    // How much of the area each big size tries for.
+    let area = 0;
+    for (let r = 0; r < urows; r++) for (let c = 0; c < ucols; c++) if (lat[r * LC + c] && lat[(r + 1) * LC + c + 1]) area++;
+    // The big ones keep off the edge, so the outline is always traced in fine characters
+    // and the sizes taper toward it.
+    for (const [n, share, m] of [[8, 0.44, 1], [6, 0.24, 1], [4, 0.16, 1]]) {
+      const want = Math.round((area * share) / (n * n)), tries = want * 16;
+      for (let k = 0, got = 0; k < tries && got < want; k++) {
         const c = Math.floor(hash(n * 1000 + k * 1.618) * ucols), r = Math.floor(hash(n * 2000 + k * 2.414) * urows);
-        if (fits(c, r, n)) { place(c, r, n); got++; }
+        if (fits(c, r, n, m)) { place(c, r, n); got++; }
       }
     }
-    // Everything left, including the cells the mark only clips, one unit each.
-    for (let r = 0; r < urows; r++) for (let c = 0; c < ucols; c++) {
-      if (owner[r * ucols + c] >= 0) continue;
-      let near = inU[r * ucols + c];
-      for (let dy = -1; dy <= 1 && !near; dy++) for (let dx = -1; dx <= 1 && !near; dx++) {
-        const x = c + dx, y = r + dy;
-        if (x >= 0 && y >= 0 && x < ucols && y < urows && inU[y * ucols + x]) near = 1;
-      }
-      if (near) place(c, r, 1);
-    }
-    return { unit, ucols, urows, ux0, uy0, owner, glyphs: out };
+    // Then one and a half, whole and half units wherever they fit, out to the edge.
+    for (const n of [3, 2, 1])
+      for (let r = 0; r < urows; r++) for (let c = 0; c < ucols; c++) if (fits(c, r, n)) place(c, r, n);
+    return { unit: h, ucols, urows, ux0, uy0, owner, glyphs: out };
   }
 
   let W = 0, H = 0, dpr = 1, narrow = false;
@@ -232,7 +235,7 @@
     l.fillStyle = ink;
     for (const g of fine.glyphs) {
       // Big characters a little lighter in weight, so they don't outshine the rest.
-      l.font = `${g.n >= 3 ? 500 : 600} ${g.w * 0.94}px ${ZH}`;
+      l.font = `${g.w >= unit * 3 ? 500 : 600} ${g.w * 0.94}px ${ZH}`;
       l.fillText(g.ch, g.x + g.w / 2, g.y + g.w / 2 + g.w * 0.04);
     }
 
@@ -289,7 +292,7 @@
   function buildFlights() {
     flights = [];
     if (!fine) return;
-    let pool = fine.glyphs.map((g, k) => k).filter((k) => fine.glyphs[k].n >= 2);
+    let pool = fine.glyphs.map((g, k) => k).filter((k) => fine.glyphs[k].w >= fine.unit * 4);
     if (pool.length < 120) pool = fine.glyphs.map((g, k) => k);
     const used = new Set();
     let j = 0;
@@ -362,12 +365,6 @@
     ctx.globalAlpha = 1;
   }
 
-  function clipMark() {
-    ctx.setTransform(...markMatrix().map((v) => v * dpr));
-    ctx.clip(mark, "evenodd");
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  }
-
   function draw(t) {
     if (!lit) return;
     const p = progress;
@@ -379,14 +376,10 @@
     drawLand(t, smooth(0.02, 0.3, p));
 
     // The eye comes in from left to right, each character flashing white as it arrives; on
-    // scroll its characters go, all over at once, the same way.
+    // scroll its characters go, all over at once, the same way. Nothing masks it: its shape is
+    // just where its characters are.
     if (p < 0.24) {
       ctx.save();
-      clipMark();
-      const fill = ctx.createLinearGradient(eye.x, 0, eye.x + eye.w, 0);
-      const fa = 0.07 * (1 - smooth(0.03, 0.12, p)) * (still ? 1 : smooth(0.5, 1.6, t));
-      fill.addColorStop(0, rgb(BLUE, fa)); fill.addColorStop(1, rgb(LAV, fa));
-      ctx.fillStyle = fill; ctx.fillRect(eye.x - 4, eye.y - 4, eye.w + 8, eye.h + 8);
       const settled = still || t > 0.5 + 1.0 + 0.25 + 0.2;
       if (settled && p <= 0.035) ctx.drawImage(lit, 0, 0, W, H);
       else {

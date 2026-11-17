@@ -1,6 +1,7 @@
-// The three sentences lifted from the page, as text to read the way the app does: select a
-// word (click it) or a few (drag across them, or triple-click for the whole sentence), and
-// the card opens as you let go. The cards are card.js, filled with the app's own answers
+// The three sentences lifted from the eye, as text to read the way the app does. Selecting
+// works as it does in any Mac text: drag across characters, double-click for a word (and drag
+// on by words), triple-click for the sentence, shift-click to extend. Let go and the
+// selection settles onto whole words, and the card opens. The cards are card.js, filled with the app's own answers
 // (scripts/site-data.py). The lines scroll like lyrics: the middle one is the one you read,
 // "Next sentence" moves them up.
 (function () {
@@ -88,30 +89,38 @@
       for (const el of els) { el.classList.remove("from"); el.style.transform = ""; el.style.opacity = ""; }
     }
     shift = 0;
-    sel = null;
+    sel = null; press = null;
   }
   document.addEventListener("longyan:lines", (e) => build(e.detail));
 
   // MARK: Selecting, as text is
 
+  // sel: the settled selection, in words (lo..hi) and characters (start..end).
   function clear() {
-    sel = null;
-    for (const el of els) el.querySelector(".hi").classList.remove("on");
+    sel = null; press = null;
+    for (const el of els) el.querySelector(".hi").classList.remove("on", "snap");
     if (Card() && Card().open) Card().close();
   }
 
-  // Words a through b of the current line, and everything between them.
-  function select(a, b) {
-    const lo = Math.min(a, b), hi = Math.max(a, b);
-    const el = currentEl(), d = demo[indexOf(0)];
-    const start = d.tokens[lo].range[0], end = d.tokens[hi].range[1];
-    if (sel && sel.start === start && sel.end === end) return;
-    sel = { lo, hi, start, end, d, el };
-    const size = sizeOf(el), hiEl = el.querySelector(".hi");
-    hiEl.style.left = start * size + "px";
-    hiEl.style.width = (end - start) * size + "px";
+  // Draw the selection over characters a..b of the current line.
+  function paint(a, b, snap) {
+    const el = currentEl(), size = sizeOf(el), hiEl = el.querySelector(".hi");
+    hiEl.classList.toggle("snap", !!snap && !reduce);
+    if (b <= a) { hiEl.classList.remove("on"); return; }
+    hiEl.style.left = a * size + "px";
+    hiEl.style.width = (b - a) * size + "px";
     hiEl.classList.add("on");
-    if (Card() && Card().open) Card().close();
+  }
+
+  // The words a run of characters touches; null if it's only punctuation.
+  function wordsIn(a, b) {
+    const d = demo[indexOf(0)];
+    const ts = d.tokens.map((t, i) => i).filter((i) => d.tokens[i].range[0] < b && d.tokens[i].range[1] > a);
+    return ts.length ? [ts[0], ts[ts.length - 1]] : null;
+  }
+  function settle(lo, hi) {
+    const el = currentEl(), d = demo[indexOf(0)];
+    sel = { lo, hi, start: d.tokens[lo].range[0], end: d.tokens[hi].range[1], d, el };
   }
 
   const selRect = () => sel.el.querySelector(".hi").getBoundingClientRect();
@@ -119,52 +128,107 @@
   function lookUp() {
     if (!sel || !Card()) return;
     root.classList.add("used");
-    const { d, lo, hi, start, end } = sel, r = selRect();
-    const anchor = { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+    const { d, lo, hi, start, end, el } = sel, size = sizeOf(el), box = el.getBoundingClientRect();
+    // Where the selection will be once it has settled, not where it is mid-way.
+    const r = { left: box.left + start * size, right: box.left + end * size, top: selRect().top, bottom: selRect().bottom };
     if (lo === hi) {
-      Card().openWord({ senses: d.words[d.tokens[lo].text] || [], card: d.cards[String(start)] }, anchor);
+      Card().openWord({ senses: d.words[d.tokens[lo].text] || [], card: d.cards[String(start)] }, r);
     } else {
       const phrase = d.phrases[`${start}-${end}`];
-      if (phrase) Card().openPhrase({ phrase, words: d.words }, anchor);
+      if (phrase) Card().openPhrase({ phrase, words: d.words }, r);
     }
   }
 
-  // The word at a point on the current line; on punctuation, the nearest one toward `from`.
-  function tokenAt(x, from) {
-    const el = currentEl(), d = demo[indexOf(0)], size = sizeOf(el);
-    const ci = Math.max(0, Math.min(d.sentence.length - 1, Math.floor((x - el.getBoundingClientRect().left) / size)));
+  // Positions on the current line: the gap between characters nearest x (0..length), and
+  // the character x is over.
+  function caretAt(x) {
+    const el = currentEl(), n = [...demo[indexOf(0)].sentence].length;
+    return Math.max(0, Math.min(n, Math.round((x - el.getBoundingClientRect().left) / sizeOf(el))));
+  }
+  function charAt(x) {
+    const el = currentEl(), n = [...demo[indexOf(0)].sentence].length;
+    return Math.max(0, Math.min(n - 1, Math.floor((x - el.getBoundingClientRect().left) / sizeOf(el))));
+  }
+  function wordAtChar(ci) {
+    const d = demo[indexOf(0)];
     let t = d.tokens.findIndex((tk) => ci >= tk.range[0] && ci < tk.range[1]);
-    if (t >= 0) return t;
-    if (from == null) return -1;
-    const after = d.tokens.findIndex((tk) => tk.range[0] > ci);
-    if (after < 0) return d.tokens.length - 1;
-    return d.tokens[from].range[0] < ci ? Math.max(0, after - 1) : after;
+    if (t < 0) t = d.tokens.findIndex((tk) => tk.range[0] > ci);
+    return t < 0 ? d.tokens.length - 1 : t;
   }
 
-  // Press on a word and drag to take in more; three clicks take the sentence.
-  let press = null;
+  // Let go: the selection settles onto the words it touches, and the card opens for them.
+  function release() {
+    const p = press;
+    press = null;
+    if (!p) return;
+    let ws = null;
+    if (p.mode === "char") ws = p.a === p.b ? null : wordsIn(Math.min(p.a, p.b), Math.max(p.a, p.b));
+    else ws = [Math.min(p.a, p.b), Math.max(p.a, p.b)];
+    if (!ws) { clear(); return; }
+    settle(ws[0], ws[1]);
+    const moved = p.mode === "char" && (Math.min(p.a, p.b) !== sel.start || Math.max(p.a, p.b) !== sel.end);
+    paint(sel.start, sel.end, moved);
+    if (moved && !reduce) setTimeout(() => { if (sel && !press) lookUp(); }, 150);
+    else lookUp();
+  }
+
+  let press = null;   // { mode: "char" | "word", a, b }: anchor and focus, in characters or words
+  // Clicks counted here, the way the system counts them, rather than trusting event.detail.
+  let last = { t: 0, x: -99, y: -99, n: 0 };
   box.addEventListener("pointerdown", (e) => {
     const line = e.target.closest(".line");
     if (!line || e.button > 0 || line.dataset.k !== "0") return;
     e.preventDefault();
-    const t = tokenAt(e.clientX);
-    if (e.detail >= 3) { select(0, demo[indexOf(0)].tokens.length - 1); press = { done: true, id: e.pointerId }; lookUp(); return; }
-    if (t < 0) { clear(); return; }
-    press = { anchor: t, focus: t, id: e.pointerId };
-    select(t, t);
+    const now = performance.now();
+    const n = now - last.t < 450 && Math.hypot(e.clientX - last.x, e.clientY - last.y) < 6 ? (last.n % 3) + 1 : 1;
+    last = { t: now, x: e.clientX, y: e.clientY, n };
+    if (Card() && Card().open) Card().close();
+    const d = demo[indexOf(0)];
+    const touch = e.pointerType === "touch";
+    if (n === 3) {
+      press = { mode: "word", a: 0, b: d.tokens.length - 1, id: e.pointerId };
+      paint(d.tokens[0].range[0], d.tokens[d.tokens.length - 1].range[1]);
+    } else if (n === 2) {
+      const t = wordAtChar(charAt(e.clientX));
+      press = { mode: "word", a: t, b: t, id: e.pointerId };
+      paint(d.tokens[t].range[0], d.tokens[t].range[1]);
+    } else if (e.shiftKey && sel) {
+      // Extend from the far end of what's selected.
+      const c = caretAt(e.clientX), a = c < (sel.start + sel.end) / 2 ? sel.end : sel.start;
+      press = { mode: "char", a, b: c, id: e.pointerId };
+      paint(Math.min(a, c), Math.max(a, c));
+    } else {
+      const c = caretAt(e.clientX);
+      press = { mode: "char", a: c, b: c, id: e.pointerId, touch, x: e.clientX };
+      sel = null;
+      paint(c, c);
+    }
     try { box.setPointerCapture(e.pointerId); } catch (_) {}
   });
   box.addEventListener("pointermove", (e) => {
-    if (!press || press.done || e.pointerId !== press.id) return;
-    const t = tokenAt(e.clientX, press.anchor);
-    if (t !== press.focus) { press.focus = t; select(press.anchor, t); }
+    if (!press || e.pointerId !== press.id) return;
+    const d = demo[indexOf(0)];
+    if (press.mode === "word") {
+      const t = wordAtChar(charAt(e.clientX));
+      if (t === press.b) return;
+      press.b = t;
+      const lo = Math.min(press.a, t), hi = Math.max(press.a, t);
+      paint(d.tokens[lo].range[0], d.tokens[hi].range[1]);
+    } else {
+      const c = caretAt(e.clientX);
+      if (c === press.b) return;
+      press.b = c;
+      paint(Math.min(press.a, c), Math.max(press.a, c));
+    }
   });
   box.addEventListener("pointerup", (e) => {
     if (!press || e.pointerId !== press.id) return;
-    const done = press.done;
-    press = null;
-    // Let go, and the card opens for what's selected.
-    if (!done) lookUp();
+    // A tap on a phone takes the word under it; a click on a Mac only places the caret.
+    if (press.touch && press.a === press.b) {
+      const t = wordAtChar(charAt(press.x));
+      press = { mode: "word", a: t, b: t };
+    }
+    release();
   });
   box.addEventListener("pointercancel", () => { press = null; });
 
@@ -179,7 +243,9 @@
     const w = e.target.closest(".w");
     if (!w || (e.key !== "Enter" && e.key !== " ")) return;
     e.preventDefault();
-    select(+w.dataset.t, +w.dataset.t);
+    const t = +w.dataset.t, d = demo[indexOf(0)];
+    settle(t, t);
+    paint(d.tokens[t].range[0], d.tokens[t].range[1]);
     lookUp();
   });
   // The app's shortcut: ⌃⌥L looks up what's selected.

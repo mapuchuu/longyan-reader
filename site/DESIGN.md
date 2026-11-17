@@ -22,7 +22,7 @@ Paper backdrops (`paper.js`) are five-stop ramps, deep to light: azure, rose, gr
 
 ## Layout
 
-1. **Story.** Pinned while it plays. The Longyan eye over a range of mountains, all of it in Chinese characters. The mountains are a halftone made of characters: light ones (一, 人) where it's dim, dense ones where it's bright, none where it's dark, with mist drifting through. A few faint characters are stars. The eye is set in everyday sentences, blue to lavender, in characters of four sizes: big ones where the mark is thick, small ones along its edges so the shape stays sharp. Characters too thin to fill their square, like 一 and 人, are left out of it. It comes in left to right. Pointing at a character shows the word it's part of and what it means in that sentence, from the app. Scrolling breaks the eye up and characters float out of it from all over, in arcs, into three sentences stacked like lyrics. Select a word or a few and the app's card opens as you let go. "Next sentence" scrolls the lines up.
+1. **Story.** Pinned while it plays. The Longyan eye over a range of mountains, all of it in Chinese characters. The mountains are a halftone made of characters: light ones (一, 人) where it's dim, dense ones where it's bright, none where it's dark, with mist drifting through. A few faint characters are stars. The eye is set in everyday sentences, blue to lavender, in characters of six sizes, big inside and smaller toward the edge. Every character is whole and sits inside the mark; nothing is masked, so the outline is traced by the finest characters. Characters too thin to fill their square, like 一 and 人, are left out of it. It comes in left to right. Pointing at a character shows the word it's part of and what it means in that sentence, from the app. Scrolling breaks the eye up and characters float out of it from all over, in arcs, into three sentences stacked like lyrics. Selecting works as in any Mac text: drag across characters, double-click a word, triple-click the sentence, shift-click to extend. Let go and the selection eases onto whole words and the app's card opens. No marks under the words. "Next sentence" scrolls the lines up.
 2. **Statement.** One paragraph that lights up word by word as it scrolls.
 3. **Works where you read.** Full-bleed azure paper. A frosted window, cut off by the section's bottom edge, holds the recording.
 4. **Made for reading.** Four tiles: a piece of the real UI on paper, with a caption.
@@ -32,7 +32,9 @@ Paper backdrops (`paper.js`) are five-stop ramps, deep to light: azure, rose, gr
 ## Crispness
 
 - The mark is drawn from its geometry, not traced: three nested eye shapes (each the hull of a circle and two points, half-widths 1, 5/8 and 3/14) and one wedge. The stroke is even all round and the edges are as sharp as the screen. The old PNG wobbled.
-- One material: characters. Everything in the hero is drawn in them, snapped to a grid. No halo, no glow.
+- One material: characters. Everything in the hero is drawn in them, whole. No masks, no halo, no glow.
+- The selection is the system blue with a slow violet sheen passing through it.
+- The bar's logo is the mark alone in white, the app icon's negative, 25px wide.
 - Hairlines are 0.5px. Shadows are layered: a 0.5px ring, a tight shadow and a wide soft one.
 
 ## Motion
