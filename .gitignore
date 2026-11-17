@@ -4,3 +4,4 @@ notes/pilot/batch.json
 Resources/jieba-dict.txt
 notes/real-eval.tsv
 .vendor-download/
+site/_shot.html

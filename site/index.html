@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Longyan Reader: read Chinese in any app on your Mac</title>
+<meta name="description" content="Highlight Chinese text in any app on your Mac and see what each word means in that sentence. Free, open source, and it runs entirely on your Mac.">
+<meta name="theme-color" content="#000000">
+<meta property="og:title" content="Longyan Reader">
+<meta property="og:description" content="Highlight Chinese text in any app on your Mac and see what each word means in that sentence.">
+<meta property="og:image" content="https://longyan.app/images/og.jpg">
+<meta property="og:url" content="https://longyan.app/">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/png" href="images/favicon.png">
+<link rel="apple-touch-icon" href="images/icon.png">
+<link rel="stylesheet" href="style.css">
+<script>
+  // Scroll motion, unless the visitor asked for less (or ?still, for screenshots).
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches && !/[?&]still/.test(location.search)) document.documentElement.classList.add("motion");
+</script>
+</head>
+<body>
+
+<nav class="bar" aria-label="Main">
+  <div class="bar-inner">
+    <a class="brand" href="#top"><img src="images/icon.png" alt="" width="22" height="22">Longyan Reader</a>
+    <div class="bar-links">
+      <a class="hide-small" href="#features">Features</a>
+      <a class="hide-small" href="#install">Install</a>
+      <a href="https://github.com/mapuchuu/longyan-reader">GitHub</a>
+      <a class="bar-download" href="https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip" data-download>Download</a>
+    </div>
+  </div>
+</nav>
+
+<!-- The opening: the eye over the mountains, then (as you scroll) sentences to look up. -->
+<section class="story" id="story">
+  <div class="story-pin" id="top">
+    <canvas id="field" aria-hidden="true"></canvas>
+    <p class="hint" id="hint" aria-hidden="true"><span class="fine-pointer">Point at a word in the eye.</span><span class="coarse-pointer">Tap a word in the eye.</span></p>
+    <div class="hero-copy">
+      <h1><span class="rise"><span>Read Chinese</span></span><span class="rise"><span>in any app.</span></span></h1>
+      <p class="hero-sub">Highlight Chinese anywhere on your Mac and Longyan&nbsp;Reader tells you what it means in that sentence.</p>
+      <div class="hero-actions">
+        <a class="button" href="https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip" data-download>Download for Mac</a>
+        <a class="button-quiet" href="#try" data-try>Try it here <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5"/></svg></a>
+      </div>
+      <p class="fine">Free. Apple silicon, macOS 15 or later.</p>
+    </div>
+    <div class="try" id="try">
+      <div class="try-head">
+        <h2>Highlight any word.</h2>
+        <p><span class="fine-pointer">Click a word, or drag across a few.</span><span class="coarse-pointer">Tap a word, or drag across a few.</span> These are the app’s own answers.</p>
+      </div>
+      <div class="lines" id="lines" lang="zh-CN"></div>
+      <button class="another" id="another" type="button"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 12.5v-9M4 7.5l4-4 4 4"/></svg>Next sentence</button>
+    </div>
+  </div>
+</section>
+
+<!-- A statement, lit word by word as it scrolls past. -->
+<section class="statement">
+  <div class="wrap">
+    <p class="lit" id="lit">A dictionary gives you thirteen meanings for <span lang="zh-CN">卷</span>. You need one: the one in your sentence. Longyan&nbsp;Reader reads the whole sentence, finds that meaning, and adds a note when English has no good word for it.</p>
+  </div>
+</section>
+
+<main>
+
+<section class="watch">
+  <canvas class="paper" data-paper="azure" data-live aria-hidden="true"></canvas>
+  <div class="wrap watch-copy" data-reveal>
+    <h2>Works where you read.</h2>
+    <p>Safari, Chrome, Mail, Notes, and most other apps. Highlight some Chinese, click the eye, and the card opens right next to the text.</p>
+  </div>
+  <div class="wrap">
+    <div class="window video-window" id="video-window">
+      <div class="window-bar"><span></span><span></span><span></span></div>
+      <div class="video-slot">
+        <!-- To add the recording: put it at media/demo.mp4 and set data-src="media/demo.mp4". -->
+        <video muted loop playsinline preload="none" data-src="" aria-label="Longyan Reader looking up words in Safari"></video>
+        <div class="video-placeholder" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="features" id="features">
+  <div class="wrap section-head" data-reveal>
+    <h2>Made for reading.</h2>
+    <p>The meanings come from CC-CEDICT, a free dictionary of nearly 200,000 words. A model on your Mac picks the one the sentence means.</p>
+  </div>
+  <div class="wrap grid">
+
+    <figure class="tile" data-reveal>
+      <div class="paper-box">
+        <canvas class="paper" data-paper="rose" data-split="0.74" aria-hidden="true"></canvas>
+        <div class="ui ui-notes">
+          <div class="note lost">
+            <div class="note-head"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 4.5A2.5 2.5 0 0 1 5.5 2h9A2.5 2.5 0 0 1 17 4.5v6a2.5 2.5 0 0 1-2.5 2.5H9l-4 3.5V13h.5A2.5 2.5 0 0 1 3 10.5z"/></svg>Lost in translation</div>
+            <p><span lang="zh-CN">卷</span>: online and office slang, short for <span lang="zh-CN">内卷</span>. <span lang="zh-CN">别卷了</span> (“stop overdoing it”) is said to colleagues who stay until midnight.</p>
+          </div>
+          <div class="note culture">
+            <div class="note-head"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M2.5 10h15M10 2.5c2.2 2.3 2.2 12.7 0 15M10 2.5c-2.2 2.3-2.2 12.7 0 15"/></svg>Cultural context</div>
+            <p><span lang="zh-CN">关系</span>: connections built on favours owed and returned. A job found <span lang="zh-CN">靠关系</span> came through someone calling in a favour.</p>
+          </div>
+        </div>
+      </div>
+      <figcaption><b>Notes where English falls short.</b> Over a thousand short notes on slang, euphemisms and words with a cultural load.</figcaption>
+    </figure>
+
+    <figure class="tile" data-reveal>
+      <div class="paper-box">
+        <canvas class="paper" data-paper="green" data-split="0.74" aria-hidden="true"></canvas>
+        <div class="ui ui-tones" lang="zh-CN">
+          <div><span class="t1">妈</span><i class="t1">mā</i><small>mother</small></div>
+          <div><span class="t2">麻</span><i class="t2">má</i><small>hemp</small></div>
+          <div><span class="t3">马</span><i class="t3">mǎ</i><small>horse</small></div>
+          <div><span class="t4">骂</span><i class="t4">mà</i><small>to scold</small></div>
+        </div>
+      </div>
+      <figcaption><b>Every tone in its own color.</b> Characters and pinyin are colored by tone, so you start to hear a word as you read it. Click to hear it spoken.</figcaption>
+    </figure>
+
+    <figure class="tile" data-reveal>
+      <div class="paper-box">
+        <canvas class="paper" data-paper="blue" data-split="0.74" aria-hidden="true"></canvas>
+        <div class="ui ui-history">
+          <div class="history-head"><b>History</b><span class="pill">Export to Anki</span></div>
+          <div class="history-row"><span lang="zh-CN" class="hz"><span class="t3">走</span></span><span>to die</span><em lang="zh-CN">奶奶上个月走了</em></div>
+          <div class="history-row"><span lang="zh-CN" class="hz"><span class="t3">躺</span><span class="t2">平</span></span><span>to opt out of the rat race</span><em lang="zh-CN">我想躺平</em></div>
+          <div class="history-row"><span lang="zh-CN" class="hz"><span class="t1">摸</span><span class="t2">鱼</span></span><span>to loaf on the job</span><em lang="zh-CN">他上班摸鱼</em></div>
+          <div class="history-row"><span lang="zh-CN" class="hz"><span class="t4">面</span><span class="t5">子</span></span><span>social prestige</span><em lang="zh-CN">给足了我面子</em></div>
+        </div>
+      </div>
+      <figcaption><b>Every word you look up, saved.</b> With the meaning it had in its sentence. Export them as Anki flashcards or a spreadsheet.</figcaption>
+    </figure>
+
+    <figure class="tile" data-reveal>
+      <div class="paper-box">
+        <canvas class="paper" data-paper="violet" data-split="0.74" aria-hidden="true"></canvas>
+        <div class="ui ui-menu">
+          <div class="menu-item dim">Highlight Chinese text, then click the eye or press ⌃⌥L</div>
+          <hr>
+          <div class="menu-item">Dictionary: 198,488 entries</div>
+          <div class="menu-item">Sense chooser: Qwen 3.5 4B (built in)</div>
+          <div class="menu-item">Accessibility: allowed</div>
+          <hr>
+          <div class="menu-item">Open at Login<span class="check">✓</span></div>
+          <div class="menu-item">History…<span class="key">⌘Y</span></div>
+        </div>
+      </div>
+      <figcaption><b>Nothing leaves your Mac.</b> The dictionary and the reading model both run on your Mac. No account, and what you look up is never sent anywhere.</figcaption>
+    </figure>
+
+  </div>
+</section>
+
+<section class="install" id="install">
+  <div class="wrap section-head center" data-reveal>
+    <h2>Installing takes a minute.</h2>
+    <p class="started" id="started" role="status">Your download has started.</p>
+  </div>
+  <div class="wrap install-grid">
+    <div class="paper-box install-art" data-reveal>
+      <canvas class="paper" data-paper="azure" data-disc="none" data-seed="9.2" aria-hidden="true"></canvas>
+      <div class="settings" aria-hidden="true">
+        <div class="settings-title">Privacy &amp; Security</div>
+        <div class="settings-label">Security</div>
+        <div class="settings-group">
+          <div class="settings-row">
+            <span>Allow applications from</span><span class="settings-value">App Store &amp; Known Developers</span>
+          </div>
+          <div class="settings-row highlight">
+            <span>“Longyan Reader” was blocked to protect your Mac.</span><span class="settings-button">Open Anyway</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div data-reveal>
+      <ol class="steps">
+        <li>Open the zip and drag <b>Longyan&nbsp;Reader</b> to Applications.</li>
+        <li>Open it. macOS says it can’t verify the app. Click <b>Done</b>.</li>
+        <li>In System Settings › Privacy &amp; Security, scroll down and click <b>Open Anyway</b>.</li>
+        <li>Turn on Accessibility when the app asks, and download the reading model.</li>
+      </ol>
+      <p class="aside">macOS asks because the app isn’t signed with a paid Apple developer account. You only do this once. Updates install on their own.</p>
+    </div>
+  </div>
+</section>
+
+<section class="closing">
+  <canvas class="paper" data-paper="dusk" data-live aria-hidden="true"></canvas>
+  <div class="wrap" data-reveal>
+    <img src="images/icon.png" alt="" width="96" height="96">
+    <h2>Free, and open source.</h2>
+    <p>No account, no subscription. The code is on <a href="https://github.com/mapuchuu/longyan-reader">GitHub</a> under the MIT license.</p>
+    <a class="button" href="https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip" data-download>Download for Mac</a>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Dictionary: <a href="https://cc-cedict.org/">CC-CEDICT</a>, © MDBG and contributors, <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>. Reading model: Qwen 3.5, Apache 2.0.</p>
+    <p>Meanings and translations come from a language model and can be wrong. Found a problem? <a href="https://github.com/mapuchuu/longyan-reader/issues">Open an issue</a>.</p>
+  </div>
+</footer>
+
+<script src="data.js"></script>
+<script src="card.js"></script>
+<script src="hero.js"></script>
+<script src="try.js"></script>
+<script src="paper.js"></script>
+<script src="motion.js"></script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+# longyan.app design
+
+The site should feel like the app: exact, calm, made for reading Chinese. Black pages for type and UI, and bright paper backdrops between them, like a macOS wallpaper.
+
+## Color
+
+| Name | Hex | Use |
+|---|---|---|
+| Night | `#000000` | Page background. |
+| Ink | `#f5f5f7` | Headlines and body text on Night. |
+| Graphite | `#86868b` | Secondary text, the grey half of captions. |
+| Moonlight | `#a1bde3` → `#c2abe0` | The eye: its text, blue to lavender, left to right. |
+| Tone 1–4 | `#e39e94` `#9ecca8` `#a1bde3` `#c2abe0` | The app's dark-mode tone colors. Only the cards use them, where they mean something. |
+
+Paper backdrops (`paper.js`) are five-stop ramps, deep to light: azure, rose, green, blue, violet and dusk. Each has folds of light that rise slowly and end in a clean crease, sometimes a disc of lighter paper, and on the feature tiles a lighter sheet along the bottom with a sharp edge. Grain is a CSS overlay at full resolution.
+
+## Type
+
+- **SF Pro Display**, semibold (600), tight tracking, for headlines. Crisp rather than airy.
+- **SF Pro Text** for body and UI. Captions lead with a bold phrase and continue in grey.
+- **PingFang SC** for Chinese, everywhere.
+
+## Layout
+
+1. **Story.** Pinned while it plays. The Longyan eye over a range of mountains, all of it in Chinese characters. The mountains are a halftone made of characters: light ones (一, 人) where it's dim, dense ones where it's bright, none where it's dark, with mist drifting through. A few faint characters are stars. The eye is set in everyday sentences, blue to lavender, in characters of four sizes: big ones where the mark is thick, small ones along its edges so the shape stays sharp. Characters too thin to fill their square, like 一 and 人, are left out of it. It comes in left to right. Pointing at a character shows the word it's part of and what it means in that sentence, from the app. Scrolling breaks the eye up and characters float out of it from all over, in arcs, into three sentences stacked like lyrics. Select a word or a few and the app's card opens as you let go. "Next sentence" scrolls the lines up.
+2. **Statement.** One paragraph that lights up word by word as it scrolls.
+3. **Works where you read.** Full-bleed azure paper. A frosted window, cut off by the section's bottom edge, holds the recording.
+4. **Made for reading.** Four tiles: a piece of the real UI on paper, with a caption.
+5. **Install.** A grey band. The Open Anyway row from System Settings on paper, next to the four steps.
+6. **Closing.** Full-bleed dusk paper, the icon, one line, the download button.
+
+## Crispness
+
+- The mark is drawn from its geometry, not traced: three nested eye shapes (each the hull of a circle and two points, half-widths 1, 5/8 and 3/14) and one wedge. The stroke is even all round and the edges are as sharp as the screen. The old PNG wobbled.
+- One material: characters. Everything in the hero is drawn in them, snapped to a grid. No halo, no glow.
+- Hairlines are 0.5px. Shadows are layered: a 0.5px ring, a tight shadow and a wide soft one.
+
+## Motion
+
+- On load the mountains rise into place and the eye comes in left to right, each character flashing white as it lands. It doesn't blink.
+- The story is scrubbed by scroll, smoothed a little each frame so a wheel step doesn't jump. The headline rises line by line on load. Once the sentences form, the word underlines draw in. The card is the app's, with its springs: it scales in from the selection, its height follows its content, and rows slide open.
+- Below the story, sections rise into place once, and the video window lifts out of its backdrop as it comes into view.
+- `prefers-reduced-motion`: no scramble, no rise, the hero drawn still. `?still` does the same for screenshots.
+
+## The card
+
+The demo card is the app's card, not a picture of it: same sizes, colors, Liquid Glass and motion, and the same answers. When the app's card changes, `card.js` changes with it. Only Pin is left out.
+
+## Words
+
+Plain and short. Say what the app does in the visitor's words. No "seamless", "powerful", "unlock". Buttons say what happens: "Download for Mac".
