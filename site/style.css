@@ -103,12 +103,12 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .button-quiet svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: transform .3s var(--ease-out); }
 .button-quiet:hover { color: #fff; }
 .button-quiet:hover svg { transform: translateY(2px); }
-.fine { margin: 22px 0 0; font-size: 13px; color: #6e6e73; }
+.fine { margin: 22px 0 0; font-size: 13px; color: #8e8e93; }
 
 /* A quiet hint at the bottom right, gone once you've pointed at a word. */
 .hint {
   position: absolute; z-index: 2; margin: 0; right: max(28px, calc((100vw - 1120px) / 2 + 28px)); bottom: 34px;
-  font-size: 13px; letter-spacing: -0.005em; color: rgba(245, 245, 247, .5); pointer-events: none;
+  font-size: 13px; letter-spacing: -0.005em; color: rgba(245, 245, 247, .7); pointer-events: none;
   transition: opacity .6s var(--ease-out), transform .6s var(--ease-out);
 }
 .motion .hint { opacity: 0; transform: translateY(6px); }
@@ -170,6 +170,26 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 /* With the image twice the box, 0% to 200% moves it exactly one image width: a seamless loop. */
 @keyframes hi-sheen { from { background-position: 0% 0; } to { background-position: 200% 0; } }
 @media (prefers-reduced-motion: reduce) { .line .hi { animation: none; } }
+
+/* Once the heading is in, "anything" catches the light, then the sentence does, character by
+   character, so it reads as the thing to select. A quiet "Try it" shows under it and goes. */
+.sheen {
+  background: linear-gradient(105deg, var(--ink) 0 38%, #5ea8ff 44%, #a78bfa 50%, #f0a3d8 56%, var(--ink) 62% 100%);
+  background-size: 300% 100%; background-position: 100% 0;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.is-formed .sheen { animation: sheen 1.4s cubic-bezier(.4, 0, .2, 1) .9s both; }
+@keyframes sheen { from { background-position: 100% 0; } to { background-position: 0% 0; } }
+.is-formed .line.current .c { animation: iri 1s ease-in-out both; animation-delay: calc(1.9s + var(--i) * 55ms); }
+@keyframes iri { 0%, 100% { color: var(--ink); } 25% { color: #5ea8ff; } 50% { color: #a78bfa; } 75% { color: #f0a3d8; } }
+.try-cue {
+  position: absolute; left: 0; right: 0; margin: 0; text-align: center; pointer-events: none;
+  top: calc(var(--bottom-y) + 20px); font-size: 17px; letter-spacing: -0.01em; color: var(--graphite); opacity: 0;
+}
+.is-formed .try-cue { animation: cue 2.6s ease-in-out 2.9s both; }
+.used .try-cue { animation: none; opacity: 0; }
+@keyframes cue { 0% { opacity: 0; transform: translateY(6px); } 20%, 65% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .is-formed .sheen, .is-formed .line.current .c { animation: none; } }
 
 
 /* The lookup card (card.js), as the app draws it in dark appearance on Liquid Glass. Every
@@ -367,6 +387,9 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
   .statement-pin .wrap { width: 100%; }
 }
 .lc-card.lc-inline { position: relative; z-index: auto; max-width: 100%; will-change: auto; }
+/* It is as tall as its content, so it has nothing to scroll: a swipe on it scrolls the page. */
+.lc-inline .lc-scroll { overflow: visible; overscroll-behavior: auto; }
+.lit .one { color: #0a84ff; }
 
 /* Paper: the color comes from paper.js; grain is laid over it here. */
 .paper { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
@@ -494,9 +517,9 @@ figcaption b { color: var(--ink); font-weight: 600; }
 .closing p { text-wrap: balance; font-size: 21px; color: rgba(255, 255, 255, .84); margin: 16px auto 36px; max-width: 30em; letter-spacing: -0.016em; }
 .closing p a { color: #fff; }
 .closing .button { background: #fff; }
-.closing .closing-fine { font-size: 13px; color: rgba(255, 255, 255, .66); margin: 18px auto 0; }
+.closing .closing-fine { font-size: 13px; color: rgba(255, 255, 255, .88); text-shadow: 0 1px 8px rgba(60, 20, 70, .35); margin: 18px auto 0; }
 
-footer { padding: 28px 0 44px; font-size: 12.5px; color: #6e6e73; }
+footer { padding: 28px 0 44px; font-size: 12.5px; color: #8e8e93; }
 footer p { margin: 0 0 6px; }
 footer a { color: #a1a1a6; }
 

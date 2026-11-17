@@ -52,6 +52,7 @@
         }
         const c = document.createElement("span");
         c.className = "c"; c.textContent = ch;
+        c.style.setProperty("--i", i);
         group.append(c);
       });
       if (l.k !== 0) el.setAttribute("aria-hidden", "true");

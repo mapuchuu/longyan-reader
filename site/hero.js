@@ -608,12 +608,16 @@
     if (e.pointerType === "touch" || offCopy(e)) { if (e.pointerType !== "touch") setHover(null); return; }
     setHover(charAt(e));
   });
-  pin.addEventListener("pointerleave", () => setHover(null));
-  // On a phone a tap shows the word, and a tap anywhere else puts it away.
-  pin.addEventListener("pointerdown", (e) => {
-    if (e.pointerType !== "touch" || offCopy(e)) return;
-    setHover(charAt(e));
+  // A finger lifting counts as leaving, so only a mouse puts the word away here.
+  pin.addEventListener("pointerleave", (e) => { if (e.pointerType !== "touch") setHover(null); });
+  // On a phone a tap shows the word, and it stays until a tap anywhere else or a real scroll.
+  let tapY = 0;
+  document.addEventListener("pointerdown", (e) => {
+    if (e.pointerType !== "touch") return;
+    tapY = window.scrollY;
+    setHover(pin.contains(e.target) && !offCopy(e) ? charAt(e) : null);
   });
+  window.addEventListener("scroll", () => { if (hover && Math.abs(window.scrollY - tapY) > 30) setHover(null); }, { passive: true });
   document.addEventListener("visibilitychange", () => { visible = !document.hidden; if (visible && running) kick(); });
   new IntersectionObserver((entries) => { for (const e of entries) e.isIntersecting ? start() : stop(); }).observe(canvas);
 

@@ -153,7 +153,7 @@
     const bar = h("div", "lc-actions");
     if (model.speech && voices().length) {
       const b = h("button", "lc-action lc-listen", SYM.speaker);
-      b.type = "button"; b.title = `Listen to “${model.speech}”`;
+      b.type = "button"; b.title = `Listen to “${model.speech}”`; b.setAttribute("aria-label", b.title);
       b.addEventListener("click", () => {
         const s = window.speechSynthesis;
         if (b.classList.contains("on")) { s.cancel(); return; }
@@ -167,13 +167,15 @@
       bar.append(b);
     }
     const c = h("button", "lc-action lc-copy", `<span class="lc-swap">${SYM.copy}</span>`);
-    c.type = "button"; c.title = `Copy “${model.copy.length > 14 ? model.copy.slice(0, 13) + "…" : model.copy}”`;
+    const label = `Copy “${model.copy.length > 14 ? model.copy.slice(0, 13) + "…" : model.copy}”`;
+    const name = (t) => { c.title = t; c.setAttribute("aria-label", t); };
+    c.type = "button"; name(label);
     let reset = 0;
     c.addEventListener("click", () => {
       if (navigator.clipboard) navigator.clipboard.writeText(model.copy).catch(() => {});
-      swapSymbol(c, SYM.check); c.classList.add("on"); c.title = "Copied";
+      swapSymbol(c, SYM.check); c.classList.add("on"); name("Copied");
       clearTimeout(reset);
-      reset = setTimeout(() => { swapSymbol(c, SYM.copy); c.classList.remove("on"); }, 1500);
+      reset = setTimeout(() => { swapSymbol(c, SYM.copy); c.classList.remove("on"); name(label); }, 1500);
     });
     bar.append(c);
     card.el.append(bar);
@@ -704,7 +706,7 @@
     close();
   }, true);
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && open) close(); });
-  window.addEventListener("scroll", () => { if (open && !open.wasMoved) close(); if (peekEl) peek(null); }, { passive: true });
+  window.addEventListener("scroll", () => { if (open && !open.wasMoved) close(); }, { passive: true });
   window.addEventListener("resize", () => { if (open) close(true); });
 
   window.LongyanCard = {
