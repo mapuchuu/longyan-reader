@@ -1,5 +1,5 @@
-// Scroll motion below the opening: sections rise into place once, the statement's sentences
-// fade in one at a time, the video window lifts out of its backdrop, and the bar tucks away while you
+// Scroll motion below the opening: sections rise into place once, the statement's lines
+// come one at a time, the video window lifts out of its backdrop, and the bar tucks away while you
 // scroll down. The "motion" class is set in the page head unless motion is reduced.
 (function () {
   "use strict";
@@ -15,65 +15,60 @@
   }, { rootMargin: "0px 0px -12% 0px" });
   document.querySelectorAll("[data-reveal]").forEach((el) => io.observe(el));
 
-  // The statement: the card, then its three sentences, in order. How many should be showing
-  // comes from the scroll; they're shown (or hidden, going back up) one step at a time, a
-  // few seconds apart, so even a fast scroll brings them in one after another, each settled
-  // before the next.
+  // The statement: one line at a time beside the app's card, which shows a little more with
+  // each (try.js). The section is pinned for three segments of scrolling, SEG of a screen
+  // each, one per line; a bar per segment fills as you scroll through it. The next line only
+  // comes once you've scrolled to the end of the one before, and never sooner than CALM after
+  // it, so each line and its card change settle before the next. Going back up undoes them.
   const statement = document.getElementById("statement");
-  const steps = statement ? [statement.querySelector(".lit-demo"), ...statement.querySelectorAll(".lit-line")].filter(Boolean) : [];
-  let shown = 0, want = 0, stepper = 0;
-  function step() {
-    stepper = 0;
-    if (shown === want) return;
-    // The card comes in with the first sentence.
-    if (want > shown) { shown++; if (shown === 1 && steps.length > 1) shown = 2; }
-    else { shown--; if (shown === 1) shown = 0; }
-    steps.forEach((el, i) => el.classList.toggle("on", i < shown));
-    // Forward, each waits until the last line and the card's change for it have settled.
-    if (shown !== want) stepper = setTimeout(step, want > shown ? 1800 : 300);
-    syncCard();
-  }
-
-  // The card beside them shows a little more with each line: every meaning with the first, the
-  // one picked with the second, its note with the third (try.js). Each change waits for its
-  // line to start fading in, then takes its time, so they come one after another. On a narrow
-  // screen, where the card sits below the lines, each also waits for the card to come up the
-  // screen, so it happens where you can see it.
+  const lines = statement ? [...statement.querySelectorAll(".lit-line")] : [];
   const demo = statement && statement.querySelector(".lit-demo");
-  let cardShown = 1, cardWant = 1, cardTimer = 0;
-  function cardStep() {
-    cardTimer = 0;
-    if (cardShown === cardWant) return;
-    cardShown += cardWant > cardShown ? 1 : -1;
-    document.dispatchEvent(new CustomEvent("longyan:card-stage", { detail: cardShown }));
-    if (cardShown !== cardWant) cardTimer = setTimeout(cardStep, cardWant > cardShown ? 1800 : 250);
+  const fills = statement ? [...statement.querySelectorAll(".lit-progress b")] : [];
+  const progressEl = statement && statement.querySelector(".lit-progress");
+  const SEG = 0.6, CALM = 1200, ENTER = 0.6;
+  let seg = -1, segAt = 0, segTimer = 0, cardTimer = 0;
+
+  function setSeg(n) {
+    const was = seg;
+    seg = n; segAt = performance.now();
+    lines.forEach((el, i) => { el.classList.toggle("on", i === n); el.classList.toggle("past", i < n); });
+    demo.classList.toggle("on", n >= 0);
+    if (progressEl) progressEl.classList.toggle("on", n >= 0);
+    // The card follows a moment after its line starts to come in; going back, at once.
+    clearTimeout(cardTimer);
+    const stage = Math.max(1, n + 1);
+    cardTimer = setTimeout(() => document.dispatchEvent(new CustomEvent("longyan:card-stage", { detail: stage })), n > was && n > 0 ? 500 : 0);
   }
-  function syncCard() {
-    if (!demo) return;
-    let n = shown < 2 ? 1 : Math.min(3, shown - 1);
-    if (getComputedStyle(statement.firstElementChild).position !== "sticky") {
-      const top = demo.getBoundingClientRect().top / window.innerHeight;
-      n = Math.min(n, top < 0.5 ? 3 : top < 0.68 ? 2 : 1);
-    }
-    cardWant = n;
-    if (cardWant !== cardShown && !cardTimer) cardTimer = setTimeout(cardStep, cardWant > cardShown ? 600 : 0);
+  // Where the scroll is: -1 before the content comes into view, else 0..3 through the segments.
+  function scrollPos(vh) {
+    const top = statement.getBoundingClientRect().top;
+    if (top > vh * ENTER) return -1;
+    return Math.max(0, Math.min(lines.length, -top / (vh * SEG)));
   }
-  function wantSteps(vh) {
-    if (!steps.length) return 0;
-    const r = statement.getBoundingClientRect();
-    if (getComputedStyle(statement.firstElementChild).position === "sticky") {
-      // Pinned: the first as soon as the content comes into view, just as the demo sentence
-      // above leaves, so there's no empty screen between them; the rest just under half a screen
-      // of scrolling apart.
-      const d = vh * 0.55 - r.top;
-      return d < 0 ? 0 : Math.min(steps.length, 2 + Math.floor(d / (vh * 0.45)));
-    }
-    // In the flow: each as it comes up into view.
-    let n = 0;
-    steps.forEach((el, i) => { if (el.getBoundingClientRect().top < vh * 0.88) n = Math.max(n, i + 1); });
-    // The card sits under the sentences on a narrow screen; it comes in with the first.
-    if (n === 1) n = 2;
-    return n;
+  // The line the scroll asks for, from the one showing: the next once you've scrolled to the
+  // end of this one's segment, with a little give going back so a pause right at a boundary
+  // doesn't flicker between two lines.
+  function wantAt(p) {
+    if (p < 0) return -1;
+    if (seg < 0) return 0;
+    if (p >= seg + 1 && seg < lines.length - 1) return seg + 1;
+    if (p < seg - 0.06) return seg - 1;
+    return seg;
+  }
+  function syncStatement(vh) {
+    const p = scrollPos(vh);
+    fills.forEach((b, i) => { b.style.transform = `scaleX(${p < 0 ? 0 : Math.max(0, Math.min(1, p - i))})`; });
+    if (segTimer) return;
+    const want = wantAt(p);
+    if (want === seg) return;
+    const wait = want > seg && seg >= 0 ? Math.max(0, CALM - (performance.now() - segAt)) : 0;
+    segTimer = setTimeout(() => {
+      segTimer = 0;
+      const w = wantAt(scrollPos(window.innerHeight));
+      if (w === seg) return;
+      setSeg(w > seg ? seg + 1 : w < 0 ? -1 : seg - 1);
+      syncStatement(window.innerHeight);
+    }, wait);
   }
 
   const win = document.getElementById("video-window");
@@ -83,11 +78,7 @@
   function update() {
     ticking = false;
     const vh = window.innerHeight, y = window.scrollY;
-    if (moving && steps.length) {
-      want = wantSteps(vh);
-      if (want !== shown && !stepper) step();
-      syncCard();
-    }
+    if (moving && lines.length && demo) syncStatement(vh);
     if (moving && win) {
       const r = win.getBoundingClientRect();
       const u = Math.max(0, Math.min(1, (vh - r.top) / (vh * 0.75)));
