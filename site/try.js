@@ -2,21 +2,19 @@
 // works as it does in any Mac text: drag across characters, double-click for a word (and drag
 // on by words), triple-click for the sentence, shift-click to extend. Let go and the
 // selection settles onto whole words, and the card opens. The cards are card.js, filled with
-// the app's own answers (scripts/site-data.py). "Next sentence" moves the line up and out and
-// brings the next one up in its place.
+// the app's own answers (scripts/site-data.py).
 (function () {
   "use strict";
   const demo = window.LONGYAN && window.LONGYAN.demo;
   const root = document.getElementById("try");
   const story = document.getElementById("story");
   const box = document.getElementById("lines");
-  const next = document.getElementById("another");
   if (!demo || !root || !box) return;
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const Card = () => window.LongyanCard;
   const N = demo.length;
 
-  let lines = [], current = 0, els = [], sel = null, shift = 0;
+  let lines = [], current = 0, els = [], sel = null;
   const indexOf = (k) => (((current + k) % N) + N) % N;
   const currentEl = () => els.find((e) => e.dataset.k === "0");
   const sizeOf = (el) => parseFloat(el.style.getPropertyValue("--size"));
@@ -24,7 +22,6 @@
   // MARK: The lines, where hero.js drew them
 
   function build(detail) {
-    const old = els;
     lines = detail.lines; current = detail.current;
     els = lines.map((l) => {
       const d = demo[indexOf(l.k)];
@@ -66,21 +63,6 @@
     root.style.setProperty("--bottom-y", lN.y + lN.size * 0.65 + "px");
     root.style.setProperty("--line-size", l0.size + "px");
 
-    // The old line rises and fades out; the new one rises into its place from below.
-    if (shift && !reduce && old.length) {
-      const d = Math.round(l0.size * 1.1) * Math.sign(shift);
-      for (const o of old) {
-        o.classList.add("leaving");
-        box.append(o);
-        o.getBoundingClientRect();
-        o.style.transform = `translateY(${-d}px)`;
-        setTimeout(() => o.remove(), 900);
-      }
-      for (const el of els) { el.classList.add("from"); el.style.transform = `translateY(${d}px)`; el.style.opacity = 0; }
-      box.getBoundingClientRect();
-      for (const el of els) { el.classList.remove("from"); el.style.transform = ""; el.style.opacity = ""; }
-    }
-    shift = 0;
     sel = null; press = null;
   }
   document.addEventListener("longyan:lines", (e) => build(e.detail));
@@ -239,19 +221,10 @@
   });
   // A press anywhere else lets go of the selection, as it would in any text.
   document.addEventListener("pointerdown", (e) => {
-    if (!sel || e.target.closest(".lines, .lc-card, .another")) return;
+    if (!sel || e.target.closest(".lines, .lc-card")) return;
     clear();
   });
 
-  // MARK: Moving between sentences
-
-  function move(by) {
-    if (!window.LongyanHero) return;
-    clear();
-    shift = by;
-    window.LongyanHero.setCurrent((((current + by) % N) + N) % N);
-  }
-  next.addEventListener("click", () => move(1));
 
   // Leaving the story (back up into the eye) puts it all away.
   new MutationObserver(() => { if (!story.classList.contains("is-formed")) clear(); })

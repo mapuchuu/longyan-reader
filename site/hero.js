@@ -121,7 +121,7 @@
       return queue.shift();
     };
     // How far past the outline, in quarter units, a square n half units on a side may stand.
-    const SLACK = { 1: 0, 2: 1, 3: 2, 4: 2, 5: 2, 6: 2, 8: 2, 10: 2 };
+    const SLACK = { 1: 0, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 8: 1, 10: 1 };
     // A square fits if it's free and, inset by `s` quarter units (less than zero keeps it that
     // far inside), it's all inside the mark.
     const fits = (c, r, n, s = SLACK[n]) => {
@@ -348,26 +348,30 @@
   // The sentence to read, as a line of text. try.js shows it once it has formed; until then
   // its characters fly in from the eye.
   function placeLines() {
-    const maxLen = Math.max(...demo.map((d) => d.sentence.length));
-    const size = Math.floor(Math.min(narrow ? 30 : 46, (W - (narrow ? 32 : 200)) / maxLen));
-    const y = Math.round(H * (narrow ? 0.4 : 0.42));
     const s = demo[current].sentence;
+    const size = Math.floor(Math.min(narrow ? 40 : 64, (W - (narrow ? 32 : 240)) / s.length));
+    const y = Math.round(H * (narrow ? 0.4 : 0.42));
     lines = [{ k: 0, text: s, size, x: Math.round((W - size * s.length) / 2), y }];
     buildFlights();
     document.dispatchEvent(new CustomEvent("longyan:lines", { detail: { lines: lines.map((l) => ({ ...l })), W, H, current } }));
   }
 
-  // Each character of the sentence floats out of somewhere in the eye: one of its bigger
-  // characters, at random, the same character when one's to hand.
+  // Each character of the sentence floats out of somewhere in the eye, the same character
+  // when one's to hand. Most come from its big characters, so you see them lift out of the
+  // shape; the rest from the middle sizes.
   function buildFlights() {
     flights = [];
     if (!fine) return;
-    let pool = fine.glyphs.map((g, k) => k).filter((k) => fine.glyphs[k].w >= fine.unit * 4);
-    if (pool.length < 120) pool = fine.glyphs.map((g, k) => k);
+    const all = fine.glyphs.map((g, k) => k);
+    let big = all.filter((k) => fine.glyphs[k].w >= fine.unit * 6);
+    let mid = all.filter((k) => fine.glyphs[k].w >= fine.unit * 3 && fine.glyphs[k].w < fine.unit * 6);
+    if (big.length < 12) big = all;
+    if (mid.length < 40) mid = all;
     const used = new Set();
     let j = 0;
     for (const l of lines) [...l.text].forEach((ch, k) => {
       j++;
+      const pool = hash(j * 5.1 + current * 2.3) < 0.6 ? big : mid;
       let pick = -1;
       for (let a = 0; a < 40; a++) {
         const q = pool[Math.floor(hash(current * 97 + j * 13.1 + a * 0.71) * pool.length)];

@@ -137,9 +137,6 @@ h1 { font-size: 76px; line-height: 1; letter-spacing: -0.04em; }
   transition: opacity .6s cubic-bezier(.22, 1, .36, 1), transform .75s cubic-bezier(.22, 1, .36, 1);
 }
 .line.current { opacity: 1; cursor: text; }
-.line:not(.current):not(.leaving):hover { opacity: .5; }
-.line.from { transition: none; }
-.line.leaving { opacity: 0; pointer-events: none; }
 .line .w, .line .punct { display: inline-block; position: relative; }
 .line .c { display: inline-block; width: var(--size); text-align: center; position: relative; z-index: 1; }
 /* No marks on the words: the line is just text, to select the way you would anywhere. */
@@ -163,19 +160,6 @@ h1 { font-size: 76px; line-height: 1; letter-spacing: -0.04em; }
 @keyframes hi-sheen { from { background-position: 0% 0; } to { background-position: 200% 0; } }
 @media (prefers-reduced-motion: reduce) { .line .hi { animation: none; } }
 
-.another { user-select: none; -webkit-user-select: none;
-  position: absolute; left: 50%; top: calc(var(--bottom-y) + 44px); transform: translateX(-50%);
-  display: inline-flex; align-items: center; gap: 7px;
-  font: 500 14px/1 var(--text); letter-spacing: -0.01em; color: rgba(245, 245, 247, .8);
-  background: rgba(255, 255, 255, .08); border: 0; border-radius: 999px; padding: 10px 16px 10px 13px; cursor: pointer;
-  box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .14);
-  -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
-  transition: background .2s, color .2s, transform .25s var(--ease-out);
-}
-.another svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: transform .4s var(--ease-out); }
-.another:hover { background: rgba(255, 255, 255, .14); color: var(--ink); }
-.another:hover svg { transform: translateY(-2px); }
-.another:active { transform: translateX(-50%) scale(.96); }
 
 /* The lookup card (card.js), as the app draws it in dark appearance on Liquid Glass. Every
    size is the app's, in points, times the card's zoom. */
@@ -480,6 +464,7 @@ figcaption b { color: var(--ink); font-weight: 600; }
 .closing p { text-wrap: balance; font-size: 21px; color: rgba(255, 255, 255, .84); margin: 16px auto 36px; max-width: 30em; letter-spacing: -0.016em; }
 .closing p a { color: #fff; }
 .closing .button { background: #fff; }
+.closing .closing-fine { font-size: 13px; color: rgba(255, 255, 255, .66); margin: 18px auto 0; }
 
 footer { padding: 28px 0 44px; font-size: 12.5px; color: #6e6e73; }
 footer p { margin: 0 0 6px; }
