@@ -5,7 +5,8 @@ page the hero is printed from. Run after a release build, when the demo or data 
 
     swift build -c release && python3 scripts/site-data.py
 """
-import json, os, subprocess
+import json
+import sys, os, subprocess
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 BIN = os.path.join(ROOT, ".build/release/LongyanReader")
@@ -69,14 +70,31 @@ def page(cache):
     return out
 
 
+def written(d):
+    """The demo's phrase translations from scripts/demo-translations.tsv, in place of the app's:
+    the translator can add words from outside a selection, and these say only what's selected."""
+    rows = {}
+    with open(os.path.join(ROOT, "scripts/demo-translations.tsv"), encoding="utf-8") as f:
+        for line in f:
+            if line.strip() and not line.startswith("#"):
+                s, k, text, tr = line.rstrip("\n").split("\t")
+                rows[(s, k)] = (text, tr)
+    for k, p in d["phrases"].items():
+        text, tr = rows.get((d["sentence"], k), (None, None))
+        if text != p["text"]:
+            sys.exit(f"scripts/demo-translations.tsv has no translation for {p['text']} ({k}) in {d['sentence']}")
+        p["translation"] = tr
+    return d
+
+
 def demo():
     """Each sentence as the app's cards show it: `--site-json` runs the cards' own state classes
-    on every selection the sentence allows (trimmed of punctuation, otherwise as selected), with
-    the reading model's picks and translations."""
+    on every selection the sentence allows (trimmed and widened to whole words as the app does
+    it), with the reading model's picks and translations."""
     out = []
     for s in DEMO:
         r = subprocess.run([BIN, "--site-json", s], capture_output=True, text=True, cwd=ROOT)
-        out.append(json.loads(r.stdout))
+        out.append(written(json.loads(r.stdout)))
         print("demo:", s, "->", out[-1]["phrases"].get(max(out[-1]["phrases"], key=lambda k: len(out[-1]["phrases"][k]["text"])), {}).get("translation"))
     return out
 

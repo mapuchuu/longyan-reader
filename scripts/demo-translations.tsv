@@ -1,0 +1,81 @@
+# The demo's phrase translations, written by hand so each one says only what's selected. The
+# app's translator can add words from outside a selection; on the website that's the first
+# thing people try. scripts/site-data.py uses these in place of the app's and stops if a demo
+# selection has none. Columns: sentence, character range, selected text, translation.
+最近工作太卷了，我想躺平。	0-4	最近工作	Recently, work
+最近工作太卷了，我想躺平。	0-5	最近工作太	Recently, work is too
+最近工作太卷了，我想躺平。	0-6	最近工作太卷	Recently, work is too cutthroat
+最近工作太卷了，我想躺平。	0-7	最近工作太卷了	Work has gotten too cutthroat lately
+最近工作太卷了，我想躺平。	0-9	最近工作太卷了，我	Work has gotten too cutthroat lately, and I
+最近工作太卷了，我想躺平。	0-10	最近工作太卷了，我想	Work has gotten too cutthroat lately, and I want to
+最近工作太卷了，我想躺平。	0-12	最近工作太卷了，我想躺平	Work has gotten too cutthroat lately, and I want to lie flat.
+最近工作太卷了，我想躺平。	2-5	工作太	work is too
+最近工作太卷了，我想躺平。	2-6	工作太卷	work is too cutthroat
+最近工作太卷了，我想躺平。	2-7	工作太卷了	work has gotten too cutthroat
+最近工作太卷了，我想躺平。	2-9	工作太卷了，我	work has gotten too cutthroat, and I
+最近工作太卷了，我想躺平。	2-10	工作太卷了，我想	work has gotten too cutthroat, and I want to
+最近工作太卷了，我想躺平。	2-12	工作太卷了，我想躺平	work has gotten too cutthroat, and I want to lie flat
+最近工作太卷了，我想躺平。	4-6	太卷	too cutthroat
+最近工作太卷了，我想躺平。	4-7	太卷了	has gotten too cutthroat
+最近工作太卷了，我想躺平。	4-9	太卷了，我	has gotten too cutthroat, and I
+最近工作太卷了，我想躺平。	4-10	太卷了，我想	has gotten too cutthroat, and I want to
+最近工作太卷了，我想躺平。	4-12	太卷了，我想躺平	has gotten too cutthroat, and I want to lie flat
+最近工作太卷了，我想躺平。	5-7	卷了	has gotten cutthroat
+最近工作太卷了，我想躺平。	5-9	卷了，我	has gotten cutthroat, and I
+最近工作太卷了，我想躺平。	5-10	卷了，我想	has gotten cutthroat, and I want to
+最近工作太卷了，我想躺平。	5-12	卷了，我想躺平	has gotten cutthroat, and I want to lie flat
+最近工作太卷了，我想躺平。	6-9	了，我	…, and I
+最近工作太卷了，我想躺平。	6-10	了，我想	…, and I want to
+最近工作太卷了，我想躺平。	6-12	了，我想躺平	…, and I want to lie flat
+最近工作太卷了，我想躺平。	8-10	我想	I want to
+最近工作太卷了，我想躺平。	8-12	我想躺平	I want to lie flat
+最近工作太卷了，我想躺平。	9-12	想躺平	want to lie flat
+她看到男朋友给别人点赞，有点吃醋。	0-3	她看到	She saw
+她看到男朋友给别人点赞，有点吃醋。	0-6	她看到男朋友	She saw her boyfriend
+她看到男朋友给别人点赞，有点吃醋。	0-7	她看到男朋友给	She saw her boyfriend give
+她看到男朋友给别人点赞，有点吃醋。	0-9	她看到男朋友给别人	She saw her boyfriend give someone else
+她看到男朋友给别人点赞，有点吃醋。	0-11	她看到男朋友给别人点赞	She saw her boyfriend like someone else's post
+她看到男朋友给别人点赞，有点吃醋。	0-14	她看到男朋友给别人点赞，有点	She saw her boyfriend like someone else's post and was a little
+她看到男朋友给别人点赞，有点吃醋。	0-16	她看到男朋友给别人点赞，有点吃醋	She saw her boyfriend like someone else's post and got a little jealous.
+她看到男朋友给别人点赞，有点吃醋。	1-6	看到男朋友	saw her boyfriend
+她看到男朋友给别人点赞，有点吃醋。	1-7	看到男朋友给	saw her boyfriend give
+她看到男朋友给别人点赞，有点吃醋。	1-9	看到男朋友给别人	saw her boyfriend give someone else
+她看到男朋友给别人点赞，有点吃醋。	1-11	看到男朋友给别人点赞	saw her boyfriend like someone else's post
+她看到男朋友给别人点赞，有点吃醋。	1-14	看到男朋友给别人点赞，有点	saw her boyfriend like someone else's post and was a little
+她看到男朋友给别人点赞，有点吃醋。	1-16	看到男朋友给别人点赞，有点吃醋	saw her boyfriend like someone else's post and got a little jealous
+她看到男朋友给别人点赞，有点吃醋。	3-7	男朋友给	her boyfriend giving
+她看到男朋友给别人点赞，有点吃醋。	3-9	男朋友给别人	her boyfriend giving someone else
+她看到男朋友给别人点赞，有点吃醋。	3-11	男朋友给别人点赞	her boyfriend liking someone else's post
+她看到男朋友给别人点赞，有点吃醋。	3-14	男朋友给别人点赞，有点	her boyfriend liking someone else's post, a little
+她看到男朋友给别人点赞，有点吃醋。	3-16	男朋友给别人点赞，有点吃醋	her boyfriend liking someone else's post, a little jealous
+她看到男朋友给别人点赞，有点吃醋。	6-9	给别人	to someone else
+她看到男朋友给别人点赞，有点吃醋。	6-11	给别人点赞	like someone else's post
+她看到男朋友给别人点赞，有点吃醋。	6-14	给别人点赞，有点	like someone else's post, a little
+她看到男朋友给别人点赞，有点吃醋。	6-16	给别人点赞，有点吃醋	like someone else's post, a little jealous
+她看到男朋友给别人点赞，有点吃醋。	7-11	别人点赞	someone else a like
+她看到男朋友给别人点赞，有点吃醋。	7-14	别人点赞，有点	someone else a like, a little
+她看到男朋友给别人点赞，有点吃醋。	7-16	别人点赞，有点吃醋	someone else a like, a little jealous
+她看到男朋友给别人点赞，有点吃醋。	9-14	点赞，有点	a like, a little
+她看到男朋友给别人点赞，有点吃醋。	9-16	点赞，有点吃醋	a like, a little jealous
+她看到男朋友给别人点赞，有点吃醋。	12-16	有点吃醋	a little jealous
+他上班摸鱼，被老板发现了。	0-3	他上班	He was at work
+他上班摸鱼，被老板发现了。	0-5	他上班摸鱼	He was slacking off at work
+他上班摸鱼，被老板发现了。	0-7	他上班摸鱼，被	He was slacking off at work and got
+他上班摸鱼，被老板发现了。	0-9	他上班摸鱼，被老板	He was slacking off at work and got … by the boss
+他上班摸鱼，被老板发现了。	0-11	他上班摸鱼，被老板发现	He was slacking off at work and got caught by the boss
+他上班摸鱼，被老板发现了。	0-12	他上班摸鱼，被老板发现了	He was slacking off at work and got caught by the boss.
+他上班摸鱼，被老板发现了。	1-5	上班摸鱼	slacking off at work
+他上班摸鱼，被老板发现了。	1-7	上班摸鱼，被	slacking off at work, got
+他上班摸鱼，被老板发现了。	1-9	上班摸鱼，被老板	slacking off at work, got … by the boss
+他上班摸鱼，被老板发现了。	1-11	上班摸鱼，被老板发现	slacking off at work, got caught by the boss
+他上班摸鱼，被老板发现了。	1-12	上班摸鱼，被老板发现了	slacking off at work, got caught by the boss
+他上班摸鱼，被老板发现了。	3-7	摸鱼，被	slacking off, got
+他上班摸鱼，被老板发现了。	3-9	摸鱼，被老板	slacking off, got … by the boss
+他上班摸鱼，被老板发现了。	3-11	摸鱼，被老板发现	slacking off, got caught by the boss
+他上班摸鱼，被老板发现了。	3-12	摸鱼，被老板发现了	slacking off, got caught by the boss
+他上班摸鱼，被老板发现了。	6-9	被老板	by the boss
+他上班摸鱼，被老板发现了。	6-11	被老板发现	caught by the boss
+他上班摸鱼，被老板发现了。	6-12	被老板发现了	got caught by the boss
+他上班摸鱼，被老板发现了。	7-11	老板发现	the boss found out
+他上班摸鱼，被老板发现了。	7-12	老板发现了	the boss found out
+他上班摸鱼，被老板发现了。	9-12	发现了	found out

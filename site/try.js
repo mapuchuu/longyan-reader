@@ -1,9 +1,10 @@
 // The demo sentence lifted from the eye, as text to read the way the app does. Selecting
 // works as it does in any Mac text: drag across characters, double-click for a word (and drag
 // on by words), triple-click for the sentence, shift-click to extend. Let go and the card
-// opens for exactly what was selected, less any punctuation at its ends: one character stays
-// one character (and its card says which word it's part of), and half a word stays half a
-// word. The cards are card.js, filled with the app's own answers for every selection the
+// opens for what the app reads there, while the selection stays exactly where it was made, as
+// it does in any app: one character is one character (and its card says which word it's
+// part of); a selection that cuts a word in half gets the card for the whole word, as the app
+// widens it. The cards are card.js, filled with the app's own answers for every selection the
 // sentence allows (scripts/site-data.py).
 (function () {
   "use strict";
@@ -95,7 +96,7 @@
   function settle(a, b) {
     const d = demo[indexOf(0)], r = d.selections[`${a}-${b}`];
     if (!r) return null;
-    sel = { start: r[0], end: r[1], word: r[2] === 1, d, el: currentEl() };
+    sel = { a, b, start: r[0], end: r[1], word: r[2] === 1, d, el: currentEl() };
     return sel;
   }
 
@@ -106,7 +107,7 @@
     root.classList.add("used");
     const { d, start, end, word, el } = sel, size = sizeOf(el), box = el.getBoundingClientRect();
     // Where the selection will be once it has settled, not where it is mid-way.
-    const r = { left: box.left + start * size, right: box.left + end * size, top: selRect().top, bottom: selRect().bottom };
+    const r = { left: box.left + sel.a * size, right: box.left + sel.b * size, top: selRect().top, bottom: selRect().bottom };
     const key = `${start}-${end}`;
     if (word) {
       const card = d.cards[key];
@@ -118,13 +119,12 @@
     }
   }
 
-  // "Part of 躺平" on a character's card: the selection takes in the whole word and its card
-  // replaces this one where it stands, as the app opens it.
+  // "Part of 躺平" on a character's card: the word's card replaces this one where it stands,
+  // as the app opens it. The selection stays on the character.
   function openPart(part) {
     if (!sel || !part.range) return;
     const [a, b] = part.range;
     sel = { ...sel, start: a, end: b, word: true };
-    paint(a, b, true);
     lookUp(true);
   }
 
@@ -145,8 +145,7 @@
     return t < 0 ? d.tokens.length - 1 : t;
   }
 
-  // Let go: the card opens for what was selected. If that ends in punctuation, the selection
-  // eases off it first.
+  // Let go: the card opens for what the app reads there. The selection stays as it was made.
   function release() {
     const p = press;
     press = null;
@@ -156,10 +155,8 @@
     if (p.mode === "char") { if (p.a === p.b) { clear(); return; } a = Math.min(p.a, p.b); b = Math.max(p.a, p.b); }
     else { a = d.tokens[Math.min(p.a, p.b)].range[0]; b = d.tokens[Math.max(p.a, p.b)].range[1]; }
     if (!settle(a, b)) { clear(); return; }
-    const moved = sel.start !== a || sel.end !== b;
-    paint(sel.start, sel.end, moved);
-    if (moved && !reduce) setTimeout(() => { if (sel && !press) lookUp(); }, 150);
-    else lookUp();
+    paint(a, b);
+    lookUp();
   }
 
   let press = null;   // { mode: "char" | "word", a, b }: anchor and focus, in characters or words
@@ -184,7 +181,7 @@
       paint(d.tokens[t].range[0], d.tokens[t].range[1]);
     } else if (e.shiftKey && sel) {
       // Extend from the far end of what's selected.
-      const c = caretAt(e.clientX), a = c < (sel.start + sel.end) / 2 ? sel.end : sel.start;
+      const c = caretAt(e.clientX), a = c < (sel.a + sel.b) / 2 ? sel.b : sel.a;
       press = { mode: "char", a, b: c, id: e.pointerId };
       paint(Math.min(a, c), Math.max(a, c));
     } else {
@@ -228,7 +225,7 @@
     e.preventDefault();
     const t = +w.dataset.t, d = demo[indexOf(0)];
     if (!settle(d.tokens[t].range[0], d.tokens[t].range[1])) return;
-    paint(sel.start, sel.end);
+    paint(d.tokens[t].range[0], d.tokens[t].range[1]);
     lookUp();
   });
   // The app's shortcut: ⌃⌥L looks up what's selected.

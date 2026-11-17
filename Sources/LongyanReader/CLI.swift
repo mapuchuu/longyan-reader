@@ -584,11 +584,10 @@ enum CLI {
         let tokens = Segmenter.phrase(full.range, in: passage, dict: dict)
         var tokenJSON: [[String: Any]] = []
         for t in tokens { tokenJSON.append(["text": t.text, "range": [t.range.lowerBound, t.range.upperBound]]) }
-        // Every selection a reader can make, one character to the whole sentence, trimmed of
-        // punctuation at its ends and otherwise taken exactly as selected (the website doesn't
-        // widen a selection to whole words, as App.show does): a word card when what's left is
-        // one dictionary word or one character, else a phrase card. Just the words with
-        // `everySelection` off.
+        // Every selection a reader can make, one character to the whole sentence, read as
+        // App.show reads it: trimmed of punctuation at its ends, widened to whole words (a lone
+        // character is left alone), then a word card or a phrase card for what that leaves.
+        // Just the words with `everySelection` off.
         var selections: [String: Any] = [:]
         var wordRanges = Set<Range<Int>>(), phraseRanges = Set<Range<Int>>()
         if !everySelection {
@@ -596,8 +595,9 @@ enum CLI {
         }
         for a in passage.indices where everySelection {
             for b in (a + 1)...passage.count {
-                let w = Selection(passage: passage, range: a..<b, bounds: nil, source: .accessibility, appName: nil).trimmed()
-                guard w.hasChinese else { continue }
+                let s = Selection(passage: passage, range: a..<b, bounds: nil, source: .accessibility, appName: nil).trimmed()
+                guard s.hasChinese else { continue }
+                let w = s.wholeWords(dict: dict)
                 let single = w.text.count == 1 || (w.text.allSatisfy(isCJK) && dict.contains(w.text))
                 if single { wordRanges.insert(w.range) } else { phraseRanges.insert(w.range) }
                 selections["\(a)-\(b)"] = [w.range.lowerBound, w.range.upperBound, single ? 1 : 0]
