@@ -206,19 +206,28 @@
 
   // Opens a card by `anchor` (the selection's rect, in the viewport): below it when it fits
   // there, else on the side with more room, its left edge on the selection's, 8 pt away.
-  function show(kind, anchor, model, build) {
-    close(true);
+  // With `inline` (an element), the card is built into the page there instead: it stays put,
+  // isn't moved or resized, and isn't closed by clicks or scrolling.
+  function show(kind, anchor, model, build, inline) {
+    if (!inline) close(true);
     const z = zoomFor();
     const card = makeChrome(kind, z);
-    card.kind = kind; card.model = model; card.anchor = anchor; card.zoom = z;
+    card.kind = kind; card.model = model; card.anchor = anchor; card.zoom = z; card.inline = inline || null;
     card.width = Math.min(BASE[kind] * z, window.innerWidth - 16);
     card.el.style.width = card.width + "px";
-    document.body.append(card.el);
+    if (inline) { card.el.classList.add("lc-inline"); card.el.removeAttribute("role"); inline.replaceChildren(card.el); }
+    else document.body.append(card.el);
     build(card);
     card.actions = makeActions(card, model);
-    makeHandles(card);
+    if (!inline) makeHandles(card);
     wire(card);
     card.height = follower(0.34, (v) => { card.el.style.height = v + "px"; updateMask(card); });
+    if (inline) {
+      card.maxH = Infinity;
+      card.height.set(card.content.offsetHeight, false);
+      positionActions(card);
+      return card;
+    }
     place(card, true);
     // Spring in: scale from 0.96 at the edge nearest the selection, 4 pt toward it, as the
     // window fades in over 0.14 s.
@@ -272,7 +281,7 @@
   }
 
   function relayout(card, animated = true) {
-    if (open !== card) return;
+    if (open !== card && !card.inline) return;
     positionActions(card);
     const natural = card.content.offsetHeight;
     card.height.set(Math.min(natural, card.maxH), animated);
@@ -299,6 +308,7 @@
     card.scroll.addEventListener("scroll", () => updateMask(card), { passive: true });
     card.ro = new ResizeObserver(() => relayout(card, !card.resizing));
     card.ro.observe(card.content);
+    if (card.inline) return;
 
     let press = null;
     el.addEventListener("pointerdown", (e) => {
@@ -448,7 +458,7 @@
 
   // MARK: Word card (LookupView)
 
-  function openWord(data, anchor) {
+  function openWord(data, anchor, inline) {
     const senses = data.senses, info = data.card;
     const st = {
       choice: info.chosen != null ? { n: info.chosen, meaning: info.meaning } : null,
@@ -525,7 +535,7 @@
         first = false;
       }
       render();
-    });
+    }, inline);
   }
 
   // MARK: Phrase card (PhraseView)

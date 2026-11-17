@@ -1,5 +1,5 @@
-// Scroll motion below the opening: sections rise into place once, the statement lights up
-// word by word, the video window lifts out of its backdrop, and the bar tucks away while you
+// Scroll motion below the opening: sections rise into place once, the statement's sentences
+// fade in one at a time, the video window lifts out of its backdrop, and the bar tucks away while you
 // scroll down. The "motion" class is set in the page head unless motion is reduced.
 (function () {
   "use strict";
@@ -15,17 +15,36 @@
   }, { rootMargin: "0px 0px -12% 0px" });
   document.querySelectorAll("[data-reveal]").forEach((el) => io.observe(el));
 
-  // Split the statement into words (Chinese stays in its own span).
-  const lit = document.getElementById("lit");
-  let litWords = [];
-  if (lit) {
-    const parts = [];
-    lit.childNodes.forEach((n) => {
-      if (n.nodeType === 3) n.textContent.split(/(\s+)/).forEach((w) => parts.push(w.trim() ? `<span class="lw">${w}</span>` : w));
-      else { n.classList.add("lw"); parts.push(n.outerHTML); }
-    });
-    lit.innerHTML = parts.join("");
-    litWords = [...lit.querySelectorAll(".lw")];
+  // The statement: the card, then its three sentences, in order. How many should be showing
+  // comes from the scroll; they're shown (or hidden, going back up) one step at a time, a
+  // beat apart, so even a fast scroll brings them in one after another.
+  const statement = document.getElementById("statement");
+  const steps = statement ? [statement.querySelector(".lit-demo"), ...statement.querySelectorAll(".lit-line")].filter(Boolean) : [];
+  let shown = 0, want = 0, stepper = 0;
+  function step() {
+    stepper = 0;
+    if (shown === want) return;
+    // The card comes in with the first sentence.
+    if (want > shown) { shown++; if (shown === 1 && steps.length > 1) shown = 2; }
+    else { shown--; if (shown === 1) shown = 0; }
+    steps.forEach((el, i) => el.classList.toggle("on", i < shown));
+    if (shown !== want) stepper = setTimeout(step, 420);
+  }
+  function wantSteps(vh) {
+    if (!steps.length) return 0;
+    const r = statement.getBoundingClientRect();
+    if (getComputedStyle(statement.firstElementChild).position === "sticky") {
+      // Pinned: the first as the section comes up into view, the rest a third of a screen
+      // of scrolling apart.
+      const d = vh * 0.3 - r.top;
+      return d < 0 ? 0 : Math.min(steps.length, 2 + Math.floor(d / (vh * 0.3)));
+    }
+    // In the flow: each when it's risen past four fifths of the screen.
+    let n = 0;
+    steps.forEach((el, i) => { if (el.getBoundingClientRect().top < vh * 0.8) n = Math.max(n, i + 1); });
+    // The card sits under the sentences on a narrow screen; it comes in with the first.
+    if (n === 1) n = 2;
+    return n;
   }
 
   const win = document.getElementById("video-window");
@@ -35,12 +54,9 @@
   function update() {
     ticking = false;
     const vh = window.innerHeight, y = window.scrollY;
-    if (moving && litWords.length) {
-      // Words light up as the paragraph moves from the bottom third to the middle.
-      const r = lit.getBoundingClientRect();
-      const u = Math.max(0, Math.min(1, (vh * 0.78 - r.top) / (r.height + vh * 0.3)));
-      const n = u * litWords.length * 1.05;
-      litWords.forEach((w, i) => { w.style.opacity = Math.max(0.16, Math.min(1, n - i)); });
+    if (moving && steps.length) {
+      want = wantSteps(vh);
+      if (want !== shown && !stepper) step();
     }
     if (moving && win) {
       const r = win.getBoundingClientRect();

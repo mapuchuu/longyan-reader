@@ -13,7 +13,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/png" href="images/favicon.png">
 <link rel="apple-touch-icon" href="images/icon.png">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=1117e">
 <script>
   // Scroll motion, unless the visitor asked for less (or ?still, for screenshots).
   if (!matchMedia("(prefers-reduced-motion: reduce)").matches && !/[?&]still/.test(location.search)) document.documentElement.classList.add("motion");
@@ -39,28 +39,39 @@
     <canvas id="field" aria-hidden="true"></canvas>
     <p class="hint" id="hint" aria-hidden="true"><span class="fine-pointer">Point at a word in the eye.</span><span class="coarse-pointer">Tap a word in the eye.</span></p>
     <div class="hero-copy">
-      <h1><span class="rise"><span>Read Chinese</span></span><span class="rise"><span>in any app.</span></span></h1>
-      <p class="hero-sub">Highlight Chinese anywhere on your Mac and Longyan tells you what it means in that context.</p>
+      <h1><span class="rise"><span>Read &amp; learn</span></span><span class="rise"><span>Chinese anywhere.</span></span></h1>
+      <p class="hero-sub">Highlight Chinese in any app, and Longyan tells you what it means in that context.</p>
       <div class="hero-actions">
-        <a class="button" href="https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip" data-download>Download for Mac</a>
+        <div class="download">
+          <a class="button" href="https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip" data-download>Download for Mac</a>
+          <p class="fine">Windows coming soon</p>
+        </div>
         <a class="button-quiet" href="#try" data-try>Try it here <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5"/></svg></a>
       </div>
-      <p class="fine">Windows coming soon.</p>
     </div>
     <div class="try" id="try">
       <div class="try-head">
-        <h2>Highlight anything. Try it here.</h2>
-        <p>These are the app’s own answers.</p>
+        <h2>Highlight anything.</h2>
       </div>
       <div class="lines" id="lines" lang="zh-CN"></div>
     </div>
   </div>
 </section>
 
-<!-- A statement, lit word by word as it scrolls past. -->
-<section class="statement">
-  <div class="wrap">
-    <p class="lit" id="lit">A dictionary gives you thirteen meanings for <span lang="zh-CN">卷</span>. You need one: the one in your sentence. Longyan&nbsp;Reader reads the whole sentence, finds that meaning, and adds a note when English has no good word for it.</p>
+<!-- A statement in three sentences, each fading in as you scroll, beside the app's card. -->
+<section class="statement" id="statement">
+  <div class="statement-pin">
+    <div class="wrap">
+      <div class="lit" id="lit">
+        <p class="lit-line">A traditional dictionary gives you multiple meanings.</p>
+        <p class="lit-line">But you only need the one that matches your sentence.</p>
+        <p class="lit-line">Longyan reads the whole sentence, finds the meaning, and tells you when English lacks a perfect translation.</p>
+      </div>
+      <figure class="lit-demo" id="lit-demo">
+        <p class="lit-sentence" lang="zh-CN">最近工作太卷了，我想<mark>躺平</mark>。</p>
+        <div class="lit-card" id="lit-card"></div>
+      </figure>
+    </div>
   </div>
 </section>
 
@@ -210,11 +221,11 @@
   </div>
 </footer>
 
-<script src="data.js"></script>
-<script src="card.js"></script>
-<script src="hero.js"></script>
-<script src="try.js"></script>
-<script src="paper.js"></script>
-<script src="motion.js"></script>
+<script src="data.js?v=1117e"></script>
+<script src="card.js?v=1117e"></script>
+<script src="hero.js?v=1117e"></script>
+<script src="try.js?v=1117e"></script>
+<script src="paper.js?v=1117e"></script>
+<script src="motion.js?v=1117e"></script>
 </body>
 </html>

@@ -351,7 +351,10 @@
     const s = demo[current].sentence;
     const size = Math.floor(Math.min(narrow ? 40 : 64, (W - (narrow ? 32 : 240)) / s.length));
     const y = Math.round(H * (narrow ? 0.4 : 0.42));
-    lines = [{ k: 0, text: s, size, x: Math.round((W - size * s.length) / 2), y }];
+    // Centred on its ink: a closing 。 or ！ sits in the left of its square, so the line is
+    // nudged right by the blank part of that square.
+    const tail = /[。！？，]$/.test(s) ? size * 0.28 : 0;
+    lines = [{ k: 0, text: s, size, x: Math.round((W - size * s.length) / 2 + tail), y }];
     buildFlights();
     document.dispatchEvent(new CustomEvent("longyan:lines", { detail: { lines: lines.map((l) => ({ ...l })), W, H, current } }));
   }
@@ -429,7 +432,10 @@
         if (v < BAYER[(r & 3) * 4 + (c & 3)] * 0.85 + 0.06) continue;
         // Quantized, so a cell keeps its character until the light on it really changes.
         const level = Math.min(7, Math.floor(v * 6));
-        ctx.globalAlpha = Math.min(1, 0.32 + v * 0.5) * quiet * fade;
+        // As the ranges fall, what's left of them fades out toward the bottom edge, so the
+        // last ridge doesn't sit there as a lone line.
+        const floor = 1 - sink * smooth(0.8, 0.97, y);
+        ctx.globalAlpha = Math.min(1, 0.32 + v * 0.5) * quiet * fade * floor;
         blit(landAtlas[layer], byInk(level / 9, hash((r * cols + c) * 1.7 + level), 0.06), c, r);
       }
     }
@@ -495,7 +501,7 @@
   // The eye's characters floating out into the lines: up and over in an arc, growing, their
   // ink turning to white as they land.
   function drawFlights(p) {
-    if (!flights.length || p < 0.035 || p >= FORMED + 0.004) return;
+    if (!flights.length || p < 0.035 || p >= FORMED) return;
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
     for (const f of flights) {
       if (p <= f.start) continue;
@@ -527,16 +533,29 @@
   function stop() { running = false; if (raf) cancelAnimationFrame(raf); raf = 0; }
   const kick = () => { if (!raf && visible) raf = requestAnimationFrame(frame); };
 
+  // Scroll to story progress. The eye breaking up and its characters flying into the sentence
+  // take three quarters of a screen of scrolling, unhurried but not a chore; the rest of the
+  // story (about 0.6 of a screen) holds the sentence still to try before the page moves on.
+  const formDist = () => window.innerHeight * 0.75;
+  function progressAt(d) {
+    const travel = story.offsetHeight - window.innerHeight, f = formDist();
+    if (travel <= 0) return 0;
+    if (d <= f) return clamp(d / f) * FORMED;
+    return clamp(FORMED + ((d - f) / Math.max(1, travel - f)) * (1 - FORMED));
+  }
+  function scrollFor(p) {
+    const travel = story.offsetHeight - window.innerHeight, f = formDist();
+    return story.offsetTop + (p <= FORMED ? (p / FORMED) * f : f + ((p - FORMED) / (1 - FORMED)) * Math.max(1, travel - f));
+  }
   function readScroll() {
     if (!story) return;
-    const travel = story.offsetHeight - window.innerHeight;
-    target = travel > 0 ? clamp(-story.getBoundingClientRect().top / travel) : 0;
+    target = progressAt(-story.getBoundingClientRect().top);
     if (target > 0.02) setHover(null);
     if (reduce) kick();
   }
 
   // Where to scroll to see the sentences formed.
-  function formedY() { return story.offsetTop + (FORMED + 0.04) * (story.offsetHeight - window.innerHeight); }
+  function formedY() { return scrollFor(FORMED) + window.innerHeight * 0.08; }
 
   // MARK: Pointing
 
@@ -603,7 +622,7 @@
     layout();
     // ?t=5 starts five seconds in and ?p=0.6 jumps to that point of the story, for screenshots.
     started = performance.now() - (+params.get("t") || 0) * 1000;
-    if (params.has("p")) window.scrollTo(0, story.offsetTop + +params.get("p") * (story.offsetHeight - window.innerHeight));
+    if (params.has("p")) window.scrollTo(0, scrollFor(+params.get("p")));
     readScroll();
     progress = target;
     document.documentElement.classList.add("hero-ready");
