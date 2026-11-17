@@ -512,22 +512,23 @@
     }
   }
 
-  // The hold once the sentence has formed, 1.2 screens of scrolling (.story's height): a beat to see it,
-  // then "Highlight" is selected as you scroll (its first SELECT), then the rest to try it.
-  // It follows the smoothed progress, so the selection glides even with a stepped wheel.
-  const SELECT = 0.45, LEAD = 0.06;
+  // Once the sentence has formed it plays on its own, in seconds, while the page holds still
+  // (it never scrolls itself): a beat to see it, then "Highlight" is selected as if dragged
+  // across (the first bar), then the second bar fills while you try it. Scrolling back above
+  // the sentence resets it, to play again next time.
+  const LEAD = 0.6, SELECT = 1.6, TRY = 7.6;
   const bars = story ? [...story.querySelectorAll(".try-progress b")] : [];
-  let lastHold = -1;
+  let lastHold = -1, formedAt = null;
   function holdAt(p) {
-    // In screens past formed, from the story's real length (HOLD of a screen, give or take).
-    const span = Math.max(1, story.offsetHeight - window.innerHeight - formDist()) / window.innerHeight;
-    const u = clamp((p - FORMED) / (1 - FORMED)) * span;
+    if (p < FORMED) { if (formedAt != null) story.classList.remove("tried"); formedAt = null; }
+    else if (formedAt == null) formedAt = performance.now();
+    const u = formedAt == null ? 0 : still ? TRY : (performance.now() - formedAt) / 1000;
     if (Math.abs(u - lastHold) < 0.0005) return;
     lastHold = u;
     const hl = clamp((u - LEAD) / (SELECT - LEAD));
     story.style.setProperty("--hl", hl.toFixed(4));
     if (bars[0]) bars[0].style.transform = `scaleX(${clamp(u / SELECT).toFixed(4)})`;
-    if (bars[1]) bars[1].style.transform = `scaleX(${clamp((u - SELECT) / (span - SELECT)).toFixed(4)})`;
+    if (bars[1]) bars[1].style.transform = `scaleX(${clamp((u - SELECT) / (TRY - SELECT)).toFixed(4)})`;
     const cls = story.classList;
     if (hl >= 0.999) cls.add("hl-done");
     else if (hl < 0.85) cls.remove("hl-done");

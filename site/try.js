@@ -97,6 +97,7 @@
     const d = demo[indexOf(0)], r = d.selections[`${a}-${b}`];
     if (!r) return null;
     sel = { a, b, start: r[0], end: r[1], word: r[2] === 1, d, el: currentEl() };
+    story.classList.add("tried");
     return sel;
   }
 
@@ -248,10 +249,33 @@
   }, { passive: true });
 
   // "Try it" jumps to the formed sentences.
+  // A slow glide down to the sentence, so the eye can be seen breaking up into it (the
+  // browser's own smooth scroll is over in half a second). Any wheel, touch or key of the
+  // visitor's own stops it where it is.
+  function glideTo(y) {
+    const from = window.scrollY, dist = y - from;
+    if (reduce || Math.abs(dist) < 2) { window.scrollTo(0, y); return; }
+    // Slow away, quick through the middle, slow to rest (an ease-in-out on a quintic, so
+    // both ends are clearly gentle).
+    const dur = Math.min(3000, 1800 + Math.abs(dist) * 1.2), t0 = performance.now();
+    const ease = (u) => (u < 0.5 ? 16 * u ** 5 : 1 - Math.pow(-2 * u + 2, 5) / 2);
+    let stopped = false;
+    const stop = () => { stopped = true; };
+    const opts = { passive: true, once: true };
+    ["wheel", "touchstart", "keydown", "pointerdown"].forEach((ev) => window.addEventListener(ev, stop, opts));
+    (function step(now) {
+      if (stopped) return;
+      const u = Math.min(1, (now - t0) / dur);
+      window.scrollTo(0, from + dist * ease(u));
+      if (u < 1) requestAnimationFrame(step);
+      else ["wheel", "touchstart", "keydown", "pointerdown"].forEach((ev) => window.removeEventListener(ev, stop));
+    })(t0);
+  }
+
   document.querySelectorAll("[data-try]").forEach((a) => a.addEventListener("click", (e) => {
     if (!window.LongyanHero) return;
     e.preventDefault();
-    window.scrollTo({ top: window.LongyanHero.formedY(), behavior: reduce ? "auto" : "smooth" });
+    glideTo(window.LongyanHero.formedY());
     // From the keyboard, carry on into the sentence: its first word takes the focus once it's there.
     if (e.detail === 0) {
       const t0 = performance.now();

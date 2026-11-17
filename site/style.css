@@ -80,8 +80,8 @@ section { position: relative; }
 .button:active { transform: scale(.97); }
 
 /* The opening: pinned while the eye comes apart and the sentence forms. */
-/* 100vh pinned, 75vh of scroll to form the sentence, 60vh to try it (hero.js). */
-.story { height: 295vh; }
+/* 100vh pinned, 75vh of scroll to form the sentence, 80vh held to try it (hero.js). */
+.story { height: 255vh; }
 .story-pin { position: sticky; top: 0; height: 100vh; height: 100svh; min-height: 620px; overflow: hidden; background: #000; }
 #field { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .hero-copy {
@@ -101,9 +101,10 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .rise > span { display: block; }
 .hero-sub { font-size: 21px; line-height: 1.42; color: rgba(245, 245, 247, .62); margin: 24px 0 34px; max-width: 21em; text-wrap: balance; letter-spacing: -0.016em; }
 .hero-actions { display: flex; align-items: flex-start; gap: 28px; flex-wrap: wrap; }
-.download { display: flex; flex-direction: column; align-items: flex-start; }
-/* Under the button, from its left edge, in line with the text above. */
-.download .fine { margin: 14px 0 0 2px; font-size: 14px; color: #a1a1a6; white-space: nowrap; }
+.button svg { width: 15px; height: 15px; margin-left: 7px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; transition: transform .3s var(--ease-out); }
+.button:hover svg { transform: translateY(2px); }
+/* Under the buttons, in line with the text above. */
+.hero-copy > .fine { margin: 18px 0 0 2px; font-size: 14px; color: #a1a1a6; }
 .hero-actions .button-quiet { height: 50px; }
 .button-quiet { display: inline-flex; align-items: center; gap: 6px; font-size: 17px; font-weight: 500; text-decoration: none; color: rgba(245, 245, 247, .86); transition: color .2s; }
 .button-quiet svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: transform .3s var(--ease-out); }
@@ -195,20 +196,31 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .hl-done .line.current .c { animation: iri 1s ease-in-out both; animation-delay: calc(.15s + var(--i) * 55ms); }
 @keyframes iri { 0%, 100% { color: var(--ink); } 25% { color: #5ea8ff; } 50% { color: #a78bfa; } 75% { color: #f0a3d8; } }
 .try-progress {
-  position: absolute; left: 0; right: 0; top: calc(var(--bottom-y) + 76px); display: flex; justify-content: center; gap: 6px;
+  position: absolute; left: 0; right: 0; top: calc(var(--bottom-y) + 84px); display: flex; justify-content: center; gap: 6px;
   opacity: 0; transition: opacity .4s ease-out; pointer-events: none;
 }
 .is-formed .try-progress { opacity: 1; transition: opacity .8s var(--ease-out) .5s; }
 .lit-progress i, .try-progress i { width: 40px; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, .14); overflow: hidden; }
 .lit-progress b, .try-progress b { display: block; height: 100%; border-radius: inherit; background: rgba(245, 245, 247, .85); transform: scaleX(0); transform-origin: left; }
 .lit-progress b { transition: transform .15s linear; }
+/* "Try it here" under the sentence, its arrow nudging up at it. It steps back once you've
+   selected something. */
 .try-cue {
   position: absolute; left: 0; right: 0; margin: 0; text-align: center; pointer-events: none;
-  top: calc(var(--bottom-y) + 20px); font-size: 17px; letter-spacing: -0.01em; color: var(--graphite); opacity: 0;
+  top: calc(var(--bottom-y) + 24px); opacity: 0;
 }
-.try-cue svg { width: 15px; height: 15px; margin-left: 5px; vertical-align: -2px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.try-cue span {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 19px; font-weight: 500; letter-spacing: -0.01em; color: rgba(245, 245, 247, .9);
+}
+.try-cue svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.hl-done .try-cue svg { animation: cue-nudge 1.8s ease-in-out .9s infinite; }
+@keyframes cue-nudge { 0%, 55%, 100% { transform: none; } 25% { transform: translateY(-3px); } }
 .try-cue { transform: translateY(6px); transition: opacity .3s ease-out, transform .3s ease-out; }
-.hl-done .try-cue { opacity: 1; transform: none; transition: opacity .8s var(--ease-out) 1.1s, transform .9s var(--ease-out) 1.1s; }
+.hl-done .try-cue { opacity: 1; transform: none; transition: opacity .7s var(--ease-out) .25s, transform .8s var(--ease-out) .25s; }
+.hl-done.tried .try-cue { opacity: .45; transition: opacity .6s var(--ease-out); }
+.tried .try-cue svg { animation: none; }
+@media (prefers-reduced-motion: reduce) { .try-cue svg { animation: none !important; } }
 @media (prefers-reduced-motion: reduce) { .hl::before, .hl-done .line.current .c { animation: none; } }
 
 
