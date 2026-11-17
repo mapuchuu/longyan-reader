@@ -575,6 +575,12 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
   background-image: var(--grain); background-size: 128px; opacity: .28; mix-blend-mode: overlay;
 }
 .paper-box { position: relative; overflow: hidden; border-radius: 26px; background: #1f1f24; }
+/* Boxes on the black page get a light rim, drawn over everything in them (an outline is
+   painted last in its stacking context), so a dark top edge never melts into the page. The
+   mask makes older WebKit clip composited children (the paper's canvas, the drifting glass)
+   to the rounded corners. Neither box has an outer shadow for the mask to cut off. */
+.paper-box, .glass-box { outline: 1px solid rgba(255, 255, 255, .14); outline-offset: -1px; -webkit-mask-image: -webkit-radial-gradient(white, black); }
+.glass-box { outline-color: rgba(255, 255, 255, .3); }
 .paper-box > :not(.paper) { position: relative; z-index: 2; }
 
 /* Works everywhere you want to read: full-bleed paper, and the recording on it whole. The recording
@@ -655,7 +661,6 @@ figcaption b { color: var(--ink); font-weight: 600; }
   position: relative; overflow: hidden; isolation: isolate; border-radius: 26px;
   aspect-ratio: 11 / 8; display: grid; place-items: center; padding: 36px; box-sizing: border-box;
   background: linear-gradient(160deg, var(--c1) 10%, var(--c2) 90%);
-  box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .25);
   --flip: 1;
 }
 .tone-rose { --c1: #ff8cc0; --c2: #dc3f8c; --deep: #8a1650; }
@@ -697,20 +702,35 @@ figcaption b { color: var(--ink); font-weight: 600; }
 .notes-stack .n-front { opacity: 1; transform: none; z-index: 3; }
 .notes-stack .n-back1 { opacity: .66; transform: translateY(-15px) scale(.94); z-index: 2; }
 .notes-stack .n-back2 { opacity: .36; transform: translateY(-29px) scale(.88); z-index: 1; }
-.motion .notes-stack .note { animation: note-cycle 17.5s cubic-bezier(.4, 0, .2, 1) infinite both; animation-play-state: paused; }
-.motion .live .notes-stack .note { animation-play-state: running; }
-.motion .notes-stack .note:nth-child(1) { animation-delay: -1.75s; }
-.motion .notes-stack .note:nth-child(2) { animation-delay: -15.75s; }
-.motion .notes-stack .note:nth-child(3) { animation-delay: -12.25s; }
-.motion .notes-stack .note:nth-child(4) { animation-delay: -8.75s; }
-.motion .notes-stack .note:nth-child(5) { animation-delay: -5.25s; }
+/* A card's text shows only while it's in front: it fades out as the next card comes up over
+   it, so the two never read through each other while the new one turns opaque. */
+.motion .notes-stack .note { animation: note-cycle 17.5s cubic-bezier(.4, 0, .2, 1) var(--d) infinite both; animation-play-state: paused; }
+.motion .notes-stack .note > p { animation: note-text 17.5s linear var(--d) infinite both; animation-play-state: paused; }
+.motion .live .notes-stack .note, .motion .live .notes-stack .note > p { animation-play-state: running; }
+.notes-stack .note:nth-child(1) { --d: -1.75s; }
+.notes-stack .note:nth-child(2) { --d: -15.75s; }
+.notes-stack .note:nth-child(3) { --d: -12.25s; }
+.notes-stack .note:nth-child(4) { --d: -8.75s; }
+.notes-stack .note:nth-child(5) { --d: -5.25s; }
+@keyframes note-text {
+  0%, .8% { opacity: 0; }
+  1.6%, 20% { opacity: 1; }
+  20.8%, 100% { opacity: 0; }
+}
+/* z-index steps on its own keyframes, so the card coming up is always over the one it
+   replaces (two cards never share a layer and leave it to DOM order, which let text show
+   through on WebKit). */
 @keyframes note-cycle {
-  0% { opacity: 0; transform: translateY(46px) scale(.98); z-index: 4; }
-  1.2% { opacity: 1; }
-  4%, 20% { opacity: 1; transform: none; z-index: 3; }
-  24%, 40% { opacity: .66; transform: translateY(-15px) scale(.94); z-index: 2; }
-  44%, 60% { opacity: .36; transform: translateY(-29px) scale(.88); z-index: 1; }
-  64%, 100% { opacity: 0; transform: translateY(-40px) scale(.83); z-index: 0; }
+  0% { opacity: 0; transform: translateY(46px) scale(.98); }
+  .8% { opacity: 1; }
+  4%, 20% { opacity: 1; transform: none; }
+  24%, 40% { opacity: .66; transform: translateY(-15px) scale(.94); }
+  44%, 60% { opacity: .36; transform: translateY(-29px) scale(.88); }
+  64%, 100% { opacity: 0; transform: translateY(-40px) scale(.83); }
+  0%, 19.9% { z-index: 5; }
+  20%, 43.9% { z-index: 3; }
+  44%, 63.9% { z-index: 2; }
+  64%, 100% { z-index: 1; }
 }
 
 /* Tones: the four, each with its pitch drawn over it; one at a time is said, its column lit
@@ -808,7 +828,7 @@ figcaption b { color: var(--ink); font-weight: 600; }
 .mac { position: relative; }
 .mac-screen {
   position: relative; aspect-ratio: 16 / 10; border-radius: 18px; overflow: hidden; background: #0b0a24;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, .06), 0 0 0 10px #0e0e11, 0 0 0 11px rgba(255, 255, 255, .12), 0 50px 100px rgba(0, 0, 0, .6);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .06), 0 0 0 10px #0e0e11, 0 0 0 11px rgba(255, 255, 255, .22), 0 50px 100px rgba(0, 0, 0, .6);
   container-type: inline-size;
 }
 .mac-screen .paper { z-index: 0; }
@@ -1066,10 +1086,13 @@ footer a { color: #a1a1a6; }
   .mac-screen { aspect-ratio: 620 / 450; }
   .desk { width: 620px; height: 450px; }
   .layer { transform: translateX(-70px); }
-  .mac-screen { border-radius: 12px; box-shadow: 0 0 0 1px rgba(255, 255, 255, .06), 0 0 0 6px #0e0e11, 0 0 0 7px rgba(255, 255, 255, .12), 0 30px 60px rgba(0, 0, 0, .6); }
+  .mac-screen { border-radius: 12px; box-shadow: 0 0 0 1px rgba(255, 255, 255, .06), 0 0 0 6px #0e0e11, 0 0 0 7px rgba(255, 255, 255, .22), 0 30px 60px rgba(0, 0, 0, .6); }
   .closing { padding: 120px 0 130px; }
   .hero-sub { margin: 16px 0 24px; }
-  .hero-actions { gap: 22px; }
+  .hero-actions { gap: 4px 22px; }
+  .hero-actions .button-quiet { height: 44px; }
+  /* Room under the fine print for the tap hint. */
+  .hero-copy { bottom: max(58px, 7vh); }
   .eyebrow { font-size: 16px; margin-bottom: 12px; }
   .try-head p { font-size: 16px; }
   .lit-line { font-size: 30px; }

@@ -38,6 +38,7 @@ Backdrops (`paper.js`, for the statement's card, the recording and the closing) 
 - On a wide screen the eye is second to the headline: about as tall as the headline and the line under it (a quarter of the width, at most 470px), level with the text.
 - The bar's logo is the mark alone in white, the app icon's negative, 25px wide.
 - Hairlines are 0.5px. Shadows are layered: a 0.5px ring, a tight shadow and a wide soft one.
+- Boxes on the black page (the statement's wallpaper, the feature tiles, the Mac's bezel) get a light 1px rim drawn over their content, so a dark edge never melts into the page on a phone.
 
 ## Motion
 
