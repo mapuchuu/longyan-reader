@@ -144,18 +144,23 @@ h1 { font-size: 76px; line-height: 1; letter-spacing: -0.04em; }
 .line .c { display: inline-block; width: var(--size); text-align: center; position: relative; z-index: 1; }
 /* No marks on the words: the line is just text, to select the way you would anywhere. */
 .line .w:focus-visible { outline: none; background: rgba(255, 255, 255, .1); border-radius: 4px; }
-/* The selection: the system's blue, with a slow sheen of violet passing through it.
-   While you drag it follows the pointer exactly; letting go, it eases onto whole words. */
+/* The selection: the system's blue with an iridescent sheen of violet and rose moving
+   through it. The sheen is sized to the selection itself, so one character shows it as
+   clearly as a whole sentence. While you drag it follows the pointer exactly; letting go, it
+   eases onto whole words. */
 .line .hi {
   position: absolute; top: calc(var(--size) * .07); height: calc(var(--size) * 1.16); border-radius: calc(var(--size) * .08);
-  background: linear-gradient(100deg, rgba(10, 132, 255, .6) 0%, rgba(40, 128, 255, .6) 30%, rgba(112, 120, 252, .58) 46%, rgba(170, 122, 236, .54) 54%, rgba(70, 126, 255, .6) 68%, rgba(10, 132, 255, .6) 100%);
-  background-size: calc(var(--size) * 18) 100%; background-repeat: repeat-x;
-  animation: hi-sheen 9s linear infinite;
+  background: linear-gradient(105deg,
+    rgba(10, 132, 255, .64) 0%, rgba(84, 116, 255, .62) 18%, rgba(150, 110, 248, .6) 32%, rgba(214, 118, 214, .56) 42%,
+    rgba(120, 132, 255, .62) 54%, rgba(40, 156, 255, .64) 68%, rgba(10, 132, 255, .64) 100%);
+  background-size: 200% 100%; background-repeat: repeat-x;
+  animation: hi-sheen 4.5s linear infinite;
   opacity: 0; pointer-events: none; transition: opacity .12s ease-out;
 }
 .line .hi.on { opacity: 1; }
 .line .hi.snap { transition: opacity .12s ease-out, left .16s cubic-bezier(.22, 1, .36, 1), width .16s cubic-bezier(.22, 1, .36, 1); }
-@keyframes hi-sheen { to { background-position: calc(var(--size) * 18) 0; } }
+/* With the image twice the box, 0% to 200% moves it exactly one image width: a seamless loop. */
+@keyframes hi-sheen { from { background-position: 0% 0; } to { background-position: 200% 0; } }
 @media (prefers-reduced-motion: reduce) { .line .hi { animation: none; } }
 
 .another { user-select: none; -webkit-user-select: none;

@@ -1,9 +1,9 @@
-// The three sentences lifted from the eye, as text to read the way the app does. Selecting
+// The demo sentence lifted from the eye, as text to read the way the app does. Selecting
 // works as it does in any Mac text: drag across characters, double-click for a word (and drag
 // on by words), triple-click for the sentence, shift-click to extend. Let go and the
-// selection settles onto whole words, and the card opens. The cards are card.js, filled with the app's own answers
-// (scripts/site-data.py). The lines scroll like lyrics: the middle one is the one you read,
-// "Next sentence" moves them up.
+// selection settles onto whole words, and the card opens. The cards are card.js, filled with
+// the app's own answers (scripts/site-data.py). "Next sentence" moves the line up and out and
+// brings the next one up in its place.
 (function () {
   "use strict";
   const demo = window.LONGYAN && window.LONGYAN.demo;
@@ -26,7 +26,6 @@
   function build(detail) {
     const old = els;
     lines = detail.lines; current = detail.current;
-    const gap = lines.length > 1 ? lines[1].y - lines[0].y : 0;
     els = lines.map((l) => {
       const d = demo[indexOf(l.k)];
       const el = document.createElement("div");
@@ -67,24 +66,17 @@
     root.style.setProperty("--bottom-y", lN.y + lN.size * 0.65 + "px");
     root.style.setProperty("--line-size", l0.size + "px");
 
-    // Like lyrics: every line slides up from where it was, the top one fades out past the
-    // edge and the new one fades in from below.
+    // The old line rises and fades out; the new one rises into its place from below.
     if (shift && !reduce && old.length) {
-      const s = shift;
+      const d = Math.round(l0.size * 1.1) * Math.sign(shift);
       for (const o of old) {
-        if (+o.dataset.k !== -s) continue;
         o.classList.add("leaving");
         box.append(o);
         o.getBoundingClientRect();
-        o.style.transform = `translateY(${-s * gap}px)`;
+        o.style.transform = `translateY(${-d}px)`;
         setTimeout(() => o.remove(), 900);
       }
-      for (const el of els) {
-        el.classList.add("from");
-        el.style.transform = `translateY(${s * gap}px)`;
-        const was = +el.dataset.k + s;
-        el.style.opacity = was === 0 ? 1 : Math.abs(was) === 1 ? 0.3 : 0;
-      }
+      for (const el of els) { el.classList.add("from"); el.style.transform = `translateY(${d}px)`; el.style.opacity = 0; }
       box.getBoundingClientRect();
       for (const el of els) { el.classList.remove("from"); el.style.transform = ""; el.style.opacity = ""; }
     }
@@ -231,13 +223,6 @@
     release();
   });
   box.addEventListener("pointercancel", () => { press = null; });
-
-  // A dim line: make it the one you read.
-  box.addEventListener("click", (e) => {
-    const line = e.target.closest(".line");
-    if (!line || line.dataset.k === "0" || line.classList.contains("leaving")) return;
-    move(+line.dataset.k);
-  });
 
   box.addEventListener("keydown", (e) => {
     const w = e.target.closest(".w");

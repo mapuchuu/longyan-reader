@@ -10,8 +10,8 @@
 // where the characters are, traced finely by the smallest. Characters with too little ink to
 // fill their square (一, 人, 了…) are left out. Pointing at a character shows the word it's
 // part of and what it means in its sentence: the app's own reading (scripts/site-data.py).
-// Scrolling breaks the eye up, and characters float out of it from all over into the three
-// demo sentences, which try.js lets you read.
+// Scrolling breaks the eye up, and characters float out of it from all over into the demo
+// sentence, which try.js lets you read.
 (function () {
   "use strict";
   const canvas = document.getElementById("field");
@@ -97,7 +97,7 @@
     return o;
   }
   // The eye's characters, packed into the mark on a grid of half units: squares of 4, 3 and 2
-  // units where they fit, then whole and half units for the rest. Every character sits wholly
+  // units where they fit, then sizes from 2 units down to a half for the rest. Every character sits wholly
   // inside the mark; nothing is cut. The half units trace the edge finely enough that the
   // shape still reads.
   function pack(unit) {
@@ -135,16 +135,34 @@
     for (let r = 0; r < urows; r++) for (let c = 0; c < ucols; c++) if (lat[r * LC + c] && lat[(r + 1) * LC + c + 1]) area++;
     // The big ones keep off the edge, so the outline is always traced in fine characters
     // and the sizes taper toward it.
-    for (const [n, share, m] of [[8, 0.44, 1], [6, 0.24, 1], [4, 0.16, 1]]) {
+    // Most big ones keep a little off the edge; some come right up to it.
+    for (const [n, share] of [[8, 0.44], [6, 0.24], [4, 0.16]]) {
       const want = Math.round((area * share) / (n * n)), tries = want * 16;
       for (let k = 0, got = 0; k < tries && got < want; k++) {
         const c = Math.floor(hash(n * 1000 + k * 1.618) * ucols), r = Math.floor(hash(n * 2000 + k * 2.414) * urows);
+        const m = hash(n * 3000 + k * 0.577) < 0.6 ? 1 : 0;
         if (fits(c, r, n, m)) { place(c, r, n); got++; }
       }
     }
-    // Then one and a half, whole and half units wherever they fit, out to the edge.
-    for (const n of [3, 2, 1])
-      for (let r = 0; r < urows; r++) for (let c = 0; c < ucols; c++) if (fits(c, r, n)) place(c, r, n);
+    // Then the rest, in no particular order, each spot taking a size picked at random from
+    // what fits there, so the characters along the edge vary as much as those inside.
+    const spots = [];
+    for (let r = 0; r < urows; r++) for (let c = 0; c < ucols; c++) spots.push(r * ucols + c);
+    for (let k = spots.length - 1; k > 0; k--) { const j = Math.floor(hash(k * 0.917 + 5) * (k + 1)); [spots[k], spots[j]] = [spots[j], spots[k]]; }
+    for (const q of spots) {
+      const c = q % ucols, r = (q / ucols) | 0;
+      if (owner[q] >= 0) continue;
+      const roll = hash(q * 1.31 + 9);
+      // Prefer the bigger sizes that fit; the roll lets some spots take a smaller one.
+      const sizes = roll < 0.5 ? [4, 3, 2, 1] : roll < 0.85 ? [3, 2, 1] : [2, 1];
+      for (const n of sizes) {
+        // A bigger square may sit up and left of this spot too.
+        let done = false;
+        for (let dy = 0; dy < n && !done; dy++) for (let dx = 0; dx < n && !done; dx++)
+          if (fits(c - dx, r - dy, n)) { place(c - dx, r - dy, n); done = true; }
+        if (done) break;
+      }
+    }
     return { unit: h, ucols, urows, ux0, uy0, owner, glyphs: out };
   }
 
@@ -245,7 +263,8 @@
     cols = Math.ceil(W / cell); rows = Math.ceil(H / cell);
     buildAtlas();
     tops = [];
-    landBase = Math.min(narrow ? 0.74 : 0.88, (eye.y + eye.h) / H + (narrow ? 0.1 : 0.13));
+    // The ranges start just under the eye, so it stands over them.
+    landBase = Math.min(narrow ? 0.74 : 0.84, (eye.y + eye.h) / H + (narrow ? 0.1 : 0.085));
     // On a phone the headline sits over the mountains: they go quiet behind it.
     const copy = document.querySelector(".hero-copy");
     if (narrow && copy) {
@@ -272,22 +291,19 @@
 
   // MARK: The sentences
 
-  // Three sentences stacked as lines of text, the current one in the middle. try.js shows
-  // them once they've formed; until then their characters fly in from the eye.
+  // The sentence to read, as a line of text. try.js shows it once it has formed; until then
+  // its characters fly in from the eye.
   function placeLines() {
     const maxLen = Math.max(...demo.map((d) => d.sentence.length));
     const size = Math.floor(Math.min(narrow ? 30 : 46, (W - (narrow ? 32 : 200)) / maxLen));
-    const gap = Math.round(size * (narrow ? 2.1 : 1.95));
     const y = Math.round(H * (narrow ? 0.4 : 0.42));
-    lines = [-1, 0, 1].map((k) => {
-      const s = demo[(current + k + demo.length) % demo.length].sentence;
-      return { k, text: s, size, x: Math.round((W - size * s.length) / 2), y: y + k * gap };
-    });
+    const s = demo[current].sentence;
+    lines = [{ k: 0, text: s, size, x: Math.round((W - size * s.length) / 2), y }];
     buildFlights();
     document.dispatchEvent(new CustomEvent("longyan:lines", { detail: { lines: lines.map((l) => ({ ...l })), W, H, current } }));
   }
 
-  // Each character of the three lines floats out of somewhere in the eye: one of its bigger
+  // Each character of the sentence floats out of somewhere in the eye: one of its bigger
   // characters, at random, the same character when one's to hand.
   function buildFlights() {
     flights = [];
@@ -309,7 +325,7 @@
       used.add(pick);
       const g = fine.glyphs[pick];
       flights.push({ line: l, k, ch, g: pick, x0: g.x + g.w / 2, y0: g.y + g.w / 2, size0: g.w * 0.94, u: (g.x - eye.x) / eye.w,
-        start: 0.04 + hash(j * 3.3 + current) * 0.08 + (l.k === 0 ? 0 : 0.02) });
+        start: 0.04 + hash(j * 3.3 + current) * 0.1 });
     });
   }
 
@@ -322,11 +338,27 @@
     const asp = W / H;
     if (!tops.length || tops[0].length !== cols) tops = [0, 1, 2, 3].map(() => new Float32Array(cols));
     let highest = 1;
+    // The ridges are measured against the screen's height, as on a phone, so a wide screen
+    // gets broad ranges rather than more, smaller bumps. On a wide screen they stay low under
+    // the headline, and open into a valley under the eye, so it floats clear over it with
+    // ranges rising either side. The layers spread further down, to the bottom of the screen.
+    //
+    // As the sentence forms, a phone's ranges sink a little to make room. A wide screen's
+    // settle instead into one broad, even range just under the sentence, centred like it, so
+    // the sentence and the land read as one scene rather than a line floating over a strip.
+    const span = narrow ? H : H * 1.7, step = narrow ? 0.055 : 0.068;
+    const settle = (lines[0] ? (lines[0].y + lines[0].size * 0.65 + 110) / H : 0.66);
     for (let k = 0; k < 4; k++) {
-      const base = landBase + 0.055 * k + intro + sink * (narrow ? 1.9 : 1) * (0.06 + 0.05 * k), amp = 0.15 - 0.028 * k;
+      const amp = (narrow ? 0.15 : 0.18) - 0.028 * k;
+      const base = narrow
+        ? landBase + step * k + intro + sink * 1.9 * (0.06 + 0.05 * k)
+        : landBase + (settle + 0.12 - landBase) * sink + step * k + intro;
       for (let c = 0; c < cols; c++) {
-        const x = ((c + 0.5) / cols) * asp;
-        tops[k][c] = base - amp * ridge(x * (0.85 + 0.45 * k) + k * 13.7);
+        const px = (c + 0.5) * cell, x = px / span;
+        const hero = (0.38 + 0.62 * smooth(W * 0.28, eye.x, px)) * (1 - 0.6 * Math.exp(-Math.pow((px - eye.cx) / (eye.w * 0.34), 2)));
+        const formed = 0.55 + 0.45 * Math.exp(-Math.pow((px - W / 2) / (W * 0.42), 2));
+        const env = narrow ? 1 : hero + (formed - hero) * sink;
+        tops[k][c] = base - amp * env * ridge(x * (0.85 + 0.45 * k) + k * 13.7);
         if (tops[k][c] < highest) highest = tops[k][c];
       }
     }
@@ -417,8 +449,9 @@
       if (p <= f.start) continue;
       const u = easeInOut(clamp((p - f.start) / 0.18));
       const x1 = f.line.x + (f.k + 0.5) * f.line.size, y1 = f.line.y;
-      const x = f.x0 + (x1 - f.x0) * u;
-      const y = f.y0 + (y1 - f.y0) * u - Math.sin(u * Math.PI) * Math.min(120, Math.abs(x1 - f.x0) * 0.25 + 40);
+      const x0 = f.x0;
+      const x = x0 + (x1 - x0) * u;
+      const y = f.y0 + (y1 - f.y0) * u - Math.sin(u * Math.PI) * Math.min(120, Math.abs(x1 - x0) * 0.25 + 40);
       const size = f.size0 + (f.line.size * 0.9 - f.size0) * u;
       const final = f.line.k === 0 ? 1 : 0.3;
       ctx.font = `${u > 0.6 ? 400 : 600} ${Math.round(size * 2) / 2}px ${ZH}`;
