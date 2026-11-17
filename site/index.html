@@ -13,7 +13,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/png" href="images/favicon.png">
 <link rel="apple-touch-icon" href="images/icon.png">
-<link rel="stylesheet" href="style.css?v=1118c">
+<link rel="stylesheet" href="style.css?v=1118g">
 <script>
   // Scroll motion, unless the visitor asked for less (or ?still, for screenshots).
   if (!matchMedia("(prefers-reduced-motion: reduce)").matches && !/[?&]still/.test(location.search)) document.documentElement.classList.add("motion");
@@ -49,7 +49,7 @@
     </div>
     <div class="try" id="try">
       <div class="try-head">
-        <h2><span class="hl">Highlight</span> any chunk of Chinese text.</h2>
+        <h2><span class="hl">Highlight</span> any chunk of this Chinese text.</h2>
       </div>
       <div class="lines" id="lines" lang="zh-CN"></div>
       <p class="try-cue" aria-hidden="true"><span>Try it here<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.75"/><path d="M8 11.25v-6.5M5.25 7.25 8 4.5l2.75 2.75"/></svg></span></p>
@@ -66,14 +66,22 @@
       <div class="lit" id="lit">
         <div class="lit-lines">
           <p class="lit-line">Traditional dictionaries give you <span class="every">every</span> meaning.</p>
-          <p class="lit-line">Longyan shows you <span class="one">which one</span> your sentence means,</p>
-          <p class="lit-line">and flags words that need more <span class="ctx">context</span>.</p>
+          <p class="lit-line">Longyan shows you <span class="one">which one</span> your sentence means…</p>
+          <p class="lit-line">and flags words that need more <span class="ctx">cultural context</span>.</p>
         </div>
         <div class="lit-progress" aria-hidden="true"><i><b></b></i><i><b></b></i><i><b></b></i></div>
       </div>
-      <figure class="lit-demo" id="lit-demo">
-        <p class="lit-sentence" lang="zh-CN">最近工作太卷了，我想<mark>躺平</mark>。</p>
-        <div class="lit-card" id="lit-card"></div>
+      <figure class="lit-demo light" id="lit-demo">
+        <div class="paper-box lit-stage">
+          <canvas class="paper" data-paper="azure" aria-hidden="true"></canvas>
+          <p class="lit-sentence" lang="zh-CN">最近工作太卷了，我想<mark>躺平</mark>。</p>
+          <div class="lit-card" id="lit-card"></div>
+        </div>
+        <div class="appearance" role="radiogroup" aria-label="Card appearance">
+          <i class="appearance-thumb" aria-hidden="true"></i>
+          <button type="button" role="radio" aria-checked="true" data-appearance="light"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.9"/><path d="M8 1.6v1.6M8 12.8v1.6M1.6 8h1.6M12.8 8h1.6M3.5 3.5l1.1 1.1M11.4 11.4l1.1 1.1M3.5 12.5l1.1-1.1M11.4 4.6l1.1-1.1"/></svg>Light</button>
+          <button type="button" role="radio" aria-checked="false" data-appearance="dark"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.2 9.9A5.6 5.6 0 0 1 6.1 2.8a5.6 5.6 0 1 0 7.1 7.1z"/></svg>Dark</button>
+        </div>
       </figure>
     </div>
   </div>
@@ -225,11 +233,11 @@
   </div>
 </footer>
 
-<script src="data.js?v=1118c"></script>
-<script src="card.js?v=1118c"></script>
-<script src="hero.js?v=1118c"></script>
-<script src="try.js?v=1118c"></script>
-<script src="paper.js?v=1118c"></script>
-<script src="motion.js?v=1118c"></script>
+<script src="data.js?v=1118g"></script>
+<script src="card.js?v=1118g"></script>
+<script src="hero.js?v=1118g"></script>
+<script src="try.js?v=1118g"></script>
+<script src="paper.js?v=1118g"></script>
+<script src="motion.js?v=1118g"></script>
 </body>
 </html>

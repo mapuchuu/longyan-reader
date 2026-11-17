@@ -437,8 +437,8 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .lit { max-width: 640px; }
 .lit-line { font: 600 44px/1.18 var(--display); letter-spacing: -0.03em; margin: 0 0 .62em; text-wrap: pretty; }
 .lit-line:last-child { margin-bottom: 0; }
-.lit-demo { margin: 6px 0 0; width: 396px; }
-.lit-sentence { margin: 0 0 16px 2px; font: 400 21px/1.4 var(--zh); letter-spacing: .08em; color: rgba(245, 245, 247, .62); }
+.lit-demo { margin: 6px 0 0; width: 444px; }
+.lit-sentence { margin: 0 0 14px 2px; font: 400 21px/1.4 var(--zh); letter-spacing: .08em; color: rgba(245, 245, 247, .62); }
 .lit-sentence mark { color: #fff; border-radius: 4px; padding: 1px 1px 2px 3px; margin: 0 -1px;
   background: linear-gradient(105deg, rgba(10, 132, 255, .64), rgba(150, 110, 248, .6) 60%, rgba(214, 118, 214, .56)); }
 .lit-progress { display: none; }
@@ -496,8 +496,60 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .lc-card.lc-locked { pointer-events: none; }
 #lit-card .lc-def { transition: color .8s cubic-bezier(.22, 1, .36, 1); }
 #lit-card .lc-def.chosen { font-weight: inherit; }
+/* The walkthrough's card on Liquid Glass over a wallpaper, as it floats over a Mac's
+   desktop, in either appearance (the switch under it). Light is the app's frosted white
+   tint (glassTint: white at .55), dark its smoky one, the default card; the wallpaper dims
+   in dark, as macOS's do. The light colours are the app's (Popup.swift's tones, the
+   system's light blue, purple and green); the headline words keep their dark-page colours. */
+/* Tall enough for the card at its fullest (with the note), so the wallpaper never resizes
+   as the card grows; it can still grow if a click opens more. */
+.lit-stage { padding: 22px 24px 26px; border-radius: 24px; min-height: 460px; box-sizing: border-box; }
+.lit-stage::before { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: rgba(0, 0, 0, .5); opacity: 0; transition: opacity .5s cubic-bezier(.4, 0, .2, 1); }
+.lit-demo:not(.light) .lit-stage::before { opacity: 1; }
+.lit-stage .lit-sentence { color: rgba(255, 255, 255, .92); text-shadow: 0 1px 12px rgba(0, 20, 60, .35); }
+.lit-demo.light #lit-card .lc-card {
+  --primary: rgba(0, 0, 0, .85); --secondary: rgba(0, 0, 0, .5); --tertiary: rgba(0, 0, 0, .26);
+  --accent: #007aff;
+  --lc-tone1: rgb(168, 84, 77); --lc-tone2: rgb(74, 135, 97); --lc-tone3: rgb(74, 115, 166); --lc-tone4: rgb(128, 97, 163);
+}
+#lit-card .lc-glass { transition: background-color .5s cubic-bezier(.4, 0, .2, 1); }
+.lit-demo.light #lit-card .lc-glass {
+  background: linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, .06) 45%, rgba(255, 255, 255, 0)), rgba(255, 255, 255, .55);
+  box-shadow: 0 10px 34px rgba(0, 30, 80, .18), 0 .5px 3px rgba(0, 0, 0, .08), 0 0 0 .5px rgba(255, 255, 255, .35);
+}
+.lit-demo.light #lit-card .lc-glass::before { background: linear-gradient(150deg, rgba(255, 255, 255, .95), rgba(255, 255, 255, .35) 30%, rgba(255, 255, 255, .12) 58%, rgba(255, 255, 255, .6)); }
+.lit-demo.light #lit-card .lc-glass::after { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7), inset 0 -.5px 0 rgba(0, 0, 0, .05); }
+.lit-demo.light #lit-card .lc-divider { background: rgba(0, 0, 0, .08); }
+.lit-demo.light #lit-card .lc-row:hover, .lit-demo.light #lit-card .lc-part:hover { background: rgba(0, 0, 0, .04); }
+.lit-demo.light #lit-card .lc-row:active, .lit-demo.light #lit-card .lc-part:active { background: rgba(0, 0, 0, .07); }
+.lit-demo.light #lit-card .lc-card .lc-action:hover { background: rgba(0, 0, 0, .05); }
+.lit-demo.light #lit-card .lc-sym .lc-knock { stroke: rgba(240, 244, 250, .95); }
+.lit-demo.light #lit-card .lc-sym .lc-knock-fill { fill: rgba(240, 244, 250, .95); }
+.lit-demo.light #lit-card .lc-grab { background: rgba(0, 0, 0, .18); }
+.lit-demo.light #lit-card .lc-light > .purple { background: rgba(175, 82, 222, .18); }
+.lit-demo.light #lit-card .lc-light > .blue { background: rgba(0, 122, 255, .15); }
+.lit-demo.light #lit-card .lc-note { background: rgba(52, 199, 89, .15); }
+.lit-demo.light #lit-card .lc-note-head, .lit-demo.light #lit-card .lc-note-head .culture { color: #248a3d; }
 #lit-card .lc-note { background: rgba(48, 209, 88, .14); }
 #lit-card .lc-note-head, #lit-card .lc-note-head .culture { color: #30d158; }
+
+/* The appearance switch: a segmented control, as in macOS's own Appearance setting. */
+.appearance { position: relative; display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr; margin: 16px 0 0 2px; padding: 2px; border-radius: 9px; background: rgba(255, 255, 255, .09); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .08); }
+.appearance button {
+  position: relative; z-index: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  height: 28px; padding: 0 14px; border: 0; border-radius: 7px; background: none; cursor: pointer;
+  font: 500 13px/1 var(--text); letter-spacing: -0.005em; color: rgba(245, 245, 247, .6); transition: color .25s;
+}
+.appearance button[aria-checked="true"] { color: #fff; }
+.appearance button:hover { color: rgba(245, 245, 247, .9); }
+.appearance button:focus-visible { outline: 2px solid rgba(10, 132, 255, .85); outline-offset: 1px; }
+.appearance svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+.appearance-thumb {
+  position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc(50% - 2px); border-radius: 7px;
+  background: rgba(255, 255, 255, .17); box-shadow: 0 1px 3px rgba(0, 0, 0, .3), inset 0 0 0 .5px rgba(255, 255, 255, .12);
+  transition: transform .35s cubic-bezier(.32, .72, 0, 1);
+}
+.lit-demo:not(.light) .appearance-thumb { transform: translateX(100%); }
 .lit .every { color: #bf5af2; }
 .lit .ctx { color: #30d158; }
 /* It is as tall as its content, so it has nothing to scroll: a swipe on it scrolls the page. */
@@ -651,7 +703,7 @@ footer a { color: #a1a1a6; }
   .statement .wrap { grid-template-columns: minmax(0, 1fr); gap: 48px; }
   .motion .statement .wrap { gap: 40px; }
   .motion .statement-pin { padding-top: max(76px, calc(50svh - 270px)); }
-  .lit-demo { width: 100%; max-width: 396px; }
+  .lit-demo { width: 100%; max-width: 444px; }
 }
 /* Phones and upright tablets: the eye on top, the headline under it (hero.js lays the eye
    out by the same rule). */
@@ -668,6 +720,9 @@ footer a { color: #a1a1a6; }
   .video-window { margin-bottom: -60px; }
 }
 @media (max-width: 600px) {
+  .lit-stage { padding: 16px 14px 18px; border-radius: 20px; min-height: 384px; }
+  .lit-stage .lit-sentence { font-size: 18px; letter-spacing: .04em; margin-bottom: 12px; }
+  .appearance { margin-top: 12px; }
   .wrap, .bar-inner { padding: 0 16px; }
   .hero-copy { left: 16px; right: 16px; }
   h1 { font-size: 42px; }

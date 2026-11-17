@@ -26,6 +26,28 @@
   const fills = statement ? [...statement.querySelectorAll(".lit-progress b")] : [];
   const progressEl = statement && statement.querySelector(".lit-progress");
   const SEG = 0.6, CALM = 1200, ENTER = 0.6;
+
+  // The card's appearance, light or dark, from the switch under it; remembered on this device.
+  if (demo) {
+    const radios = [...demo.querySelectorAll(".appearance [data-appearance]")];
+    const set = (mode, save) => {
+      demo.classList.toggle("light", mode === "light");
+      radios.forEach((b) => { const on = b.dataset.appearance === mode; b.setAttribute("aria-checked", String(on)); b.tabIndex = on ? 0 : -1; });
+      if (save) try { localStorage.setItem("lc-appearance", mode); } catch (_) {}
+    };
+    let saved = null;
+    try { saved = localStorage.getItem("lc-appearance"); } catch (_) {}
+    if (saved === "light" || saved === "dark") set(saved, false);
+    radios.forEach((b) => b.addEventListener("click", () => set(b.dataset.appearance, true)));
+    // Arrow keys move between the two, as in any radio group.
+    demo.querySelector(".appearance").addEventListener("keydown", (e) => {
+      if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) return;
+      e.preventDefault();
+      const next = demo.classList.contains("light") ? "dark" : "light";
+      set(next, true);
+      radios.find((b) => b.dataset.appearance === next).focus();
+    });
+  }
   let seg = -1, segAt = 0, segTimer = 0, cardTimer = 0;
 
   function setSeg(n) {
