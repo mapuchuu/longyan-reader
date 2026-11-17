@@ -1,4 +1,4 @@
-// Paper: soft color fields with folds of light, like a macOS wallpaper. One WebGL context draws
+// Paper: pieces of sky, deep blue with high cloud drifting across it, under a fine grain. One WebGL context draws
 // every backdrop on the page into its own 2D canvas. Backdrops marked data-live drift slowly
 // while they're on screen; the rest are drawn once. The grain is a CSS overlay at full
 // resolution, so the color can be rendered at a lower one.
@@ -8,69 +8,60 @@
   if (!targets.length) return;
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  // Five stops from deep to light, then the fold direction and a disc (x, y, radius) or none.
+  // Each backdrop is a piece of sky: deep, mid and bright blue, the colour of its wisps,
+  // and the colour it drifts toward in one corner. One family of blues across the site.
   const PAPERS = {
-    azure:  { c: ["#0a3fb8", "#1f6fe0", "#4aa2f2", "#9fd2fa", "#e6f5ff"], dir: [1, -0.55], disc: null },
-    rose:   { c: ["#8f2340", "#cf4f5c", "#ec8a7e", "#f8c3b5", "#fff0ea"], dir: [1, -0.4], disc: [0.18, 0.3, 0.42] },
-    green:  { c: ["#0b5e44", "#1c9468", "#4fc28d", "#a9e6c2", "#ecfbf2"], dir: [1, -0.7], disc: [0.86, 0.2, 0.36] },
-    blue:   { c: ["#1a2f9c", "#3b62e0", "#7398f5", "#bccdfd", "#eef2ff"], dir: [1, -0.5], disc: [0.2, 0.75, 0.4] },
-    violet: { c: ["#3f1d9c", "#6b3fe0", "#9b74f5", "#d0bcfc", "#f4effe"], dir: [1, -0.6], disc: [0.8, 0.82, 0.38] },
-    dusk:   { c: ["#2a1450", "#6b2f86", "#c4567a", "#f29a7e", "#ffe2c8"], dir: [1, -0.45], disc: null },
+    azure:  { c: ["#0a3db2", "#166fdf", "#2e9feb", "#d2e8ff", "#1cb0c6"] },
+    cobalt: { c: ["#13289c", "#2450d6", "#4887ec", "#d8e5ff", "#3b9fe6"] },
+    sky:    { c: ["#0a52b4", "#1384de", "#2fb3ea", "#d8f2ff", "#1fbfc4"] },
+    indigo: { c: ["#171987", "#2f37c2", "#556ce4", "#dee1ff", "#4c8cee"] },
   };
 
   const VERT = "attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}";
   const FRAG = `
 precision highp float;
-uniform vec2 uRes; uniform float uTime; uniform float uSeed; uniform float uSplit;
-uniform vec3 uC0, uC1, uC2, uC3, uC4; uniform vec2 uDir; uniform vec3 uDisc;
+uniform vec2 uRes; uniform float uTime; uniform float uSeed;
+uniform vec3 uC0, uC1, uC2, uC3, uC4;
 float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f);
   return mix(mix(h(i), h(i+vec2(1,0)), f.x), mix(h(i+vec2(0,1)), h(i+vec2(1,1)), f.x), f.y); }
-float fbm(vec2 p){ float s = 0., a = .5; for (int i = 0; i < 4; i++){ s += a*n(p); p = p*2.03 + 17.1; a *= .5; } return s; }
-vec3 ramp(float g){
-  g = clamp(g, 0., 1.) * 4.;
-  if (g < 1.) return mix(uC0, uC1, g);
-  if (g < 2.) return mix(uC1, uC2, g-1.);
-  if (g < 3.) return mix(uC2, uC3, g-2.);
-  return mix(uC3, uC4, g-3.);
+float fbm(vec2 p){ float s = 0., a = .5; for (int i = 0; i < 5; i++){ s += a*n(p); p = p*2.02 + 17.1; a *= .5; } return s; }
+// Wisps of high cloud along a direction: noise stretched along it, bent by a slower noise,
+// kept only where it's strong, with finer fibres running through.
+float wisps(vec2 p, float ang, float stretch, float seed, float t){
+  vec2 d = vec2(cos(ang), sin(ang)), m = vec2(-d.y, d.x);
+  vec2 r = vec2(dot(p, d), dot(p, m));
+  r.y += .22*(fbm(r*.9 + seed + t) - .5);
+  r.x += .4*(fbm(r*.6 - seed) - .5);
+  float body = fbm(vec2(r.x*.55, r.y*stretch) + seed);
+  float streak = smoothstep(.44, .84, body);
+  float fibre = fbm(vec2(r.x*1.6, r.y*stretch*3.4) + seed*1.7 + t*.5);
+  return streak * (.6 + .55*fibre);
 }
 void main(){
   vec2 uv = gl_FragCoord.xy / uRes; uv.y = 1. - uv.y;
   float asp = uRes.x / uRes.y;
-  vec2 p = vec2(uv.x * asp, uv.y);
-  float t = uTime * .035;
-  vec2 q = p * .9 + uSeed;
-  float w = fbm(q + vec2(t, -t*.6));
-  float w2 = fbm(q*1.6 - vec2(t*.7, t*.3) + 1.7*w);
-  float g = .12 + .5*uv.x + .3*(1.-uv.y) + .55*(w2 - .5);
-  vec3 col = ramp(g);
-  // Folds: light rises slowly toward a crease, then drops off at it.
-  vec2 d = normalize(uDir);
-  float span = abs(d.x)*asp + abs(d.y);
-  for (int k = 0; k < 3; k++){
-    float fk = float(k);
-    float x = dot(p, d) + (d.y < 0. ? -d.y : 0.) + .16*(w - .5) + .03*sin(uTime*.05 + fk*2.1);
-    float c = span * (.24 + .3*fk) + .14*sin(uSeed*1.7 + fk*2.3);
-    float wd = .2 + .12*fk;
-    float rise = smoothstep(c - wd, c, x);
-    float fall = 1. - smoothstep(c, c + .006, x);
-    float shade = smoothstep(c, c + .006, x) * (1. - smoothstep(c + .006, c + .22, x));
-    col = mix(col, vec3(1.), rise*rise*fall*.32);
-    col *= 1. - shade*.1;
-  }
-  // A disc of lighter paper, cut cleanly.
-  if (uDisc.z > 0.){
-    float r = length((uv - uDisc.xy) * vec2(asp, 1.)) - uDisc.z;
-    float inside = 1. - smoothstep(-.002, .002, r);
-    col = mix(col, mix(col, uC4, .35), inside);
-    col *= 1. - .12 * (1. - smoothstep(0., .08, r)) * (1. - inside);
-  }
-  // A lighter band along the bottom with a clean edge, like a second sheet.
-  if (uSplit > 0.){
-    float s = smoothstep(uSplit - .0015, uSplit + .0015, uv.y);
-    col *= 1. - .1 * (1. - smoothstep(0., .05, uSplit - uv.y)) * (1. - s);
-    col = mix(col, mix(col, uC4, .55), s);
-  }
+  vec2 p = vec2(uv.x * asp, uv.y) * (1.4 / max(1., asp*.75));
+  float t = uTime * .012;
+  // The sky: deeper above, brighter below, uneven everywhere (a field warped by itself).
+  vec2 q = p*.8 + uSeed;
+  vec2 wq = vec2(fbm(q + t), fbm(q + 5.2 - t));
+  float g = fbm(q*.9 + 1.6*wq);
+  float lift = clamp(.18 + .55*uv.y + .12*uv.x + .7*(g - .5), 0., 1.);
+  vec3 col = lift < .5 ? mix(uC0, uC1, lift*2.) : mix(uC1, uC2, lift*2. - 1.);
+  // Toward one corner it turns, as a real sky does near the horizon.
+  float turn = smoothstep(.35, 1., uv.y*.7 + uv.x*.5 + .5*(fbm(q*.7 + 9.) - .5));
+  col = mix(col, uC4, turn*.55);
+  // High cloud: one broad set of wisps, a finer set at a slightly different angle, and a
+  // faint haze across both.
+  float w1 = wisps(p, -.42 + .08*sin(uSeed), 3.2, uSeed + 3., t);
+  float w2 = wisps(p, -.3 + .1*cos(uSeed*1.3), 7., uSeed + 11., t);
+  float w3 = wisps(p*.55, -.5, 1.8, uSeed + 23., t);
+  // Cloud gathers in some places and clears in others.
+  float gather = smoothstep(.24, .66, fbm(p*.45 + uSeed + 40.));
+  float cloud = clamp((w1*.78 + w2*.28 + w3*.5) * (.35 + 1.*gather), 0., 1.);
+  col = mix(col, uC3, cloud*.76);
+  col += (uC3 - col) * pow(cloud, 3.) * .35;
   gl_FragColor = vec4(col, 1.);
 }`;
 
@@ -90,14 +81,13 @@ void main(){
   gl.enableVertexAttribArray(loc);
   gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
   const U = {};
-  ["uRes", "uTime", "uSeed", "uSplit", "uC0", "uC1", "uC2", "uC3", "uC4", "uDir", "uDisc"].forEach((k) => (U[k] = gl.getUniformLocation(prog, k)));
+  ["uRes", "uTime", "uSeed", "uC0", "uC1", "uC2", "uC3", "uC4"].forEach((k) => (U[k] = gl.getUniformLocation(prog, k)));
   const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
 
   const items = targets.map((canvas, i) => ({
     canvas, ctx: canvas.getContext("2d"),
     paper: PAPERS[canvas.dataset.paper] || PAPERS.azure,
     seed: +(canvas.dataset.seed || i * 3.7 + 1.3),
-    split: +(canvas.dataset.split || 0),
     live: canvas.hasAttribute("data-live") && !reduce,
     visible: false, w: 0, h: 0,
   }));
@@ -117,10 +107,7 @@ void main(){
     gl.uniform2f(U.uRes, it.w, it.h);
     gl.uniform1f(U.uTime, time);
     gl.uniform1f(U.uSeed, it.seed);
-    gl.uniform1f(U.uSplit, it.split);
     p.c.forEach((hex, k) => gl.uniform3fv(U["uC" + k], rgb(hex)));
-    gl.uniform2fv(U.uDir, p.dir);
-    gl.uniform3fv(U.uDisc, it.canvas.dataset.disc === "none" || !p.disc ? [0, 0, 0] : p.disc);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     it.ctx.drawImage(glc, 0, 0);
   }
