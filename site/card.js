@@ -104,15 +104,32 @@
   // Insert and remove a block the way SwiftUI's .opacity.combined(with: .offset(y:)) does,
   // with its height following, so the rows under it move with it.
   function revealBlock(el, dy) {
-    if (reduce) return;
+    // Reopened while closing, it carries on from where it is rather than starting over.
+    const from = el._collapse ? el.offsetHeight : 0, fromOpacity = el._collapse ? getComputedStyle(el).opacity : "0";
+    clearTimeout(el._collapse); el._collapse = 0;
+    if (reduce) { el.style.cssText = ""; return; }
+    el.style.cssText = "";
     const end = el.offsetHeight;
-    el.style.height = "0px"; el.style.opacity = "0"; el.style.transform = `translateY(${dy}px)`; el.style.overflow = "hidden";
+    el.style.height = from + "px"; el.style.opacity = fromOpacity; el.style.transform = from ? "none" : `translateY(${dy}px)`; el.style.overflow = "hidden";
     el.getBoundingClientRect();
-    el.style.transition = `height var(--lc-motion-t) var(--lc-motion), opacity .2s ease-out, transform var(--lc-motion-t) var(--lc-motion)`;
+    el.style.transition = `height var(--lc-motion-t) var(--lc-motion), opacity .3s ease-out .05s, transform var(--lc-motion-t) var(--lc-motion)`;
     el.style.height = end + "px"; el.style.opacity = "1"; el.style.transform = "none";
-    setTimeout(() => { el.style.height = ""; el.style.overflow = ""; el.style.transition = ""; }, MOTION.duration * 1000 + 30);
+    clearTimeout(el._reveal);
+    el._reveal = setTimeout(() => { el.style.height = ""; el.style.overflow = ""; el.style.transition = ""; }, MOTION.duration * 1000 + 30);
+  }
+  // Like concealBlock, but the block stays, hidden, to open again with revealBlock.
+  function collapseBlock(el, dy) {
+    clearTimeout(el._reveal);
+    if (reduce) { el.hidden = true; return; }
+    el.style.height = el.offsetHeight + "px"; el.style.overflow = "hidden";
+    el.getBoundingClientRect();
+    el.style.transition = `height var(--lc-motion-t) var(--lc-motion), opacity .16s ease-out, transform var(--lc-motion-t) var(--lc-motion)`;
+    el.style.height = "0px"; el.style.opacity = "0"; el.style.transform = `translateY(${dy}px)`;
+    clearTimeout(el._collapse);
+    el._collapse = setTimeout(() => { el._collapse = 0; el.hidden = true; el.style.cssText = ""; }, MOTION.duration * 1000 + 30);
   }
   function concealBlock(el, dy, done) {
+    clearTimeout(el._reveal);
     if (reduce) { el.remove(); done && done(); return; }
     el.style.height = el.offsetHeight + "px"; el.style.overflow = "hidden";
     el.getBoundingClientRect();
@@ -225,9 +242,10 @@
     wire(card);
     card.height = follower(0.34, (v) => { card.el.style.height = v + "px"; updateMask(card); });
     if (inline) {
+      // Built into the page, it just hugs its content, so the content's own motion is the
+      // only one: nothing lags behind it, spills past the edge or gets faded at the bottom.
       card.maxH = Infinity;
-      card.height.set(card.content.offsetHeight, false);
-      positionActions(card);
+      relayout(card);
       return card;
     }
     place(card, true);
@@ -283,7 +301,8 @@
   }
 
   function relayout(card, animated = true) {
-    if (open !== card && !card.inline) return;
+    if (card.inline) { positionActions(card); card.el.style.height = ""; updateMask(card); return; }
+    if (open !== card) return;
     positionActions(card);
     const natural = card.content.offsetHeight;
     card.height.set(Math.min(natural, card.maxH), animated);
@@ -461,15 +480,17 @@
   // MARK: Word card (LookupView)
 
   // `staged`: the card starts as a dictionary would show it, the word and every meaning, none
-  // picked, and the returned card's stage(n) brings in the rest: 2 opens the meaning in the
-  // sentence under the word, then checks and lights its row (and keeps it lit); 3 adds its
-  // note. A click on a meaning shows it all.
+  // picked, and the returned card's stage(n) brings in the rest: 1 lights every meaning, 2
+  // opens the meaning in the sentence under the word, then moves the light onto its row and
+  // checks it (and keeps it lit); 3 adds its note. Nothing in it changes size or wraps
+  // differently as it goes: the pick isn't set in bold and there's no note mark. A click on
+  // a meaning shows it all.
   function openWord(data, anchor, inline, staged) {
     const senses = data.senses, info = data.card;
     const st = {
       choice: info.chosen != null ? { n: info.chosen, meaning: info.meaning } : null,
       suggested: info.chosen != null ? { n: info.chosen, meaning: info.meaning } : null,
-      userPicked: false, showAll: false, stage: staged ? 1 : 3, touched: false,
+      userPicked: false, showAll: false, stage: staged ? 0 : 3, touched: false,
       staged: !!staged, pickShown: !staged,
     };
     let render = null;
@@ -502,8 +523,10 @@
         if (st.choice) crossfade(headline, esc(st.choice.meaning));
         // Staged, the meaning opens in under the word rather than appearing.
         const meaning = q(".lc-meaning"), showMeaning = !!st.choice && st.stage >= 2;
-        if (meaning.hidden && showMeaning && !first) { meaning.hidden = false; revealBlock(meaning, -4); }
-        else meaning.hidden = !showMeaning;
+        const open = !meaning.hidden && !meaning._collapse;
+        if (first) meaning.hidden = !showMeaning;
+        else if (showMeaning && !open) { meaning.hidden = false; revealBlock(meaning, -4); }
+        else if (!showMeaning && open) collapseBlock(meaning, -4);
         const sub = q(".lc-sub");
         const contextual = !st.userPicked && info.contextual;
         sub.hidden = !contextual;
@@ -534,7 +557,7 @@
         meaningList(q(".lc-list"), {
           senses, chosen: picked, listed: info.grammar ? info.grammar.listed : null, showAll: st.showAll,
           headed: showReading && (!info.grammar || st.showAll), size: "body",
-          dimUnchosen: picked != null, noteMarks: st.stage >= 3, animate: !first,
+          dimUnchosen: picked != null, noteMarks: !st.staged, animate: !first,
           onPick: (i) => {
             if (st.stage < 3 || !st.pickShown) { clearTimeout(pickTimer); st.stage = 3; st.pickShown = true; st.touched = true; }
             if (st.choice && st.choice.n === i + 1) return;
@@ -544,7 +567,10 @@
           },
           onToggle: () => { st.showAll = !st.showAll; render(); },
         });
-        if (st.staged) for (const r of q(".lc-list").querySelectorAll(".lc-row[data-i]")) r.classList.toggle("lc-picked", picked != null && +r.dataset.i === picked);
+        if (st.staged) for (const r of q(".lc-list").querySelectorAll(".lc-row[data-i]")) {
+          r.classList.toggle("lc-picked", picked != null && +r.dataset.i === picked);
+          r.classList.toggle("lc-every", picked == null && st.stage >= 1);
+        }
         first = false;
       };
       render();

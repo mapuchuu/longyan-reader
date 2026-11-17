@@ -246,6 +246,9 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .lc-spacer { flex: 1; }
 .lc-slot { flex: none; width: var(--slot, 48px); height: 22px; align-self: center; }
 .lc-meaning { display: flex; flex-direction: column; gap: calc(2 * var(--u)); }
+/* The space above the meaning is inside it, so it opens and closes with it instead of snapping. */
+.lc-v.xs > .lc-meaning { margin-top: calc(-4 * var(--u)); }
+.lc-meaning > :first-child { margin-top: calc(4 * var(--u)); }
 .lc-meaning[hidden] { display: none; }
 .lc-headline { font-size: calc(19 * var(--u)); font-weight: 600; line-height: 1.26; letter-spacing: -.005em; }
 .lc-sub, .lc-caption { font-size: calc(11 * var(--u)); color: var(--secondary); }
@@ -268,14 +271,9 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
   border: 0; border-radius: calc(6 * var(--u)); background: transparent; color: inherit; font: inherit; text-align: left; cursor: default;
   transition: background-color .2s ease-out;
 }
-/* The statement's card: the picked meaning lights up as its check comes in, the others step back. */
-.lc-def.lc-dimming { animation: lc-dim .8s ease-out; }
-@keyframes lc-dim { from { color: var(--primary); } }
 .lc-row.tight { padding-top: calc(3 * var(--u)); padding-bottom: calc(3 * var(--u)); }
 .lc-row:hover { background: rgba(255, 255, 255, .05); transition-duration: .08s; }
 .lc-row:active { background: rgba(255, 255, 255, .09); transition-duration: .08s; }
-/* The statement's card: the meaning in the sentence stays lit in the checkmark's blue. */
-.lc-row.lc-picked, .lc-row.lc-picked:hover { background: rgba(10, 132, 255, .2); transition: background-color .9s cubic-bezier(.22, 1, .36, 1); }
 .lc-row:disabled { background: none; }
 .lc-sense { flex: 1; display: flex; align-items: baseline; gap: calc(6 * var(--u)); min-width: 0; }
 .lc-sense.body { font-size: calc(13 * var(--u)); } .lc-sense.callout { font-size: calc(12 * var(--u)); }
@@ -427,6 +425,29 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
   .motion .statement .lit { padding-top: 48px; }
 }
 .lc-card.lc-inline { position: relative; z-index: auto; max-width: 100%; will-change: auto; }
+
+/* The statement's card, as its lines go: every meaning lit in amber ("every"), then the light
+   moves onto the meaning in the sentence, in the checkmark's blue ("one"), while the other
+   steps back; then the note opens in green ("context"). Each light is its own layer, so one
+   fades out as the other fades in, rather than passing through a muddy mix of the two. The
+   pick isn't set in bold, so no meaning re-wraps as it changes. */
+#lit-card .lc-row { position: relative; isolation: isolate; }
+#lit-card .lc-row::before, #lit-card .lc-row::after {
+  content: ""; position: absolute; inset: 1px 0; z-index: -1; border-radius: inherit; opacity: 0; pointer-events: none;
+  transition: opacity .6s cubic-bezier(.4, 0, .2, 1);
+}
+#lit-card .lc-row::before { background: rgba(255, 184, 48, .2); box-shadow: inset 0 0 0 1px rgba(255, 184, 48, .3); }
+#lit-card .lc-row::after { background: rgba(10, 132, 255, .22); box-shadow: inset 0 0 0 1px rgba(64, 156, 255, .38); }
+#lit-card .lc-row.lc-every::before { opacity: 1; transition: opacity .9s cubic-bezier(.22, 1, .36, 1); }
+#lit-card .lc-row.lc-picked::after { opacity: 1; transition: opacity .9s cubic-bezier(.22, 1, .36, 1) .1s; }
+#lit-card .lc-def { transition: color .8s cubic-bezier(.22, 1, .36, 1); }
+#lit-card .lc-def.chosen { font-weight: inherit; }
+.lc-def.lc-dimming { animation: lc-dim .8s cubic-bezier(.22, 1, .36, 1); }
+@keyframes lc-dim { from { color: var(--primary); } }
+#lit-card .lc-note { background: rgba(48, 209, 88, .1); box-shadow: inset 0 0 0 1px rgba(48, 209, 88, .3); }
+#lit-card .lc-note-head, #lit-card .lc-note-head .culture { color: #30d158; }
+.lit .every { color: #ffb830; }
+.lit .ctx { color: #30d158; }
 /* It is as tall as its content, so it has nothing to scroll: a swipe on it scrolls the page. */
 .lc-inline .lc-scroll { overflow: visible; overscroll-behavior: auto; }
 .lit .one { color: #0a84ff; }

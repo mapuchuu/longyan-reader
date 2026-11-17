@@ -34,10 +34,11 @@
     lines.forEach((el, i) => { el.classList.toggle("on", i === n); el.classList.toggle("past", i < n); });
     demo.classList.toggle("on", n >= 0);
     if (progressEl) progressEl.classList.toggle("on", n >= 0);
-    // The card follows a moment after its line starts to come in; going back, at once.
+    // The card follows a moment after its line starts to come in (the first time, once the
+    // card itself is in); going back, at once.
     clearTimeout(cardTimer);
-    const stage = Math.max(1, n + 1);
-    cardTimer = setTimeout(() => document.dispatchEvent(new CustomEvent("longyan:card-stage", { detail: stage })), n > was && n > 0 ? 500 : 0);
+    const stage = n + 1;
+    cardTimer = setTimeout(() => document.dispatchEvent(new CustomEvent("longyan:card-stage", { detail: stage })), n > was ? (n === 0 ? 700 : 500) : 0);
   }
   // Where the scroll is: -1 before the content comes into view, else 0..3 through the segments.
   function scrollPos(vh) {
