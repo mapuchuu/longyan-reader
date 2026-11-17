@@ -9,7 +9,7 @@ The site should feel like the app: exact, calm, made for reading Chinese. Black 
 | Night | `#000000` | Page background. |
 | Ink | `#f5f5f7` | Headlines and body text on Night. |
 | Graphite | `#86868b` | Secondary text, the grey half of captions. |
-| Moonlight | `#a1bde3` → `#c2abe0` | The eye: its text, blue to lavender, left to right. |
+| Moonlight | `#a1bde3` → `#c2abe0` | The eye: its text, mostly blue and lavender, with a little rose and mint where the tint turns, like a pearl. Each character has one tint; nothing moves. |
 | Tone 1–4 | `#e39e94` `#9ecca8` `#a1bde3` `#c2abe0` | The app's dark-mode tone colors. Only the cards use them, where they mean something. |
 
 Paper backdrops (`paper.js`) are five-stop ramps, deep to light: azure, rose, green, blue, violet and dusk. Each has folds of light that rise slowly and end in a clean crease, sometimes a disc of lighter paper, and on the feature tiles a lighter sheet along the bottom with a sharp edge. Grain is a CSS overlay at full resolution.
@@ -22,7 +22,7 @@ Paper backdrops (`paper.js`) are five-stop ramps, deep to light: azure, rose, gr
 
 ## Layout
 
-1. **Story.** Pinned while it plays. The Longyan eye over a range of mountains, all of it in Chinese characters. The mountains are a halftone made of characters: light ones (一, 人) where it's dim, dense ones where it's bright, none where it's dark, with mist drifting through. A few faint characters are stars. The eye is set in everyday sentences, blue to lavender, in characters of six sizes. Every character is whole and sits inside the mark; nothing is masked. Big ones mostly keep off the edge, and the characters on the outline vary from fine to medium, so it reads as type rather than a stencil. Characters too thin to fill their square, like 一 and 人, are left out of it. It comes in left to right. Pointing at a character shows the word it's part of and what it means in that sentence, from the app. Scrolling breaks the eye up, and its characters float out from all over, in arcs, into one sentence. Selecting works as in any Mac text: drag across characters, double-click a word, triple-click the sentence, shift-click to extend. Let go and the selection eases onto whole words and the app's card opens. No marks under the words. "Next sentence" lifts it away and brings the next one up in its place.
+1. **Story.** Pinned while it plays. The Longyan eye over a range of mountains, all of it in Chinese characters. The mountains are a halftone made of characters: light ones (一, 人) where it's dim, dense ones where it's bright, none where it's dark, with mist drifting through. A few faint characters are stars. The eye is set in everyday sentences, in pearl tints, in characters of nine sizes. Every character is whole; nothing is masked or cut. On the outline a character may stand a little past the edge (no more than the blank margin round its ink), so the outline takes every size from fine to large and reads as type rather than a stencil. A few small characters sit right across the point where the pupil meets the wedge, so the hook reads as one stroke, as in the icon. Characters too thin to fill their square, like 一 and 人, are left out of it. It comes in left to right. Pointing at a character shows the word it's part of and what it means in that sentence, from the app. Scrolling breaks the eye up, and its characters float out from all over, in arcs, into one sentence. Selecting works as in any Mac text: drag across characters, double-click a word, triple-click the sentence, shift-click to extend. Let go and the selection eases onto whole words and the app's card opens. No marks under the words. "Next sentence" lifts it away and brings the next one up in its place.
 2. **Statement.** One paragraph that lights up word by word as it scrolls.
 3. **Works where you read.** Full-bleed azure paper. A frosted window, cut off by the section's bottom edge, holds the recording.
 4. **Made for reading.** Four tiles: a piece of the real UI on paper, with a caption.
@@ -34,7 +34,8 @@ Paper backdrops (`paper.js`) are five-stop ramps, deep to light: azure, rose, gr
 - The mark is drawn from its geometry, not traced: three nested eye shapes (each the hull of a circle and two points, half-widths 1, 5/8 and 3/14) and one wedge. The stroke is even all round and the edges are as sharp as the screen. The old PNG wobbled.
 - One material: characters. Everything in the hero is drawn in them, whole. No masks, no halo, no glow.
 - The selection is the system blue with an iridescent violet-and-rose sheen moving through it, sized to the selection so even one character shows it.
-- On a wide screen the ridges are scaled to the screen's height, as on a phone, so they're broad ranges rather than many small bumps. They stay low under the headline and open into a valley under the eye. When the sentence forms they settle into one broad range just under it, so sentence and land read as one scene, as on a phone.
+- On a wide screen the ridges are scaled to the screen's height, as on a phone, so they're broad ranges rather than many small bumps. They stay low under the headline and open into a valley under the eye. As the story plays they fall away and fade, as on a phone.
+- On a wide screen the eye is second to the headline: about as tall as the headline and the line under it (a quarter of the width, at most 470px), level with the text.
 - The bar's logo is the mark alone in white, the app icon's negative, 25px wide.
 - Hairlines are 0.5px. Shadows are layered: a 0.5px ring, a tight shadow and a wide soft one.
 

@@ -4,7 +4,7 @@
 // light characters (一, 人) where it's dim, dense ones where it's bright, none where it's
 // dark, on a 4×4 ordered dither. A few faint characters are stars.
 //
-// The eye is set in everyday sentences, in characters of six sizes: big ones where the mark
+// The eye is set in everyday sentences, in characters of many sizes: big ones where the mark
 // is thick, smaller and smaller toward its edges. Every character is whole and sits inside
 // the mark, a vector built from its geometry (below); nothing is masked, so the shape is just
 // where the characters are, traced finely by the smallest. Characters with too little ink to
@@ -96,20 +96,23 @@
     for (let k = o.length - 1; k > 0; k--) { const j = Math.floor(hash(pass * 31 + k * 7.13) * (k + 1)); [o[k], o[j]] = [o[j], o[k]]; }
     return o;
   }
-  // The eye's characters, packed into the mark on a grid of half units: squares of 4, 3 and 2
-  // units where they fit, then sizes from 2 units down to a half for the rest. Every character sits wholly
-  // inside the mark; nothing is cut. The half units trace the edge finely enough that the
-  // shape still reads.
+  // The eye's characters, packed into the mark on a grid of half units: big squares first,
+  // up to 5 units, then sizes from 2 units down to a half for the rest. Characters are never
+  // cut. Along the edge a character may stand a little past the outline (a bigger one by a
+  // smaller share of its side, the tiniest not at all), which is about the blank margin a
+  // character has round its ink anyway; that lets the edge take every size, not only the
+  // smallest, and lets the pupil's point and the wedge's tip fill in so they meet.
   function pack(unit) {
-    const h = unit / 2;
-    const ucols = Math.ceil(eye.w / h) + 4, urows = Math.ceil(eye.h / h) + 4;
+    const h = unit / 2, q = h / 2;
+    // Even counts, so the eye's centre line (the wedge's top edge) is a line of the grid.
+    const ucols = 2 * Math.ceil(eye.w / h / 2) + 6, urows = 2 * Math.ceil(eye.h / h / 2) + 6;
     const ux0 = eye.cx - (ucols * h) / 2, uy0 = eye.cy - (urows * h) / 2;
     const test = document.createElement("canvas").getContext("2d");
     test.setTransform(...markMatrix());
-    // Which corners of the grid are inside the mark.
-    const LC = ucols + 1, lat = new Uint8Array(LC * (urows + 1));
-    for (let r = 0; r <= urows; r++) for (let c = 0; c <= ucols; c++)
-      lat[r * LC + c] = test.isPointInPath(mark, ux0 + c * h, uy0 + r * h, "evenodd") ? 1 : 0;
+    // Which points of a grid of quarter units are inside the mark.
+    const FC = 2 * ucols + 1, FR = 2 * urows + 1, fin = new Uint8Array(FC * FR);
+    for (let r = 0; r < FR; r++) for (let c = 0; c < FC; c++)
+      fin[r * FC + c] = test.isPointInPath(mark, ux0 + c * q, uy0 + r * q, "evenodd") ? 1 : 0;
     const owner = new Int32Array(ucols * urows).fill(-1);
     const out = [];
     let seq = 0, pass = 50, queue = [];
@@ -117,12 +120,15 @@
       while (!queue.length) for (const sIdx of order(pass++)) [...PAGE[sIdx].s].forEach((ch, i) => { if (!PUNCT.test(ch) && !SPARSE.test(ch)) queue.push({ ch, s: sIdx, i }); });
       return queue.shift();
     };
-    // A square n half units on a side fits if it's free and all of it, with `m` half units
-    // of room around it, is inside the mark.
-    const fits = (c, r, n, m = 0) => {
-      if (c - m < 0 || r - m < 0 || c + n + m > ucols || r + n + m > urows) return false;
+    // How far past the outline, in quarter units, a square n half units on a side may stand.
+    const SLACK = { 1: 0, 2: 1, 3: 2, 4: 2, 5: 2, 6: 2, 8: 2, 10: 2 };
+    // A square fits if it's free and, inset by `s` quarter units (less than zero keeps it that
+    // far inside), it's all inside the mark.
+    const fits = (c, r, n, s = SLACK[n]) => {
+      if (c < 1 || r < 1 || c + n > ucols - 1 || r + n > urows - 1) return false;
       for (let y = r; y < r + n; y++) for (let x = c; x < c + n; x++) if (owner[y * ucols + x] >= 0) return false;
-      for (let y = r - m; y <= r + n + m; y++) for (let x = c - m; x <= c + n + m; x++) if (!lat[y * LC + x]) return false;
+      const a = 2 * c + s, b = 2 * (c + n) - s, t = 2 * r + s, d = 2 * (r + n) - s;
+      for (let y = t; y <= d; y++) for (let x = a; x <= b; x++) if (!fin[y * FC + x]) return false;
       return true;
     };
     const place = (c, r, n) => {
@@ -130,18 +136,47 @@
       for (let y = r; y < r + n; y++) for (let x = c; x < c + n; x++) owner[y * ucols + x] = k;
       out.push({ ...next(), x: ux0 + c * h, y: uy0 + r * h, w: n * h, rnd: hash(++seq * 1.37 + 0.2) });
     };
+    // Where the pupil's point meets the wedge's tip the mark narrows to a point, which only the
+    // smallest characters would fit. A few small ones sit right across it, their tops on the
+    // wedge's edge, so the pupil and the hook read as one stroke, as in the icon.
+    {
+      const jc = Math.round((eye.cx + P * eye.s - ux0) / h), jr = urows / 2;
+      for (const [dc, n] of [[-1, 2], [1, 2], [3, 3], [-3, 2], [-2, 2], [6, 3]]) {
+        const c = jc + dc;
+        for (let dx = 0; dx < n; dx++) if (fits(c - dx, jr, n, n)) { place(c - dx, jr, n); break; }
+      }
+    }
     // How much of the area each big size tries for.
     let area = 0;
-    for (let r = 0; r < urows; r++) for (let c = 0; c < ucols; c++) if (lat[r * LC + c] && lat[(r + 1) * LC + c + 1]) area++;
-    // The big ones keep off the edge, so the outline is always traced in fine characters
-    // and the sizes taper toward it.
-    // Most big ones keep a little off the edge; some come right up to it.
-    for (const [n, share] of [[8, 0.44], [6, 0.24], [4, 0.16]]) {
-      const want = Math.round((area * share) / (n * n)), tries = want * 16;
+    for (let r = 0; r < urows; r++) for (let c = 0; c < ucols; c++) if (fin[(2 * r + 1) * FC + 2 * c + 1]) area++;
+    // Big ones scattered first. Some keep a little off the edge, some come right up to it,
+    // so the outline is traced in all sizes.
+    for (const [n, share] of [[10, 0.16], [8, 0.2], [6, 0.18], [5, 0.08], [4, 0.1]]) {
+      const want = Math.round((area * share) / (n * n)), tries = want * 20;
       for (let k = 0, got = 0; k < tries && got < want; k++) {
         const c = Math.floor(hash(n * 1000 + k * 1.618) * ucols), r = Math.floor(hash(n * 2000 + k * 2.414) * urows);
-        const m = hash(n * 3000 + k * 0.577) < 0.6 ? 1 : 0;
-        if (fits(c, r, n, m)) { place(c, r, n); got++; }
+        const roll = hash(n * 3000 + k * 0.577);
+        const s = roll < 0.35 ? -1 : roll < 0.7 ? 0 : SLACK[n];
+        if (fits(c, r, n, s)) { place(c, r, n); got++; }
+      }
+    }
+    // Then the edge: each free cell on the outline, in no particular order, takes a size of
+    // 2 to 4 half units picked at random, so the outline isn't left to the smallest.
+    const edge = [];
+    for (let r = 1; r < urows - 1; r++) for (let c = 1; c < ucols - 1; c++) {
+      const y = 2 * r + 1, x = 2 * c + 1;
+      if (fin[y * FC + x] && (!fin[y * FC + x - 4] || !fin[y * FC + x + 4] || !fin[(y - 4) * FC + x] || !fin[(y + 4) * FC + x])) edge.push(r * ucols + c);
+    }
+    for (let k = edge.length - 1; k > 0; k--) { const j = Math.floor(hash(k * 0.613 + 11) * (k + 1)); [edge[k], edge[j]] = [edge[j], edge[k]]; }
+    for (const q of edge) {
+      if (owner[q] >= 0) continue;
+      const c = q % ucols, r = (q / ucols) | 0, roll = hash(q * 0.71 + 3);
+      const sizes = roll < 0.3 ? [4, 3, 2] : roll < 0.7 ? [3, 2] : [2];
+      let done = false;
+      for (const n of sizes) {
+        for (let dy = 0; dy < n && !done; dy++) for (let dx = 0; dx < n && !done; dx++)
+          if (fits(c - dx, r - dy, n)) { place(c - dx, r - dy, n); done = true; }
+        if (done) break;
       }
     }
     // Then the rest, in no particular order, each spot taking a size picked at random from
@@ -154,7 +189,7 @@
       if (owner[q] >= 0) continue;
       const roll = hash(q * 1.31 + 9);
       // Prefer the bigger sizes that fit; the roll lets some spots take a smaller one.
-      const sizes = roll < 0.5 ? [4, 3, 2, 1] : roll < 0.85 ? [3, 2, 1] : [2, 1];
+      const sizes = roll < 0.45 ? [4, 3, 2, 1] : roll < 0.8 ? [3, 2, 1] : [2, 1];
       for (const n of sizes) {
         // A bigger square may sit up and left of this spot too.
         let done = false;
@@ -163,7 +198,20 @@
         if (done) break;
       }
     }
+    // Each character's tint, from a slow field across the eye: mostly blue and lavender, with
+    // a little rose and mint where the field turns, like the colours in a pearl.
+    for (const g of out) {
+      const u = (g.x + g.w / 2 - eye.x) / eye.w, v = (g.y + g.w / 2 - eye.y) / eye.h;
+      g.col = pearl(0.62 * u + 0.3 * v + 0.12 * Math.sin(6.2 * v + 2.4 * u) + (g.rnd - 0.5) * 0.1);
+    }
     return { unit: h, ucols, urows, ux0, uy0, owner, glyphs: out };
+  }
+  // The pearl tints in order; t runs 0..1 across the eye and wraps.
+  const PEARL = [[158, 208, 222], BLUE, LAV, [222, 174, 208], LAV, BLUE];
+  function pearl(t) {
+    t = ((t % 1) + 1) % 1 * PEARL.length;
+    const i = Math.floor(t), f = t - i, a = PEARL[i], b = PEARL[(i + 1) % PEARL.length];
+    return mix(a, b, f * f * (3 - 2 * f));
   }
 
   let W = 0, H = 0, dpr = 1, narrow = false;
@@ -228,30 +276,30 @@
     W = canvas.clientWidth; H = canvas.clientHeight;
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
     narrow = W < 760;
-    // The eye: right of centre and level with the headline on wide screens, at the top on narrow ones.
+    // The eye: on wide screens, beside the headline and second to it, about as tall as the
+    // headline and the line under it, centred on the text; on narrow ones, at the top.
     let ew, cx, cy;
     if (narrow) {
       const copy = document.querySelector(".hero-copy");
       const top = 60, bottom = copy ? copy.getBoundingClientRect().top - canvas.getBoundingClientRect().top : H * 0.55;
       ew = Math.min(W * 0.8, (bottom - top - 48) * (MW / MH)); cx = W / 2; cy = (top + bottom) / 2 - 10;
     } else {
-      ew = Math.min(W * 0.34, H * 0.56 * (MW / MH), 620);
-      cx = Math.min(W * 0.7, (W + 1120) / 2 - ew / 2 + 20); cy = H * 0.43;
+      ew = Math.min(W * 0.26, H * 0.42 * (MW / MH), 470);
+      cx = Math.min(W * 0.7, (W + 1120) / 2 - ew / 2 + 20); cy = H * 0.45;
     }
     const eh = ew * (MH / MW);
     eye = { w: ew, h: eh, cx, cy, x: cx - ew / 2, y: cy - eh / 2, s: ew / MW };
 
-    // The eye's text: the smallest characters about 70 to the eye's width.
-    const unit = clamp(Math.round((ew / 70) * 4) / 4, 4.5, 8);
+    // The eye's text: the smallest whole characters about 58 to the eye's width (fewer on a
+    // small eye, so they stay characters rather than dust).
+    const unit = clamp(Math.round((ew / 58) * 4) / 4, 4.5, 8);
     fine = pack(unit);
     lit = document.createElement("canvas");
     lit.width = canvas.width; lit.height = canvas.height;
     const l = lit.getContext("2d");
     l.setTransform(dpr, 0, 0, dpr, 0, 0); l.textAlign = "center"; l.textBaseline = "middle";
-    const ink = l.createLinearGradient(eye.x, 0, eye.x + eye.w, 0);
-    ink.addColorStop(0, rgb(BLUE)); ink.addColorStop(1, rgb(LAV));
-    l.fillStyle = ink;
     for (const g of fine.glyphs) {
+      l.fillStyle = rgb(g.col);
       // Big characters a little lighter in weight, so they don't outshine the rest.
       l.font = `${g.w >= unit * 3 ? 500 : 600} ${g.w * 0.94}px ${ZH}`;
       l.fillText(g.ch, g.x + g.w / 2, g.y + g.w / 2 + g.w * 0.04);
@@ -263,8 +311,14 @@
     cols = Math.ceil(W / cell); rows = Math.ceil(H / cell);
     buildAtlas();
     tops = [];
-    // The ranges start just under the eye, so it stands over them.
+    // The ranges start just under the eye, so it stands over them; on a wide screen, under
+    // the headline's last line too.
     landBase = Math.min(narrow ? 0.74 : 0.84, (eye.y + eye.h) / H + (narrow ? 0.1 : 0.085));
+    const copyEl = document.querySelector(".hero-copy");
+    if (!narrow && copyEl) {
+      const cb = copyEl.getBoundingClientRect(), top = canvas.getBoundingClientRect().top;
+      landBase = Math.min(0.86, Math.max(landBase, (cb.bottom - top) / H + 0.075));
+    }
     // On a phone the headline sits over the mountains: they go quiet behind it.
     const copy = document.querySelector(".hero-copy");
     if (narrow && copy) {
@@ -324,7 +378,7 @@
       if (pick < 0) return;
       used.add(pick);
       const g = fine.glyphs[pick];
-      flights.push({ line: l, k, ch, g: pick, x0: g.x + g.w / 2, y0: g.y + g.w / 2, size0: g.w * 0.94, u: (g.x - eye.x) / eye.w,
+      flights.push({ line: l, k, ch, g: pick, x0: g.x + g.w / 2, y0: g.y + g.w / 2, size0: g.w * 0.94, col: g.col,
         start: 0.04 + hash(j * 3.3 + current) * 0.1 });
     });
   }
@@ -342,22 +396,16 @@
     // gets broad ranges rather than more, smaller bumps. On a wide screen they stay low under
     // the headline, and open into a valley under the eye, so it floats clear over it with
     // ranges rising either side. The layers spread further down, to the bottom of the screen.
-    //
-    // As the sentence forms, a phone's ranges sink a little to make room. A wide screen's
-    // settle instead into one broad, even range just under the sentence, centred like it, so
-    // the sentence and the land read as one scene rather than a line floating over a strip.
+    // As the story plays they fall away and fade, the near ranges fastest. (On a phone they
+    // fade by falling behind the headline's quiet band; a wide screen fades them outright.)
+    const fade = narrow ? 1 : 1 - 0.72 * sink;
     const span = narrow ? H : H * 1.7, step = narrow ? 0.055 : 0.068;
-    const settle = (lines[0] ? (lines[0].y + lines[0].size * 0.65 + 110) / H : 0.66);
     for (let k = 0; k < 4; k++) {
       const amp = (narrow ? 0.15 : 0.18) - 0.028 * k;
-      const base = narrow
-        ? landBase + step * k + intro + sink * 1.9 * (0.06 + 0.05 * k)
-        : landBase + (settle + 0.12 - landBase) * sink + step * k + intro;
+      const base = landBase + step * k + intro + sink * 1.9 * (0.06 + 0.05 * k);
       for (let c = 0; c < cols; c++) {
         const px = (c + 0.5) * cell, x = px / span;
-        const hero = (0.38 + 0.62 * smooth(W * 0.28, eye.x, px)) * (1 - 0.6 * Math.exp(-Math.pow((px - eye.cx) / (eye.w * 0.34), 2)));
-        const formed = 0.55 + 0.45 * Math.exp(-Math.pow((px - W / 2) / (W * 0.42), 2));
-        const env = narrow ? 1 : hero + (formed - hero) * sink;
+        const env = narrow ? 1 : (0.38 + 0.62 * smooth(W * 0.28, eye.x, px)) * (1 - 0.6 * Math.exp(-Math.pow((px - eye.cx) / (eye.w * 0.34), 2)));
         tops[k][c] = base - amp * env * ridge(x * (0.85 + 0.45 * k) + k * 13.7);
         if (tops[k][c] < highest) highest = tops[k][c];
       }
@@ -377,7 +425,7 @@
         if (v < BAYER[(r & 3) * 4 + (c & 3)] * 0.85 + 0.06) continue;
         // Quantized, so a cell keeps its character until the light on it really changes.
         const level = Math.min(7, Math.floor(v * 6));
-        ctx.globalAlpha = Math.min(1, 0.32 + v * 0.5) * quiet;
+        ctx.globalAlpha = Math.min(1, 0.32 + v * 0.5) * quiet * fade;
         blit(landAtlas[layer], byInk(level / 9, hash((r * cols + c) * 1.7 + level), 0.06), c, r);
       }
     }
@@ -456,7 +504,7 @@
       const final = f.line.k === 0 ? 1 : 0.3;
       ctx.font = `${u > 0.6 ? 400 : 600} ${Math.round(size * 2) / 2}px ${ZH}`;
       ctx.globalAlpha = 1 - (1 - final) * smooth(0.6, 1, u);
-      ctx.fillStyle = rgb(mix(mix(BLUE, LAV, f.u), INK, smooth(0.35, 0.85, u)));
+      ctx.fillStyle = rgb(mix(f.col, INK, smooth(0.35, 0.85, u)));
       ctx.fillText(f.ch, x, y);
     }
     ctx.globalAlpha = 1;
