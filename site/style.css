@@ -344,9 +344,10 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 
 /* The statement: three sentences that fade in one at a time as you scroll (motion.js), and
    beside them the app's card for a word in the demo sentence, to use. On a wide screen the
-   section holds still while they come in: 100vh pinned plus 80vh of scroll, the last
-   sentence in a third of the way, so there's time to read it and try the card. */
-.statement { padding: 200px 0 220px; }
+   section holds still while they come in: 100vh pinned plus 60vh of scroll. The first comes
+   in as the content rises into view, right after the demo sentence leaves; the last is in
+   soon after it pins, leaving half a screen to read it and try the card. */
+.statement { padding: 100px 0 220px; }
 .statement .wrap { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 72px; align-items: start; }
 .lit { max-width: 640px; }
 .lit-line { font: 600 44px/1.18 var(--display); letter-spacing: -0.03em; margin: 0 0 .62em; text-wrap: pretty; }
@@ -358,7 +359,10 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .motion .lit-line, .motion .lit-demo { opacity: 0; transform: translateY(16px); transition: opacity .6s ease-out, transform .6s ease-out; }
 .motion .lit-line.on, .motion .lit-demo.on { opacity: 1; transform: none; transition: opacity 1s var(--ease-out), transform 1.1s var(--ease-out); }
 @media (min-width: 1101px) {
-  .statement { height: 180vh; padding: 0; }
+  /* Pulled up over the opening's last stretch, so its content rises in right behind the
+     demo sentence instead of a screen later. Clicks pass through its empty parts. */
+  .statement { height: 160vh; padding: 0; margin-top: -35vh; position: relative; pointer-events: none; }
+  .statement .lit, .statement .lit-demo { pointer-events: auto; }
   .statement-pin { position: sticky; top: 0; height: 100vh; display: flex; align-items: center; }
   .statement-pin .wrap { width: 100%; }
 }
@@ -548,7 +552,7 @@ footer a { color: #a1a1a6; }
   .hero-sub { margin: 16px 0 24px; }
   .try-head p { font-size: 16px; }
   .lit-line { font-size: 30px; }
-  .statement { padding: 130px 0 150px; }
+  .statement { padding: 60px 0 150px; }
 }
 
 /* Instructions in the visitor's terms: click on a Mac, tap on a phone. */

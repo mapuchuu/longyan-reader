@@ -34,14 +34,15 @@
     if (!steps.length) return 0;
     const r = statement.getBoundingClientRect();
     if (getComputedStyle(statement.firstElementChild).position === "sticky") {
-      // Pinned: the first as the section comes up into view, the rest a third of a screen
+      // Pinned: the first as soon as the content comes into view, just as the demo sentence
+      // above leaves, so there's no empty screen between them; the rest a third of a screen
       // of scrolling apart.
-      const d = vh * 0.3 - r.top;
-      return d < 0 ? 0 : Math.min(steps.length, 2 + Math.floor(d / (vh * 0.3)));
+      const d = vh * 0.55 - r.top;
+      return d < 0 ? 0 : Math.min(steps.length, 2 + Math.floor(d / (vh * 0.33)));
     }
-    // In the flow: each when it's risen past four fifths of the screen.
+    // In the flow: each as it comes up into view.
     let n = 0;
-    steps.forEach((el, i) => { if (el.getBoundingClientRect().top < vh * 0.8) n = Math.max(n, i + 1); });
+    steps.forEach((el, i) => { if (el.getBoundingClientRect().top < vh * 0.88) n = Math.max(n, i + 1); });
     // The card sits under the sentences on a narrow screen; it comes in with the first.
     if (n === 1) n = 2;
     return n;
