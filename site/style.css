@@ -79,7 +79,7 @@ section { position: relative; }
 
 /* The opening: pinned while the eye comes apart and the sentence forms. */
 /* 100vh pinned, 75vh of scroll to form the sentence, 60vh to try it (hero.js). */
-.story { height: 235vh; }
+.story { height: 295vh; }
 .story-pin { position: sticky; top: 0; height: 100vh; height: 100svh; min-height: 620px; overflow: hidden; background: #000; }
 #field { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .hero-copy {
@@ -173,35 +173,38 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 @keyframes hi-sheen { from { background-position: 0% 0; } to { background-position: 200% 0; } }
 @media (prefers-reduced-motion: reduce) { .line .hi { animation: none; } }
 
-/* Once the heading is in, "Highlight" is selected the way the sentence will be, a sweep left
-   to right, and it stays selected; then the sentence catches the light, character by character, so it
-   reads as the thing to select. A quiet "Try it!" shows under it and goes. */
+/* Once the heading is in, scrolling selects "Highlight", the way you'd drag across it: the
+   selection follows the scroll (hero.js sets --hl, 0 to 1), and it shrinks again going back.
+   Once the word is selected the sentence catches the light, character by character, so it
+   reads as the thing to select, and a quiet "Try it!" shows under it and goes. Two bars
+   under it fill as you scroll: the first with the selection, the second while you try it. */
 .hl { position: relative; z-index: 0; }
 .hl::before {
   content: ""; position: absolute; z-index: -1; left: -.07em; right: -.05em; top: .02em; bottom: -.04em; border-radius: .09em;
   background: linear-gradient(105deg,
     rgba(10, 132, 255, .64) 0%, rgba(84, 116, 255, .62) 18%, rgba(150, 110, 248, .6) 32%, rgba(214, 118, 214, .56) 42%,
     rgba(120, 132, 255, .62) 54%, rgba(40, 156, 255, .64) 68%, rgba(10, 132, 255, .64) 100%);
-  background-size: 200% 100%; opacity: 0; clip-path: inset(0 100% 0 0 round .09em);
+  background-size: 200% 100%; animation: hi-sheen 4.5s linear infinite;
+  clip-path: inset(0 calc((1 - var(--hl, 0)) * 100%) 0 0 round .09em);
 }
-.is-formed .hl::before { animation: hl-select .6s var(--glide) .9s both, hi-sheen 4.5s linear infinite; }
-@keyframes hl-select {
-  from { opacity: 1; clip-path: inset(0 100% 0 0 round .09em); }
-  to { opacity: 1; clip-path: inset(0 0 0 0 round .09em); }
-}
-.is-formed .line.current .c { animation: iri 1s ease-in-out both; animation-delay: calc(2s + var(--i) * 55ms); }
+.hl-done .line.current .c { animation: iri 1s ease-in-out both; animation-delay: calc(.15s + var(--i) * 55ms); }
 @keyframes iri { 0%, 100% { color: var(--ink); } 25% { color: #5ea8ff; } 50% { color: #a78bfa; } 75% { color: #f0a3d8; } }
+.try-progress {
+  position: absolute; left: 0; right: 0; top: calc(var(--bottom-y) + 76px); display: flex; justify-content: center; gap: 6px;
+  opacity: 0; transition: opacity .4s ease-out; pointer-events: none;
+}
+.is-formed .try-progress { opacity: 1; transition: opacity .8s var(--ease-out) .5s; }
+.lit-progress i, .try-progress i { width: 40px; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, .14); overflow: hidden; }
+.lit-progress b, .try-progress b { display: block; height: 100%; border-radius: inherit; background: rgba(245, 245, 247, .85); transform: scaleX(0); transform-origin: left; }
+.lit-progress b { transition: transform .15s linear; }
 .try-cue {
   position: absolute; left: 0; right: 0; margin: 0; text-align: center; pointer-events: none;
   top: calc(var(--bottom-y) + 20px); font-size: 17px; letter-spacing: -0.01em; color: var(--graphite); opacity: 0;
 }
-.is-formed .try-cue { animation: cue 2.6s ease-in-out 3s both; }
+.hl-done .try-cue { animation: cue 2.6s ease-in-out 1.1s both; }
 .used .try-cue { animation: none; opacity: 0; }
 @keyframes cue { 0% { opacity: 0; transform: translateY(6px); } 20%, 65% { opacity: 1; transform: none; } 100% { opacity: 0; } }
-@media (prefers-reduced-motion: reduce) {
-  .is-formed .hl::before, .is-formed .line.current .c { animation: none; }
-  .is-formed .hl::before { opacity: 1; clip-path: none; }
-}
+@media (prefers-reduced-motion: reduce) { .hl::before, .hl-done .line.current .c { animation: none; } }
 
 
 /* The lookup card (card.js), as the app draws it in dark appearance on Liquid Glass. Every
@@ -247,8 +250,8 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .lc-slot { flex: none; width: var(--slot, 48px); height: 22px; align-self: center; }
 .lc-meaning { display: flex; flex-direction: column; gap: calc(2 * var(--u)); }
 /* The space above the meaning is inside it, so it opens and closes with it instead of snapping. */
-.lc-v.xs > .lc-meaning { margin-top: calc(-4 * var(--u)); }
-.lc-meaning > :first-child { margin-top: calc(4 * var(--u)); }
+.lc-v.xs > .lc-meaning, .lc-v.xs > .lc-status { margin-top: calc(-4 * var(--u)); }
+.lc-meaning > :first-child, .lc-status > :first-child { margin-top: calc(4 * var(--u)); }
 .lc-meaning[hidden] { display: none; }
 .lc-headline { font-size: calc(19 * var(--u)); font-weight: 600; line-height: 1.26; letter-spacing: -.005em; }
 .lc-sub, .lc-caption { font-size: calc(11 * var(--u)); color: var(--secondary); }
@@ -279,7 +282,7 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .lc-sense.body { font-size: calc(13 * var(--u)); } .lc-sense.callout { font-size: calc(12 * var(--u)); }
 .lc-num { flex: none; width: calc(9 * var(--u)); text-align: right; font-size: calc(1em - 1 * var(--u)); font-weight: 500; font-variant-numeric: tabular-nums; color: var(--tertiary); }
 .lc-sense.wide .lc-num { width: calc(15 * var(--u)); }
-.lc-def { flex: 1; min-width: 0; line-height: 1.32; transition: color .2s; }
+.lc-def { flex: 1; min-width: 0; line-height: 1.32; transition: color .25s ease-out; }
 .lc-def.chosen { font-weight: 600; }
 .lc-def.dim { color: var(--secondary); }
 .lc-pos { font-style: italic; color: var(--secondary); }
@@ -413,8 +416,6 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 /* How far through each line's stretch of scrolling you are. */
 .motion .lit-progress { display: flex; gap: 6px; margin: 30px 0 0 2px; opacity: 0; transition: opacity .6s ease-out; }
 .motion .lit-progress.on { opacity: 1; transition-delay: .3s; }
-.lit-progress i { width: 40px; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, .14); overflow: hidden; }
-.lit-progress b { display: block; height: 100%; border-radius: inherit; background: rgba(245, 245, 247, .85); transform: scaleX(0); transform-origin: left; transition: transform .15s linear; }
 @media (min-width: 1101px) {
   /* Pulled up over the opening's last stretch, so its content rises in right behind the
      demo sentence instead of a screen later. Clicks pass through its empty parts. */
@@ -426,24 +427,27 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 }
 .lc-card.lc-inline { position: relative; z-index: auto; max-width: 100%; will-change: auto; }
 
-/* The statement's card, as its lines go: every meaning lit in amber ("every"), then the light
-   moves onto the meaning in the sentence, in the checkmark's blue ("one"), while the other
-   steps back; then the note opens in green ("context"). Each light is its own layer, so one
-   fades out as the other fades in, rather than passing through a muddy mix of the two. The
-   pick isn't set in bold, so no meaning re-wraps as it changes. */
-#lit-card .lc-row { position: relative; isolation: isolate; }
-#lit-card .lc-row::before, #lit-card .lc-row::after {
-  content: ""; position: absolute; inset: 1px 0; z-index: -1; border-radius: inherit; opacity: 0; pointer-events: none;
-  transition: opacity .6s cubic-bezier(.4, 0, .2, 1);
+/* The statement's card, as its lines go: one light behind the meanings, amber over all of
+   them ("every"), then drawn in onto the meaning in the sentence in the checkmark's blue
+   ("one") while the other steps back, then fading as the note opens in green ("context").
+   It moves and changes colour as one thing, on the app's spring; each colour is its own
+   layer, so they cross-fade instead of passing through a muddy mix. The pick isn't set in
+   bold, so no meaning re-wraps. Until the note is in, the card can't be clicked. */
+.lc-senses { position: relative; isolation: isolate; }
+.lc-light {
+  position: absolute; z-index: -1; border-radius: calc(7 * var(--u)); opacity: 0; pointer-events: none;
+  transition: top var(--lc-motion-t) var(--lc-motion), height var(--lc-motion-t) var(--lc-motion), opacity .5s cubic-bezier(.4, 0, .2, 1);
 }
-#lit-card .lc-row::before { background: rgba(255, 184, 48, .2); box-shadow: inset 0 0 0 1px rgba(255, 184, 48, .3); }
-#lit-card .lc-row::after { background: rgba(10, 132, 255, .22); box-shadow: inset 0 0 0 1px rgba(64, 156, 255, .38); }
-#lit-card .lc-row.lc-every::before { opacity: 1; transition: opacity .9s cubic-bezier(.22, 1, .36, 1); }
-#lit-card .lc-row.lc-picked::after { opacity: 1; transition: opacity .9s cubic-bezier(.22, 1, .36, 1) .1s; }
+.lc-light.still, .lc-light.still > i { transition: none; }
+.lc-light.on { opacity: 1; transition: top var(--lc-motion-t) var(--lc-motion), height var(--lc-motion-t) var(--lc-motion), opacity .8s cubic-bezier(.22, 1, .36, 1); }
+.lc-light > i { position: absolute; inset: 0; border-radius: inherit; transition: opacity .55s cubic-bezier(.4, 0, .2, 1); }
+.lc-light > .amber { background: rgba(255, 184, 48, .19); box-shadow: inset 0 0 0 1px rgba(255, 184, 48, .3); }
+.lc-light > .blue { background: rgba(10, 132, 255, .22); box-shadow: inset 0 0 0 1px rgba(64, 156, 255, .38); opacity: 0; }
+.lc-light.blue > .amber { opacity: 0; transition: opacity .3s cubic-bezier(.4, 0, .2, 1); }
+.lc-light.blue > .blue { opacity: 1; transition: opacity .4s cubic-bezier(.22, 1, .36, 1); }
+.lc-card.lc-locked { pointer-events: none; }
 #lit-card .lc-def { transition: color .8s cubic-bezier(.22, 1, .36, 1); }
 #lit-card .lc-def.chosen { font-weight: inherit; }
-.lc-def.lc-dimming { animation: lc-dim .8s cubic-bezier(.22, 1, .36, 1); }
-@keyframes lc-dim { from { color: var(--primary); } }
 #lit-card .lc-note { background: rgba(48, 209, 88, .1); box-shadow: inset 0 0 0 1px rgba(48, 209, 88, .3); }
 #lit-card .lc-note-head, #lit-card .lc-note-head .culture { color: #30d158; }
 .lit .every { color: #ffb830; }

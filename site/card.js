@@ -444,35 +444,57 @@
     const pv = preview(senses, opts.chosen);
     const collapsed = opts.collapsed || all.filter((i) => (opts.listed ? opts.listed.includes(i) : pv.includes(i)) || i === opts.chosen);
     const shown = opts.showAll ? all : collapsed;
-    // Rows are kept by index, so a pick only restyles them and Show All only adds the rest.
+    // Rows are kept by index and restyled in place, so a pick animates (the check springs in,
+    // the others fade back) and Show All only adds the rest. Nodes are only moved when the
+    // order changes: taking one out of the page and putting it back cancels its transitions.
     const old = new Map([...list.querySelectorAll(".lc-row[data-i]")].map((r) => [r.dataset.i, r]));
-    const frag = [];
+    const oldHeads = new Map([...list.querySelectorAll(".lc-reading[data-key]")].map((r) => [r.dataset.key, r]));
+    const want = [];
     shown.forEach((i, pos) => {
       const s = senses[i];
       if (opts.headed && (pos === 0 || senses[shown[pos - 1]].pinyin !== s.pinyin)) {
-        frag.push(h("div", "lc-reading" + (pos === 0 ? " first" : ""), esc(s.marked)));
+        const key = `${s.pinyin}|${pos === 0}`;
+        let head = oldHeads.get(key);
+        if (head) oldHeads.delete(key);
+        else { head = h("div", "lc-reading" + (pos === 0 ? " first" : ""), esc(s.marked)); head.dataset.key = key; }
+        want.push(head);
       }
-      const chosen = opts.chosen === i;
+      const chosen = opts.chosen === i, dimmed = !!opts.dimUnchosen && !chosen;
       const gloss = opts.listed && opts.listed.includes(i) ? s.short : s.listed;
-      const inner = `${senseLine(i + 1, senses.length, s, gloss, opts.size, chosen, opts.dimUnchosen && !chosen)}` +
-        `${opts.noteMarks && s.hasNote ? `<span class="lc-notemark">${SYM.bubble}</span>` : ""}<span class="lc-check${chosen ? " on" : ""}">${SYM.check}</span>`;
+      const mark = opts.noteMarks && s.hasNote ? `<span class="lc-notemark">${SYM.bubble}</span>` : "";
+      const sig = `${gloss}|${mark ? 1 : 0}|${opts.size}`;
       let row = old.get(String(i));
-      if (row) { row.innerHTML = inner; old.delete(String(i)); }
-      else {
-        row = rowButton(opts.bleedV === 3 ? "tight" : "", inner, () => opts.onPick(i));
-        row.dataset.i = i; row.dataset.fresh = "1";
+      if (row && row.dataset.sig === sig) {
+        old.delete(String(i));
+        row.querySelector(".lc-def").classList.toggle("chosen", chosen);
+        row.querySelector(".lc-def").classList.toggle("dim", dimmed);
+        row.querySelector(".lc-check").classList.toggle("on", chosen);
+      } else {
+        const inner = senseLine(i + 1, senses.length, s, gloss, opts.size, chosen, dimmed) + mark + `<span class="lc-check${chosen ? " on" : ""}">${SYM.check}</span>`;
+        if (row) { row.innerHTML = inner; old.delete(String(i)); }
+        else {
+          row = rowButton(opts.bleedV === 3 ? "tight" : "", inner, () => opts.onPick(i));
+          row.dataset.i = i; row.dataset.fresh = "1";
+        }
+        row.dataset.sig = sig;
       }
       row.title = s.readable;
-      frag.push(row);
+      want.push(row);
     });
+    let more = list.querySelector(".lc-more");
     if (senses.length > collapsed.length) {
-      let more = list.querySelector(".lc-more");
-      if (!more) more = rowButton("lc-more" + (opts.bleedV === 3 ? " tight" : ""), "", () => opts.onToggle());
-      more.innerHTML = `<span>${opts.showAll ? "Show Fewer" : `Show All ${senses.length}`}</span><span class="lc-more-chev${opts.showAll ? " up" : ""}">${SYM.chevronDown}</span>`;
-      frag.push(more);
-    }
+      if (!more) {
+        more = rowButton("lc-more" + (opts.bleedV === 3 ? " tight" : ""), `<span></span><span class="lc-more-chev">${SYM.chevronDown}</span>`, () => opts.onToggle());
+      }
+      more.firstElementChild.textContent = opts.showAll ? "Show Fewer" : `Show All ${senses.length}`;
+      more.lastElementChild.classList.toggle("up", !!opts.showAll);
+      want.push(more);
+    } else if (more) { more.remove(); more = null; }
+    for (const head of oldHeads.values()) head.remove();
     const leaving = [...old.values()];
-    list.replaceChildren(...frag, ...leaving);
+    // Put each wanted node in its place, touching only those that aren't there already.
+    want.forEach((node, k) => { if (list.children[k] !== node) list.insertBefore(node, list.children[k] || null); });
+    for (const r of leaving) if (r.parentNode !== list) list.append(r);
     for (const r of list.querySelectorAll('[data-fresh="1"]')) { r.removeAttribute("data-fresh"); if (opts.animate) revealBlock(r, -4); }
     for (const r of leaving) { if (opts.animate) concealBlock(r, -4); else r.remove(); }
   }
@@ -480,11 +502,12 @@
   // MARK: Word card (LookupView)
 
   // `staged`: the card starts as a dictionary would show it, the word and every meaning, none
-  // picked, and the returned card's stage(n) brings in the rest: 1 lights every meaning, 2
-  // opens the meaning in the sentence under the word, then moves the light onto its row and
-  // checks it (and keeps it lit); 3 adds its note. Nothing in it changes size or wraps
-  // differently as it goes: the pick isn't set in bold and there's no note mark. A click on
-  // a meaning shows it all.
+  // picked, and the returned card's stage(n) brings in the rest. One light does it: 1 lights
+  // every meaning in amber; 2 opens the meaning in the sentence under the word, then the
+  // light draws in onto that meaning as it turns blue, its check springs in and the other
+  // meaning steps back; 3 opens the note as the light fades. Until then the card can't be
+  // clicked, so nothing breaks the sequence. Nothing in it changes size or re-wraps as it
+  // goes: the pick isn't set in bold and there's no note mark.
   function openWord(data, anchor, inline, staged) {
     const senses = data.senses, info = data.card;
     const st = {
@@ -527,21 +550,37 @@
         if (first) meaning.hidden = !showMeaning;
         else if (showMeaning && !open) { meaning.hidden = false; revealBlock(meaning, -4); }
         else if (!showMeaning && open) collapseBlock(meaning, -4);
-        const sub = q(".lc-sub");
-        const contextual = !st.userPicked && info.contextual;
-        sub.hidden = !contextual;
+        // Shown or hidden, these open and close rather than snapping.
+        const toggle = (el, show) => {
+          const open = !el.hidden && !el._collapse;
+          if (first) el.hidden = !show;
+          else if (show && !open) { el.hidden = false; revealBlock(el, -4); }
+          else if (!show && open) collapseBlock(el, -4);
+        };
+        toggle(q(".lc-sub"), !st.userPicked && !!info.contextual);
         // Back to the model's answer, or why the order is the dictionary's.
         const status = q(".lc-status");
-        status.innerHTML = "";
-        if (st.userPicked && st.suggested && st.suggested.n !== st.choice.n) {
-          const b = h("button", "lc-back", `${SYM.uturn}<span>Back to “${esc(st.suggested.meaning)}”</span>`);
-          b.type = "button";
-          b.addEventListener("click", () => { st.userPicked = false; st.choice = st.suggested; render(); });
-          status.append(b);
+        const back = st.userPicked && st.suggested && st.suggested.n !== st.choice.n;
+        const caption = info.phase !== "chosen" ? info.phase : info.viaTranslation && !st.userPicked ? "Matched to the sentence translation" : "";
+        const statusKey = `${back ? st.suggested.meaning : ""}|${caption}`;
+        if (statusKey !== status.dataset.key) {
+          const showing = !status.hidden && !status._collapse;
+          if (back || caption) {
+            const parts = [];
+            if (back) {
+              const b = h("button", "lc-back", `${SYM.uturn}<span>Back to “${esc(st.suggested.meaning)}”</span>`);
+              b.type = "button";
+              b.addEventListener("click", () => { st.userPicked = false; st.choice = st.suggested; render(); });
+              parts.push(b);
+            }
+            if (caption) parts.push(h("div", "lc-caption", esc(caption)));
+            status.replaceChildren(...parts);
+            if (showing && !first && !reduce) status.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, easing: "ease-out" });
+          }
+          // Going, it keeps what it said until it has closed.
+          toggle(status, !!(back || caption));
+          status.dataset.key = statusKey;
         }
-        if (info.phase !== "chosen") status.append(h("div", "lc-caption", esc(info.phase)));
-        else if (info.viaTranslation && !st.userPicked) status.append(h("div", "lc-caption", "Matched to the sentence translation"));
-        status.hidden = !status.childElementCount;
         // The note for the meaning shown, sliding in under the headline.
         const note = st.stage >= 3 && sense && sense.note;
         const key = note ? note.text : null;
@@ -559,7 +598,7 @@
           headed: showReading && (!info.grammar || st.showAll), size: "body",
           dimUnchosen: picked != null, noteMarks: !st.staged, animate: !first,
           onPick: (i) => {
-            if (st.stage < 3 || !st.pickShown) { clearTimeout(pickTimer); st.stage = 3; st.pickShown = true; st.touched = true; }
+            if (st.staged) st.touched = true;
             if (st.choice && st.choice.n === i + 1) return;
             if (st.suggested && st.suggested.n === i + 1) { st.userPicked = false; st.choice = st.suggested; }
             else { st.userPicked = true; st.choice = { n: i + 1, meaning: senses[i].short }; }
@@ -567,35 +606,59 @@
           },
           onToggle: () => { st.showAll = !st.showAll; render(); },
         });
-        if (st.staged) for (const r of q(".lc-list").querySelectorAll(".lc-row[data-i]")) {
-          r.classList.toggle("lc-picked", picked != null && +r.dataset.i === picked);
-          r.classList.toggle("lc-every", picked == null && st.stage >= 1);
-        }
+        if (st.staged) placeLight(picked, first);
         first = false;
       };
+
+      // The statement's light: one box behind the meanings, amber over all of them, then blue
+      // over the one picked, then gone. It moves and changes colour as one thing; each colour
+      // is its own layer so they cross-fade rather than mixing.
+      let light = null;
+      function placeLight(picked, instant) {
+        const senses = q(".lc-senses"), rows = [...q(".lc-list").querySelectorAll(".lc-row[data-i]")];
+        if (!rows.length) return;
+        if (!light) {
+          light = h("div", "lc-light", '<i class="amber"></i><i class="blue"></i>');
+          senses.prepend(light);
+        }
+        const target = picked != null ? rows.find((r) => +r.dataset.i === picked) : null;
+        const a = target || rows[0], b = target || rows[rows.length - 1];
+        if (instant) light.classList.add("still");
+        light.style.top = a.offsetTop + "px";
+        light.style.left = a.offsetLeft + "px";
+        light.style.width = a.offsetWidth + "px";
+        light.style.height = b.offsetTop + b.offsetHeight - a.offsetTop + "px";
+        light.classList.toggle("blue", picked != null);
+        light.classList.toggle("on", st.stage === 1 || st.stage === 2);
+        if (instant) { light.getBoundingClientRect(); light.classList.remove("still"); }
+      }
+      if (st.staged) {
+        placeLight(null, true);
+        // Kept in place if the card's width changes.
+        new ResizeObserver(() => { const ci = chosenIndex(); placeLight(st.stage >= 2 && st.pickShown ? ci : null, true); }).observe(q(".lc-list"));
+      }
       render();
     }, inline);
-    let pickTimer = 0;
+    if (staged) card.el.classList.add("lc-locked");
+    let pickTimer = 0, unlockTimer = 0;
     card.stage = (n) => {
-      if (st.touched || n === st.stage || !render) return;
+      if (!render || (n === st.stage && !st.touched)) return;
+      // Picked something, then went back up: the story starts over from the card as it was.
+      if (st.touched) {
+        if (n >= 3) return;
+        st.touched = false; st.userPicked = false; st.choice = st.suggested; st.showAll = false;
+      }
       const was = st.stage;
       st.stage = n;
-      clearTimeout(pickTimer);
+      clearTimeout(pickTimer); clearTimeout(unlockTimer);
+      // It can be clicked once its note has opened, and not before.
+      if (n >= 3) unlockTimer = setTimeout(() => card.el.classList.remove("lc-locked"), reduce ? 0 : 500);
+      else card.el.classList.add("lc-locked");
       if (n < 2) st.pickShown = false;
       render();
-      // A beat after the meaning opens in, its row is picked: the check springs in, the row
-      // lights up and stays lit, and the other meaning steps back.
-      if (was < 2 && n >= 2 && !st.pickShown) {
-        pickTimer = setTimeout(() => {
-          st.pickShown = true;
-          render();
-          if (reduce) return;
-          const row = card.content.querySelector(".lc-row.lc-picked");
-          const check = row && row.querySelector(".lc-check");
-          if (check) { check.classList.remove("on"); check.getBoundingClientRect(); check.classList.add("on"); }
-          card.content.querySelectorAll(".lc-def.dim").forEach((d) => d.classList.add("lc-dimming"));
-        }, reduce ? 0 : 450);
-      }
+      // A beat after the meaning opens in, the light draws in onto it, turning blue, its check
+      // springs in and the other meaning steps back.
+      if (n >= 2 && !st.pickShown) pickTimer = setTimeout(() => { st.pickShown = true; render(); }, reduce || was >= 2 ? 0 : 450);
     };
     return card;
   }
