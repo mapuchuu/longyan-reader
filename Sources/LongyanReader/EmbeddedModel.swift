@@ -111,6 +111,14 @@ final class EmbeddedModel: @unchecked Sendable {
         noteUse()
     }
 
+    /// Quitting: waits out a load or request in progress (a request stops at its next token),
+    /// then frees the model, before exit() starts tearing down ggml. The exit handler only
+    /// exists once a load has finished, so a quit during the first load needs this.
+    func shutdown() {
+        Self.exiting.set()
+        if DispatchQueue.getSpecific(key: Self.onQueue) != nil { free() } else { queue.sync { free() } }
+    }
+
     /// Called on the queue after each load and request.
     private func noteUse() {
         lastUse = Date()

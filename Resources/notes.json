@@ -91,7 +91,7 @@
   },
   {
     "gloss" : "(dialect) wife",
-    "note" : "A husband's homely word for his wife, common in the north. Affectionate and down to earth, like \"the missus\".",
+    "note" : "A husband's everyday word for his wife, common in the north. Affectionate and down to earth, like \"the missus\".",
     "pinyin" : "xi2 fu5",
     "problems" : [
 
@@ -1491,7 +1491,7 @@
   },
   {
     "gloss" : "naive; gullible",
-    "note" : "Can be praise for honesty or a sigh that someone is easily exploited: 老实人吃亏, \"honest people lose out\".",
+    "note" : "Often a sigh that someone is easily exploited: 老实人吃亏, \"honest people lose out\".",
     "pinyin" : "lao3 shi5",
     "problems" : [
 
@@ -3201,16 +3201,6 @@
   },
   {
     "gloss" : "code of brotherhood",
-    "note" : "The code of loyalty between friends, especially sworn brothers who stand by each other even against the law. 讲义气 is high praise.",
-    "pinyin" : "yi4 qi4",
-    "problems" : [
-
-    ],
-    "tag" : "cultural_context",
-    "word" : "义气"
-  },
-  {
-    "gloss" : "also pr. [yi4 qi5]",
     "note" : "The code of loyalty between friends, especially sworn brothers who stand by each other even against the law. 讲义气 is high praise.",
     "pinyin" : "yi4 qi4",
     "problems" : [
@@ -6481,7 +6471,7 @@
   },
   {
     "gloss" : "daughter",
-    "note" : "我家姑娘 (\"my girl\") sounds fonder and more homely than 女儿, the way parents talk to neighbours.",
+    "note" : "我家姑娘 (\"my girl\") sounds fonder and more casual than 女儿, the way parents talk to neighbours.",
     "pinyin" : "gu1 niang5",
     "problems" : [
 
@@ -7348,16 +7338,6 @@
     ],
     "tag" : "cultural_context",
     "word" : "普通话"
-  },
-  {
-    "gloss" : "lit. fish sink, goose alights (idiom, from Zhuangzi 莊子|庄子[Zhuang1 zi3]); fig. female beauty captivating even the birds and beasts",
-    "note" : "A classical compliment for a woman's beauty, often paired with 闭月羞花. Later stories link it to the ancient beauties Xi Shi and Wang Zhaojun.",
-    "pinyin" : "chen2 yu2 luo4 yan4",
-    "problems" : [
-
-    ],
-    "tag" : "lost_in_translation",
-    "word" : "沉魚落雁"
   },
   {
     "gloss" : "fixed government purchase (esp of farm products)",

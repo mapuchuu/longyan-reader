@@ -56,6 +56,7 @@ enum TextCapture {
         var countRef: CFTypeRef?
         if AXUIElementCopyAttributeValue(element, kAXNumberOfCharactersAttribute as CFString, &countRef) == .success,
            let n = countRef as? Int { total = n }
+        guard hit.location < Int.max / 4 else { note("ax: invalid hit location"); return nil }   // kCFNotFound
         let start = max(0, hit.location - 400)
         let end = total > 0 ? min(total, hit.location + 400) : hit.location + 400
         var window = CFRange(location: start, length: end - start)

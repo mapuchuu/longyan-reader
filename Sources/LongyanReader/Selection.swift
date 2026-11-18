@@ -161,12 +161,13 @@ enum SelectionReader {
     ]
     static func prepare(_ app: NSRunningApplication) {
         guard AXIsProcessTrusted(), !preparedPIDs.contains(app.processIdentifier) else { return }
-        preparedPIDs.insert(app.processIdentifier)
         let element = AXUIElementCreateApplication(app.processIdentifier)
-        AXUIElementSetAttributeValue(element, "AXManualAccessibility" as CFString, kCFBooleanTrue)
+        var ok = AXUIElementSetAttributeValue(element, "AXManualAccessibility" as CFString, kCFBooleanTrue) == .success
         if chromiumBrowsers.contains(app.bundleIdentifier ?? "") {
-            AXUIElementSetAttributeValue(element, "AXEnhancedUserInterface" as CFString, kCFBooleanTrue)
+            ok = AXUIElementSetAttributeValue(element, "AXEnhancedUserInterface" as CFString, kCFBooleanTrue) == .success || ok
         }
+        // An app not ready yet (just launched) is tried again next time.
+        if ok { preparedPIDs.insert(app.processIdentifier) }
     }
 
     /// Text fields, TextEdit, Notes, Pages, Preview: selection as a character range.
@@ -175,6 +176,10 @@ enum SelectionReader {
         var sel = CFRange()
         guard AXValueGetValue(rangeValue, .cfRange, &sel) else { return nil }
         if sel.length == 0 { note("native: empty selection"); return .nothingSelected }
+        // kCFNotFound (Int.max) or a negative length from a misbehaving app would trap below.
+        guard sel.location >= 0, sel.length > 0, sel.location < Int.max / 4, sel.length < Int.max / 4 else {
+            note("native: invalid range"); return nil
+        }
 
         // The selection plus up to 300 characters either side, for context.
         var total = 0
@@ -212,9 +217,11 @@ enum SelectionReader {
         // The selection lives on the web area; walk up from the focused element to find it.
         var element: AXUIElement? = focused
         var markerRange: CFTypeRef?
-        while let e = element, markerRange == nil {
+        var depth = 0   // a buggy app's parent chain can loop
+        while let e = element, markerRange == nil, depth < 64 {
             markerRange = attribute(e, "AXSelectedTextMarkerRange")
             if markerRange == nil { element = attribute(e, kAXParentAttribute) }
+            depth += 1
         }
         guard let e = element, let range = markerRange, CFGetTypeID(range) == AXTextMarkerRangeGetTypeID() else {
             note("web: no text-marker selection")
@@ -318,8 +325,17 @@ enum SelectionReader {
 
     /// Sends ⌘C to the front app, reads the copied text, then puts the previous
     /// clipboard back. Works almost everywhere but gives no surrounding context.
+    @MainActor private static var copying = false
+    @MainActor private static var lateRestore: Task<Void, Never>?
+
     @MainActor
     static func readByCopying() async -> Selection? {
+        // One at a time: two would each save and restore the other's ⌘C. And a newer read ends
+        // the last one's wait for a late copy, which would otherwise restore over this one.
+        guard !copying else { return nil }
+        copying = true
+        defer { copying = false }
+        lateRestore?.cancel(); lateRestore = nil
         let pasteboard = NSPasteboard.general
         // A password manager marks what it copies as concealed and clears it later by its
         // change count; putting it back would leave the password on the clipboard for good.
@@ -349,10 +365,13 @@ enum SelectionReader {
         guard pasteboard.changeCount != before else {
             note("copy: nothing was copied")
             // A slow app may still copy after we stop waiting: put the clipboard back if it does.
-            Task { @MainActor in
+            // Only that one copy: more changes mean someone else copied too, so theirs stays.
+            lateRestore = Task { @MainActor in
                 for _ in 0..<80 {
                     try? await Task.sleep(for: .milliseconds(20))
-                    if pasteboard.changeCount != before { restore(); return }
+                    if Task.isCancelled { return }
+                    if pasteboard.changeCount == before + 1 { restore(); return }
+                    if pasteboard.changeCount != before { return }
                 }
             }
             return nil

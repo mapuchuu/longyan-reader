@@ -45,6 +45,8 @@ enum CLI {
                 guard let a = raw.firstIndex(of: "【"), let b = raw.firstIndex(of: "】") else { print("mark the selection 【】"); continue }
                 let lo = raw.distance(from: raw.startIndex, to: a), hi = raw.distance(from: raw.startIndex, to: b) - 1
                 let passage = Array(raw.replacingOccurrences(of: "【", with: "").replacingOccurrences(of: "】", with: ""))
+                // Marks in the wrong order, or ones whose removal merges characters (\r【\n】).
+                guard lo < hi, hi <= passage.count else { print("bad selection marks"); continue }
                 let r = Segmenter.wholeWords(lo..<hi, in: passage, dict: dict)
                 print("\(String(passage[lo..<hi])) → \(String(passage[r]))")
             }
@@ -55,6 +57,7 @@ enum CLI {
                 guard let a = raw.firstIndex(of: "【") else { continue }
                 let i = raw.distance(from: raw.startIndex, to: a)
                 let passage = Array(raw.replacingOccurrences(of: "【", with: "").replacingOccurrences(of: "】", with: ""))
+                guard i < passage.count else { print("bad selection marks"); continue }
                 guard let r = Segmenter.enclosingWord(of: i..<(i + 1), in: passage, dict: dict) else { print("\(passage[i])\t—"); continue }
                 let word = String(passage[r]), senses = dict.senses(for: word)
                 let n = NoteCues.senseNumber(word, at: r, in: passage, senses: senses) ?? 1

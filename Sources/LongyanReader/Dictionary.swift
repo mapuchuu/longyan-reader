@@ -142,14 +142,24 @@ final class CEDict {
             return standalone && s.gloss.hasPrefix("(bound form)") ? 1 : 0
         }
         out = [0, 1, 2].flatMap { r in out.filter { rank($0) == r } }
-        if handOrdered, SenseOrder.enabled, let order = SenseOrder.shared[word] ?? SenseOrder.shared[simplified(word)] { out = order.apply(to: out) }
+        if handOrdered, SenseOrder.enabled {
+            if let order = SenseOrder.shared[word] { out = order.apply(to: out) }
+            else if case let s = simplified(word), s != word, let order = SenseOrder.shared[s] {
+                // A traditional form has its own sense list (別 8, 别 9): the simplified line's
+                // numbers don't fit it, so its senses take their order from their glosses there.
+                out = SenseOrder.follow(order.apply(to: senses(for: s, handOrdered: false)), out)
+            }
+        }
         if out.isEmpty, let first = ordered.first {
             // Only cross-references exist. Show what they point to (干活儿 → 干活), under this
             // word's own reading; else show them rather than nothing.
             let target = first.definitions.lazy.compactMap { CEDict.referenceTarget($0) }.first { $0 != word }
             let followed = target.map { senses(for: $0, limit: limit) } ?? []
             out = followed.isEmpty ? first.definitions.map { Sense(pinyin: first.pinyin, gloss: $0) }
-                                   : followed.map { Sense(pinyin: first.pinyin, gloss: $0.gloss) }
+                                   : followed.reduce(into: []) { out, s in   // two readings can share a gloss (冡)
+                                         let sense = Sense(pinyin: first.pinyin, gloss: s.gloss)
+                                         if !out.contains(sense) { out.append(sense) }
+                                     }
         }
         return Array(out.prefix(limit))
     }
@@ -162,14 +172,14 @@ final class CEDict {
     static func isCrossReference(_ def: String) -> Bool {
         let lower = def.lowercased()
         return ["variant of", "old variant", "unofficial variant", "erhua variant", "used in ", "see ", "cl:",
-                "taiwan pr.", "surname "].contains { lower.hasPrefix($0) }
+                "taiwan pr.", "surname ", "also pr.", "also written", "same as "].contains { lower.hasPrefix($0) }
     }
 
     /// The simplified word a "variant of" or "see" definition points to:
     /// "erhua variant of 幹活|干活[gan4 huo2]" → 干活.
     static func referenceTarget(_ def: String) -> String? {
         let lower = def.lowercased()
-        guard lower.contains("variant of ") || lower.hasPrefix("see ") else { return nil }
+        guard lower.contains("variant of ") || lower.hasPrefix("see ") || lower.hasPrefix("same as ") else { return nil }
         guard let match = def.range(of: #"(\p{Han}+\|)?\p{Han}+"#, options: .regularExpression) else { return nil }
         return def[match].split(separator: "|").last.map(String.init)
     }
@@ -177,7 +187,13 @@ final class CEDict {
     /// The app's compiled copy when there is one (and extra words aren't switched off for a
     /// comparison), else the text: the bundle's, LONGYAN_CEDICT, or Resources/ in the repo.
     /// The last dictionary loaded, for lookups that only have a word (notes keyed by simplified form).
-    private(set) static var current: CEDict?
+    /// Set once, on the queue that loads the dictionary; read from any thread.
+    static var current: CEDict? {
+        get { currentLock.withLock { _current } }
+        set { currentLock.withLock { _current = newValue } }
+    }
+    private static let currentLock = NSLock()
+    nonisolated(unsafe) private static var _current: CEDict?
 
     /// 關係 → 关系: notes, examples and sense orders are keyed by the simplified headword.
     func simplified(_ word: String) -> String {

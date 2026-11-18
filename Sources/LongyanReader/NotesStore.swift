@@ -62,13 +62,21 @@ enum NoteCues {
 
     /// The sense number (1-based) a cue settles for the word at `range`: the cue has to cover
     /// that occurrence of the word, not just appear somewhere in the passage.
+    /// Cues are written in simplified; traditional text (這不科學) is compared once simplified.
     static func senseNumber(_ word: String, at range: Range<Int>, in passage: [Character], senses: [Sense]) -> Int? {
-        for c in byWord[word] ?? [] {
+        let simple = byWord[word] == nil ? NotesStore.headword(word) : word
+        let traditional = simple != word
+        for c in byWord[simple] ?? [] {
             let cue = Array(c.cue)
             guard let i = senses.firstIndex(where: { $0.gloss == c.gloss }) else { continue }
             let first = max(0, range.upperBound - cue.count), last = min(range.lowerBound, passage.count - cue.count)
             guard first <= last else { continue }
-            for start in first...last where Array(passage[start..<start + cue.count]) == cue { return i + 1 }
+            for start in first...last {
+                let window = Array(passage[start..<start + cue.count])
+                if window == cue { return i + 1 }
+                if traditional, let dict = CEDict.current,
+                   dict.simplified(String(window)) == c.cue || window.map({ dict.simplified(String($0)) }).joined() == c.cue { return i + 1 }
+            }
         }
         return nil
     }

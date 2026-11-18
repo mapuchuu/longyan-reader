@@ -32,7 +32,9 @@ enum Gloss {
         for (pattern, plain) in words {
             text = text.replacingOccurrences(of: pattern, with: plain, options: .regularExpression)
         }
-        text = text.replacingOccurrences(of: #"^\(bound form\)\s*"#, with: "", options: .regularExpression)
+        // Not when it's all there is (态): an empty meaning says less than "(bound form)".
+        let unbound = text.replacingOccurrences(of: #"^\(bound form\)\s*"#, with: "", options: .regularExpression)
+        if !unbound.trimmingCharacters(in: .whitespaces).isEmpty { text = unbound }
         text = text.replacingOccurrences(of: #"\s{2,}"#, with: " ", options: .regularExpression)
         return text.trimmingCharacters(in: .whitespaces)
     }
@@ -71,7 +73,7 @@ enum Gloss {
             }
             text = rest
         }
-        while text.hasSuffix(")"), let open = text.lastIndex(of: "("), open > text.startIndex,
+        while text.hasSuffix(")"), let open = matchingOpen(in: text), open > text.startIndex,
               !isNegation(String(text[open...])) {
             let rest = text[..<open].trimmingCharacters(in: .whitespaces)
             if rest.isEmpty { break }
@@ -87,16 +89,23 @@ enum Gloss {
     /// Long definitions stop at their first comma if that leaves a meaning; failing that, at a word.
     private static func shortened(_ text: String) -> String {
         guard text.count > 44 else { return text }
-        if let comma = text.firstIndex(of: ","), text.distance(from: text.startIndex, to: comma) >= 12,
-           text.distance(from: text.startIndex, to: comma) <= 56, !text[..<comma].contains("(") {
+        // The first comma outside brackets and quotes ("A, B, C" is one thing).
+        if let comma = topLevelComma(in: text), text.distance(from: text.startIndex, to: comma) >= 12,
+           text.distance(from: text.startIndex, to: comma) <= 56 {
             return String(text[..<comma])
         }
         guard text.count > 56 else { return text }
         var cut = String(text.prefix(54))
         if let space = cut.lastIndex(of: " ") { cut = String(cut[..<space]) }
-        // Don't leave a bracket open.
-        if let open = cut.lastIndex(of: "("), !cut[open...].contains(")") { cut = String(cut[..<open]) }
-        return cut.trimmingCharacters(in: CharacterSet(charactersIn: " ,:;")) + "…"
+        cut = cut.trimmingCharacters(in: CharacterSet(charactersIn: " ,:;"))
+        // Don't leave a bracket or quote open: stop before it, or if that leaves too little,
+        // close it after the ellipsis.
+        if let open = unclosed(in: cut) {
+            let before = cut[..<open].trimmingCharacters(in: CharacterSet(charactersIn: " ,:;"))
+            if before.count >= 12 { return before + "…" }
+            return cut + "…" + (cut[open] == "(" ? ")" : "\"")
+        }
+        return cut + "…"
     }
 
     /// Up to the first semicolon that isn't inside brackets or quotes.
@@ -121,6 +130,44 @@ enum Gloss {
 
     /// An aside ending in one of these runs on into the word after it: "(to say the) least".
     private static let joiningWords: Set<String> = ["the", "a", "an", "to", "be", "one's", "someone's", "something's"]
+
+    /// The bracket that the final ")" closes, nesting counted: "person(s) spoken to)" isn't it.
+    private static func matchingOpen(in text: String) -> String.Index? {
+        var depth = 0
+        for i in text.indices.reversed() {
+            if text[i] == ")" { depth += 1 }
+            if text[i] == "(" { depth -= 1; if depth == 0 { return i } }
+        }
+        return nil
+    }
+
+    private static func topLevelComma(in text: String) -> String.Index? {
+        var depth = 0, quoted = false
+        for i in text.indices {
+            switch text[i] {
+            case "(": depth += 1
+            case ")": depth = max(0, depth - 1)
+            case "\"": quoted.toggle()
+            case "," where depth == 0 && !quoted: return i
+            default: break
+            }
+        }
+        return nil
+    }
+
+    /// The first bracket or quote still open at the end of `text`, if any.
+    private static func unclosed(in text: String) -> String.Index? {
+        var opens: [String.Index] = [], quote: String.Index?
+        for i in text.indices {
+            switch text[i] {
+            case "(": opens.append(i)
+            case ")": _ = opens.popLast()
+            case "\"": quote = quote == nil ? i : nil
+            default: break
+            }
+        }
+        return [opens.first, quote].compactMap { $0 }.min()
+    }
 
     private static func matchingClose(in text: String) -> String.Index? {
         var depth = 0

@@ -74,6 +74,8 @@ final class ModelDownloader: NSObject, URLSessionDataDelegate {
         req.timeoutInterval = 30
         handle = try? FileHandle(forWritingTo: partial)
         _ = try? handle?.seekToEnd()
+        // Without it every byte would be thrown away, and the whole download called damaged.
+        guard handle != nil else { state = .failed("can't write to \(partial.deletingLastPathComponent().path)"); return }
         state = .downloading(Double(received) / Double(Self.size))
         let s = URLSession(configuration: .default, delegate: self, delegateQueue: .main)
         session = s
@@ -104,6 +106,7 @@ final class ModelDownloader: NSObject, URLSessionDataDelegate {
 
     nonisolated func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
         MainActor.assumeIsolated {
+            guard session === self.session else { return }   // stopped or failed: chunks still queued
             // The throwing write: the old one raises an exception (a crash) on a full disk.
             do { try handle?.write(contentsOf: data) } catch {
                 session.invalidateAndCancel(); self.session = nil

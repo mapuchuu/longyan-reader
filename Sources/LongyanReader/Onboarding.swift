@@ -10,6 +10,7 @@ final class Onboarding {
     static let shared = Onboarding()
     private var window: NSWindow?
     private var timer: Timer?
+    private var closeObserver: NSObjectProtocol?
     var onTrusted: () -> Void = {}
 
     func showIfNeeded() {
@@ -38,8 +39,12 @@ final class Onboarding {
                 self?.onTrusted()
             }
         }
-        NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: w, queue: .main) { [weak self] _ in
-            Task { @MainActor in model.commitOpenAtLogin(); self?.timer?.invalidate(); self?.timer = nil; self?.window = nil }
+        // Removed on close, or it (and the model it holds) would outlive every window.
+        closeObserver = NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: w, queue: .main) { [weak self] _ in
+            Task { @MainActor in
+                model.commitOpenAtLogin(); self?.timer?.invalidate(); self?.timer = nil; self?.window = nil
+                if let o = self?.closeObserver { NotificationCenter.default.removeObserver(o); self?.closeObserver = nil }
+            }
         }
     }
 

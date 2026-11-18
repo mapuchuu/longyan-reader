@@ -11,6 +11,12 @@ enum Main {
             CLI.run(args)
             return
         }
+        // One copy at a time: a second (say, one opened from Downloads while the Applications
+        // copy runs) would add a second eye and menu, and two writers can lose history lines.
+        if let id = Bundle.main.bundleIdentifier,
+           NSRunningApplication.runningApplications(withBundleIdentifier: id).contains(where: { $0.processIdentifier != getpid() }) {
+            return
+        }
         let app = NSApplication.shared
         let delegate = AppDelegate()
         app.delegate = delegate
@@ -79,6 +85,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// them either): a card for a page of text would take minutes of model time.
     static let maxSelection = 400
     private var localModelReady = false
+
+    // A quit during the model's first load would otherwise exit under it (see `shutdown`).
+    func applicationWillTerminate(_ notification: Notification) {
+        EmbeddedModel.shared.shutdown()
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Accessibility calls wait up to about 6 s by default for an app that doesn't answer, and
@@ -516,6 +527,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         rebuildMenu()
     }
     @objc private func showHistory() {
+        Log.trim()   // "30 days" holds on a Mac that runs for weeks without a relaunch
         HistoryWindow.shared.show(dict: { [weak self] in self?.dict }, onChange: { [weak self] in self?.rebuildMenu() })
     }
     @objc private func revealHistory() { NSWorkspace.shared.activateFileViewerSelecting([Log.file]) }
@@ -667,10 +679,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         lookupTask = Task {
             let started = Date()
+            // What the card ended on (the reader's pick, if they made one first), for History.
+            // Written even when a newer card replaced this one before its pick: it was looked up.
+            @MainActor func finish() {
+                if let c = state.choice, let sense = state.senses[safe: c.senseNumber - 1] {
+                    record["meaningHere"] = c.meaningHere
+                    record["pinyin"] = sense.pinyin
+                    record["gloss"] = Gloss.readable(sense.gloss)
+                }
+                Log.write(record)
+                recordWritten = true
+            }
             if let pick {
                 do {
                     let choice = try await pick.value
-                    guard !Task.isCancelled else { return }
+                    guard !Task.isCancelled else { finish(); return }
                     if state.userPicked { record["userPickedFirst"] = true }   // the reader's choice stands
                     if popup.isRevealed {
                         withAnimation(cardMotion) { state.receive(choice) }
@@ -683,7 +706,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     record["meaningHere"] = choice.meaningHere
                     record["tag"] = choice.tag.rawValue
                 } catch is CancellationError {
-                    return   // a newer card replaced this one
+                    finish(); return   // a newer card replaced this one
                 } catch {
                     state.phase = error is NoSenseFits ? .dictionaryOnly("none of the listed meanings fit this sentence")
                         : .failed(String(describing: error).prefix(80).description)
@@ -705,14 +728,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     await relayout()
                 }
             }
-            // What the card ended on (the reader's pick, if they made one first), for History.
-            if let c = state.choice, let sense = state.senses[safe: c.senseNumber - 1] {
-                record["meaningHere"] = c.meaningHere
-                record["pinyin"] = sense.pinyin
-                record["gloss"] = Gloss.readable(sense.gloss)
-            }
-            Log.write(record)
-            recordWritten = true
+            finish()
         }
     }
 
@@ -738,7 +754,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let readyAtClick = prep.done
         lookupTask = Task {
             await prep.finished()
-            guard !Task.isCancelled else { return }
+            // Replaced by a newer card: kept only if it got as far as a translation.
+            guard !Task.isCancelled || state.translation != nil else { return }
             Log.write(["event": "phrase", "text": selection.text, "words": state.tokens.map(\.text),
                        "translation": state.translation ?? "", "app": selection.appName ?? "",
                        "source": selection.source.rawValue, "resolved": state.choices.count,
@@ -761,7 +778,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let senses = dict.senses(for: context.word)
             guard wordPrep?.key != key, SenseChooser.canChoose, !senses.isEmpty,
                   GrammarWords.entry(context.word, in: context.passage, at: context.wordRange.lowerBound) == nil else { return }
-            wordPrep?.task.cancel()
+            // Not the open card's own work (its "part of" pick is kept in wordPrep too).
+            if let t = wordPrep?.task, !cardTasks.contains(t) { t.cancel() }
             wordPrep = (key, Task { try await SenseChooser.choose(for: context, senses: senses) })
             return
         }
@@ -816,8 +834,15 @@ enum Log {
     }()
     static var file: URL { historyDirectory.appendingPathComponent("lookups.jsonl") }
 
+    /// The history as text. A byte that isn't UTF-8 (a write cut off mid-character) becomes
+    /// U+FFFD and spoils only its own line, not the whole file.
+    static func text() -> String? {
+        (try? Data(contentsOf: file)).map { String(decoding: $0, as: UTF8.self) }
+    }
+
     /// Before 1.0 the history was in Logs/LongyanReader. Moves it here once, at launch; if both
-    /// exist, the old lines go first (they're older) and the old file goes to the Trash.
+    /// exist, the old lines not already here go first (they're older) and the old file goes to
+    /// the Trash. Merging twice (the Trash refused, or a quit in between) adds nothing.
     static func migrate() {
         let fm = FileManager.default
         let old = directory.appendingPathComponent("lookups.jsonl")
@@ -826,8 +851,12 @@ enum Log {
             guard (try? fm.moveItem(at: old, to: file)) != nil else { return }
         } else {
             guard let a = try? Data(contentsOf: old), let b = try? Data(contentsOf: file) else { return }
-            let joined = a.isEmpty || a.last == UInt8(ascii: "\n") ? a + b : a + Data("\n".utf8) + b
-            guard (try? joined.write(to: file, options: .atomic)) != nil else { return }
+            let here = Set(b.split(separator: UInt8(ascii: "\n")))
+            let add = a.split(separator: UInt8(ascii: "\n")).filter { !here.contains($0) }
+            if !add.isEmpty {
+                let joined = Data(add.joined(separator: [UInt8(ascii: "\n")])) + Data("\n".utf8) + b
+                guard (try? joined.write(to: file, options: .atomic)) != nil else { return }
+            }
             try? fm.trashItem(at: old, resultingItemURL: nil)
         }
         try? fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)
@@ -853,21 +882,34 @@ enum Log {
         var r = record
         r["at"] = ISO8601DateFormatter().string(from: Date())
         guard let data = try? JSONSerialization.data(withJSONObject: r, options: [.sortedKeys]) else { return }
-        if let h = try? FileHandle(forWritingTo: file) {
-            // The throwing calls: the old write raises an exception (a crash) on a full disk.
-            defer { try? h.close() }
-            do { try h.seekToEnd(); try h.write(contentsOf: data + Data("\n".utf8)) } catch {}
-        } else {
-            FileManager.default.createFile(atPath: file.path, contents: data + "\n".data(using: .utf8)!,
+        guard FileManager.default.fileExists(atPath: file.path) else {
+            FileManager.default.createFile(atPath: file.path, contents: data + Data("\n".utf8),
                                            attributes: [.posixPermissions: 0o600])
+            return
         }
+        // If it can't be opened, this lookup is lost, never the history (creating it again
+        // would replace it).
+        guard let h = try? FileHandle(forUpdating: file) else { return }
+        // The throwing calls: the old write raises an exception (a crash) on a full disk.
+        defer { try? h.close() }
+        do {
+            // A line cut off by a crash ends first, so it doesn't swallow this one.
+            var line = data + Data("\n".utf8)
+            let end = try h.seekToEnd()
+            if end > 0 {
+                try h.seek(toOffset: end - 1)
+                if try h.read(upToCount: 1) != Data("\n".utf8) { line = Data("\n".utf8) + line }
+                try h.seekToEnd()
+            }
+            try h.write(contentsOf: line)
+        } catch {}
     }
 
     /// Readable by this account only, and with "30 days", nothing older. Runs at launch.
     static func trim() {
         guard FileManager.default.fileExists(atPath: file.path) else { return }
         try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)
-        guard keep == .days30, let text = try? String(contentsOf: file, encoding: .utf8) else { return }
+        guard keep == .days30, let text = text() else { return }
         let cutoff = Date().addingTimeInterval(-30 * 86_400)
         let parse = ISO8601DateFormatter()
         let lines = text.split(separator: "\n")

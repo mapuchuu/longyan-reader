@@ -22,7 +22,7 @@ struct HistoryEntry: Identifiable, Hashable {
 /// replaces that lookup's meaning.
 enum HistoryReader {
     static func entries(dict: CEDict?) -> [HistoryEntry] {
-        guard let text = try? String(contentsOf: Log.file, encoding: .utf8) else { return [] }
+        guard let text = Log.text() else { return [] }
         let iso = ISO8601DateFormatter()
         var out: [HistoryEntry] = []
         for (n, line) in text.split(separator: "\n").enumerated() {
@@ -71,10 +71,14 @@ enum HistoryExport {
 
     static func csv(_ entries: [HistoryEntry]) -> String {
         func field(_ s: String) -> String {
-            s.contains(where: { ",\"\n\r".contains($0) }) ? "\"" + s.replacingOccurrences(of: "\"", with: "\"\"") + "\"" : s
+            // A cell starting with = + - @ is a formula to Excel, even quoted; sentences come from
+            // web pages, so those get a leading apostrophe, which Excel shows as plain text.
+            let s = s.first.map { "=+-@\t\r".contains($0) } == true ? "'" + s : s
+            return s.contains(where: { ",\"\n\r".contains($0) }) ? "\"" + s.replacingOccurrences(of: "\"", with: "\"\"") + "\"" : s
         }
         let day = ISO8601DateFormatter()
         day.formatOptions = [.withFullDate]
+        day.timeZone = .current   // the reader's day, not UTC's
         let rows = unique(entries).map { e in
             [day.string(from: e.date), e.kind.rawValue, e.text, e.pinyin, e.meaning, e.gloss, e.sentence].map(field).joined(separator: ",")
         }
@@ -90,6 +94,7 @@ enum HistoryExport {
     static func anki(_ entries: [HistoryEntry]) -> String {
         func html(_ s: String) -> String {
             s.replacingOccurrences(of: "&", with: "&amp;").replacingOccurrences(of: "<", with: "&lt;")
+                .replacingOccurrences(of: "\"", with: "&quot;")   // a field starting with " is quoted to Anki
                 .replacingOccurrences(of: ">", with: "&gt;").replacingOccurrences(of: "\t", with: " ")
                 .replacingOccurrences(of: "\n", with: " ").replacingOccurrences(of: "\r", with: " ")
         }

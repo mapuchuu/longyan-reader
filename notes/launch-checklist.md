@@ -168,6 +168,13 @@ Still open:
 - [ ] [you] Test on the lowest Mac we support, ideally an 8 GB M1. That covers memory pressure from the mapped model and the slowest speeds.
 - [x] [me] Look at energy use while idle: no busy timers or polling, and Activity Monitor's energy figure near zero. Measured: 0% CPU, about 0.2 wakeups/s, 12 MB.
 - [ ] [me] Look at crash and log output. What does a user send us when something breaks? Is it written down?
+- [x] [me] Second audit, 2026-11-18 (five reviews: saved data, thread safety, fuzzing, data, website). Fixed:
+  - history: a bad byte hid all of it, a failed open replaced it, a cut-off line ate the next, the move could duplicate it; quick lookups replaced by a newer card weren't logged; one copy of the app at a time; CSV formula injection and UTC dates; Anki quotes
+  - quitting during the first model load; an onboarding leak; the ⌘C fallback running twice or restoring over a later copy; Accessibility ranges that could trap; a looping parent chain; the download flipping back to "Downloading"
+  - phrase cards dropped every word after an emoji or invisible character; malformed short meanings (咱们, 大厦, the Heavenly Stems); "also pr.", "also written" and "same as" listed as meanings
+  - traditional text now gets the hand-set meaning order and the cues; a dead cue, a duplicate note, a note against its gloss, an example without its word
+  - site: the card works from the keyboard, Firefox's keyboard path, reduced-motion install steps, lang tags, privacy wording
+  - Left: traditional text still splits a little differently (4 of 110 sentences); site contrast on phones and video size are design calls.
 
 ## 5. Updates and versioning
 

@@ -22,6 +22,19 @@ struct SenseOrder {
         return out
     }
 
+    /// `senses` in the order of `ordered` (another form's list, already ordered), matched by
+    /// gloss: those it has as common first, then any it lacks, then those it has as rare.
+    static func follow(_ ordered: [Sense], _ senses: [Sense]) -> [Sense] {
+        var position: [String: (Int, Bool)] = [:]
+        for (i, s) in ordered.enumerated() where position[s.gloss] == nil { position[s.gloss] = (i, s.rare) }
+        func group(_ s: Sense) -> Int { position[s.gloss].map { $0.1 ? 2 : 0 } ?? 1 }
+        return senses.enumerated().sorted { a, b in
+            let (ga, gb) = (group(a.element), group(b.element))
+            if ga != gb { return ga < gb }
+            return (position[a.element.gloss]?.0 ?? a.offset) < (position[b.element.gloss]?.0 ?? b.offset)
+        }.map { var s = $0.element; if group(s) == 2 { s.rare = true }; return s }
+    }
+
     /// LONGYAN_NO_SENSE_ORDER=1 turns the file off, for before/after comparisons.
     static let enabled = ProcessInfo.processInfo.environment["LONGYAN_NO_SENSE_ORDER"] == nil
 

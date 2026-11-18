@@ -26,7 +26,7 @@ struct WordInContext {
     let alternatives: [String]     // other dictionary words covering the same character
 
     var sentence: String {
-        let stops: Set<Character> = ["。", "！", "？", "；", "!", "?", ";", "\n"]
+        let stops: Set<Character> = ["。", "！", "？", "；", "!", "?", ";", "\n", "\r\n", "\r", "\u{2029}"]
         var lo = wordRange.lowerBound, hi = wordRange.upperBound
         while lo > 0, !stops.contains(passage[lo - 1]), wordRange.lowerBound - lo < 160 { lo -= 1 }
         while hi < passage.count, !stops.contains(passage[hi]), hi - wordRange.upperBound < 160 { hi += 1 }
@@ -102,11 +102,11 @@ enum Segmenter {
         tokenizer.setLanguage(chineseScript(of: text))
         tokenizer.string = text
         let target = index - lo
+        let starts = Array(text.indices)
         var found: Range<Int>?
         tokenizer.enumerateTokens(in: text.startIndex..<text.endIndex) { r, _ in
-            let a = text.distance(from: text.startIndex, to: r.lowerBound)
-            let b = text.distance(from: text.startIndex, to: r.upperBound)
-            if a <= target, target < b { found = (a + lo)..<(b + lo); return false }
+            let o = offsets(r, starts: starts)
+            if o.lowerBound <= target, target < o.upperBound { found = (o.lowerBound + lo)..<(o.upperBound + lo); return false }
             return true
         }
         return found
@@ -125,22 +125,7 @@ extension Segmenter {
     /// boundaries, splits tokens the dictionary doesn't know by longest match, then
     /// merges tokens that together form a longer dictionary word (有/意思 → 有意思, idioms).
     static func phrase(_ range: Range<Int>, in passage: [Character], dict: CEDict) -> [PhraseToken] {
-        let text = String(passage[range])
-        let tokenizer = NLTokenizer(unit: .word)
-        tokenizer.setLanguage(chineseScript(of: text))
-        tokenizer.string = text
-        var pieces: [Range<Int>] = []
-        tokenizer.enumerateTokens(in: text.startIndex..<text.endIndex) { r, _ in
-            let a = text.distance(from: text.startIndex, to: r.lowerBound) + range.lowerBound
-            let b = text.distance(from: text.startIndex, to: r.upperBound) + range.lowerBound
-            let piece = a..<b
-            if !piece.contains(where: { isCJK(passage[$0]) }) || dict.contains(String(passage[piece])) {
-                pieces.append(piece)
-            } else {
-                pieces += longestMatch(piece, in: passage, dict: dict)
-            }
-            return true
-        }
+        var pieces = tokenized(range, in: passage, dict: dict)
 
         pieces = rejoinSingles(resplitAdverbs(pieces, in: passage, dict: dict), in: passage, dict: dict)
 
@@ -214,6 +199,61 @@ extension Segmenter {
             }
         }
         return out
+    }
+
+    /// The tokenizer's words for `range`, with what it doesn't know split by longest match.
+    /// It can stop early (at U+FE0F, U+FEFF, control characters: one ❤️ would lose the rest),
+    /// so a stretch it leaves out is tokenized again from its first Chinese character, and
+    /// split by longest match only if that gets no further.
+    private static func tokenized(_ range: Range<Int>, in passage: [Character], dict: CEDict) -> [Range<Int>] {
+        let text = String(passage[range])
+        let tokenizer = NLTokenizer(unit: .word)
+        tokenizer.setLanguage(chineseScript(of: text))
+        tokenizer.string = text
+        var pieces: [Range<Int>] = []
+        let starts = Array(text.indices)
+        func add(_ piece: Range<Int>) {
+            guard !piece.isEmpty else { return }
+            if !piece.contains(where: { isCJK(passage[$0]) }) || dict.contains(String(passage[piece])) {
+                pieces.append(piece)
+            } else {
+                pieces += longestMatch(piece, in: passage, dict: dict)
+            }
+        }
+        // Only Chinese in a stretch it left out matters: spaces and punctuation it always skips.
+        func fill(_ gap: Range<Int>) {
+            guard let first = gap.first(where: { isCJK(passage[$0]) }) else { return }
+            if first > gap.lowerBound { pieces += tokenized(first..<gap.upperBound, in: passage, dict: dict); return }
+            pieces += longestMatch(gap, in: passage, dict: dict).filter { p in
+                p.contains { isCJK(passage[$0]) || passage[$0].isLetter || passage[$0].isNumber }
+            }
+        }
+        var covered = range.lowerBound
+        tokenizer.enumerateTokens(in: text.startIndex..<text.endIndex) { r, _ in
+            let o = offsets(r, starts: starts)
+            let a = max(o.lowerBound + range.lowerBound, covered), b = o.upperBound + range.lowerBound
+            guard a < b else { return true }
+            fill(covered..<a)
+            add(a..<b)
+            covered = b
+            return true
+        }
+        fill(covered..<range.upperBound)
+        return pieces
+    }
+
+    /// Character offsets of a tokenizer range, `starts` being the text's character indices. A
+    /// range that ends inside a character (a Han character before U+FE0F) takes all of it.
+    /// A binary search, so a long text isn't counted from its start for every word.
+    static func offsets(_ r: Range<String.Index>, starts: [String.Index]) -> Range<Int> {
+        func count(_ include: (String.Index) -> Bool) -> Int {
+            var lo = 0, hi = starts.count
+            while lo < hi { let m = (lo + hi) / 2; if include(starts[m]) { lo = m + 1 } else { hi = m } }
+            return lo
+        }
+        let a = max(0, count { $0 <= r.lowerBound } - 1)
+        let b = count { $0 < r.upperBound }
+        return a..<max(a, b)
     }
 
     private static func longestMatch(_ piece: Range<Int>, in passage: [Character], dict: CEDict) -> [Range<Int>] {
