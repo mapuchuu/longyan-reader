@@ -287,11 +287,21 @@
     }
   }));
 
-  // Continue, once the sentence has had its turn: on to the statement, the same slow glide.
+  // "How it picks the meaning", once the sentence has had its turn: on to the statement, the
+  // same slow glide.
   // The statement's first line comes in as its pinned stretch reaches the top.
   document.querySelectorAll("[data-continue]").forEach((b) => b.addEventListener("click", () => {
     const st = document.getElementById("statement");
     if (st) glideTo(st.getBoundingClientRect().top + window.scrollY);
+  }));
+
+  // The hero's Download for Mac: down to the closing, where the download button is, with what
+  // it needs (Apple silicon, macOS 15), on the same glide. Without script it's a plain link.
+  document.querySelectorAll("[data-glide]").forEach((a) => a.addEventListener("click", (e) => {
+    const t = document.querySelector(a.getAttribute("href"));
+    if (!t) return;
+    e.preventDefault();
+    glideTo(t.getBoundingClientRect().top + window.scrollY);
   }));
 
   // After a download starts, point to the install steps.

@@ -110,17 +110,6 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .button-quiet:hover svg { transform: translateY(2px); }
 .fine { margin: 22px 0 0; font-size: 13px; color: #8e8e93; }
 
-/* A quiet hint at the bottom right, gone once you've pointed at a word. */
-.hint {
-  position: absolute; z-index: 2; margin: 0; right: max(28px, calc((100vw - 1120px) / 2 + 28px)); bottom: 34px;
-  font-size: 13px; letter-spacing: -0.005em; color: rgba(245, 245, 247, .7); pointer-events: none;
-  transition: opacity .6s var(--ease-out), transform .6s var(--ease-out);
-}
-.motion .hint { opacity: 0; transform: translateY(6px); }
-.motion.hero-ready .hint { opacity: 1; transform: none; transition-delay: 2.8s; }
-.hint.done, .motion.hero-ready .hint.done, .is-away .hint, .motion.hero-ready .is-away .hint { opacity: 0; transition-delay: 0s; }
-.og .hint { display: none; }
-@media (max-width: 900px), (max-width: 1100px) and (orientation: portrait) { .hint { right: 0; left: 0; text-align: center; bottom: 22px; } }
 
 /* The opening plays in once: the lines rise, then the rest fades up. */
 .motion .rise > span { transform: translateY(105%); }
@@ -211,11 +200,11 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 @keyframes bob { 0%, 100% { transform: none; } 50% { transform: translateY(5px); } }
 .hl-done.tried .try-arrow { opacity: .4; transition: opacity .6s var(--ease-out); }
 .tried .try-head h2 { animation: none; transition: transform .6s var(--ease-out); }
-/* Once the second bar is full, Continue takes you on to the statement. Until then it isn't
+/* Once the second bar is full, the button takes you on to the statement. Until then it isn't
    there at all, to the pointer or the keyboard. */
 .try-continue {
   position: absolute; left: 50%; top: calc(var(--bottom-y) + 116px);
-  display: inline-flex; align-items: center; height: 44px; padding: 0 20px 0 22px;
+  display: inline-flex; align-items: center; height: 44px; padding: 0 20px 0 22px; white-space: nowrap;
   font: 500 16px/1 var(--text); letter-spacing: -0.012em; color: #fff;
   background: #000; border: 1px solid rgba(255, 255, 255, .9); border-radius: 999px; cursor: pointer; pointer-events: auto;
   visibility: hidden; opacity: 0; transform: translate(-50%, 8px);
@@ -1094,19 +1083,16 @@ footer a { color: #a1a1a6; }
   .mac-screen { border-radius: 12px; box-shadow: 0 0 0 1px rgba(255, 255, 255, .06), 0 0 0 6px #0e0e11, 0 0 0 7px rgba(255, 255, 255, .22), 0 30px 60px rgba(0, 0, 0, .6); }
   .closing { padding: 120px 0 130px; }
   .hero-sub { margin: 16px 0 24px; }
-  .hero-actions { gap: 4px 22px; }
-  .hero-actions .button-quiet { height: 44px; }
-  /* Room under the fine print for the tap hint. */
-  .hero-copy { bottom: max(58px, 7vh); }
+  /* Too narrow for the two side by side: two matching pills, one over the other, so
+     neither looks out of line. */
+  .hero-actions { flex-direction: column; align-items: stretch; gap: 12px; }
+  .hero-actions .button-quiet { justify-content: center; height: 50px; border: 1px solid rgba(255, 255, 255, .3); border-radius: 999px; }
   .eyebrow { font-size: 16px; margin-bottom: 12px; }
   .try-head p { font-size: 16px; }
   .lit-line { font-size: 30px; }
   .statement { padding: 60px 0 150px; }
 }
 
-/* Instructions in the visitor's terms: click on a Mac, tap on a phone. */
-.coarse-pointer { display: none; }
-@media (pointer: coarse) { .fine-pointer { display: none; } .coarse-pointer { display: inline; } }
 
 /* The narrowest phones: just the name and Download. */
 @media (max-width: 380px) { .bar-links a[href*="github.com"]:not(.bar-download) { display: none; } }

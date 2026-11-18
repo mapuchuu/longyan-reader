@@ -13,7 +13,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/png" href="images/favicon.png">
 <link rel="apple-touch-icon" href="images/icon.png">
-<link rel="stylesheet" href="style.css?v=1118zb">
+<link rel="stylesheet" href="style.css?v=1118zc">
 <script>
   // Scroll motion, unless the visitor asked for less (or ?still, for screenshots).
   if (!matchMedia("(prefers-reduced-motion: reduce)").matches && !/[?&]still/.test(location.search)) document.documentElement.classList.add("motion");
@@ -37,14 +37,13 @@
 <section class="story" id="story">
   <div class="story-pin" id="top">
     <canvas id="field" aria-hidden="true"></canvas>
-    <p class="hint" id="hint" aria-hidden="true"><span class="fine-pointer">Point at a word in the eye.</span><span class="coarse-pointer">Tap a word in the eye.</span></p>
     <div class="hero-copy">
       <p class="eyebrow">The Chinese pop-up reader for macOS</p>
       <h1><span class="rise"><span>Read &amp; learn</span></span> <span class="rise"><span>Chinese anywhere.</span></span></h1>
       <p class="hero-sub">Highlight Chinese in any app, and Longyan shows you what it means in that sentence.</p>
       <div class="hero-actions">
         <a class="button" href="#try" data-try>See how it works <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5"/></svg></a>
-        <a class="button-quiet" href="https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip" data-download>Download for Mac <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v7.5M4.75 6.75 8 10l3.25-3.25M3 13.25h10"/></svg></a>
+        <a class="button-quiet" href="#download" data-glide>Download for Mac <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v7.5M4.75 6.75 8 10l3.25-3.25M3 13.25h10"/></svg></a>
       </div>
       <p class="fine">Free · Open source · Works offline</p>
     </div>
@@ -54,7 +53,7 @@
       </div>
       <div class="lines" id="lines" lang="zh-CN"></div>
       <div class="try-progress" aria-hidden="true"><i><b></b></i><i><b></b></i></div>
-      <button type="button" class="try-continue" data-continue>Continue <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5"/></svg></button>
+      <button type="button" class="try-continue" data-continue>How it picks the meaning <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5"/></svg></button>
     </div>
   </div>
 </section>
@@ -66,7 +65,7 @@
     <div class="wrap">
       <div class="lit" id="lit">
         <div class="lit-lines">
-          <p class="lit-line">An ordinary dictionary throws <span class="every">every meaning</span> at you.</p>
+          <p class="lit-line">An ordinary dictionary would throw <span class="every">every meaning</span> at you.</p>
           <p class="lit-line">Longyan shows you which <span class="one">one</span> your sentence really means…</p>
           <p class="lit-line">and teaches you the <span class="ctx">cultural context</span> you need to know.</p>
         </div>
@@ -93,7 +92,7 @@
 <section class="watch">
   <canvas class="paper" data-paper="azure" data-drop=".16" data-live aria-hidden="true"></canvas>
   <div class="wrap watch-copy" data-reveal>
-    <h2>Yes, Longyan works everywhere you want to read.</h2>
+    <h2>Longyan works everywhere on your Mac.</h2>
     <p>Safari, Chrome, Mail, Notes, you name it. Highlight some Chinese text, click the eye, and the smart card opens up.</p>
   </div>
   <div class="wrap">
@@ -287,12 +286,12 @@
   </div>
 </section>
 
-<section class="closing">
+<section class="closing" id="download">
   <canvas class="paper" data-paper="dawn" data-live aria-hidden="true"></canvas>
   <div class="wrap" data-reveal>
     <svg class="closing-mark" viewBox="0 0 1200 848.53" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M0 424.26L300 124.26A424.26 424.26 0 0 1 900 124.26L1200 424.26L900 724.26A424.26 424.26 0 0 1 300 724.26ZM225 424.26L412.5 236.76A265.17 265.17 0 0 1 787.5 236.76L975 424.26L787.5 611.76A265.17 265.17 0 0 1 412.5 611.76ZM471.43 424.26L535.71 359.98A90.91 90.91 0 0 1 664.29 359.98L728.57 424.26L664.29 488.55A90.91 90.91 0 0 1 535.71 488.55ZM728.57 424.26L975 424.26L851.79 547.48Z"/></svg>
-    <h2>Free <span class="plus">+</span> offline <span class="plus">+</span> open source</h2>
-    <p>No account, no subscription. The code is on <a href="https://github.com/mapuchuu/longyan-reader">GitHub</a> under the MIT license.</p>
+    <h2>Free <span class="plus">+</span> Offline <span class="plus">+</span> Open source</h2>
+    <p>There’s no account to make and nothing to pay. All the code is on <a href="https://github.com/mapuchuu/longyan-reader">GitHub</a>.</p>
     <a class="button" href="https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip" data-download>Download for Mac</a>
     <p class="closing-fine">Apple silicon, macOS 15 or later. Windows coming soon.</p>
   </div>
@@ -307,13 +306,13 @@
   </div>
 </footer>
 
-<script src="data.js?v=1118zb"></script>
-<script src="card.js?v=1118zb"></script>
-<script src="hero.js?v=1118zb"></script>
-<script src="try.js?v=1118zb"></script>
-<script src="paper.js?v=1118zb"></script>
-<script src="motion.js?v=1118zb"></script>
-<script src="tiles.js?v=1118zb"></script>
-<script src="install.js?v=1118zb"></script>
+<script src="data.js?v=1118zc"></script>
+<script src="card.js?v=1118zc"></script>
+<script src="hero.js?v=1118zc"></script>
+<script src="try.js?v=1118zc"></script>
+<script src="paper.js?v=1118zc"></script>
+<script src="motion.js?v=1118zc"></script>
+<script src="tiles.js?v=1118zc"></script>
+<script src="install.js?v=1118zc"></script>
 </body>
 </html>

@@ -514,8 +514,8 @@
 
   // Once the sentence has formed it plays on its own, in seconds, while the page holds still
   // (it never scrolls itself): a beat to see it, then "Highlight" is selected as if dragged
-  // across (the first bar), then the second bar fills while you try it, and Continue comes
-  // in to move on. Scrolling back above the sentence resets it, to play again next time.
+  // across (the first bar), then the second bar fills while you try it, and the button on to the
+  // statement comes in. Scrolling back above the sentence resets it, to play again next time.
   const LEAD = 0.6, SELECT = 1.6, TRY = 7.6;
   const bars = story ? [...story.querySelectorAll(".try-progress b")] : [];
   let lastHold = -1, formedAt = null;
@@ -606,8 +606,6 @@
     const card = window.LongyanCard;
     if (!card) return;
     if (!hover) { card.peek(null); return; }
-    const hint = document.getElementById("hint");
-    if (hint) hint.classList.add("done");
     const g = fine.glyphs[k], box = canvas.getBoundingClientRect();
     card.peek({ text: w.text, syl: w.syl, gloss: w.gloss },
       { left: box.left + g.x - 1, top: box.top + g.y - 1, right: box.left + g.x + g.w + 1, bottom: box.top + g.y + g.w + 1 });
