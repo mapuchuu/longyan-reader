@@ -166,7 +166,7 @@ enum CLI {
                 if kind == "T" {
                     let selected = String(passage[lo..<hi])
                     let context = withContext ? Segmenter.translationContext(for: lo..<hi, in: passage) : nil
-                    let t = (try? await LocalModel.translate(selected, context: context)) ?? ""
+                    let t = (try? await LocalModel.translate(selected, context: context, dict: dict)) ?? ""
                     let lower = t.lowercased()
                     let must = f[3].lowercased().split(separator: "|").map(String.init)
                     let mustNot = f.count > 4 ? f[4].lowercased().split(separator: "|").map(String.init) : []
@@ -284,7 +284,7 @@ enum CLI {
             for i in words.indices {
                 for j in words.indices where j > i {
                     let r = words[i].range.lowerBound..<words[j].range.upperBound
-                    let t = try await LocalModel.translate(String(passage[r]), context: Segmenter.translationContext(for: r, in: passage))
+                    let t = try await LocalModel.translate(String(passage[r]), context: Segmenter.translationContext(for: r, in: passage), dict: dict)
                     print("\(String(passage[r]))\t\(t)")
                 }
             }
@@ -659,7 +659,7 @@ enum CLI {
             let state = PhraseState(selection: selection, dict: dict)
             var translation: String?
             if await LocalModel.isAvailable() {
-                translation = try? await LocalModel.translate(selection.text, context: Segmenter.translationContext(for: range, in: passage))
+                translation = try? await LocalModel.translate(selection.text, context: Segmenter.translationContext(for: range, in: passage), dict: dict)
             }
             if translation == nil { translation = try? await Translator.translate(selection.text) }
             state.translation = translation
