@@ -205,6 +205,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 let f = arg.dropFirst(8).split(separator: ",").compactMap { Double($0) }
                 guard f.count == 2 else { return }
                 let started = Date()
+                if TextCapture.at(CGPoint(x: f[0], y: f[1])) == nil, let cell = TextCapture.cell(at: CGPoint(x: f[0], y: f[1])) {
+                    try? ("cell: \(cell.text.count) chars, frame \(cell.frame), app \(cell.appName ?? "?")\ntrace: " + TextCapture.trace.joined(separator: " | "))
+                        .write(to: Log.directory.appendingPathComponent("ax-probe.txt"), atomically: true, encoding: .utf8)
+                    return
+                }
                 let c = TextCapture.at(CGPoint(x: f[0], y: f[1]))
                 let ms = Int(Date().timeIntervalSince(started) * 1000)
                 let word = c.flatMap { c in self.dict.flatMap { Segmenter.word(at: c.index, in: c.passage, dict: $0)?.word } }
@@ -600,6 +605,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // Nothing readable is selected: the word under the cursor, else whatever copying finds.
         if let captured = TextCapture.at(Self.mouseInCGSpace()) {
             showWord(captured)
+            return
+        }
+        if let cell = TextCapture.cell(at: Self.mouseInCGSpace()) {
+            let passage = Array(cell.text)
+            let s = Selection(passage: passage, range: 0..<passage.count, bounds: cell.frame.width > 0 ? cell.frame : nil,
+                              source: .accessibility, appName: cell.appName).trimmed()
+            show(s, near: s.bounds.map(Self.appKitRect) ?? Self.mouseBox)
             return
         }
         Task {

@@ -21,6 +21,39 @@ enum TextCapture {
         return accessibility(at: point)
     }
 
+    /// A spreadsheet cell under the point (Numbers), which gives its text but not where each
+    /// character is: the whole cell is looked up instead of one word.
+    static func cell(at point: CGPoint) -> (text: String, frame: CGRect, appName: String?)? {
+        guard AXIsProcessTrusted() else { return nil }
+        let system = AXUIElementCreateSystemWide()
+        AXUIElementSetMessagingTimeout(system, 0.4)
+        var elementRef: AXUIElement?
+        guard AXUIElementCopyElementAtPosition(system, Float(point.x), Float(point.y), &elementRef) == .success,
+              let element = elementRef else { return nil }
+        var role: CFTypeRef?, frameRef: CFTypeRef?
+        AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &role)
+        guard (role as? String) == kAXCellRole else { return nil }
+        // Numbers puts a cell's text in its title.
+        var text: String?
+        for attr in [kAXValueAttribute, kAXTitleAttribute] where text == nil {
+            var v: CFTypeRef?
+            AXUIElementCopyAttributeValue(element, attr as CFString, &v)
+            if let s = v as? String, s.contains(where: isCJK) { text = s }
+        }
+        // A header cell's title ends with a label for VoiceOver: "句子, Column header cell".
+        if let t = text, let r = t.range(of: #", [A-Za-z ]*(header|footer) cell$"#, options: [.regularExpression, .caseInsensitive]) {
+            text = String(t[..<r.lowerBound])
+        }
+        guard let text else { return nil }
+        var frame = CGRect.zero
+        if AXUIElementCopyAttributeValue(element, "AXFrame" as CFString, &frameRef) == .success, let frameRef,
+           CFGetTypeID(frameRef) == AXValueGetTypeID() { AXValueGetValue(frameRef as! AXValue, .cgRect, &frame) }
+        var pid: pid_t = 0
+        AXUIElementGetPid(element, &pid)
+        note("ax: whole cell")
+        return (text, frame, NSRunningApplication(processIdentifier: pid)?.localizedName)
+    }
+
     // MARK: Accessibility: exact text when the app exposes it.
 
     static func accessibility(at point: CGPoint) -> CapturedText? {
