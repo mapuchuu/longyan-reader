@@ -80,7 +80,7 @@ Run on a machine or account that has never had the app.
   - dictionary order, and no translations
   - the menu still offers Download Reading Model
   - Apple's model fills in on macOS 26
-- [ ] [me] If `qwen3.5:4b` is already in Ollama, the download isn't offered and the Ollama copy is used.
+- [x] [me] If `qwen3.5:4b` is already in Ollama, the download isn't offered and the Ollama copy is used. Checked in code 2026-11-18: `EmbeddedModel.modelPath` takes Ollama's blob of the same file when the app has none.
 - [ ] [me] Time from first launch to the first useful card, with the download included. It should feel short.
 
 ## 3. Features
@@ -107,13 +107,13 @@ For each one: it works, it's fast enough, and its failure looks deliberate.
   - entries record the meaning the word had
   - Export to Anki and to a spreadsheet, then open both files in Anki and Numbers
   - Clear, and turning history off
-  - a history file with thousands of entries
+  - a history file with thousands of entries (done 2026-11-18 with 5,000 made-up lines and a cut-off one: the window opens at once, CSV and Anki export in 1.4 s, formulas stay text; the When column cuts the time off at the default width)
 - [ ] **Card handling** [me]: the zoom grip, double-click to reset, dragging, a dragged card staying open on scroll, Escape, and keyboard focus.
 - [ ] **Appearance** [me]: Light, Dark and System, switched live; Classic and Liquid Glass (macOS 26 only, hidden on 15).
 - [ ] **Windows and screens** [me]: several displays, full-screen apps, Spaces, and a card near a screen edge. The card should never be cut off.
 - [ ] **Menu**: every item works, with the right wording and shortcuts.
   - [you] Open at Login, including its approval in System Settings.
-  - [me] Report a Problem opens a filled-in GitHub issue with no private data in it.
+  - [me] Report a Problem opens a filled-in GitHub issue with no private data in it. Done 2026-11-18: GitHub fills the body in; only versions, chip, memory and model.
   - [me] About shows the version and build.
   - [me] Check for Updates, the Accessibility status line, and Quit.
 - [ ] **Permissions changing** [you]:
@@ -155,7 +155,7 @@ Still open:
 - Kangxi radicals and compatibility ideographs from PDFs aren't normalised.
 - "Windows coming soon" on the site: confirm or remove.
 
-- [ ] [me] Run the usage simulation (`Simulation.swift`) for a long session: no crashes, flat memory, the model unloaded after 5 idle minutes.
+- [x] [me] Run the usage simulation (`Simulation.swift`) for a long session: no crashes, flat memory, the model unloaded after 5 idle minutes. Done 2026-11-18: six runs back to back, 126/126 each, footprint 600 to 770 MB with no growth; idle, the model let go at 5 minutes (3.3 GB resident to 431 MB).
 - [ ] [me] Through sleep and wake, and with the network changing (proxy on and off), the next lookup still works.
 - [x] [me] Failures stay contained: a corrupt or truncated model file, a corrupt history file, missing resources, and low disk. Each should end in a clear message, not a crash or hang. Fixed after an audit and real tests:
   - the download progress froze on a retry
@@ -164,10 +164,10 @@ Still open:
   - the history write crashed on a full disk
   - a model that wouldn't load was treated as ready and couldn't be downloaded again
   - quitting mid-lookup could free the model during a decode
-- [ ] [me] Check the speed numbers DEVELOPMENT.md promises: about 0.15 s for a word and 1 to 2 s for a sentence. Measure cold start as well (first lookup after launch, with the model loading).
+- [x] [me] Check the speed numbers DEVELOPMENT.md promises: about 0.15 s for a word and 1 to 2 s for a sentence. Measure cold start as well (first lookup after launch, with the model loading). Done 2026-11-18 on an M5 Pro: card open 72 ms after the click, translation at 147 ms, words by 0.9 s; a fresh process with the model load 0.6 s for a word and 1.2 s for a phrase. Not measured: cold from disk after a restart, and an 8 GB M1.
 - [ ] [you] Test on the lowest Mac we support, ideally an 8 GB M1. That covers memory pressure from the mapped model and the slowest speeds.
 - [x] [me] Look at energy use while idle: no busy timers or polling, and Activity Monitor's energy figure near zero. Measured: 0% CPU, about 0.2 wakeups/s, 12 MB.
-- [ ] [me] Look at crash and log output. What does a user send us when something breaks? Is it written down?
+- [x] [me] Look at crash and log output. What does a user send us when something breaks? Is it written down? Done 2026-11-18: release builds keep no log but the history. README now has "Something broke?" (Report a Problem, which app, the crash report from Console). Report a Problem now sends the build number and asks which app; the issue template matches.
 - [x] [me] Second audit, 2026-11-18 (five reviews: saved data, thread safety, fuzzing, data, website). Fixed:
   - history: a bad byte hid all of it, a failed open replaced it, a cut-off line ate the next, the move could duplicate it; quick lookups replaced by a newer card weren't logged; one copy of the app at a time; CSV formula injection and UTC dates; Anki quotes
   - quitting during the first model load; an onboarding leak; the ⌘C fallback running twice or restoring over a later copy; Accessibility ranges that could trap; a looping parent chain; the download flipping back to "Downloading"
@@ -194,7 +194,7 @@ Still open:
   - An update with a bad EdDSA signature is refused.
   - An update signed with a different certificate is refused, or we know what happens.
   - "Skip this version" works.
-- [ ] [me] Settings migrations: an old defaults key or a new history format is upgraded, not lost (see the `cardSizeVersion` pattern).
+- [x] [me] Settings migrations: an old defaults key or a new history format is upgraded, not lost (see the `cardSizeVersion` pattern). Done 2026-11-18: no key changed since 0.1; made-up 0.1 records all read; the history move is idempotent. Fixed: History now orders by date, so a downgrade and re-upgrade can't keep an older lookup over a newer one. Note for later: the `cardSizeVersion` cleanup deletes every `card.` key (pin and zoom too); copy it with care.
 - [x] [me] **Bad-release plan, written in DEVELOPMENT.md.** The feed is "latest release" and Sparkle won't downgrade, so a bad release is fixed forward: a new build number out quickly. Record the steps and how long they take.
 - [ ] [you] **Back up the keys** somewhere other than this Mac, such as a password manager or an encrypted USB drive. The files are `longyan-codesign.p12` with its password, and `sparkle-private-key.txt`. If they're lost, existing users can never be updated, and they would have to re-grant Accessibility.
 - [x] [me] `release.sh` prints the publish command. Add a check step after publishing: fetch the live appcast and the site's zip, and confirm the version and signature. Done: `scripts/check-release.sh`, tested on the 0.1 release and on a tampered zip.
@@ -216,7 +216,7 @@ Still open:
 
 - [x] [me] Read every string in the app (menus, onboarding, errors, alerts, the update window) against notes/style.md: short, plain, no AI tics, no em dashes. About 150 strings reviewed. The model now has one name (reading model). Fixed: menu Title Case, plural "1 lookup", the jargon in card status lines, and plain download errors.
 - [x] [me] README, site and app all match on requirements, install steps, shortcuts, disk space and privacy claims. The README is fixed: 4 GB free, Intel/macOS 14, the second Open Anyway, the history default, Apple Intelligence, the privacy lines. The site's menu mock is updated. The dictionary claim stays (your call). The site's install animation now shows the password and the second Open Anyway. The hero says "Apple silicon, macOS 15 or later". There is a privacy page at /privacy.html.
-- [ ] [me] Release notes for the launch version, plus a corrected sentence about the eye.
+- [x] [me] Release notes for the launch version, plus a corrected sentence about the eye. Done 2026-11-18: `notes/release-1.0.md`; 0.1 put the eye in the menu bar, it's next to the selection.
 - [x] [me] Check the GitHub repo: done 2026-11-18. Updated the description, website and topics, and added an issue template. Still to do: set the social preview image (only possible from the web settings).
   - description, topics and website link
   - licence shown

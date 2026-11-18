@@ -478,6 +478,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// lookups, no file paths), opened in the browser for the reader to write and send.
     @objc private func reportIssue() {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
         let os = ProcessInfo.processInfo.operatingSystemVersion
         var chip = [CChar](repeating: 0, count: 128), size = chip.count
         sysctlbyname("machdep.cpu.brand_string", &chip, &size, nil, 0)
@@ -489,11 +490,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         **What you expected**
 
 
+        **Which app the text was in** (for example Safari, Preview, WeChat)
+
+
         **Steps or text to reproduce** (a sentence and the word you looked up help most)
 
 
         ---
-        Longyan Reader \(version), macOS \(os.majorVersion).\(os.minorVersion).\(os.patchVersion), \(String(cString: chip)), \(Int((Double(ProcessInfo.processInfo.physicalMemory) / 1_073_741_824).rounded())) GB, reading model: \(model)
+        Longyan Reader \(version) (\(build)), macOS \(os.majorVersion).\(os.minorVersion).\(os.patchVersion), \(String(cString: chip)), \(Int((Double(ProcessInfo.processInfo.physicalMemory) / 1_073_741_824).rounded())) GB, reading model: \(model)
         """
         var url = URLComponents(string: "https://github.com/mapuchuu/longyan-reader/issues/new")!
         url.queryItems = [URLQueryItem(name: "body", value: body)]

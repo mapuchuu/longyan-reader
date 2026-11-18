@@ -46,9 +46,10 @@ enum HistoryReader {
             }
         }
         // The same word looked up again in the same sentence (a card reopened) is one entry,
-        // dated the latest time.
+        // dated the latest time. Newest first by date, not by place in the file: going back to
+        // an older version and up again can leave newer lines above older ones.
         var seen: Set<String> = []
-        return out.reversed().filter { seen.insert($0.kind.rawValue + "|" + $0.text + "|" + $0.sentence).inserted }
+        return out.sorted { $0.date != $1.date ? $0.date > $1.date : $0.id > $1.id }.filter { seen.insert($0.kind.rawValue + "|" + $0.text + "|" + $0.sentence).inserted }
     }
 
     private static func fill(_ e: inout HistoryEntry, dict: CEDict) {

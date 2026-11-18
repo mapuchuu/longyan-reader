@@ -66,6 +66,12 @@ The [privacy page](https://longyan.app/privacy.html) has the details.
 
 The app checks GitHub for new versions (it asks before doing this automatically), or choose **Check for Updates…** in the menu.
 
+## Something broke?
+
+Choose Report a Problem from the menu bar icon. It opens a GitHub issue with the app, macOS and reading model versions filled in, and nothing is sent until you submit it. Say which app the text was in, and paste the sentence and the word you looked up if you can: most wrong meanings can only be fixed with the sentence.
+
+If the app quit on its own, macOS kept a crash report. Open Console, choose Crash Reports, find LongyanReader, and attach the newest one. The app keeps no other log, and your history is never part of a report unless you paste from it.
+
 ## Uninstall
 
 Quit the app, then move these to the Trash:
