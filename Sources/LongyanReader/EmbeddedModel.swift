@@ -99,7 +99,10 @@ final class EmbeddedModel: @unchecked Sendable {
     /// Streams a chat reply. `messages` are role/content pairs as sent to Ollama; `grammar`
     /// (GBNF) constrains the reply; `maxTokens` caps it. Cancelling the consuming task stops
     /// generation at the next token.
-    func stream(messages: [[String: String]], maxTokens: Int?, grammar: String?) -> AsyncThrowingStream<String, Error> {
+    /// `banned` are English words the reply can't use (OutsideWords). When the model's next
+    /// word would be one of them and `endsAt` says the reply so far is enough, it ends there.
+    func stream(messages: [[String: String]], maxTokens: Int?, grammar: String?, banned: [String] = [],
+                endsAt: (@Sendable (String) -> Bool)? = nil) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             let stop = StopFlag()
             continuation.onTermination = { _ in stop.set() }
@@ -107,7 +110,7 @@ final class EmbeddedModel: @unchecked Sendable {
                 do {
                     try self.loadIfNeeded()
                     try self.generate(prompt: Self.render(messages), maxTokens: maxTokens ?? 512, grammar: grammar,
-                                      stop: stop) { continuation.yield($0) }
+                                      banned: self.wordTokens(banned), endsAt: endsAt, stop: stop) { continuation.yield($0) }
                     self.noteUse()
                     continuation.finish()
                 } catch {
@@ -173,8 +176,23 @@ final class EmbeddedModel: @unchecked Sendable {
         return keep
     }
 
-    private func generate(prompt: String, maxTokens: Int, grammar: String?, stop: StopFlag,
-                          onText: (String) -> Void) throws {
+    /// The single tokens that spell each word or a plain inflection of it, with or without a
+    /// leading space and capital: " flat", "Flat", " lies". A word that takes several tokens
+    /// isn't kept out (its first piece is often the start of other words).
+    private func wordTokens(_ words: [String]) -> Set<llama_token> {
+        var out = Set<llama_token>()
+        for w in words {
+            for form in [w, w + "s", w + "es", w + "ed", w + "d", w + "ing"] {
+                for v in [form, form.prefix(1).uppercased() + form.dropFirst()] {
+                    for t in [v, " " + v] { let ids = tokenize(t); if ids.count == 1 { out.insert(ids[0]) } }
+                }
+            }
+        }
+        return out
+    }
+
+    private func generate(prompt: String, maxTokens: Int, grammar: String?, banned: Set<llama_token> = [],
+                          endsAt: ((String) -> Bool)? = nil, stop: StopFlag, onText: (String) -> Void) throws {
         guard let ctx, let vocab, let model else { throw Self.error("not loaded") }
         let started = Date()
         let tokens = tokenize(prompt)
@@ -193,10 +211,17 @@ final class EmbeddedModel: @unchecked Sendable {
         defer { if let g { llama_sampler_free(g) } }
         let nVocab = Int(llama_vocab_n_tokens(vocab))
         var candidates = [llama_token_data](repeating: llama_token_data(), count: nVocab)
-        func next() -> llama_token {
+        var bytes: [UInt8] = []
+        func next() -> llama_token? {
             let logits = llama_get_logits_ith(ctx, -1)!
             var best = 0
             for i in 1..<nVocab where logits[i] > logits[best] { best = i }
+            if banned.contains(llama_token(best)) {
+                if endsAt?(Self.completeUTF8(bytes)) == true { return nil }
+                for t in banned { logits[Int(t)] = -.infinity }
+                best = 0
+                for i in 1..<nVocab where logits[i] > logits[best] { best = i }
+            }
             guard let g else { return llama_token(best) }
             var one = llama_token_data(id: llama_token(best), logit: logits[best], p: 0)
             let allowed = withUnsafeMutablePointer(to: &one) { p -> Bool in
@@ -215,12 +240,11 @@ final class EmbeddedModel: @unchecked Sendable {
             }
         }
 
-        var bytes: [UInt8] = []
         var produced = 0
         let answerStart = Date()
         while produced < maxTokens {
             if stop.isSet { throw CancellationError() }
-            let t = next()
+            guard let t = next() else { break }
             if let g { llama_sampler_accept(g, t) }
             if llama_vocab_is_eog(vocab, t) { break }
             produced += 1

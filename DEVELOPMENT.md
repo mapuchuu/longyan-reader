@@ -52,6 +52,9 @@ Some details:
 - Qwen 3.5 is a hybrid model, and its recurrent state can't be cut back to a shared prefix. So the state at the end of each of the last two prompts is saved (58 to 81 MB each), and a repeated prompt, such as a card prepared and then opened, skips re-reading it.
 - Picks aren't generated as text. The answer up to each number (`{\n  "w01": `, or `等=` on a phrase's line) is added to the prompt and the number is read from the model's probabilities for the next token. That's one pass per word instead of one per token, with identical results in about half the time: a single word takes about 0.13 s, a phrase 0.21 s. `LONGYAN_PICK=generate` generates them instead, for comparison.
 - On real reading, even picks with under 50% confidence were mostly right (9 of 11), so no pick is held back for low confidence.
+- A selection's translation, read in its sentence, often went on to finish the clause (卷了，我想 "…I want to lie flat"). So the English glosses of the sentence's other words, minus any the selection's own words share, are kept out while decoding (`OutsideWords.swift`). Once the selection's words are all said and the next word would be a kept-out one, the reply stops there. Only the built-in model does this. `LONGYAN_NO_BAN=1` turns it off and `LONGYAN_BAN_LOG=1` prints the kept-out words.
+
+  On 11 held-out sentences (574 fragments from `--parts`, judged blind), it cut leaks from 172 to 144 and made 6 more replies broken (13 to 19). Real-T went from 48 to 49 of 52, at the same ~250 ms. It misses synonyms the dictionary doesn't list (回家 "home" became "go back"). Tried and dropped: translating the whole sentence and copying the selection's words out of it under a grammar. The model split the sentence's English badly and leaked more (9 of 20 fragments against 4 of 20). Prompt changes were tried earlier and didn't help either.
 
 | Sense picker | Note test (52 held out) | Wrong notes | Main test (29) | Per lookup |
 |---|---|---|---|---|

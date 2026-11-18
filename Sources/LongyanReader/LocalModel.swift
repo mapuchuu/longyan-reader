@@ -271,7 +271,10 @@ enum LocalModel {
     /// 小意思 "a small token", not "a little interesting").
     /// `context` is the text the selection sits in; given it, only the selection is translated,
     /// but read the way the sentence means it (a clipped 别办入职 was "gender certificate").
-    static func translate(_ text: String, context: String? = nil,
+    /// With `dict`, the built-in model can't use English words that only the sentence's other
+    /// words mean (OutsideWords), and stops where its next word would be one once the
+    /// selection is all said: 4B kept finishing the clause (卷了，我想 "…I want to lie flat").
+    static func translate(_ text: String, context: String? = nil, dict: CEDict? = nil,
                           partial: @MainActor (String) -> Void = { _ in }) async throws -> String {
         var messages = [["role": "system", "content": translationInstructions]]
         if let context {
@@ -286,18 +289,60 @@ enum LocalModel {
         } else {
             messages.append(["role": "user", "content": text])
         }
-        let body: [String: Any] = [
+        let ended = Flag()
+        var outsideWords: Set<String> = []
+        var body: [String: Any] = [
             "model": name, "think": false,
             "options": ["temperature": 0, "num_ctx": 2048],
             "keep_alive": "5m",
             "messages": messages,
         ]
-        let out = try await stream(body) { partial($0.trimmingCharacters(in: .whitespacesAndNewlines)) }
-        let t = out.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let context, let dict, ProcessInfo.processInfo.environment["LONGYAN_NO_BAN"] == nil {
+            let (banned, outside) = OutsideWords.lists(part: text, context: context, dict: dict)
+            outsideWords = outside
+            if ProcessInfo.processInfo.environment["LONGYAN_BAN_LOG"] == "1" {
+                FileHandle.standardError.write(Data("ban \(text): \(banned.joined(separator: " "))\n".utf8))
+            }
+            body["banned"] = banned
+            let covers = OutsideWords.coverage(part: text, dict: dict), cut = ended
+            body["endsAt"] = { @Sendable (s: String) -> Bool in
+                guard covers(s) else { return false }
+                cut.set()
+                return true
+            }
+        }
+        let banning = !(body["banned"] as? [String] ?? []).isEmpty
+        let out = try await stream(body) { partial(banning ? clipped($0, cut: false) : $0.trimmingCharacters(in: .whitespacesAndNewlines)) }
+        let t = banning ? clipped(out, cut: ended.isSet, outside: outsideWords) : out.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !t.isEmpty else { throw NSError(domain: "LongyanReader", code: 6, userInfo: [NSLocalizedDescriptionKey: "empty translation"]) }
         // With context it now and then answers in Chinese (胜任或轻视这份工作); alone it doesn't.
         if context != nil, t.contains(where: isCJK) { return try await translate(text, partial: partial) }
         return t
+    }
+
+    /// A reply written around kept-out words, tidied: its first line only (blocked from its
+    /// next word, the model now and then starts over on a new line), and no word left hanging
+    /// at the end: an article; a joining word when it stopped at a kept-out word (东西又便宜
+    /// "the items are both cheap and", the "delicious" being 好吃's); a word only the outside
+    /// words' glosses have, then the "to" before it (催我早点 "urged me to get", the "married"
+    /// being 结婚's).
+    static func clipped(_ reply: String, cut: Bool, outside: Set<String> = []) -> String {
+        var t = reply.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let nl = t.firstIndex(where: \.isNewline) { t = String(t[..<nl]) }
+        var dangling: Set<String> = cut ? ["a", "an", "the", "and", "but", "or"] : ["a", "an", "the"]
+        var words = t.split(separator: " ", omittingEmptySubsequences: false).map(String.init)
+        while words.count > 1, let last = words.last?.lowercased() {
+            if outside.contains(OutsideWords.stem(last)) { dangling.insert("to") }
+            else if !dangling.contains(last) { break }
+            words.removeLast()
+        }
+        return words.joined(separator: " ").trimmingCharacters(in: .whitespaces)
+    }
+
+    final class Flag: @unchecked Sendable {
+        private let lock = NSLock(); private var value = false
+        func set() { lock.withLock { value = true } }
+        var isSet: Bool { lock.withLock { value } }
     }
 
     /// Runs a chat request with streaming on; `onText` gets the reply so far after each piece.
@@ -308,7 +353,9 @@ enum LocalModel {
             var text = ""
             for try await t in EmbeddedModel.shared.stream(messages: body["messages"] as? [[String: String]] ?? [],
                                                            maxTokens: options["num_predict"] as? Int,
-                                                           grammar: keys.map(EmbeddedModel.jsonGrammar)) {
+                                                           grammar: keys.map(EmbeddedModel.jsonGrammar),
+                                                           banned: body["banned"] as? [String] ?? [],
+                                                           endsAt: body["endsAt"] as? @Sendable (String) -> Bool) {
                 try Task.checkCancellation()
                 if t != text { text = t; await onText(text) }
             }
@@ -316,6 +363,7 @@ enum LocalModel {
         }
         var body = body
         body["stream"] = true
+        body["banned"] = nil; body["endsAt"] = nil   // built-in model only
         var req = URLRequest(url: endpoint)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "content-type")

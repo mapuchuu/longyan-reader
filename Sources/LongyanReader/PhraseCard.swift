@@ -612,7 +612,7 @@ final class PhrasePrep {
         // The local model translates slang and idioms far better than Apple's translator;
         // Apple's is the fallback when Ollama isn't running.
         if await LocalModel.isAvailable(),
-           let t = try? await LocalModel.translate(selection.text, context: Segmenter.translationContext(for: selection.range, in: selection.passage), partial: { [weak self] in self?.translation = $0; self?.onChange() }) {
+           let t = try? await LocalModel.translate(selection.text, context: Segmenter.translationContext(for: selection.range, in: selection.passage), dict: dict, partial: { [weak self] in self?.translation = $0; self?.onChange() }) {
             translation = t
         } else {
             translation = nil   // a stream that broke off mustn't stay up as the translation
