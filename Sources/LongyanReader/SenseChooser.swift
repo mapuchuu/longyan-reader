@@ -90,8 +90,6 @@ enum SenseChooser {
         return try GenerationSchema(root: root, dependencies: [])
     }
 
-    /// The on-device model sometimes rejects a prompt (a false "unsupported language"
-    /// or "sensitive content"), so retry with less: the sentence alone, then no nuance fields.
     /// The on-device model sometimes rejects ordinary text (a false "unsupported language"
     /// or a guardrail violation). Retry with just the sentence; if it still refuses,
     /// translate the sentence on-device and take the sense that matches the translation.

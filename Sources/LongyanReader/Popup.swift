@@ -31,9 +31,8 @@ final class LookupState: ObservableObject {
     /// Called when the reader changes the meaning (for History).
     var onUserPick: (SenseChoice) -> Void = { _ in }
 
-    /// The reader picks a meaning. Clicking the one already chosen changes nothing (it used
-    /// to rewrite the headline from the dictionary gloss, e.g. 理解's "to comprehend;
-    /// to understand" became "to comprehend").
+    /// The reader picks a meaning. Clicking the one already chosen changes nothing, so the
+    /// model's headline (理解: "to understand") isn't swapped for the dictionary's wording.
     func pick(_ index: Int) {
         guard senses.indices.contains(index), choice?.senseNumber != index + 1 else { return }
         if let suggested, suggested.senseNumber == index + 1 {
@@ -774,10 +773,12 @@ final class PopupController {
         setWindow(panel.frame.size)
     }
 
+    #if DEV_TOOLS
     /// Debug: whether the card hangs below its anchor (top edge fixed).
     var isPlacedBelow: Bool { placedBelow }
+    #endif
 
-    /// Debug: the card itself on screen (AppKit coordinates).
+    /// The card itself on screen (AppKit coordinates).
     var cardScreenRect: NSRect? {
         guard let panel, let layout else { return nil }
         let m = CardChrome<EmptyView>.margin
@@ -785,6 +786,7 @@ final class PopupController {
         return NSRect(x: panel.frame.minX + m, y: y, width: layout.width, height: layout.height)
     }
 
+    #if DEV_TOOLS
     /// Debug: the card window's position.
     var windowOrigin: NSPoint? { panel?.frame.origin }
     var windowFrame: NSRect? { panel?.frame }
@@ -796,6 +798,7 @@ final class PopupController {
         let top = layout.placedBelow ? panel.frame.maxY - m : panel.frame.minY + m + layout.height
         return NSPoint(x: panel.frame.minX + m + layout.width / 2, y: top - 6)
     }
+    #endif
 
     /// Switches an open card to the chosen appearance straight away.
     func setAppearance(_ appearance: NSAppearance?) {
@@ -807,10 +810,6 @@ final class PopupController {
 
     /// Fades the card out, then removes it.
     func close() {
-        if ProcessInfo.processInfo.environment["LONGYAN_TRACE_CLOSE"] != nil || UserDefaults.standard.bool(forKey: "traceClose"), panel != nil {
-            let trace = Thread.callStackSymbols.prefix(8).joined(separator: "\n")
-            try? trace.write(to: Log.directory.appendingPathComponent("close-trace.txt"), atomically: true, encoding: .utf8)
-        }
         if kind != nil && kind != .hint { Speaker.shared.stop() }
         monitors.forEach(NSEvent.removeMonitor)
         monitors = []
@@ -830,6 +829,14 @@ final class PopupController {
 
     /// Redraws the open card, e.g. after switching between Classic and Liquid Glass.
     func refreshStyle() { layout?.objectWillChange.send() }
+
+    var currentLayout: CardLayout? { layout }
+
+    #if DEV_TOOLS
+    private func scrollViews(_ v: NSView) -> [NSScrollView] {
+        if let s = v as? NSScrollView { return [s] }
+        return v.subviews.flatMap(scrollViews)
+    }
 
     /// Debug: the card's surface colour near its top-right corner (above the content),
     /// read from the live view. The glass itself doesn't draw offscreen, but the tint and
@@ -858,10 +865,6 @@ final class PopupController {
     /// kind macOS uses with a mouse, or with "Show scroll bars: Always").
     var scrollBarTakesWidth: Bool {
         guard let hosting else { return false }
-        func scrollViews(_ v: NSView) -> [NSScrollView] {
-            if let s = v as? NSScrollView { return [s] }
-            return v.subviews.flatMap(scrollViews)
-        }
         return scrollViews(hosting).contains { s in
             s.scrollerStyle == .legacy && s.hasVerticalScroller && s.verticalScroller.map { !$0.isHidden } == true
         }
@@ -870,10 +873,6 @@ final class PopupController {
     /// Debug: scrolls the open card's content to `y`.
     func debugScroll(to y: CGFloat) {
         guard let hosting else { return }
-        func scrollViews(_ v: NSView) -> [NSScrollView] {
-            if let s = v as? NSScrollView { return [s] }
-            return v.subviews.flatMap(scrollViews)
-        }
         for s in scrollViews(hosting) {
             s.contentView.scroll(to: NSPoint(x: 0, y: y))
             s.reflectScrolledClipView(s.contentView)
@@ -886,8 +885,6 @@ final class PopupController {
         hosting.cacheDisplay(in: hosting.bounds, to: rep)
         try? rep.representation(using: .png, properties: [:])?.write(to: url)
     }
-
-    var currentLayout: CardLayout? { layout }
 
     /// Debug: card windows still on screen (should be at most one).
     static var visibleCardWindows: Int {
@@ -929,13 +926,7 @@ final class PopupController {
             }
         }
     }
-
-    /// PNG of the current popup, for checking output without looking at the screen.
-    func snapshot(to url: URL) {
-        guard let hosting, let rep = hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds) else { return }
-        hosting.cacheDisplay(in: hosting.bounds, to: rep)
-        try? rep.representation(using: .png, properties: [:])?.write(to: url)
-    }
+    #endif
 }
 
 /// Small transient message when there's nothing to look up.

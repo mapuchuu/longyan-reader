@@ -11,7 +11,6 @@ final class Onboarding {
     private var window: NSWindow?
     private var timer: Timer?
     private var closeObserver: NSObjectProtocol?
-    var onTrusted: () -> Void = {}
 
     func showIfNeeded() {
         if !AXIsProcessTrusted() { show(); return }
@@ -36,7 +35,6 @@ final class Onboarding {
             Task { @MainActor in
                 guard AXIsProcessTrusted(), !model.trusted else { return }
                 model.trusted = true
-                self?.onTrusted()
             }
         }
         // Removed on close, or it (and the model it holds) would outlive every window.

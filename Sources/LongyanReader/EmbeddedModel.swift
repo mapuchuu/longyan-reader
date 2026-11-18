@@ -441,7 +441,8 @@ final class EmbeddedModel: @unchecked Sendable {
     }
 }
 
-private final class StopFlag: @unchecked Sendable {
+/// A thread-safe yes/no: stop a decode, or note that a reply was cut short.
+final class StopFlag: @unchecked Sendable {
     private let lock = NSLock()
     private var value = false
     func set() { lock.withLock { value = true } }

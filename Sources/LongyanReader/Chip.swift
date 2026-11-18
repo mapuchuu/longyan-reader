@@ -15,8 +15,6 @@ final class SelectionChip {
         get { UserDefaults.standard.stringArray(forKey: "chipHiddenApps") ?? [] }
         set { UserDefaults.standard.set(newValue, forKey: "chipHiddenApps") }
     }
-    /// Called after the eye is turned off or hidden in an app from its own menu.
-    var onSettingsChange: () -> Void = {}
 
     /// Called with the selection when it could be read, or nil when the app hides it
     /// (then the click falls back to copying).
@@ -60,7 +58,7 @@ final class SelectionChip {
             switch SelectionReader.readAccessibility() {
             case .selection(let s):
                 let t = s.trimmed()
-                guard !t.range.isEmpty, t.hasChinese, t.range.count <= 400 else { return }
+                guard !t.range.isEmpty, t.hasChinese, t.range.count <= AppDelegate.maxSelection else { return }
                 // A position far from where the mouse let go isn't where the selection is.
                 let near = t.bounds.map { AppDelegate.appKitRect($0).insetBy(dx: -160, dy: -160).contains(upPoint) } ?? false
                 let placed = near ? t : t.withoutBounds()
@@ -158,12 +156,10 @@ final class SelectionChip {
     fileprivate func hideEye(in bundleID: String) {
         if !hiddenApps.contains(bundleID) { hiddenApps.append(bundleID) }
         hide()
-        onSettingsChange()
     }
 
     fileprivate func turnOff() {
         isEnabled = false
-        onSettingsChange()
     }
 
     func hide() {
@@ -261,12 +257,17 @@ struct ChipButtonView: View {
     }
 }
 
-/// The Longyan eye from the Chrome extension, as a template image.
+/// The Longyan eye, as a template image. Read from disk once: the eye asks for it on every
+/// redraw, hover included.
 enum Icons {
-    static func mark(size: CGFloat) -> NSImage? {
+    private static let source: NSImage? = {
         guard let url = Bundle.main.url(forResource: "longyan-mark", withExtension: "png")
-                ?? URL(string: "file://" + FileManager.default.currentDirectoryPath + "/Resources/longyan-mark.png"),
-              let image = NSImage(contentsOf: url) else { return nil }
+                ?? URL(string: "file://" + FileManager.default.currentDirectoryPath + "/Resources/longyan-mark.png") else { return nil }
+        return NSImage(contentsOf: url)
+    }()
+
+    static func mark(size: CGFloat) -> NSImage? {
+        guard let image = source?.copy() as? NSImage else { return nil }
         image.size = NSSize(width: size, height: size)
         image.isTemplate = true
         return image

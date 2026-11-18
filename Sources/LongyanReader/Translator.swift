@@ -7,15 +7,6 @@ enum Translator {
     private static let chinese = Locale.Language(identifier: "zh-Hans")
     private static let english = Locale.Language(identifier: "en")
 
-    static func status() async -> String {
-        switch await LanguageAvailability().status(from: chinese, to: english) {
-        case .installed: return "installed"
-        case .supported: return "language pack not downloaded"
-        case .unsupported: return "unsupported"
-        @unknown default: return "unknown"
-        }
-    }
-
     /// Needs macOS 26 (a session without SwiftUI); below that the local model translates.
     static func translate(_ text: String) async throws -> String {
         guard #available(macOS 26, *) else {

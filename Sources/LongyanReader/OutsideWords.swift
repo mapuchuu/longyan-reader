@@ -5,11 +5,7 @@ import Foundation
 /// while decoding (EmbeddedModel.generate), they stop the 4B model finishing the clause
 /// with words from outside the selection (卷了，我想 "…I want to lie flat").
 enum OutsideWords {
-    static func banned(part: String, context: String, dict: CEDict) -> [String] {
-        lists(part: part, context: context, dict: dict).banned
-    }
-
-    /// `banned`, and every gloss word of the outside words (common ones too, stemmed): a
+    /// The kept-out words (`banned`), and every gloss word of the outside words (common ones too, stemmed): a
     /// reply cut short at a kept-out word drops these from its end, the "get" of 结婚's
     /// "get married" in 催我早点 "urged me to get".
     static func lists(part: String, context: String, dict: CEDict) -> (banned: [String], outside: Set<String>) {

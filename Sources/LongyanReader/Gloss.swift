@@ -15,8 +15,28 @@ enum Gloss {
         (#"\busu\."#, "usually"), (#"\bapprox\."#, "about"),
     ]
 
+    /// Cards redraw on every streamed word and each row asks for its meaning again, while the
+    /// clean-up below runs about twenty regular expressions: worked out once per definition.
+    private final class Memo: @unchecked Sendable {
+        private let lock = NSLock()
+        private var values: [String: String] = [:]
+        func value(_ key: String, _ make: (String) -> String) -> String {
+            lock.lock(); let hit = values[key]; lock.unlock()
+            if let hit { return hit }
+            let made = make(key)
+            lock.lock()
+            if values.count > 20_000 { values.removeAll(keepingCapacity: true) }   // a CLI eval's worth
+            values[key] = made
+            lock.unlock()
+            return made
+        }
+    }
+    private static let readableMemo = Memo(), shortMemo = Memo()
+
     /// The whole definition, without dictionary markup. Used in the lists of meanings.
-    static func readable(_ raw: String) -> String {
+    static func readable(_ raw: String) -> String { readableMemo.value(raw, makeReadable) }
+
+    private static func makeReadable(_ raw: String) -> String {
         var text = raw
         // "also written 裏|里" is about the other script, so both forms stay: on 里 itself
         // "also written 里" says nothing.
@@ -57,7 +77,9 @@ enum Gloss {
     }
 
     /// One short meaning, for a row or a headline. Never cut mid-word or mid-bracket.
-    static func short(_ raw: String) -> String {
+    static func short(_ raw: String) -> String { shortMemo.value(raw, makeShort) }
+
+    private static func makeShort(_ raw: String) -> String {
         if let plain = plainWording[raw] { return plain }
         var text = firstClause(readable(raw))
         // Leading and trailing asides go: "(bound form) up", "benefit (provided by an employer)".

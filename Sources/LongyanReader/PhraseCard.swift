@@ -1,13 +1,18 @@
 import SwiftUI
 
 /// A highlighted phrase: a translation on top, then each word with its meaning in this
-/// passage, chosen for every word before the card opens (see `PhrasePrep`).
+/// passage. The card opens at once; the translation streams in, then the words fill in
+/// from the top as the model chooses them (see `PhrasePrep`).
 @MainActor
 final class PhraseState: ObservableObject {
     let selection: Selection
     let tokens: [PhraseToken]
     let senses: [Int: [Sense]]
-    @Published var translation: String? { didSet { alignToTranslation() } }
+    /// Rows line up with the translation once it's whole: aligning on every streamed word
+    /// re-read the whole translation per word and could flip a row's meaning mid-stream.
+    @Published var translation: String? { didSet { if !streaming { alignToTranslation() } } }
+    private var streaming = false
+    private var alignedTo: String?
     /// For each word, the sense that agrees with the translation (until the model has chosen).
     @Published var translationSense: [Int: Int] = [:]
     @Published var translationError: String?
@@ -105,7 +110,9 @@ final class PhraseState: ObservableObject {
 
     private var layoutPending = false
     private func sync(_ prep: PhrasePrep) {
+        streaming = !prep.translationDone
         if translation != prep.translation { translation = prep.translation }
+        if prep.translationDone { alignToTranslation() }
         if prep.translationDone, prep.translation == nil { translationError = prep.translationError }
         for (id, choice) in prep.picks where suggested[id] == nil { suggested[id] = choice }
         for (id, choice) in prep.picks where choices[id] == nil && !userPicked.contains(id) {
@@ -278,7 +285,8 @@ final class PhraseState: ObservableObject {
     }
 
     private func alignToTranslation() {
-        guard let translation else { return }
+        guard let translation, translation != alignedTo else { return }
+        alignedTo = translation
         for t in tokens where grammarEntry(t) == nil {
             if let list = senses[t.id], let i = SenseChooser.senseMatching(translation: translation, senses: list, word: t.text) {
                 translationSense[t.id] = i
@@ -286,9 +294,8 @@ final class PhraseState: ObservableObject {
         }
     }
 
-    /// The gloss to show on a word's row: the model's meaning, else the sense that
-    /// fits the translation, else the first dictionary sense.
-    /// The row's gloss is always the dictionary wording of the meaning the row shows, so it
+    /// The gloss to show on a word's row: the meaning the model chose, else the one that fits
+    /// the translation, else the first. The row's gloss is always the dictionary wording of the meaning the row shows, so it
     /// only changes when that meaning changes (a pick, or the model choosing a different
     /// sense), never just because the row was opened. The model's own in-context wording is
     /// shown inside the open row instead (`meaningHere`).
@@ -614,6 +621,8 @@ final class PhrasePrep {
         if await LocalModel.isAvailable(),
            let t = try? await LocalModel.translate(selection.text, context: Segmenter.translationContext(for: selection.range, in: selection.passage), dict: dict, partial: { [weak self] in self?.translation = $0; self?.onChange() }) {
             translation = t
+        } else if Task.isCancelled {
+            return   // a newer selection replaced this one: no second translation
         } else {
             translation = nil   // a stream that broke off mustn't stay up as the translation
             do { translation = try await Translator.translate(selection.text) }
@@ -637,7 +646,7 @@ final class PhrasePrep {
     func matches(_ selection: Selection) -> Bool { selection.text == text && selection.passage == passage }
 
     func finished() async {
-        while !done, !Task.isCancelled { try? await Task.sleep(for: .milliseconds(50)) }
+        while !done, !(task?.isCancelled ?? false), !Task.isCancelled { try? await Task.sleep(for: .milliseconds(50)) }
     }
 
     func cancel() { task?.cancel() }

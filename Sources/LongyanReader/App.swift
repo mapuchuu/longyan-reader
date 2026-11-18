@@ -112,7 +112,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         DispatchQueue.global(qos: .userInitiated).async {
             let loaded = try? CEDict.load()
-            DispatchQueue.main.async { self.dict = loaded; self.rebuildMenu() }
+            DispatchQueue.main.async { self.dict = loaded }
         }
 
         // ⌃⌥L: look up the selection, or the word under the mouse when nothing is selected.
@@ -121,7 +121,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         chip.onShow = { [weak self] selection in self?.prepare(selection) }
-        chip.onSettingsChange = { [weak self] in self?.rebuildMenu() }
         chip.onClick = { [weak self] selection, chipFrame in
             Task { @MainActor in await self?.chipClicked(selection, chipFrame: chipFrame) }
         }
@@ -297,15 +296,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         #endif
 
         // Without Accessibility nothing works, so explain it before the system prompt appears.
-        // Then it offers the model download, which the menu also follows.
+        // Then it offers the model download. The menu shows its progress when opened.
         ModelDownloader.shared.observe { [weak self] in
-            if ModelDownloader.shared.state == .done {
-                // Downloading is choosing it, even after picking Apple's model earlier.
-                LocalModel.select(LocalModel.choices[0].id); self?.refresh()
-            }
-            else { self?.rebuildMenu() }
+            // Downloading is choosing it, even after picking Apple's model earlier.
+            if ModelDownloader.shared.state == .done { LocalModel.select(LocalModel.choices[0].id); self?.refresh() }
         }
-        Onboarding.shared.onTrusted = { [weak self] in self?.rebuildMenu() }
         Onboarding.shared.showIfNeeded()
     }
 
@@ -448,11 +443,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return menu
     }
 
-    @objc private func toggleChip() { chip.isEnabled.toggle(); rebuildMenu() }
+    @objc private func toggleChip() { chip.isEnabled.toggle() }
     @objc private func showEyeAgain(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? String else { return }
         chip.hiddenApps.removeAll { $0 == id }
-        rebuildMenu()
     }
     // MARK: Appearance
 
@@ -469,7 +463,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard let id = sender.representedObject as? String else { return }
         UserDefaults.standard.set(id, forKey: "cardStyle")
         popup.refreshStyle()
-        rebuildMenu()
     }
 
     /// Bigger, Smaller or Actual Size: the open card follows at once; with none open, the
@@ -488,20 +481,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func toggleOpenAtLogin() {
         LoginItem.set(!LoginItem.isEnabled)
-        rebuildMenu()
     }
 
     @objc private func toggleToneColors() {
         UserDefaults.standard.set(!ToneColors.enabled, forKey: "toneColors")
         popup.refreshStyle()
-        rebuildMenu()
     }
 
     @objc private func selectAppearance(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? String else { return }
         UserDefaults.standard.set(id, forKey: "appearance")
         applyAppearance()
-        rebuildMenu()
     }
 
     @objc private func selectModel(_ sender: NSMenuItem) {
@@ -568,11 +558,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard let raw = sender.representedObject as? String, let keep = Log.Keep(rawValue: raw) else { return }
         Log.keep = keep
         HistoryWindow.shared.reloadIfOpen()
-        rebuildMenu()
     }
     @objc private func showHistory() {
         Log.trim()   // "30 days" holds on a Mac that runs for weeks without a relaunch
-        HistoryWindow.shared.show(dict: { [weak self] in self?.dict }, onChange: { [weak self] in self?.rebuildMenu() })
+        HistoryWindow.shared.show(dict: { [weak self] in self?.dict })
     }
     @objc private func revealHistory() { NSWorkspace.shared.activateFileViewerSelecting([Log.file]) }
     @objc private func clearHistory() {
@@ -585,12 +574,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         Log.clear()
         HistoryWindow.shared.reloadIfOpen()
-        rebuildMenu()
     }
     @objc private func refresh() {
         Task {
             localModelReady = await LocalModel.isAvailable()
-            rebuildMenu()
         }
     }
 

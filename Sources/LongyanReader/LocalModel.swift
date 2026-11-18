@@ -110,9 +110,13 @@ enum LocalModel {
         // before its number matters: a bare [2, 1] array was as quick but scored 118/140
         // against 130/140 on real reading. The JSON form is the fallback when a line won't parse.
         // (A phrase of six words: 0.86 s → 0.31 s.)
-        if ProcessInfo.processInfo.environment["LONGYAN_PICK_FORMAT"] != "keys",
-           let picks = try? await chooseAllOnOneLine(passage: passage, selectionMarked: selectionMarked, words: words, onPick: onPick) {
-            return picks
+        if ProcessInfo.processInfo.environment["LONGYAN_PICK_FORMAT"] != "keys" {
+            do {
+                return try await chooseAllOnOneLine(passage: passage, selectionMarked: selectionMarked, words: words, onPick: onPick)
+            } catch {
+                // A newer card cancelled this one: don't start the longer request too.
+                if error is CancellationError || Task.isCancelled { throw CancellationError() }
+            }
         }
         return try await chooseAllAsJSON(passage: passage, selectionMarked: selectionMarked, words: words, onPick: onPick)
     }
@@ -292,7 +296,7 @@ enum LocalModel {
         } else {
             messages.append(["role": "user", "content": text])
         }
-        let ended = Flag()
+        let ended = StopFlag()
         var outsideWords: Set<String> = []
         var body: [String: Any] = [
             "model": name, "think": false,
@@ -340,12 +344,6 @@ enum LocalModel {
             words.removeLast()
         }
         return words.joined(separator: " ").trimmingCharacters(in: .whitespaces)
-    }
-
-    final class Flag: @unchecked Sendable {
-        private let lock = NSLock(); private var value = false
-        func set() { lock.withLock { value = true } }
-        var isSet: Bool { lock.withLock { value } }
     }
 
     /// Runs a chat request with streaming on; `onText` gets the reply so far after each piece.

@@ -2,8 +2,8 @@ import AppKit
 import SwiftUI
 
 /// Size and appearance state for one popup card. The window follows it.
-/// Dragging the corner zooms the card: width sets the scale of the text and spacing,
-/// and the height always fits the content (scrolling only past the screen limit).
+/// Dragging an edge changes the width; dragging a corner scales the text and spacing too.
+/// The height always fits the content (scrolling only past the screen limit).
 @MainActor
 final class CardLayout: ObservableObject {
     enum Kind: String { case word, phrase, hint }

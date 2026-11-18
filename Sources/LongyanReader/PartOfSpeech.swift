@@ -19,13 +19,6 @@ enum PartOfSpeech: String {
         }
     }
 
-    var name: String {
-        switch self {
-        case .measureWord: "measure word"
-        default: rawValue
-        }
-    }
-
     @MainActor private static var known: [String: PartOfSpeech?] = [:]
 
     @MainActor static func of(_ gloss: String) -> PartOfSpeech? {

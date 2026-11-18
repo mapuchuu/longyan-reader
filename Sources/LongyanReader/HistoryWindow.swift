@@ -132,7 +132,6 @@ final class HistoryModel: ObservableObject {
     @Published var kind: HistoryEntry.Kind? = nil
     @Published var isOn = Log.keep != .off
     let dict: () -> CEDict?
-    var onChange: () -> Void = {}
 
     init(dict: @escaping () -> CEDict?) { self.dict = dict; reload() }
 
@@ -162,7 +161,7 @@ final class HistoryModel: ObservableObject {
         }
     }
 
-    func turnOn() { Log.keep = .all; reload(); onChange() }
+    func turnOn() { Log.keep = .all; reload() }
 
     func export(anki: Bool) {
         let rows = shown
@@ -268,14 +267,13 @@ final class HistoryWindow {
     private var window: NSWindow?
     private var model: HistoryModel?
 
-    func show(dict: @escaping () -> CEDict?, onChange: @escaping () -> Void) {
+    func show(dict: @escaping () -> CEDict?) {
         if let window, let model {
             model.reload()
             window.makeKeyAndOrderFront(nil); NSApp.activate()
             return
         }
         let model = HistoryModel(dict: dict)
-        model.onChange = onChange
         let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 920, height: 520),
                          styleMask: [.titled, .closable, .resizable, .miniaturizable], backing: .buffered, defer: false)
         w.title = "Lookup History"
