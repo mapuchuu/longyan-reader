@@ -170,7 +170,7 @@
     const now = performance.now();
     const n = now - last.t < 450 && Math.hypot(e.clientX - last.x, e.clientY - last.y) < 6 ? (last.n % 3) + 1 : 1;
     last = { t: now, x: e.clientX, y: e.clientY, n };
-    if (Card() && Card().open) Card().close();
+    if (Card() && Card().open) Card().close(false, false, true);
     const d = demo[indexOf(0)];
     const touch = e.pointerType === "touch";
     if (n === 3) {

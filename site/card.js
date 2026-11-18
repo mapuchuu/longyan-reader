@@ -119,50 +119,175 @@
   const bestVoice = () => voices().reduce((best, v) => (!best || rank(v) > rank(best) ? v : best), null);
   if (window.speechSynthesis) speechSynthesis.getVoices();
 
+  // While blocks inside a card are opening, closing or changing height, the card's own height
+  // follows its content frame by frame (they share one spring) instead of chasing it.
+  let flowUntil = 0;
+  const flowing = () => { if (!reduce) flowUntil = performance.now() + MOTION.duration * 1000 + 60; };
+
   // Insert and remove a block the way SwiftUI's .opacity.combined(with: .offset(y:)) does,
   // with its height following, so the rows under it move with it.
+  // Its whole box moves: height and vertical padding together, on one spring, measured as a
+  // border box. (A block can't be shorter than its padding, so animating the height alone
+  // jumps a padded block open by its padding and then holds still until the height passes it.)
+  const BOX = "height var(--lc-motion-t) var(--lc-motion), padding-top var(--lc-motion-t) var(--lc-motion), padding-bottom var(--lc-motion-t) var(--lc-motion)";
   function revealBlock(el, dy) {
+    flowing();
     // Reopened while closing, it carries on from where it is rather than starting over.
-    const from = el._collapse ? el.offsetHeight : 0, fromOpacity = el._collapse ? getComputedStyle(el).opacity : "0";
+    const closing = !!(el._collapse || el._conceal), cs0 = closing ? getComputedStyle(el) : null;
+    const from = closing ? el.offsetHeight : 0, fromOpacity = closing ? cs0.opacity : "0";
+    const fromPad = closing ? [cs0.paddingTop, cs0.paddingBottom] : ["0px", "0px"];
     clearTimeout(el._collapse); el._collapse = 0;
+    clearTimeout(el._conceal); el._conceal = 0; delete el.dataset.leaving;
     if (reduce) { el.style.cssText = ""; return; }
     // Measured as it will be while it opens, clipped, so a margin inside it counts and the
     // height it opens to is the height it ends at: nothing more appears when it lets go.
-    el.style.cssText = "overflow: hidden";
-    const end = el.offsetHeight;
-    el.style.height = from + "px"; el.style.opacity = fromOpacity; el.style.transform = from ? "none" : `translateY(${dy}px)`; el.style.overflow = "hidden";
+    el.style.cssText = "overflow: hidden; box-sizing: border-box";
+    const end = el.offsetHeight, cs = getComputedStyle(el), pad = [cs.paddingTop, cs.paddingBottom];
+    el.style.height = from + "px"; el.style.paddingTop = fromPad[0]; el.style.paddingBottom = fromPad[1];
+    el.style.opacity = fromOpacity; el.style.transform = from ? "none" : `translateY(${dy}px)`;
     el.getBoundingClientRect();
-    el.style.transition = `height var(--lc-motion-t) var(--lc-motion), opacity .3s ease-out .05s, transform var(--lc-motion-t) var(--lc-motion)`;
-    el.style.height = end + "px"; el.style.opacity = "1"; el.style.transform = "none";
+    el.style.transition = `${BOX}, opacity .3s ease-out .05s, transform var(--lc-motion-t) var(--lc-motion)`;
+    el.style.height = end + "px"; el.style.paddingTop = pad[0]; el.style.paddingBottom = pad[1];
+    el.style.opacity = "1"; el.style.transform = "none";
     clearTimeout(el._reveal);
-    el._reveal = setTimeout(() => { el.style.height = ""; el.style.overflow = ""; el.style.transition = ""; }, MOTION.duration * 1000 + 30);
+    el._reveal = setTimeout(() => { el.style.cssText = ""; }, MOTION.duration * 1000 + 30);
+  }
+  // From its full box to nothing, padding included.
+  function shut(el, fade) {
+    flowing();
+    const h0 = el.offsetHeight;
+    el.style.boxSizing = "border-box"; el.style.height = h0 + "px"; el.style.overflow = "hidden";
+    el.getBoundingClientRect();
+    el.style.transition = `${BOX}, opacity ${fade}s ease-out, transform var(--lc-motion-t) var(--lc-motion)`;
+    el.style.height = "0px"; el.style.paddingTop = "0px"; el.style.paddingBottom = "0px"; el.style.opacity = "0";
   }
   // Like concealBlock, but the block stays, hidden, to open again with revealBlock.
   function collapseBlock(el, dy) {
     clearTimeout(el._reveal);
     if (reduce) { el.hidden = true; return; }
-    el.style.height = el.offsetHeight + "px"; el.style.overflow = "hidden";
-    el.getBoundingClientRect();
-    el.style.transition = `height var(--lc-motion-t) var(--lc-motion), opacity .16s ease-out, transform var(--lc-motion-t) var(--lc-motion)`;
-    el.style.height = "0px"; el.style.opacity = "0"; el.style.transform = `translateY(${dy}px)`;
+    shut(el, 0.16); el.style.transform = `translateY(${dy}px)`;
     clearTimeout(el._collapse);
     el._collapse = setTimeout(() => { el._collapse = 0; el.hidden = true; el.style.cssText = ""; }, MOTION.duration * 1000 + 30);
   }
+  // Marked as leaving until it's gone; revealBlock can still take it back.
   function concealBlock(el, dy, done) {
     clearTimeout(el._reveal);
     if (reduce) { el.remove(); done && done(); return; }
-    el.style.height = el.offsetHeight + "px"; el.style.overflow = "hidden";
-    el.getBoundingClientRect();
-    el.style.transition = `height var(--lc-motion-t) var(--lc-motion), opacity .14s ease-out, transform var(--lc-motion-t) var(--lc-motion)`;
-    el.style.height = "0px"; el.style.opacity = "0"; el.style.transform = `translateY(${dy}px)`;
-    setTimeout(() => { el.remove(); done && done(); }, MOTION.duration * 1000 + 30);
+    el.dataset.leaving = "1";
+    shut(el, 0.14); el.style.transform = `translateY(${dy}px)`;
+    clearTimeout(el._conceal);
+    el._conceal = setTimeout(() => { el._conceal = 0; el.remove(); done && done(); }, MOTION.duration * 1000 + 30);
   }
-  // contentTransition(.opacity): the new text fades in where the old one was.
-  function crossfade(el, html) {
-    if (el.innerHTML === html) return;
-    el.innerHTML = html;
-    if (reduce) return;
-    el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, easing: "ease-out" });
+  // A slot holding one block at a time (a note): every block not already leaving goes.
+  function emptySlot(slot, animate) {
+    for (const o of slot.querySelectorAll(":scope > .lc-note-wrap:not([data-leaving])")) { if (animate) concealBlock(o, -4); else o.remove(); }
+  }
+  // contentTransition(.opacity) under cardMotion: the old content stays where it stood and
+  // fades out as the new fades in over it, on the card's spring, and a block's height moves
+  // from the old content's to the new's. `content` is HTML, or nodes with a `key` naming them.
+  // Without `animate` (a card's first render) it's simply set.
+  function crossfade(el, content, animate = true, key = content) {
+    const html = typeof content === "string";
+    if (el._xfKey === undefined && html && el.innerHTML === content) el._xfKey = content;
+    if (el._xfKey === key) return;
+    el._xfKey = key;
+    const fill = (target) => { if (html) target.innerHTML = content; else target.replaceChildren(...content); };
+    const prev = el._xf;
+    if (!animate || reduce || !el.getClientRects().length || !el.childNodes.length) {
+      if (prev) prev.end(true);
+      fill(el); return;
+    }
+    const box = el.getBoundingClientRect(), cs = getComputedStyle(el);
+    const h0 = el.offsetHeight;
+    // The leaving layer: what's shown now, as far as it has faded in if it was still arriving.
+    let leaving = [], from = 1;
+    if (prev) { from = +getComputedStyle(prev.lead || el).opacity; leaving = prev.end(false); }
+    const older = [...el.querySelectorAll(":scope > .lc-xf-ghost")];
+    if (!prev) leaving = [...el.childNodes].filter((n) => !older.includes(n));
+    // Placed exactly over where it was: its first box (content alone) or the content edge (text).
+    const first = !html && leaving.find((n) => n.nodeType === 1);
+    const at = first ? first.getBoundingClientRect() : null;
+    const ghost = h("div", "lc-xf-ghost");
+    ghost.setAttribute("aria-hidden", "true");
+    ghost.style.cssText = `top:${at ? at.top - box.top : parseFloat(cs.paddingTop)}px; left:${at ? at.left - box.left : parseFloat(cs.paddingLeft)}px; width:${el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)}px;` +
+      (html ? "" : `display:${cs.display === "inline" ? "block" : cs.display}; flex-direction:${cs.flexDirection}; align-items:${cs.alignItems}; gap:${cs.rowGap} ${cs.columnGap};`);
+    ghost.append(...leaving);
+    // The arriving layer: text gets a wrapper to fade; elements fade one by one.
+    let live = null;
+    if (html) { live = h("span", "lc-xf-live"); fill(live); el.replaceChildren(live); }
+    else { el.replaceChildren(); fill(el); }
+    el.classList.add("lc-xf");
+    el.append(...older, ghost);
+    const T = MOTION.duration * 1000, ease = MOTION.easing;
+    const arriving = html ? [live] : [...el.children].filter((c) => c !== ghost && !older.includes(c));
+    const anims = arriving.map((n) => n.animate([{ opacity: 0 }, { opacity: 1 }], { duration: T, easing: ease }));
+    // A leaving layer finishes on its own, even when newer content takes over meanwhile.
+    // It leaves on a shorter run of the same curve than the new arrives on, so the two cross
+    // early and the old doesn't linger as a smudge behind the new.
+    ghost.animate([{ opacity: from }, { opacity: 0 }], { duration: T * 0.55, easing: ease, fill: "forwards" }).onfinish = () => {
+      ghost.remove();
+      if (!el._xf && !el.querySelector(":scope > .lc-xf-ghost")) el.classList.remove("lc-xf");
+    };
+    // A block's height moves with it (text that wraps to more or fewer lines).
+    const h1 = el.offsetHeight, sized = cs.display !== "inline" && Math.abs(h1 - h0) > 0.5;
+    if (sized) {
+      flowing();
+      el.style.boxSizing = "border-box"; el.style.height = h0 + "px"; el.getBoundingClientRect();
+      el.style.transition = `height ${T}ms ${ease}`; el.style.height = h1 + "px";
+    }
+    // Lets the arriving content go free: no wrapper, no fade, its own height.
+    const settle = () => {
+      anims.forEach((a) => a.cancel());
+      if (sized) { el.style.height = ""; el.style.transition = ""; el.style.boxSizing = ""; }
+      if (html) live.replaceWith(...live.childNodes);
+    };
+    const state = {
+      lead: arriving[0],
+      // Settles: the arriving content stays, unwrapped, at its own height. With `snap` the
+      // leaving layers go too; without, the content is returned to become the next leaving
+      // layer (a newer change arrived), and the older layers fade out as they were.
+      end(snap) {
+        clearTimeout(state.timer);
+        if (el._xf !== state) return [];
+        el._xf = null;
+        settle();
+        const ghosts = [...el.querySelectorAll(":scope > .lc-xf-ghost")];
+        if (snap) { ghosts.forEach((g) => g.remove()); el.classList.remove("lc-xf"); return []; }
+        return [...el.childNodes].filter((n) => !ghosts.includes(n));
+      },
+    };
+    // When it has settled, only the arriving content is left (the leaving one removes itself).
+    state.timer = setTimeout(() => {
+      if (el._xf !== state) return;
+      el._xf = null; settle();
+      if (!el.querySelector(":scope > .lc-xf-ghost")) el.classList.remove("lc-xf");
+    }, T + 30);
+    el._xf = state;
+  }
+
+  // The headword's characters recoloured in place, so a new reading's tones fade across.
+  function paintChars(el, text, syl) {
+    const list = [...text], kids = [...el.children];
+    if (kids.length !== list.length || kids.some((c, k) => c.textContent !== list[k])) { el.innerHTML = chars(text, syl); return; }
+    kids.forEach((c, k) => { c.style.color = TONE[(syl[k] || {}).tone || 5]; });
+  }
+
+  // A block whose content comes and goes: it opens and closes, and cross-fades when what it
+  // says changes while it's showing. Going, it keeps what it said until it has closed.
+  function swapBlock(el, nodes, key, animate) {
+    if (el.dataset.key === key) return;
+    el.dataset.key = key;
+    const showing = !el.hidden && !el._collapse;
+    if (!nodes.length) {
+      if (el._xf) el._xf.end(true);
+      if (showing) { if (animate) collapseBlock(el, -4); else el.hidden = true; }
+      return;
+    }
+    if (showing && el.childNodes.length) { crossfade(el, nodes, animate, key); return; }
+    if (el._xf) el._xf.end(true);
+    el.replaceChildren(...nodes); el._xfKey = key;
+    el.hidden = false;
+    if (animate) revealBlock(el, -4);
   }
 
   // MARK: The card
@@ -275,7 +400,11 @@
     // A pinned card, or one whose "Part of" row was clicked, is replaced where it stands.
     const prev = !inline && open && (pinned || inPlace) ? open.el.getBoundingClientRect() : null;
     const prevZoom = prev ? open.zoom : null, prevWidth = prev ? open.width : null;
-    if (!inline) close(true, true);
+    // Replaced in place, the old card stays under the new one while it fades in (as the
+    // app's does), so the spot never shows empty glass; otherwise it makes way quickly.
+    const under = prev && !reduce ? open.el : null;
+    if (under) { const o = open; open = null; if (o.ro) o.ro.disconnect(); o.el.style.pointerEvents = "none"; if (window.speechSynthesis) speechSynthesis.cancel(); }
+    else if (!inline) close(false, true, true);
     const z = prevZoom || zoomFor();
     const card = makeChrome(kind, z);
     card.kind = kind; card.model = model; card.anchor = anchor; card.zoom = z; card.inline = inline || null;
@@ -300,18 +429,27 @@
       if (pinned) card.wasMoved = true;
       place(card, true);
       card.height.set(prev.height, false);
-      relayout(card);
-      if (!reduce) card.content.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, easing: "ease-out" });
       open = card;
+      relayout(card);
+      // The new card's glass is there at once, over the old card, so the old words blur away
+      // under it as the new ones fade in sharp on top: never an empty spot, never two sets of
+      // words at once. The old card goes once the new words are mostly in.
+      if (under) {
+        for (const part of [card.scroll, card.actions]) part.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, easing: "ease-out" });
+        under.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 110, easing: "ease-out", fill: "forwards" }).onfinish = () => under.remove();
+      }
       return card;
     }
     place(card, true);
     // Spring in: scale from 0.96 at the edge nearest the selection, 4 pt toward it, as the
     // window fades in over 0.14 s.
+    // A card still fading out of the way is let go first, as the app's next card waits to be
+    // measured: one card on screen at a time.
     if (!reduce) {
+      const delay = Math.max(0, leavingUntil - performance.now());
       card.el.animate([{ transform: `translateY(${card.below ? -4 : 4}px) scale(.96)` }, { transform: "none" }],
-        { duration: APPEAR.duration * 1000, easing: APPEAR.easing });
-      card.el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 140, easing: "ease-in-out" });
+        { duration: APPEAR.duration * 1000, delay, easing: APPEAR.easing, fill: "backwards" });
+      card.el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 140, delay, easing: "ease-in-out", fill: "backwards" });
     }
     open = card;
     return card;
@@ -362,10 +500,18 @@
     if (open !== card) return;
     positionActions(card);
     const natural = card.content.offsetHeight;
-    card.height.set(Math.min(natural, card.maxH), animated);
+    // The content is already moving on the card's spring: the edge goes with it, frame by
+    // frame, rather than trailing it (and clipping the bottom row) on a spring of its own.
+    const inStep = animated && performance.now() < flowUntil && !card.height.moving;
+    card.height.set(Math.min(natural, card.maxH), animated && !inStep);
   }
 
-  function close(instant, force) {
+  // `quick`: making way for the next card (a new selection, or another lookup), it goes as
+  // the app's does, a 0.12 s fade with no movement, so it's gone before the next springs in
+  // and the two never move against each other. Dismissed (a click elsewhere, Esc, a scroll),
+  // it fades out unhurried, settling back a little toward the selection as it goes.
+  let leavingUntil = 0;   // when the card making way for the next will have gone
+  function close(instant, force, quick) {
     const card = open;
     if (!card || (pinned && !force)) return;
     open = null;
@@ -373,7 +519,10 @@
     if (card.ro) card.ro.disconnect();
     card.el.style.pointerEvents = "none";
     if (instant || reduce) { card.el.remove(); }
-    // Fades out unhurried, settling back a little toward the selection as it goes.
+    else if (quick) {
+      leavingUntil = performance.now() + 120;
+      card.el.animate([{ opacity: getComputedStyle(card.el).opacity }, { opacity: 0 }], { duration: 120, easing: "ease-out", fill: "forwards" }).onfinish = () => card.el.remove();
+    }
     else card.el.animate([{ opacity: 1, transform: "none" }, { opacity: 0, transform: "scale(.985)" }], { duration: 300, easing: "cubic-bezier(.4, 0, .2, 1)", fill: "forwards" }).onfinish = () => card.el.remove();
     if (card.onClose) card.onClose();
   }
@@ -523,12 +672,13 @@
       let row = old.get(String(i));
       if (row && row.dataset.sig === sig) {
         old.delete(String(i));
+        if (row.dataset.leaving) row.dataset.fresh = "1";   // taken back while closing: it opens again from there
         row.querySelector(".lc-def").classList.toggle("chosen", chosen);
         row.querySelector(".lc-def").classList.toggle("dim", dimmed);
         row.querySelector(".lc-check").classList.toggle("on", chosen);
       } else {
         const inner = senseLine(i + 1, senses.length, s, gloss, opts.size, chosen, dimmed) + mark + `<span class="lc-check${chosen ? " on" : ""}">${SYM.check}</span>`;
-        if (row) { row.innerHTML = inner; old.delete(String(i)); }
+        if (row) { row.innerHTML = inner; old.delete(String(i)); if (row.dataset.leaving) row.dataset.fresh = "1"; }
         else {
           row = rowButton(opts.bleedV === 3 ? "tight" : "", inner, () => opts.onPick(i));
           row.dataset.i = i; row.dataset.fresh = "1";
@@ -543,7 +693,7 @@
       if (!more) {
         more = rowButton("lc-more" + (opts.bleedV === 3 ? " tight" : ""), `<span></span><span class="lc-more-chev">${SYM.chevronDown}</span>`, () => opts.onToggle());
       }
-      more.firstElementChild.textContent = opts.showAll ? "Show Fewer" : `Show All ${senses.length}`;
+      crossfade(more.firstElementChild, opts.showAll ? "Show Fewer" : `Show All ${senses.length}`, !!opts.animate);
       more.lastElementChild.classList.toggle("up", !!opts.showAll);
       want.push(more);
     } else if (more) { more.remove(); more = null; }
@@ -552,7 +702,11 @@
     // Put each wanted node in its place, touching only those that aren't there already.
     want.forEach((node, k) => { if (list.children[k] !== node) list.insertBefore(node, list.children[k] || null); });
     for (const r of leaving) if (r.parentNode !== list) list.append(r);
-    for (const r of list.querySelectorAll('[data-fresh="1"]')) { r.removeAttribute("data-fresh"); if (opts.animate) revealBlock(r, -4); }
+    for (const r of list.querySelectorAll('[data-fresh="1"]')) {
+      r.removeAttribute("data-fresh");
+      if (opts.animate) revealBlock(r, -4);
+      else if (r._conceal) { clearTimeout(r._conceal); r._conceal = 0; delete r.dataset.leaving; r.style.cssText = ""; }
+    }
     for (const r of leaving) { if (opts.animate) concealBlock(r, -4); else r.remove(); }
   }
 
@@ -600,10 +754,11 @@
         const ci = chosenIndex(), picked = st.stage >= 2 && st.pickShown ? ci : null;
         const sense = ci != null && ci >= 0 ? senses[ci] : null;
         const header = !st.userPicked && info.grammar ? info.header : (senses[ci != null && ci >= 0 ? ci : 0] || { syl: info.header }).syl;
-        q(".lc-hw").innerHTML = chars(info.word, header);
-        crossfade(q(".lc-py"), pinyin(header));
+        // The word keeps its characters; a new reading's tone colours fade across them.
+        paintChars(q(".lc-hw"), info.word, header);
+        crossfade(q(".lc-py"), pinyin(header), !first);
         const headline = q(".lc-headline");
-        if (st.choice) crossfade(headline, esc(st.choice.meaning));
+        if (st.choice) crossfade(headline, esc(st.choice.meaning), !first);
         // Staged, the meaning opens in under the word rather than appearing.
         const meaning = q(".lc-meaning"), showMeaning = !!st.choice && st.stage >= 2;
         const open = !meaning.hidden && !meaning._collapse;
@@ -622,32 +777,25 @@
         const status = q(".lc-status");
         const back = st.userPicked && st.suggested && st.suggested.n !== st.choice.n;
         const caption = info.phase !== "chosen" ? info.phase : info.viaTranslation && !st.userPicked ? "Picked to match the translation" : "";
-        const statusKey = `${back ? st.suggested.meaning : ""}|${caption}`;
+        const statusKey = back || caption ? `${back ? st.suggested.meaning : ""}|${caption}` : "";
         if (statusKey !== status.dataset.key) {
-          const showing = !status.hidden && !status._collapse;
-          if (back || caption) {
-            const parts = [];
-            if (back) {
-              const b = h("button", "lc-back", `${SYM.uturn}<span>Back to “${esc(st.suggested.meaning)}”</span>`);
-              b.type = "button";
-              b.addEventListener("click", () => { st.userPicked = false; st.choice = st.suggested; render(); });
-              parts.push(b);
-            }
-            if (caption) parts.push(h("div", "lc-caption", esc(caption)));
-            status.replaceChildren(...parts);
-            if (showing && !first && !reduce) status.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, easing: "ease-out" });
+          const parts = [];
+          if (back) {
+            const b = h("button", "lc-back", `${SYM.uturn}<span>Back to “${esc(st.suggested.meaning)}”</span>`);
+            b.type = "button";
+            b.addEventListener("click", () => { st.userPicked = false; st.choice = st.suggested; render(); });
+            parts.push(b);
           }
-          // Going, it keeps what it said until it has closed.
-          toggle(status, !!(back || caption));
-          status.dataset.key = statusKey;
+          if (caption) parts.push(h("div", "lc-caption", esc(caption)));
+          // Opens, closes, or cross-fades from one line to the other (the caption to Back).
+          swapBlock(status, parts, statusKey, !first);
         }
         // The note for the meaning shown, sliding in under the headline.
         const note = st.stage >= 3 && sense && sense.note;
         const key = note ? note.text : null;
         if (key !== noteKey) {
           const slot = q(".lc-note-slot");
-          const old = slot.firstElementChild;
-          if (old) { if (first) old.remove(); else concealBlock(old, -4); }
+          emptySlot(slot, !first);
           // Wrapped, so the space above it opens and closes with it.
           if (note) { const n = h("div", "lc-note-wrap"); n.append(nuance(note)); slot.append(n); if (!first) revealBlock(n, -4); }
           noteKey = key;
@@ -764,11 +912,27 @@
       function renderRow(e, animate) {
         const r = e.r, isOpen = st.expanded === r.id, s = r.senses[shownSense(r)];
         const syl = s ? s.syl : r.syl;
-        e.btn.innerHTML =
-          `<span class="lc-wcol"><span class="lc-wchars" lang="zh-CN">${chars(r.text, syl)}</span><span class="lc-wpy">${pinyin(syl)}</span></span>` +
-          `<span class="lc-wgloss${r.dim || (r.guess && !st.picked.has(r.id)) ? " dim" : ""}${isOpen ? " open" : ""}">${esc(gloss(r))}</span>` +
-          `${noteOf(r) ? `<span class="lc-notemark">${SYM.bubble}</span>` : ""}` +
-          `<span class="lc-chev${isOpen ? " open" : ""}${canOpen(r) ? "" : " none"}">${SYM.chevronRight}</span>`;
+        // Built once and changed in place, so a pick cross-fades the meaning and pinyin, the
+        // tone colours and dimming fade, and the chevron turns, rather than all of it snapping.
+        if (!e.btn.firstChild) {
+          e.btn.innerHTML = `<span class="lc-wcol"><span class="lc-wchars" lang="zh-CN"></span><span class="lc-wpy"></span></span>` +
+            `<span class="lc-wgloss"></span><span class="lc-notemark" hidden>${SYM.bubble}</span><span class="lc-chev">${SYM.chevronRight}</span>`;
+        }
+        const part = (c) => e.btn.querySelector(c);
+        paintChars(part(".lc-wchars"), r.text, syl);
+        crossfade(part(".lc-wpy"), pinyin(syl), animate);
+        const g = part(".lc-wgloss");
+        g.classList.toggle("dim", !!(r.dim || (r.guess && !st.picked.has(r.id))));
+        g.classList.toggle("open", isOpen);
+        crossfade(g, esc(gloss(r)), animate);
+        const mark = part(".lc-notemark"), hasNote = !!noteOf(r);
+        if (mark.hidden === hasNote) {
+          mark.hidden = !hasNote;
+          if (hasNote && animate && !reduce) mark.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MOTION.duration * 1000, easing: MOTION.easing });
+        }
+        const chev = part(".lc-chev");
+        chev.classList.toggle("open", isOpen);
+        chev.classList.toggle("none", !canOpen(r));
         e.btn.disabled = !canOpen(r) && !isOpen;
         if (isOpen && !e.detail) {
           e.detail = h("div", "lc-detail");
@@ -785,28 +949,31 @@
       function renderDetail(e, animate) {
         const r = e.r, d = e.detail;
         if (!d.firstChild) d.innerHTML = `<div class="lc-v s"><div class="lc-dstatus"></div><div class="lc-note-slot"></div><div class="lc-list"></div></div>`;
+        // What the model read, or Back, opening, closing and cross-fading as the pick changes.
         const status = d.querySelector(".lc-dstatus");
-        status.innerHTML = "";
-        if (r.failure && !st.picked.has(r.id)) status.append(h("div", "lc-caption", esc(r.failure)));
-        else if (r.viaTranslation && !st.picked.has(r.id)) status.append(h("div", "lc-caption", "Picked to match the translation"));
-        else if (r.here && !st.picked.has(r.id)) status.append(h("div", "lc-here", `<span>In this sentence: </span><b>${esc(r.here)}</b>`));
-        const back = st.picked.has(r.id) && (r.grammar || st.picked.get(r.id) !== r.shown);
+        const picked = st.picked.has(r.id), parts = [];
+        let statusKey = "";
+        if (r.failure && !picked) { parts.push(h("div", "lc-caption", esc(r.failure))); statusKey = "f"; }
+        else if (r.viaTranslation && !picked) { parts.push(h("div", "lc-caption", "Picked to match the translation")); statusKey = "t"; }
+        else if (r.here && !picked) { parts.push(h("div", "lc-here", `<span>In this sentence: </span><b>${esc(r.here)}</b>`)); statusKey = "h"; }
+        const back = picked && (r.grammar || st.picked.get(r.id) !== r.shown);
         if (back) {
           const b = h("button", "lc-back", `${SYM.uturn}<span>Back to “${esc(r.suggested || r.gloss)}”</span>`);
           b.type = "button";
           b.addEventListener("click", () => { st.picked.delete(r.id); renderRow(e, true); });
-          status.append(b);
+          parts.push(b); statusKey += "b";
         }
-        status.hidden = !status.childElementCount;
+        swapBlock(status, parts, statusKey, animate);
+        // The note for the meaning shown slides in under it; a new one replaces it as the
+        // word card's does, the old closing as the new opens.
         const slot = d.querySelector(".lc-note-slot");
         const note = noteOf(r);
         const key = note ? note.text : "";
         if (slot.dataset.key !== key) {
           slot.dataset.key = key;
-          slot.innerHTML = "";
-          if (note) slot.append(nuance(note));
+          emptySlot(slot, animate);
+          if (note) { const n = h("div", "lc-note-wrap"); n.append(nuance(note)); slot.append(n); if (animate) revealBlock(n, -4); }
         }
-        slot.hidden = !note;
         const ci = shownSense(r);
         const listed = null;
         // The rows the app lists before Show All, plus the one picked here.
@@ -885,7 +1052,8 @@
   // Close on a click elsewhere, Esc, or scrolling the page (unless the card was moved aside).
   document.addEventListener("pointerdown", (e) => {
     if (!open || e.target.closest(".lc-card") || (open.keepFor && e.target.closest(open.keepFor))) return;
-    close();
+    // A press in the demo's sentence starts the next selection, and so the next card.
+    close(false, false, !!e.target.closest(".lines"));
   }, true);
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && open) close(false, true); });
   window.addEventListener("scroll", () => { if (open && !open.wasMoved) close(); }, { passive: true });

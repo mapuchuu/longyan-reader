@@ -315,7 +315,7 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .lc-sense.body { font-size: calc(13 * var(--u)); } .lc-sense.callout { font-size: calc(12 * var(--u)); }
 .lc-num { flex: none; width: calc(9 * var(--u)); text-align: right; font-size: calc(1em - 1 * var(--u)); font-weight: 500; font-variant-numeric: tabular-nums; color: var(--tertiary); }
 .lc-sense.wide .lc-num { width: calc(15 * var(--u)); }
-.lc-def { flex: 1; min-width: 0; line-height: 1.32; transition: color .25s ease-out; }
+.lc-def { flex: 1; min-width: 0; line-height: 1.32; transition: color var(--lc-motion-t) var(--lc-motion), font-weight var(--lc-motion-t) var(--lc-motion); }
 .lc-def.chosen { font-weight: 600; }
 .lc-def.dim { color: var(--secondary); }
 .lc-pos { font-style: italic; color: var(--secondary); }
@@ -323,6 +323,7 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .lc-check.on { opacity: 1; transform: none; }
 .lc-check .lc-sym { width: calc(12 * var(--u)); height: calc(12 * var(--u)); stroke-width: 2.2; }
 .lc-notemark { flex: none; color: var(--tertiary); align-self: center; display: grid; }
+.lc-notemark[hidden] { display: none; }
 .lc-notemark .lc-sym { width: calc(11 * var(--u)); height: calc(11 * var(--u)); }
 .lc-reading { font-size: calc(11 * var(--u)); font-weight: 600; color: var(--secondary); padding: calc(8 * var(--u)) 0 calc(1 * var(--u)); }
 .lc-reading.first { padding-top: 0; }
@@ -359,15 +360,29 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .lc-wgloss { flex: 1; min-width: 0; font-size: calc(15 * var(--u)); line-height: 1.3; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .lc-wgloss.open { -webkit-line-clamp: unset; display: block; }
 .lc-wgloss.dim { color: var(--secondary); }
+.lc-wgloss { transition: color var(--lc-motion-t) var(--lc-motion); }
 .lc-chev { flex: none; color: var(--tertiary); display: grid; transition: transform var(--lc-motion-t) var(--lc-motion); }
 .lc-chev .lc-sym { width: calc(10 * var(--u)); height: calc(10 * var(--u)); stroke-width: 2; }
 .lc-chev.open { transform: rotate(90deg); }
 .lc-chev.none { visibility: hidden; }
-.lc-detail { padding: calc(2 * var(--u)) 0 calc(8 * var(--u)); }
+/* The padding sits inside its one child: a block opening from height 0 can't go below its own
+   padding, so padding on .lc-detail itself would jump open by it on the first frame. */
+.lc-detail > .lc-v { padding: calc(2 * var(--u)) 0 calc(8 * var(--u)); }
 .lc-here { font-size: calc(12 * var(--u)); }
 .lc-here b { font-weight: 500; }
 
 /* Symbols */
+/* contentTransition(.opacity) (card.js crossfade): the old content, laid over where it stood,
+   fades out as the new fades in. Tone colours change in place, fading across. */
+.lc-xf { position: relative; }
+.lc-xf-ghost { position: absolute; pointer-events: none; }
+.lc-hw > span, .lc-wchars > span { transition: color var(--lc-motion-t) var(--lc-motion); }
+/* In an open phrase row, the status line and the note keep the 8 pt gap above them inside
+   themselves, so it opens and closes with them instead of jumping. */
+.lc-detail .lc-dstatus { padding-bottom: calc(8 * var(--u)); margin-bottom: calc(-8 * var(--u)); }
+.lc-detail .lc-note-slot { margin-top: calc(-8 * var(--u)); }
+.lc-detail .lc-note-wrap > .lc-note { margin-top: calc(8 * var(--u)); }
+
 .lc-sym { display: block; width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; overflow: visible; }
 .lc-sym .lc-fill { fill: currentColor; stroke: none; }
 .lc-sym .lc-knock { stroke: rgba(20, 20, 23, .9); stroke-width: 1.1; }
@@ -426,7 +441,7 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .lc-peek .lc-hw { font-size: calc(28 * var(--u)); }
 .lc-peek .lc-headline { font-size: calc(16 * var(--u)); white-space: normal; }
 
-@media (prefers-reduced-motion: reduce) { .line, .chip, .lc-check, .lc-chev, .lc-more-chev { transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { .line, .chip, .lc-check, .lc-chev, .lc-more-chev, .lc-def, .lc-wgloss, .lc-hw > span, .lc-wchars > span { transition: none !important; } }
 
 /* The statement: three lines beside the app's card for a word in the demo sentence, to use.
    Without motion they simply stack. With it (motion.js) the section is pinned for three
@@ -1024,8 +1039,7 @@ figcaption b { color: var(--ink); font-weight: 600; }
 .closing-mark { display: block; width: 92px; height: auto; margin: 0 auto 26px; color: #fff; filter: drop-shadow(0 10px 28px rgba(5, 8, 30, .4)); }
 /* Always on one line: where the screen is too narrow for it at its own size, it scales with
    the screen (it measures 12.2em). */
-.closing h2 { color: #fff; font-size: min(56px, calc((100vw - 40px) / 12.3)); white-space: nowrap; }
-.closing h2 .plus { font-weight: 300; color: rgba(255, 255, 255, .55); margin: 0 .04em; }
+.closing h2 { color: #fff; font-size: min(56px, calc((100vw - 40px) / 12.3)); white-space: nowrap; word-spacing: .06em; /* the tight tracking pinches the space after each comma */ }
 .features .section-head h2 { max-width: 15em; }
 .closing p { text-wrap: balance; font-size: 21px; color: rgba(255, 255, 255, .84); margin: 14px auto 30px; max-width: 30em; letter-spacing: -0.016em; }
 .closing p a { color: #fff; }

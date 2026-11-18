@@ -9,7 +9,13 @@
 <link rel="icon" href="favicon.ico" sizes="32x32">
 <link rel="icon" href="images/tab-icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="images/touch-icon.png">
-<link rel="stylesheet" href="style.css?v=1118zl">
+<link rel="canonical" href="https://longyan.app/privacy.html">
+<meta property="og:title" content="Privacy · Longyan Reader">
+<meta property="og:description" content="What Longyan Reader reads, what it keeps on your Mac, and the only times it goes online.">
+<meta property="og:url" content="https://longyan.app/privacy.html">
+<meta property="og:image" content="https://longyan.app/images/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="style.css?v=1118zn">
 </head>
 <body>
 
@@ -31,23 +37,23 @@
     <p class="doc-lead">Longyan Reader runs on your Mac. What you highlight and look up stays on your Mac. There’s no account, no analytics and no tracking.</p>
 
     <h2>What the app reads</h2>
-    <p>With the Accessibility permission you give it, the app reads the text you highlight and the sentence around it, in whatever app you’re reading. When you finish a selection, it reads it to check whether it’s Chinese and to decide whether to show the eye. Nothing is kept unless you open a card.</p>
+    <p>With the Accessibility permission you give it, the app reads the text you highlight and the sentence around it, in whatever app you’re reading. When you finish a selection, it reads it to check whether it’s Chinese and to decide whether to show the eye. Nothing is kept unless you open a card. The one exception: when a lookup finds no Chinese to read, history notes the app’s name and why, without any text.</p>
     <p>Some apps don’t share what’s selected. In those, the app copies the selection with ⌘C and then puts back what was on your clipboard.</p>
 
     <h2>What it keeps on your Mac</h2>
     <ul>
-      <li><b>Your lookup history.</b> Each word or phrase you look up, the meaning it had, and its sentence. It’s kept in <code>~/Library/Logs/LongyanReader</code>, readable only by your account. History is on by default. Under Keep History in the menu you can keep 30 days, turn it off, or clear it. It leaves your Mac only if you export it.</li>
+      <li><b>Your lookup history.</b> Each word or phrase you look up, the meaning it had, its sentence, and the app you were reading in. It’s kept in <code>~/Library/Application Support/LongyanReader/History</code>, readable only by your account. History is on by default. Under Keep History in the menu you can keep 30 days, turn it off, or clear it. Clearing moves the file to the Trash. It leaves your Mac only if you export it.</li>
       <li><b>The reading model</b>, if you download it, in <code>~/Library/Application Support/LongyanReader</code>.</li>
       <li><b>Your settings</b>, such as appearance and card size.</li>
     </ul>
 
     <h2>When it goes online</h2>
     <ul>
-      <li><b>Downloading the reading model</b>, only when you ask. It comes from hf‑mirror.com, or huggingface.co if that fails. Those sites see an ordinary download request from your IP address.</li>
+      <li><b>Downloading the reading model</b>, only when you ask. It comes from hf-mirror.com, or huggingface.co if that fails. Those sites see an ordinary download request from your IP address.</li>
       <li><b>Checking for updates</b>, only after you say yes, or when you choose Check for Updates. The app asks GitHub for the latest version. GitHub sees your IP address and the app’s version. Nothing about your Mac or your reading is sent.</li>
-      <li><b>Report a Problem</b> opens a GitHub page in your browser with the app version, macOS version, chip and memory filled in. Nothing is sent unless you submit it.</li>
+      <li><b>Report a Problem</b> opens a GitHub page in your browser with the app version, macOS version, chip, memory and reading model filled in. Nothing is sent unless you submit it.</li>
     </ul>
-    <p>If you use the reading model through Ollama, the app talks to Ollama on your own Mac. On macOS 26, Apple’s on-device models can fill in; they also run on your Mac.</p>
+    <p>Without the downloaded model, the app checks whether Ollama is running on your Mac and uses it if it is. That check never leaves your Mac. On macOS 26, Apple’s on-device models can fill in; they also run on your Mac.</p>
 
     <h2>This website</h2>
     <p>longyan.app is a static page hosted on GitHub Pages, and the download comes from GitHub. The site sets no cookies and has no analytics. GitHub may keep standard server logs, as described in <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">its privacy statement</a>.</p>
