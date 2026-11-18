@@ -511,7 +511,7 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 }
 #lit-card .lc-glass { transition: background-color .5s cubic-bezier(.4, 0, .2, 1); }
 .lit-demo.light #lit-card .lc-glass {
-  background: linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, .06) 45%, rgba(255, 255, 255, 0)), rgba(255, 255, 255, .55);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, .06) 45%, rgba(255, 255, 255, 0)), rgba(255, 255, 255, .68);
   box-shadow: 0 10px 34px rgba(0, 30, 80, .18), 0 .5px 3px rgba(0, 0, 0, .08), 0 0 0 .5px rgba(255, 255, 255, .35);
 }
 .lit-demo.light #lit-card .lc-glass::before { background: linear-gradient(150deg, rgba(255, 255, 255, .95), rgba(255, 255, 255, .35) 30%, rgba(255, 255, 255, .12) 58%, rgba(255, 255, 255, .6)); }
@@ -523,9 +523,11 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .lit-demo.light #lit-card .lc-sym .lc-knock { stroke: rgba(240, 244, 250, .95); }
 .lit-demo.light #lit-card .lc-sym .lc-knock-fill { fill: rgba(240, 244, 250, .95); }
 .lit-demo.light #lit-card .lc-grab { background: rgba(0, 0, 0, .18); }
-.lit-demo.light #lit-card .lc-light > .purple { background: rgba(175, 82, 222, .18); }
-.lit-demo.light #lit-card .lc-light > .blue { background: rgba(0, 122, 255, .15); }
-.lit-demo.light #lit-card .lc-note { background: rgba(52, 199, 89, .15); }
+/* Light: the same system colours, a little stronger than the dark card's, so they still read
+   as colour on white glass rather than a grey smudge. */
+.lit-demo.light #lit-card .lc-light > .purple { background: rgba(175, 82, 222, .24); }
+.lit-demo.light #lit-card .lc-light > .blue { background: rgba(0, 122, 255, .2); }
+.lit-demo.light #lit-card .lc-note { background: rgba(52, 199, 89, .2); }
 .lit-demo.light #lit-card .lc-note-head, .lit-demo.light #lit-card .lc-note-head .culture { color: #248a3d; }
 #lit-card .lc-note { background: rgba(48, 209, 88, .14); }
 #lit-card .lc-note-head, #lit-card .lc-note-head .culture { color: #30d158; }
@@ -633,9 +635,16 @@ figcaption b { color: var(--ink); font-weight: 600; }
 /* Notes on the feature tile. */
 .note { background: rgba(0, 0, 0, .045); border-radius: 13px; padding: 10px 12px 11px; }
 .note-head { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; margin-bottom: 3px; }
-.note-head svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.5; }
-.note.lost .note-head { color: var(--lost); }
-.note.culture .note-head { color: var(--culture); }
+/* As in the app: the symbol (SF Symbols' translate and globe.asia.australia.fill, drawn as
+   the word card draws them) in the note's colour, the label in secondary grey. */
+.note-head { color: rgba(0, 0, 0, .5); }
+.note-head > span { display: grid; }
+.note-head svg { width: 15px; height: 15px; overflow: visible; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.note-head .lc-fill { fill: currentColor; }
+.note-head .lc-knock { stroke: #fff; stroke-width: 1.1; }
+.note-head .lc-knock-fill { fill: #fff; }
+.note.lost .note-head > span { color: var(--lost); }
+.note.culture .note-head > span { color: var(--culture); }
 .note p { margin: 0; font-size: 14px; line-height: 1.42; color: #1d1d1f; }
 
 /* The tiles. Each is one colour of its own, as bright as the page around it is dark, seen
@@ -656,7 +665,7 @@ figcaption b { color: var(--ink); font-weight: 600; }
 .tone-violet { --c1: #b097ff; --c2: #6a43e4; --deep: #33178f; --flip: -1; }
 .glass-box::before {
   content: ""; position: absolute; inset: -5%; z-index: 0; pointer-events: none;
-  background: url("media/glass-1.svg") center / 100% 100% no-repeat;
+  background: url("media/glass-2.svg") center / cover no-repeat;
   transform: scaleX(var(--flip));
 }
 .glass-box::after {
@@ -990,16 +999,16 @@ figcaption b { color: var(--ink); font-weight: 600; }
 .desk.still .ob-a { opacity: 0; }
 
 /* Closing */
-.closing { padding: 170px 0 180px; text-align: center; overflow: hidden; background: #252a6c; }
+.closing { padding: 112px 0 116px; text-align: center; overflow: hidden; background: #252a6c; }
 .closing .paper { z-index: 0; }
 .closing .wrap { position: relative; z-index: 2; }
 /* A soft dusk behind the words, so they read even where the sheets are at their brightest. */
-.closing .wrap::before, .watch-copy::before { content: ""; position: absolute; z-index: -1; inset: -90px 0; background: radial-gradient(closest-side, rgba(10, 8, 34, .5), rgba(10, 8, 34, 0)); pointer-events: none; }
-.closing-mark { display: block; width: 116px; height: auto; margin: 0 auto 34px; color: #fff; filter: drop-shadow(0 10px 28px rgba(5, 8, 30, .4)); }
+.closing .wrap::before, .watch-copy::before { content: ""; position: absolute; z-index: -1; inset: -70px 0; background: radial-gradient(closest-side, rgba(10, 8, 34, .5), rgba(10, 8, 34, 0)); pointer-events: none; }
+.closing-mark { display: block; width: 92px; height: auto; margin: 0 auto 26px; color: #fff; filter: drop-shadow(0 10px 28px rgba(5, 8, 30, .4)); }
 .closing h2 { color: #fff; font-size: 56px; }
 .closing h2 .plus { font-weight: 300; color: rgba(255, 255, 255, .55); margin: 0 .04em; }
 .features .section-head h2 { max-width: 15em; }
-.closing p { text-wrap: balance; font-size: 21px; color: rgba(255, 255, 255, .84); margin: 16px auto 36px; max-width: 30em; letter-spacing: -0.016em; }
+.closing p { text-wrap: balance; font-size: 21px; color: rgba(255, 255, 255, .84); margin: 14px auto 30px; max-width: 30em; letter-spacing: -0.016em; }
 .closing p a { color: #fff; }
 .closing .button { background: #fff; }
 .closing .closing-fine { font-size: 13px; color: rgba(255, 255, 255, .88); text-shadow: 0 1px 8px rgba(5, 8, 30, .45); margin: 18px auto 0; }
@@ -1080,7 +1089,8 @@ footer a { color: #a1a1a6; }
   .desk { width: 620px; height: 450px; }
   .layer { transform: translateX(-70px); }
   .mac-screen { border-radius: 12px; box-shadow: 0 0 0 1px rgba(255, 255, 255, .06), 0 0 0 6px #0e0e11, 0 0 0 7px rgba(255, 255, 255, .22), 0 30px 60px rgba(0, 0, 0, .6); }
-  .closing { padding: 120px 0 130px; }
+  .closing { padding: 84px 0 88px; }
+  .closing-mark { width: 76px; margin-bottom: 22px; }
   .hero-sub { margin: 16px 0 24px; }
   /* Too narrow for the two side by side: two matching pills, one over the other, so
      neither looks out of line. */

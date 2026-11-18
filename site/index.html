@@ -14,7 +14,7 @@
 <link rel="icon" href="favicon.ico" sizes="32x32">
 <link rel="icon" href="images/tab-icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="images/touch-icon.png">
-<link rel="stylesheet" href="style.css?v=1118zd">
+<link rel="stylesheet" href="style.css?v=1118ze">
 <script>
   // Scroll motion, unless the visitor asked for less (or ?still, for screenshots).
   if (!matchMedia("(prefers-reduced-motion: reduce)").matches && !/[?&]still/.test(location.search)) document.documentElement.classList.add("motion");
@@ -71,7 +71,7 @@
         </div>
         <div class="lit-progress" aria-hidden="true"><i><b></b></i><i><b></b></i><i><b></b></i></div>
       </div>
-      <figure class="lit-demo light" id="lit-demo">
+      <figure class="lit-demo" id="lit-demo">
         <div class="paper-box lit-stage">
           <canvas class="paper" data-paper="azure" aria-hidden="true"></canvas>
           <p class="lit-sentence" lang="zh-CN">最近工作太卷了，我想<mark>躺平</mark>。</p>
@@ -79,8 +79,8 @@
         </div>
         <div class="appearance" role="radiogroup" aria-label="Card appearance">
           <i class="appearance-thumb" aria-hidden="true"></i>
-          <button type="button" role="radio" aria-checked="true" data-appearance="light"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.9"/><path d="M8 1.6v1.6M8 12.8v1.6M1.6 8h1.6M12.8 8h1.6M3.5 3.5l1.1 1.1M11.4 11.4l1.1 1.1M3.5 12.5l1.1-1.1M11.4 4.6l1.1-1.1"/></svg>Light</button>
-          <button type="button" role="radio" aria-checked="false" data-appearance="dark"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.2 9.9A5.6 5.6 0 0 1 6.1 2.8a5.6 5.6 0 1 0 7.1 7.1z"/></svg>Dark</button>
+          <button type="button" role="radio" aria-checked="false" data-appearance="light"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.9"/><path d="M8 1.6v1.6M8 12.8v1.6M1.6 8h1.6M12.8 8h1.6M3.5 3.5l1.1 1.1M11.4 11.4l1.1 1.1M3.5 12.5l1.1-1.1M11.4 4.6l1.1-1.1"/></svg>Light</button>
+          <button type="button" role="radio" aria-checked="true" data-appearance="dark"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.2 9.9A5.6 5.6 0 0 1 6.1 2.8a5.6 5.6 0 1 0 7.1 7.1z"/></svg>Dark</button>
         </div>
       </figure>
     </div>
@@ -115,15 +115,15 @@
     <figure class="tile" data-reveal>
       <div class="glass-box tone-rose stage-notes">
         <div class="notes-stack">
-          <div class="note lost n-front"><div class="note-head"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 4.5A2.5 2.5 0 0 1 5.5 2h9A2.5 2.5 0 0 1 17 4.5v6a2.5 2.5 0 0 1-2.5 2.5H9l-4 3.5V13h.5A2.5 2.5 0 0 1 3 10.5z"/></svg>Lost in translation</div>
+          <div class="note lost n-front"><div class="note-head"><span><svg viewBox="0 0 16 16" aria-hidden="true"><path class="lc-fill" d="M2.6 1.8h6.6c.9 0 1.6.7 1.6 1.6v4.4c0 .9-.7 1.6-1.6 1.6H6.4L4.2 11.2V9.4H2.6c-.9 0-1.6-.7-1.6-1.6V3.4c0-.9.7-1.6 1.6-1.6z"/><path class="lc-knock" d="M3.6 3.9h4.6M5.9 3.1v.8M4.5 3.9c.3 1.4 1.3 2.6 2.9 3.1M7.3 3.9c-.3 1.4-1.3 2.6-2.9 3.1"/><path class="lc-fill" d="M11.6 6.4h1.8c.9 0 1.6.7 1.6 1.6v4.2c0 .9-.7 1.6-1.6 1.6h-.9v1.6l-2-1.6H8.6c-.9 0-1.6-.7-1.6-1.6v-1.6h2.2c1.3 0 2.4-1.1 2.4-2.4z"/><path class="lc-knock" d="M9.4 12.6l1.6-4.1 1.6 4.1M9.9 11.4h2.2"/></svg></span>Lost in translation</div>
             <p><span lang="zh-CN">卷</span>: online and office slang, short for <span lang="zh-CN">内卷</span>. <span lang="zh-CN">别卷了</span> (“stop overdoing it”) is said to colleagues who stay until midnight.</p></div>
-          <div class="note culture" aria-hidden="true"><div class="note-head"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.5"/><path d="M2.5 10h15M10 2.5c2.2 2.3 2.2 12.7 0 15M10 2.5c-2.2 2.3-2.2 12.7 0 15"/></svg>Cultural context</div>
+          <div class="note culture" aria-hidden="true"><div class="note-head"><span><svg viewBox="0 0 16 16" aria-hidden="true"><circle class="lc-fill" cx="8" cy="8" r="6.8"/><path class="lc-knock-fill" d="M5.1 3.4c1 .2 1.9.9 2 1.8.1.8-.6 1.2-1.3 1.3-.8.1-1 .9-.6 1.5.5.7.2 1.5-.6 1.6-.8.1-1.4-.6-1.6-1.4C2.8 6.6 3.6 4.4 5.1 3.4zM10.4 8.6c.9-.3 1.9.2 2.1 1.1.2 1-.4 2-1.4 2.4-.9.3-1.7-.2-1.7-1.1 0-.6.4-.9.4-1.4 0-.4.2-.8.6-1z"/></svg></span>Cultural context</div>
             <p><span lang="zh-CN">关系</span>: connections built on favours owed and returned. A job found <span lang="zh-CN">靠关系</span> came through someone calling in a favour.</p></div>
-          <div class="note lost" aria-hidden="true"><div class="note-head"><svg viewBox="0 0 20 20"><path d="M3 4.5A2.5 2.5 0 0 1 5.5 2h9A2.5 2.5 0 0 1 17 4.5v6a2.5 2.5 0 0 1-2.5 2.5H9l-4 3.5V13h.5A2.5 2.5 0 0 1 3 10.5z"/></svg>Lost in translation</div>
+          <div class="note lost" aria-hidden="true"><div class="note-head"><span><svg viewBox="0 0 16 16" aria-hidden="true"><path class="lc-fill" d="M2.6 1.8h6.6c.9 0 1.6.7 1.6 1.6v4.4c0 .9-.7 1.6-1.6 1.6H6.4L4.2 11.2V9.4H2.6c-.9 0-1.6-.7-1.6-1.6V3.4c0-.9.7-1.6 1.6-1.6z"/><path class="lc-knock" d="M3.6 3.9h4.6M5.9 3.1v.8M4.5 3.9c.3 1.4 1.3 2.6 2.9 3.1M7.3 3.9c-.3 1.4-1.3 2.6-2.9 3.1"/><path class="lc-fill" d="M11.6 6.4h1.8c.9 0 1.6.7 1.6 1.6v4.2c0 .9-.7 1.6-1.6 1.6h-.9v1.6l-2-1.6H8.6c-.9 0-1.6-.7-1.6-1.6v-1.6h2.2c1.3 0 2.4-1.1 2.4-2.4z"/><path class="lc-knock" d="M9.4 12.6l1.6-4.1 1.6 4.1M9.9 11.4h2.2"/></svg></span>Lost in translation</div>
             <p><span lang="zh-CN">吃醋</span>: literally “eat vinegar”. Often light and teasing, said of partners or of a child jealous of a new sibling.</p></div>
-          <div class="note culture n-back2" aria-hidden="true"><div class="note-head"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.5"/><path d="M2.5 10h15M10 2.5c2.2 2.3 2.2 12.7 0 15M10 2.5c-2.2 2.3-2.2 12.7 0 15"/></svg>Cultural context</div>
+          <div class="note culture n-back2" aria-hidden="true"><div class="note-head"><span><svg viewBox="0 0 16 16" aria-hidden="true"><circle class="lc-fill" cx="8" cy="8" r="6.8"/><path class="lc-knock-fill" d="M5.1 3.4c1 .2 1.9.9 2 1.8.1.8-.6 1.2-1.3 1.3-.8.1-1 .9-.6 1.5.5.7.2 1.5-.6 1.6-.8.1-1.4-.6-1.6-1.4C2.8 6.6 3.6 4.4 5.1 3.4zM10.4 8.6c.9-.3 1.9.2 2.1 1.1.2 1-.4 2-1.4 2.4-.9.3-1.7-.2-1.7-1.1 0-.6.4-.9.4-1.4 0-.4.2-.8.6-1z"/></svg></span>Cultural context</div>
             <p><span lang="zh-CN">面子</span>: standing in other people’s eyes. Paying the bill gives a friend <span lang="zh-CN">面子</span>; contradicting a boss in public makes him lose it.</p></div>
-          <div class="note lost n-back1" aria-hidden="true"><div class="note-head"><svg viewBox="0 0 20 20"><path d="M3 4.5A2.5 2.5 0 0 1 5.5 2h9A2.5 2.5 0 0 1 17 4.5v6a2.5 2.5 0 0 1-2.5 2.5H9l-4 3.5V13h.5A2.5 2.5 0 0 1 3 10.5z"/></svg>Lost in translation</div>
+          <div class="note lost n-back1" aria-hidden="true"><div class="note-head"><span><svg viewBox="0 0 16 16" aria-hidden="true"><path class="lc-fill" d="M2.6 1.8h6.6c.9 0 1.6.7 1.6 1.6v4.4c0 .9-.7 1.6-1.6 1.6H6.4L4.2 11.2V9.4H2.6c-.9 0-1.6-.7-1.6-1.6V3.4c0-.9.7-1.6 1.6-1.6z"/><path class="lc-knock" d="M3.6 3.9h4.6M5.9 3.1v.8M4.5 3.9c.3 1.4 1.3 2.6 2.9 3.1M7.3 3.9c-.3 1.4-1.3 2.6-2.9 3.1"/><path class="lc-fill" d="M11.6 6.4h1.8c.9 0 1.6.7 1.6 1.6v4.2c0 .9-.7 1.6-1.6 1.6h-.9v1.6l-2-1.6H8.6c-.9 0-1.6-.7-1.6-1.6v-1.6h2.2c1.3 0 2.4-1.1 2.4-2.4z"/><path class="lc-knock" d="M9.4 12.6l1.6-4.1 1.6 4.1M9.9 11.4h2.2"/></svg></span>Lost in translation</div>
             <p><span lang="zh-CN">打酱油</span>: a catchphrase for being a mere bystander or having a minor role: <span lang="zh-CN">我是来打酱油的</span> (“I’m just passing through”).</p></div>
         </div>
       </div>
@@ -306,13 +306,13 @@
   </div>
 </footer>
 
-<script src="data.js?v=1118zd"></script>
-<script src="card.js?v=1118zd"></script>
-<script src="hero.js?v=1118zd"></script>
-<script src="try.js?v=1118zd"></script>
-<script src="paper.js?v=1118zd"></script>
-<script src="motion.js?v=1118zd"></script>
-<script src="tiles.js?v=1118zd"></script>
-<script src="install.js?v=1118zd"></script>
+<script src="data.js?v=1118ze"></script>
+<script src="card.js?v=1118ze"></script>
+<script src="hero.js?v=1118ze"></script>
+<script src="try.js?v=1118ze"></script>
+<script src="paper.js?v=1118ze"></script>
+<script src="motion.js?v=1118ze"></script>
+<script src="tiles.js?v=1118ze"></script>
+<script src="install.js?v=1118ze"></script>
 </body>
 </html>

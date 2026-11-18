@@ -102,6 +102,21 @@
   const chars = (text, syl, size) => [...text].map((ch, k) => `<span style="color:${TONE[(syl[k] || {}).tone || 5]}">${esc(ch)}</span>`).join("");
   const pinyin = (syl) => syl.map((s, k) => `<span style="color:${TONE[s.tone] || TONE[5]}">${k ? " " : ""}${esc(s.t)}</span>`).join("");
   const voices = () => (window.speechSynthesis ? speechSynthesis.getVoices().filter((v) => /^zh[-_](CN|Hans)/i.test(v.lang) || v.lang === "zh") : []);
+  // The best Mandarin voice on this device, as the app picks it: a Premium or Enhanced voice
+  // first, then the browser's good ones (Edge's natural voices, Chrome's Google voice), then
+  // the system's own Tingting, and the novelty voices (Eddy, Grandma...) only if nothing else.
+  const NOVELTY = /^(Eddy|Flo|Grandma|Grandpa|Reed|Rocko|Sandy|Shelley)\b/i;
+  const rank = (v) => {
+    const id = `${v.name} ${v.voiceURI}`;
+    if (NOVELTY.test(v.name)) return 0;
+    if (/natural/i.test(id)) return 60;
+    if (/premium/i.test(id)) return 50;
+    if (/enhanced/i.test(id)) return 40;
+    if (/google/i.test(id)) return 30;
+    if (/tingting|lilian|li-mu|yue|yu-shu|xiaoxiao|yunxi/i.test(id)) return 20;
+    return 10;
+  };
+  const bestVoice = () => voices().reduce((best, v) => (!best || rank(v) > rank(best) ? v : best), null);
   if (window.speechSynthesis) speechSynthesis.getVoices();
 
   // Insert and remove a block the way SwiftUI's .opacity.combined(with: .offset(y:)) does,
@@ -185,7 +200,7 @@
         if (b.classList.contains("on")) { s.cancel(); return; }
         s.cancel();
         const u = new SpeechSynthesisUtterance(model.speech);
-        u.lang = "zh-CN"; u.voice = voices()[0]; u.rate = 0.9;
+        u.lang = "zh-CN"; u.voice = bestVoice(); u.rate = 0.9;
         u.onstart = () => b.classList.add("on");
         u.onend = u.onerror = () => b.classList.remove("on");
         s.speak(u);
