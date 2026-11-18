@@ -44,6 +44,9 @@ final class SelectionChip {
         // Give the app a moment to update its selection.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [weak self] in
             guard let self else { return }
+            // Without Accessibility every selection looks unreadable: no chip, rather than one
+            // that can only fail (⌃⌥L explains what's missing).
+            guard AXIsProcessTrusted() else { return }
             switch SelectionReader.readAccessibility() {
             case .selection(let s):
                 let t = s.trimmed()
@@ -145,7 +148,7 @@ struct ChipButtonView: View {
         .gesture(DragGesture(minimumDistance: 0)
             .onChanged { _ in pressed = true }
             .onEnded { _ in pressed = false; action() })
-        .help("Look up in Longyan")
+        .help("Look up (⌃⌥L)")
         .animation(.spring(response: 0.25, dampingFraction: 0.7), value: hovering)
         .animation(.spring(response: 0.2, dampingFraction: 0.7), value: pressed)
         .frame(maxWidth: .infinity, maxHeight: .infinity)

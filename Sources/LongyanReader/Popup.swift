@@ -122,6 +122,8 @@ func hanziColor(_ t: Int) -> Color { ToneColors.enabled ? toneColor(t) : .primar
 func pinyinColor(_ t: Int) -> Color { ToneColors.enabled ? toneColor(t) : .secondary }
 
 struct LookupView: View {
+    /// The dictionary-order reason for a word with no entry; shown on its own, without the prefix.
+    static let notInDictionary = "not in dictionary"
     @ObservedObject var state: LookupState
     @Environment(\.cardScale) private var scale
 
@@ -236,13 +238,13 @@ struct LookupView: View {
                 .cardFont(TextSize.callout).foregroundStyle(.secondary)
                 .transition(.opacity)
         case .dictionaryOnly(let why):
-            Text("Dictionary order · \(why)").cardFont(TextSize.subheadline).foregroundStyle(.secondary)
+            Text(why == Self.notInDictionary ? "Not in the dictionary" : "Dictionary order · \(why)").cardFont(TextSize.subheadline).foregroundStyle(.secondary)
         case .failed(let why):
-            Text("Dictionary order · couldn't place this word in the sentence").cardFont(TextSize.subheadline).foregroundStyle(.secondary)
+            Text("Dictionary order · couldn't tell which meaning fits here").cardFont(TextSize.subheadline).foregroundStyle(.secondary)
                 .help(why)
         case .chosen:
             if state.choice?.viaTranslation == true {
-                Text("Matched to the sentence translation").cardFont(TextSize.subheadline).foregroundStyle(.secondary)
+                Text("Picked to match the translation").cardFont(TextSize.subheadline).foregroundStyle(.secondary)
             }
         }
     }
@@ -298,7 +300,7 @@ struct LookupView: View {
                 }
             }
             if !state.context.alternatives.isEmpty {
-                Text("Also here: " + state.context.alternatives.joined(separator: " · "))
+                Text("Other words here: " + state.context.alternatives.joined(separator: " · "))
                     .cardFont(TextSize.subheadline).foregroundStyle(.tertiary)
             }
         }

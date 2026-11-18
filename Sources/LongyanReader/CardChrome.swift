@@ -619,7 +619,7 @@ struct ResizeHandle: View {
                     }
             )
             .simultaneousGesture(TapGesture(count: 2).onEnded { layout.resetSize(edges, zoomToo: isCorner) })
-            .help(isCorner ? "Drag to scale the card and its text · double-click for actual size" : "")
+            .help(isCorner ? "Drag to resize · double-click for actual size" : "")
             .onDisappear { if cursorPushed { NSCursor.pop(); cursorPushed = false } }
     }
 
@@ -912,7 +912,7 @@ struct CloseBadge: View {
         }
         .buttonStyle(FooterButtonStyle())
         .onHover { hovering = $0 }
-        .help("Close Card")
+        .help("Close")
         .opacity(shown ? 1 : 0)
         .scaleEffect(shown ? 1 : 0.7)
         .allowsHitTesting(shown)

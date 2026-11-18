@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Privacy · Longyan Reader</title>
+<meta name="description" content="What Longyan Reader reads, what it keeps on your Mac, and the only times it goes online.">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="favicon.ico" sizes="32x32">
+<link rel="icon" href="images/tab-icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="images/touch-icon.png">
+<link rel="stylesheet" href="style.css?v=1118zl">
+</head>
+<body>
+
+<nav class="bar" aria-label="Main">
+  <div class="bar-inner">
+    <a class="brand" href="./"><svg class="brand-mark" viewBox="0 0 1200 848.53" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M0 424.26L300 124.26A424.26 424.26 0 0 1 900 124.26L1200 424.26L900 724.26A424.26 424.26 0 0 1 300 724.26ZM225 424.26L412.5 236.76A265.17 265.17 0 0 1 787.5 236.76L975 424.26L787.5 611.76A265.17 265.17 0 0 1 412.5 611.76ZM471.43 424.26L535.71 359.98A90.91 90.91 0 0 1 664.29 359.98L728.57 424.26L664.29 488.55A90.91 90.91 0 0 1 535.71 488.55ZM728.57 424.26L975 424.26L851.79 547.48Z"/></svg>Longyan Reader</a>
+    <div class="bar-links">
+      <a href="https://github.com/mapuchuu/longyan-reader">GitHub</a>
+      <a class="bar-download" href="https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip" title="For Macs with Apple silicon and macOS 15 or later">Download</a>
+    </div>
+  </div>
+</nav>
+
+<main class="doc">
+  <div class="doc-wrap">
+    <h1>Privacy</h1>
+    <p class="doc-date">Updated 18 November 2026</p>
+
+    <p class="doc-lead">Longyan Reader runs on your Mac. What you highlight and look up stays on your Mac. There’s no account, no analytics and no tracking.</p>
+
+    <h2>What the app reads</h2>
+    <p>With the Accessibility permission you give it, the app reads the text you highlight and the sentence around it, in whatever app you’re reading. When you finish a selection, it reads it to check whether it’s Chinese and to decide whether to show the eye. Nothing is kept unless you open a card.</p>
+    <p>Some apps don’t share what’s selected. In those, the app copies the selection with ⌘C and then puts back what was on your clipboard.</p>
+
+    <h2>What it keeps on your Mac</h2>
+    <ul>
+      <li><b>Your lookup history.</b> Each word or phrase you look up, the meaning it had, and its sentence. It’s kept in <code>~/Library/Logs/LongyanReader</code>, readable only by your account. History is on by default. Under Keep History in the menu you can keep 30 days, turn it off, or clear it. It leaves your Mac only if you export it.</li>
+      <li><b>The reading model</b>, if you download it, in <code>~/Library/Application Support/LongyanReader</code>.</li>
+      <li><b>Your settings</b>, such as appearance and card size.</li>
+    </ul>
+
+    <h2>When it goes online</h2>
+    <ul>
+      <li><b>Downloading the reading model</b>, only when you ask. It comes from hf‑mirror.com, or huggingface.co if that fails. Those sites see an ordinary download request from your IP address.</li>
+      <li><b>Checking for updates</b>, only after you say yes, or when you choose Check for Updates. The app asks GitHub for the latest version. GitHub sees your IP address and the app’s version. Nothing about your Mac or your reading is sent.</li>
+      <li><b>Report a Problem</b> opens a GitHub page in your browser with the app version, macOS version, chip and memory filled in. Nothing is sent unless you submit it.</li>
+    </ul>
+    <p>If you use the reading model through Ollama, the app talks to Ollama on your own Mac. On macOS 26, Apple’s on-device models can fill in; they also run on your Mac.</p>
+
+    <h2>This website</h2>
+    <p>longyan.app is a static page hosted on GitHub Pages, and the download comes from GitHub. The site sets no cookies and has no analytics. GitHub may keep standard server logs, as described in <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">its privacy statement</a>.</p>
+
+    <h2>Questions</h2>
+    <p>All the code is public, so you can check any of this yourself on <a href="https://github.com/mapuchuu/longyan-reader">GitHub</a>. Questions or problems: <a href="https://github.com/mapuchuu/longyan-reader/issues">open an issue</a>. If this page changes, the date at the top will too.</p>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Dictionary: <a href="https://cc-cedict.org/">CC-CEDICT</a>, © MDBG and contributors, <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>. Reading model: Qwen 3.5, Apache 2.0.</p>
+    <p><a href="./">Longyan Reader</a> · <a href="privacy.html">Privacy</a></p>
+  </div>
+</footer>
+
+</body>
+</html>

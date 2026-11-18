@@ -23,13 +23,15 @@ Download it from **[longyan.app](https://longyan.app)** or the [latest release](
 
 - macOS 15 Sequoia or later
 - A Mac with Apple silicon (M1 or later)
-- 3 GB of free disk space for the reading model (optional, but recommended)
+- 4 GB of free disk space for the reading model (optional, but recommended)
+
+It won't open on an Intel Mac or on macOS 14 and earlier.
 
 ## Install
 
 1. Download the zip, unzip it, and drag **Longyan Reader** to your Applications folder.
 2. Open it. macOS will say it can't verify the app. Click **Done**.
-3. Open System Settings > Privacy & Security, scroll down, and click **Open Anyway** next to Longyan Reader.
+3. Open System Settings > Privacy & Security, scroll down, and click **Open Anyway** next to Longyan Reader. Enter your password, then click **Open Anyway** again when macOS asks.
 4. When the app asks, turn on Longyan Reader under Privacy & Security > Accessibility. It needs this to read the text you highlight.
 
 The warning in step 2 is because the app isn't signed with a paid Apple Developer ID. You only have to do this once; updates install without it.
@@ -40,21 +42,25 @@ Highlight some Chinese text. A small eye appears next to it: click it, or press 
 
 A single word opens a word card with its meaning in context, pinyin and any notes. Anything longer opens a phrase card: a translation, then every word with its meaning. Click a word to see its other meanings or pick a different one.
 
-Press Escape to close a card. Drag its bottom-right corner to make the text bigger or smaller. Your history is under the menu bar icon (⌘Y).
+Press Escape to close a card. Drag its bottom-right corner to make the text bigger or smaller. Your history is under **Lookup History** in the menu bar icon's menu.
 
 ## The reading model
 
-Picking meanings and translating is done by a small language model (Qwen 3.5 4B, Apache 2.0) that runs on your Mac. It's a 2.7 GB download, offered when you first open the app and afterwards under **Download Reading Model** in the menu. It's unloaded after five minutes without a lookup.
+Picking meanings and translating is done by a small language model (Qwen 3.5 4B, Apache 2.0) that runs on your Mac. It's a 2.7 GB download, offered when you first open the app and afterwards under **Download Reading Model** in the menu. It needs about 4 GB free to download. It's unloaded after five minutes without a lookup.
 
-Without it you still get the dictionary, pinyin and notes, but meanings are listed in dictionary order and there are no translations. On macOS 26, Apple's built-in model fills in, less accurately.
+Without it you still get the dictionary, pinyin and notes, but meanings are listed in dictionary order and there are no translations. On macOS 26 with Apple Intelligence on, Apple's model fills in, less accurately.
 
-If you already have `qwen3.5:4b` in [Ollama](https://ollama.com), the app uses that and you don't need to download anything.
+If you already have `qwen3.5:4b` in [Ollama](https://ollama.com), the app uses that copy and you don't need to download anything.
 
 ## Privacy
 
 Everything runs on your Mac. What you look up is never sent anywhere.
 
-The app only goes online to download the reading model when you ask for it, and to check for updates. Your history is kept in `~/Library/Logs/LongyanReader/` and stays there unless you export it. You can turn it off or clear it from the menu.
+The app only goes online to download the reading model when you ask for it, and to check for updates once you've said yes. Update checks send no information about your Mac. Report a Problem opens a GitHub issue in your browser with the app and macOS versions filled in, and nothing is sent until you submit it.
+
+History is on by default. It keeps each word you look up with its sentence, in `~/Library/Logs/LongyanReader/`, and stays there unless you export it. Turn it off or clear it under **Keep History** in the menu.
+
+The [privacy page](https://longyan.app/privacy.html) has the details.
 
 ## Updates
 
@@ -67,8 +73,9 @@ Quit the app, then move these to the Trash:
 - **Longyan Reader** in Applications
 - `~/Library/Application Support/LongyanReader` (the reading model)
 - `~/Library/Logs/LongyanReader` (your history)
+- anything named `LongyanReader` or `com.mapuchuu.longyanreader` in `~/Library/Caches` and `~/Library/HTTPStorages`
 
-Then remove it from System Settings > Privacy & Security > Accessibility, and from Login Items.
+Then remove it from System Settings > Privacy & Security > Accessibility, and from Login Items if you turned on Open at Login. Its settings go with `defaults delete com.mapuchuu.longyanreader` in Terminal.
 
 ## Building from source
 

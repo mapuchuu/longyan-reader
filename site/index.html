@@ -14,7 +14,7 @@
 <link rel="icon" href="favicon.ico" sizes="32x32">
 <link rel="icon" href="images/tab-icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="images/touch-icon.png">
-<link rel="stylesheet" href="style.css?v=1118zi">
+<link rel="stylesheet" href="style.css?v=1118zl">
 <script>
   // Scroll motion, unless the visitor asked for less (or ?still, for screenshots).
   if (!matchMedia("(prefers-reduced-motion: reduce)").matches && !/[?&]still/.test(location.search)) document.documentElement.classList.add("motion");
@@ -29,7 +29,7 @@
       <a class="hide-small" href="#features">Features</a>
       <a class="hide-small" href="#install">Install</a>
       <a href="https://github.com/mapuchuu/longyan-reader">GitHub</a>
-      <a class="bar-download" href="https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip" data-download>Download</a>
+      <a class="bar-download" href="https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip" title="For Macs with Apple silicon and macOS 15 or later" data-download>Download</a>
     </div>
   </div>
 </nav>
@@ -45,6 +45,7 @@
       <div class="hero-actions">
         <a class="button" href="#try" data-try>See how it works <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5"/></svg></a>
         <a class="button-quiet" href="#download" data-glide>Download for Mac <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v7.5M4.75 6.75 8 10l3.25-3.25M3 13.25h10"/></svg></a>
+        <p class="hero-fine">Free, for Macs with Apple silicon and macOS 15 or later.</p>
       </div>
     </div>
     <div class="try" id="try">
@@ -170,11 +171,11 @@
           <div class="menu-item dim">Highlight Chinese text, then click the eye or press ⌃⌥L</div>
           <hr>
           <div class="menu-item">Dictionary: 198,488 entries</div>
-          <div class="menu-item">Sense chooser: Qwen 3.5 4B (built in)</div>
-          <div class="menu-item">Accessibility: allowed</div>
+          <div class="menu-item">Reading model: Qwen 3.5 4B</div>
+          <div class="menu-item">Accessibility: on</div>
           <hr>
           <div class="menu-item">Open at Login<span class="check">✓</span></div>
-          <div class="menu-item">History…<span class="key">⌘Y</span></div>
+          <div class="menu-item">Lookup History<span class="key">⌘Y</span></div>
         </div>
       </div>
       <figcaption><b>Nothing leaves your Mac.</b> The dictionary and the reading model both run on your Mac. No account, and what you look up is never sent anywhere.</figcaption>
@@ -193,7 +194,7 @@
     <ol class="steps" id="steps">
       <li><button type="button" data-step="0" aria-pressed="true">Open the zip and drag <b>Longyan&nbsp;Reader</b> to Applications.</button><i class="step-bar"><b></b></i></li>
       <li><button type="button" data-step="1" aria-pressed="false">Open it. macOS says it can’t verify the app. Click <b>Done</b>.</button><i class="step-bar"><b></b></i></li>
-      <li><button type="button" data-step="2" aria-pressed="false">In System Settings › Privacy &amp; Security, scroll down and click <b>Open Anyway</b>.</button><i class="step-bar"><b></b></i></li>
+      <li><button type="button" data-step="2" aria-pressed="false">In System Settings › Privacy &amp; Security, scroll down and click <b>Open Anyway</b>. Enter your password, then click <b>Open Anyway</b> again.</button><i class="step-bar"><b></b></i></li>
       <li><button type="button" data-step="3" aria-pressed="false">Turn on Accessibility when the app asks, and download the reading model.</button><i class="step-bar"><b></b></i></li>
     </ol>
     </div>
@@ -249,6 +250,20 @@
                 </div>
               </div></div>
             </div>
+            <!-- Then macOS asks for the password, and once more whether to open it. -->
+            <div class="alert auth">
+              <svg class="auth-lock" viewBox="0 0 40 48" aria-hidden="true"><rect x="4" y="20" width="32" height="26" rx="5" fill="#8e8e93"/><path d="M11 21v-7a9 9 0 0 1 18 0v7" fill="none" stroke="#8e8e93" stroke-width="5"/></svg>
+              <b>Privacy &amp; Security</b>
+              <p>Enter your password to allow this.</p>
+              <span class="auth-field"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+              <div class="alert-buttons"><span>Cancel</span><span class="default">Modify Settings</span></div>
+            </div>
+            <div class="alert reopen">
+              <img src="images/icon.png" alt="">
+              <b>Open “Longyan Reader”?</b>
+              <p>Apple could not verify “Longyan Reader” is free of malware that may harm your Mac or compromise your privacy.</p>
+              <div class="alert-buttons"><span class="anyway">Open Anyway</span><span class="default">Done</span></div>
+            </div>
           </div>
 
           <!-- 4. The app's own first window: Accessibility, then the reading model. -->
@@ -266,7 +281,7 @@
                   <p class="ok">Accessibility is on.</p>
                   <hr>
                   <b>Download the reading model</b>
-                  <p class="dim">Recommended. It picks the right meaning for each word and translates phrases. 2.7&nbsp;GB, runs on your Mac.</p>
+                  <p class="dim">Recommended. It picks the meaning each word has in its sentence and translates phrases. It’s a 2.7&nbsp;GB download and runs on your Mac.</p>
                   <i class="ob-bar"><b></b></i>
                   <p class="dim ob-progress" id="ob-progress">1.2 of 2.7 GB · About 4 minutes left</p>
                   <div class="ob-buttons"><span>Stop</span><span class="default">Close</span></div>
@@ -305,16 +320,17 @@
   <div class="wrap">
     <p>Dictionary: <a href="https://cc-cedict.org/">CC-CEDICT</a>, © MDBG and contributors, <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>. Reading model: Qwen 3.5, Apache 2.0.</p>
     <p>Meanings and translations come from a language model and can be wrong. Found a problem? <a href="https://github.com/mapuchuu/longyan-reader/issues">Open an issue</a>.</p>
+    <p><a href="privacy.html">Privacy</a></p>
   </div>
 </footer>
 
-<script src="data.js?v=1118zi"></script>
-<script src="card.js?v=1118zi"></script>
-<script src="hero.js?v=1118zi"></script>
-<script src="try.js?v=1118zi"></script>
-<script src="paper.js?v=1118zi"></script>
-<script src="motion.js?v=1118zi"></script>
-<script src="tiles.js?v=1118zi"></script>
-<script src="install.js?v=1118zi"></script>
+<script src="data.js?v=1118zl"></script>
+<script src="card.js?v=1118zl"></script>
+<script src="hero.js?v=1118zl"></script>
+<script src="try.js?v=1118zl"></script>
+<script src="paper.js?v=1118zl"></script>
+<script src="motion.js?v=1118zl"></script>
+<script src="tiles.js?v=1118zl"></script>
+<script src="install.js?v=1118zl"></script>
 </body>
 </html>

@@ -20,8 +20,8 @@ enum LocalModel {
             ?? UserDefaults.standard.string(forKey: "senseModel") ?? "qwen3.5:4b"
     }
     static let choices: [(id: String, label: String)] = [
-        ("qwen3.5:4b", "Qwen 3.5 4B: lighter (2.9 GB, ~0.4 s)"),
-        ("apple", "Apple on-device model only"),
+        ("qwen3.5:4b", "Qwen 3.5 4B (2.7 GB)"),
+        ("apple", "Apple's Model Only"),
     ]
 
     static func select(_ id: String) {
@@ -42,7 +42,10 @@ enum LocalModel {
     }
     static func isAvailable() async -> Bool {
         guard enabled else { return false }
-        if backend == .embedded { lastCheck = (Date(), true); return true }
+        if backend == .embedded {
+            let ok = !EmbeddedModel.fileUnloadable
+            lastCheck = (Date(), ok); return ok
+        }
         if let c = lastCheck, Date().timeIntervalSince(c.at) < 30 { return c.ok }
         var ok = false
         var req = URLRequest(url: URL(string: "http://127.0.0.1:11434/api/tags")!)

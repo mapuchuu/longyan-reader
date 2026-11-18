@@ -27,6 +27,7 @@ final class ModelDownloader: NSObject, URLSessionDataDelegate {
     private var received: Int64 = 0
     private var hostIndex = 0
     private var lastShown = 0.0
+    private var badReply: String?   // why the last reply was refused, for the failure message
 
     var isRunning: Bool {
         switch state { case .downloading, .verifying: true; default: false }
@@ -66,11 +67,13 @@ final class ModelDownloader: NSObject, URLSessionDataDelegate {
         }
         received = (try? FileManager.default.attributesOfItem(atPath: partial.path)[.size] as? Int64) ?? 0
         if received >= Self.size { verify(); return }
+        lastShown = Double(received) / Double(Self.size)
+        badReply = nil
         var req = URLRequest(url: URL(string: Self.hosts[hostIndex] + Self.path)!)
         req.setValue("bytes=\(received)-", forHTTPHeaderField: "Range")
         req.timeoutInterval = 30
         handle = try? FileHandle(forWritingTo: partial)
-        handle?.seekToEndOfFile()
+        _ = try? handle?.seekToEnd()
         state = .downloading(Double(received) / Double(Self.size))
         let s = URLSession(configuration: .default, delegate: self, delegateQueue: .main)
         session = s
@@ -79,14 +82,24 @@ final class ModelDownloader: NSObject, URLSessionDataDelegate {
 
     nonisolated func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse,
                                 completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
-        let code = (response as? HTTPURLResponse)?.statusCode ?? 0
-        MainActor.assumeIsolated {
-            if code == 200 {
+        let http = response as? HTTPURLResponse
+        let code = http?.statusCode ?? 0
+        let range = http?.value(forHTTPHeaderField: "Content-Range") ?? ""
+        let length = response.expectedContentLength
+        let ok = MainActor.assumeIsolated { () -> Bool in
+            // Only the model itself is written into the .part file: a captive portal's page or
+            // an error page sent as 200 would otherwise spoil the resume and cost the whole file.
+            if code == 206, range.hasPrefix("bytes \(received)-") { return true }
+            if code == 200, length == Self.size {
                 // The server ignored the range: start the file over.
                 try? handle?.truncate(atOffset: 0); received = 0
+                lastShown = 0
+                return true
             }
+            badReply = code == 200 || code == 206 ? "unexpected reply from the server" : "the server returned error \(code)"
+            return false
         }
-        completionHandler(code == 200 || code == 206 ? .allow : .cancel)
+        completionHandler(ok ? .allow : .cancel)
     }
 
     nonisolated func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
@@ -116,7 +129,7 @@ final class ModelDownloader: NSObject, URLSessionDataDelegate {
                 hostIndex += 1; request()      // the mirror failed: try the next host, resuming
             } else {
                 hostIndex = 0
-                state = .failed(error?.localizedDescription ?? "HTTP \(code)")
+                state = .failed(badReply ?? error?.localizedDescription ?? "the server returned error \(code)")
             }
         }
     }
@@ -129,11 +142,16 @@ final class ModelDownloader: NSObject, URLSessionDataDelegate {
             await MainActor.run {
                 if ok {
                     try? FileManager.default.removeItem(at: target)
-                    do { try FileManager.default.moveItem(at: partial, to: target); self.state = .done }
+                    do {
+                        try FileManager.default.moveItem(at: partial, to: target)
+                        EmbeddedModel.shared.forgetLoadFailure()
+                        self.state = .done
+                    }
                     catch { self.state = .failed(error.localizedDescription) }
                 } else {
                     // A corrupt file can't be resumed into a good one.
-                    try? FileManager.default.trashItem(at: partial, resultingItemURL: nil)
+                    // Removed, not trashed: 2.7 GB in the Trash would fail the next space check.
+                    try? FileManager.default.removeItem(at: partial)
                     self.state = .failed("the file was damaged")
                 }
             }

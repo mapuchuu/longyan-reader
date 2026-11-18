@@ -8,7 +8,7 @@ cd "$(dirname "$0")/.."
 mode="${1:-}"
 flags=()
 [ "$mode" = "--dev" ] && flags=(-Xswiftc -DDEV_TOOLS)
-version=0.1
+version=1.0
 # The build number Sparkle compares to decide what's newer: the commit count, which only grows.
 build=$(git rev-list --count HEAD)
 # Updates: the feed is appcast.xml on the latest GitHub release (scripts/release.sh writes it),

@@ -189,7 +189,7 @@ private struct ModelStep: View {
             case (nil, _):
                 ProgressView().controlSize(.small)
             case (true?, _):
-                Label(model.foundInOllama ? "You're all set. Using Qwen from Ollama." : "You're all set.",
+                Label(model.foundInOllama ? "You're all set. Using the reading model from Ollama." : "You're all set.",
                       systemImage: "checkmark.circle.fill")
                     .foregroundStyle(.green)
                 buttons { Button("Done", action: done).keyboardShortcut(.defaultAction) }
@@ -235,7 +235,7 @@ private struct ModelStep: View {
     private var intro: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Download the reading model").font(.headline)
-            Text("Recommended. It picks the right meaning for each word and translates phrases. 2.7 GB, runs on your Mac.")
+            Text("Recommended. It picks the meaning each word has in its sentence and translates phrases. It's a 2.7 GB download and runs on your Mac.")
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -289,11 +289,11 @@ enum About {
         add(". Modified: senses reordered, words added, notes attached. ")
         add("cc-cedict.org", link: "https://cc-cedict.org/")
         add("\n\nModels\n", font: bold)
-        add("Sense picks and translations come from a local language model (Qwen 3.5, Apache 2.0, run in the app with llama.cpp, MIT; or through Ollama), or Apple's on-device models and Translation framework. They can be wrong: check a pick against the other listed senses. Sentence translations are machine translations.")
+        add("Meanings and translations come from the reading model (Qwen 3.5, Apache 2.0, run in the app with llama.cpp, MIT; or through Ollama), or Apple's on-device models. They can be wrong: check a meaning against the other ones listed. Sentence translations are machine translations.")
         add("\n\nNotes\n", font: bold)
-        add("The cultural and nuance notes were written by an AI model (Claude) and checked against the dictionary senses they attach to; they can contain mistakes.")
+        add("The notes were written by Claude and checked against the dictionary meanings they belong to. They can contain mistakes.")
         add("\n\nPrivacy\n", font: bold)
-        add("Lookups are processed on this Mac. Lookup history (History… in the menu, which exports flashcards) is kept on this Mac in ~/Library/Logs/LongyanReader/lookups.jsonl, readable only by your account; Lookup History in the menu turns it off or clears it.")
+        add("Lookups are processed on this Mac. Your history (Lookup History in the menu, which exports flashcards) is kept on this Mac in ~/Library/Logs/LongyanReader/lookups.jsonl, readable only by your account. Keep History in the menu turns it off or clears it.")
         NSApp.activate()
         var options: [NSApplication.AboutPanelOptionKey: Any] = [.applicationName: "Longyan Reader", .credits: credits]
         if let mark = Icons.mark(size: 64) {

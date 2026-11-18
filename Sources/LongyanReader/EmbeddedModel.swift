@@ -23,11 +23,23 @@ final class EmbeddedModel: @unchecked Sendable {
         return candidates.first { FileManager.default.fileExists(atPath: $0) }
     }
 
-    private let queue = DispatchQueue(label: "com.mapuchuu.longyanreader.llama", qos: .userInitiated)
+    private let queue: DispatchQueue = {
+        let q = DispatchQueue(label: "com.mapuchuu.longyanreader.llama", qos: .userInitiated)
+        q.setSpecific(key: EmbeddedModel.onQueue, value: ())
+        return q
+    }()
+    private static let onQueue = DispatchSpecificKey<Void>()
     private var model: OpaquePointer?
     private var ctx: OpaquePointer?
     private var vocab: OpaquePointer?
     private var loadError: Error?
+    /// The model file wouldn't load (damaged, or not a model). Lookups then fall back, the
+    /// menu offers the download again, and a new download clears it.
+    static var fileUnloadable: Bool { brokenFlag.isSet }
+    private static let brokenFlag = StopFlag()
+    private static let exiting = StopFlag()
+    /// After a new download: try the file again.
+    func forgetLoadFailure() { Self.brokenFlag.clear(); queue.async { self.loadError = nil } }
     /// The tokens now in the context, so a request that starts the same way (the system
     /// prompt, the worked examples) only reads what's new.
     private var cached: [llama_token] = []
@@ -61,6 +73,7 @@ final class EmbeddedModel: @unchecked Sendable {
         var mp = llama_model_default_params()
         mp.n_gpu_layers = 99
         guard let m = llama_model_load_from_file(path, mp) else {
+            Self.brokenFlag.set()
             loadError = Self.error("couldn't load \(path)"); throw loadError!
         }
         var cp = llama_context_default_params()
@@ -72,13 +85,23 @@ final class EmbeddedModel: @unchecked Sendable {
         if let t = env["LONGYAN_THREADS"].flatMap(Int32.init) { cp.n_threads = t; cp.n_threads_batch = t }
         if let f = env["LONGYAN_FA"].flatMap(Int32.init) { cp.flash_attn_type = llama_flash_attn_type(rawValue: f) }
         guard let c = llama_init_from_model(m, cp) else {
-            llama_model_free(m); loadError = Self.error("couldn't create a context"); throw loadError!
+            llama_model_free(m); throw Self.error("couldn't create a context")   // tried again next time
         }
         model = m; ctx = c; vocab = llama_model_get_vocab(m)
         // ggml frees its Metal device at exit and asserts nothing still uses it, so the context
         // and model must go first. Exit handlers run newest first, and ggml registers its own
         // when the device is first used (during the load above), so ours is registered after.
-        if !exitHandlerSet { atexit { EmbeddedModel.shared.free() }; exitHandlerSet = true }
+        // Quitting mid-lookup: the request stops at its next token, then the free runs on the
+        // queue after it, so it never frees what a decode is using.
+        if !exitHandlerSet {
+            atexit {
+                EmbeddedModel.exiting.set()
+                let m = EmbeddedModel.shared
+                // exit() called from the queue itself (a CLI path) would deadlock on sync.
+                if DispatchQueue.getSpecific(key: EmbeddedModel.onQueue) != nil { m.free() } else { m.queue.sync { m.free() } }
+            }
+            exitHandlerSet = true
+        }
         noteUse()
     }
 
@@ -243,7 +266,7 @@ final class EmbeddedModel: @unchecked Sendable {
         var produced = 0
         let answerStart = Date()
         while produced < maxTokens {
-            if stop.isSet { throw CancellationError() }
+            if stop.isSet || Self.exiting.isSet { throw CancellationError() }
             guard let t = next() else { break }
             if let g { llama_sampler_accept(g, t) }
             if llama_vocab_is_eog(vocab, t) { break }
@@ -281,7 +304,7 @@ final class EmbeddedModel: @unchecked Sendable {
                     let keep = try self.read(tokens)
                     var pending: [llama_token] = []
                     for (i, step) in steps.enumerated() {
-                        if stop.isSet { throw CancellationError() }
+                        if stop.isSet || Self.exiting.isSet { throw CancellationError() }
                         if i > 0 { try self.decode(pending + self.tokenize(step.text), startingAt: self.cached.count) }
                         let (pick, rest) = try self.readNumber(upTo: step.count, digits: digits.map { $0[0] })
                         pending = rest
@@ -403,5 +426,6 @@ private final class StopFlag: @unchecked Sendable {
     private let lock = NSLock()
     private var value = false
     func set() { lock.withLock { value = true } }
+    func clear() { lock.withLock { value = false } }
     var isSet: Bool { lock.withLock { value } }
 }

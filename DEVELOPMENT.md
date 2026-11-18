@@ -119,9 +119,29 @@ The model sees each noted sense with the first sentence of its note. A few fixed
 
 ## Releases
 
-1. Bump `version` in `scripts/build-app.sh` and commit. The build number is the commit count, so the tree has to be clean.
-2. Run `scripts/release.sh notes.md`, where `notes.md` is what's new (shown in the update window).
-3. Run the `gh release create` command it prints.
+1. Bump `version` in `scripts/build-app.sh` (1.0, 1.1, 1.0.1 for a fix) and commit. The build number is the commit count, so the tree has to be clean. Never rewrite main's history: a lower commit count would make the next release look older than the last.
+2. Run `scripts/release.sh notes.md`, where `notes.md` is what's new (shown in the update window). It stops if the app isn't signed with the project certificate.
+3. Test the update locally (below) before publishing.
+4. Run the `gh release create` command it prints. Not as a draft or prerelease: installed copies and the website follow `releases/latest`.
+5. Check the live feed (`curl -sL https://github.com/mapuchuu/longyan-reader/releases/latest/download/appcast.xml`) shows the new build number.
+
+A bad release can't be pulled back: Sparkle never offers an older build, so the fix is a new release with a higher build number. Deleting the release only stops new downloads.
+
+### Testing an update before publishing
+
+Installed copies prefer a feed URL in their defaults over the one in Info.plist, so an older release can be pointed at a feed served from this Mac:
+
+```bash
+defaults export com.mapuchuu.longyanreader /tmp/longyan-defaults.plist   # put back afterwards
+cd build/release-<version> && python3 -m http.server 8743 --bind 127.0.0.1 &
+# a copy of the appcast with the enclosure URL pointing at http://127.0.0.1:8743/
+defaults write com.mapuchuu.longyanreader SUFeedURL http://127.0.0.1:8743/appcast.xml
+defaults write com.mapuchuu.longyanreader SULastCheckTime -date "2025-01-01 00:00:00 +0000"
+```
+
+Unzip the previous release somewhere, open it, and use Check for Updates (or set `SUAutomaticallyUpdate` and quit it). Afterwards the copy should be the new version, have no quarantine flag (`xattr`), keep its designated requirement (`codesign -dr -`), and still say "Accessibility: on" in the menu. Then `defaults delete com.mapuchuu.longyanreader SUFeedURL` and import the saved defaults.
+
+Tested from 0.1 (build 97) to 1.0 (build 128) on 2026-11-18: the update installed on quit, nothing quarantined, same requirement. A forged EdDSA signature was refused. An ad-hoc signed update with a good EdDSA signature was installed, which is why the release scripts refuse to sign ad-hoc.
 
 The release is signed, zipped, and written to `build/release-<version>/` with `appcast.xml`. Installed copies read the feed from the latest release, so publishing the release is what ships the update. The zip is uploaded twice: once with the version in its name, which the appcast points to, and once as `LongyanReader.zip`, which the website's download button links to.
 
@@ -130,7 +150,9 @@ Two keys are needed to make releases. Both are kept outside the repo in `~/Libra
 - The self-signed code-signing certificate, `longyan-codesign.p12` (password in the login keychain under `longyan-signing`). It keeps every version the same app as far as macOS is concerned, so Accessibility stays allowed after an update.
 - Sparkle's update key (in the login keychain, exported as `sparkle-private-key.txt`). Without it, installed copies will reject updates.
 
-Sparkle's tools (2.10.1) are in the same folder.
+Sparkle's tools (2.10.1) are in the same folder. `release.sh` signs the feed with `sparkle-private-key.txt` when it's there, so it doesn't wait on a keychain prompt.
+
+The binary's developer commands (`--notes-submit` and the other notes jobs) call the Anthropic API with a key from the environment or the `longyan-anthropic` keychain item. They only run from a terminal; the app itself never goes online except for the model download and update checks.
 
 ## Website
 
@@ -142,7 +164,7 @@ Sparkle's tools (2.10.1) are in the same folder.
 - `paper.js` draws the backdrops (sheets of colour over a night ground, like a Mac wallpaper) with one WebGL context. `motion.js` does the scroll reveals, pins the statement and shows its three lines one at a time with a progress bar per line, stepping its card along with them (meanings, then the pick, then the note), and loads the video.
 - `tiles.js` brings new words into the History tile; the other tiles' loops are CSS, run while `motion.js` marks a tile "live". `install.js` plays the install steps on the Mac screen: each scene is a CSS animation started by a class on the desk (`s0` to `s3`), laid out at 760 px (620 on a phone) and scaled to fit.
 - `index.html` loads the stylesheet and scripts with a version stamp (`?v=…`). Change it when they change, so browsers and GitHub Pages' cache don't serve old copies.
-- The recording is `site/media/reading-3.mp4` (HEVC, 2240×1260, about 2.6 Mbit/s, no audio, fast start) with `reading-3-h264.mp4` (H.264, 4.5 Mbit/s) for browsers without HEVC, and `reading-3.jpg` as its first frame. To replace it, use new file names (browsers cache these) and update `index.html`; if its shape changes, match `aspect-ratio` on `.screen`.
+- The recording is `site/media/reading-4.mp4` (HEVC, 2240×1260, about 3.4 Mbit/s, no audio, fast start) with `reading-4-h264.mp4` (H.264, 5.8 Mbit/s) for browsers without HEVC, and `reading-4.jpg` as its first frame. To replace it, use new file names (browsers cache these) and update `index.html`; if its shape changes, match `aspect-ratio` on `.screen`.
 - To preview, serve the folder (`python3 -m http.server --directory site`). `?still` turns off scroll motion for screenshots.
 
 ## Licenses

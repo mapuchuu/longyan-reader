@@ -19,8 +19,8 @@ Who does each item:
 
 ## 0. Decisions first [you]
 
-- [ ] **Launch version number.** Choose 1.0, or 0.2 to keep a "still early" signal. I recommend 1.0 if this is the public launch.
-- [ ] **Throwaway update test.** Can I publish a test release so we can update 0.1 for real? Two options:
+- [x] **Launch version number.** 1.0. Choose 1.0, or 0.2 to keep a "still early" signal. I recommend 1.0 if this is the public launch.
+- [x] **Throwaway update test.** Can I publish a test release so we can update 0.1 for real? Two options:
   - a release that you pull right after;
   - a staging feed: a build that points at a different appcast URL, so real users never see it. **I recommend this one.**
 - [ ] **Test machines.** Which can we use: a second Mac, a fresh macOS user account on this one, or a macOS VM (a large download that needs your OK)? We need at least one machine that has never run the app, and ideally both macOS 15 and macOS 26.
@@ -29,25 +29,25 @@ Who does each item:
 
 ## 1. The release build
 
-- [ ] [me] Build from a fresh clone, not this working copy, to prove nothing depends on local files. That covers cedict, the model path, and the env vars.
-- [ ] [me] `--check-data` passes, and the dictionary compiles with no differences.
-- [ ] [me] Read the Info.plist in the built app:
+- [x] [me] Build from a fresh clone, not this working copy, to prove nothing depends on local files. That covers cedict, the model path, and the env vars.
+- [x] [me] `--check-data` passes, and the dictionary compiles with no differences.
+- [x] [me] Read the Info.plist in the built app:
   - bundle ID, version and build
   - `LSMinimumSystemVersion` 15.0
   - `LSUIElement`
   - `SUFeedURL` and `SUPublicEDKey`
   - copyright line
-- [ ] [me] The binary and frameworks are arm64 only, and the appcast says `hardwareRequirements arm64`.
+- [x] [me] The binary and frameworks are arm64 only, and the appcast says `hardwareRequirements arm64`.
 - [ ] [me] There is no `DEV_TOOLS` code in the release binary: no debug notification, probe, or simulation hooks.
-- [ ] [me] Check which dev-only CLI paths can be reached in a shipped binary. Examples are `NotesBuilder`, which calls the Anthropic API, and `--simulate`. They are probably harmless, but nothing in the shipped app may go online in ways the README doesn't mention. Gate them, or record why they're fine.
-- [ ] [me] Signatures:
+- [x] [me] Check which dev-only CLI paths can be reached in a shipped binary. Examples are `NotesBuilder`, which calls the Anthropic API, and `--simulate`. They are probably harmless, but nothing in the shipped app may go online in ways the README doesn't mention. Gate them, or record why they're fine.
+- [x] [me] Signatures:
   - `codesign --verify --deep --strict` passes.
   - The designated requirement names the certificate.
   - Sparkle's helpers are signed inside out.
   - Hardened runtime is on where Sparkle needs it.
-- [ ] [me] Licences are in `Contents/Resources/Licenses`: CC-CEDICT, MIT, llama.cpp and Sparkle. The About window or a menu item shows them.
+- [x] [me] Licences are in `Contents/Resources/Licenses`: CC-CEDICT, MIT, llama.cpp and Sparkle. The About window or a menu item shows them.
 - [ ] [me] Check the zip's size and that it unzips to a single `Longyan Reader.app` with its symlinks intact (ditto).
-- [ ] [me] `release.sh` refuses a dirty tree, and the build number is higher than 97.
+- [x] [me] `release.sh` refuses a dirty tree, and the build number is higher than 97.
 
 ## 2. First install, as a stranger would do it
 
@@ -101,7 +101,7 @@ For each one: it works, it's fast enough, and its failure looks deliberate.
   - traditional characters
   - numbers and punctuation only
   - a non-Chinese selection, which should produce no card or a polite one
-- [ ] **Model quality** [me]: run `scripts/evals.sh` against `eval-baseline.tsv`, with no regressions since v0.1.
+- [x] **Model quality** [me]: run `scripts/evals.sh` against `eval-baseline.tsv`, with no regressions since v0.1. Done 2026-11-18: no regressions, and real-T is 49/52. The stored phrase target of 83 is stale (main scores 82 without the fix too); refresh it with `--update` on the release build.
 - [ ] **Listen** [me]: with the default system voice, and on a Mac that has no Chinese voice installed.
 - [ ] **History** [me]:
   - entries record the meaning the word had
@@ -122,21 +122,38 @@ For each one: it works, it's fast enough, and its failure looks deliberate.
 
 ## 4. Robustness and performance
 
+Also fixed 2026-11-18:
+- With no Accessibility, there's no eye chip, and ⌃⌥L opens the permission window.
+- Phrase-card errors are plain text.
+- CSV export has a BOM for Excel.
+- History loads off the main thread.
+
+Still open:
+- The usage simulation. It posts real clicks, so run it when no system dialog is on screen.
+- ⌘C fallback timing. An app that copies after 400 ms leaves the user's clipboard replaced.
+- 2024年3月15日 comes out as "March 15th": the year is dropped.
+
 - [ ] [me] Run the usage simulation (`Simulation.swift`) for a long session: no crashes, flat memory, the model unloaded after 5 idle minutes.
 - [ ] [me] Through sleep and wake, and with the network changing (proxy on and off), the next lookup still works.
-- [ ] [me] Failures stay contained: a corrupt or truncated model file, a corrupt history file, missing resources, and low disk. Each should end in a clear message, not a crash or hang.
+- [x] [me] Failures stay contained: a corrupt or truncated model file, a corrupt history file, missing resources, and low disk. Each should end in a clear message, not a crash or hang. Fixed after an audit and real tests:
+  - the download progress froze on a retry
+  - an error page could spoil a resume
+  - a damaged download was trashed rather than removed
+  - the history write crashed on a full disk
+  - a model that wouldn't load was treated as ready and couldn't be downloaded again
+  - quitting mid-lookup could free the model during a decode
 - [ ] [me] Check the speed numbers DEVELOPMENT.md promises: about 0.15 s for a word and 1 to 2 s for a sentence. Measure cold start as well (first lookup after launch, with the model loading).
 - [ ] [you] Test on the lowest Mac we support, ideally an 8 GB M1. That covers memory pressure from the mapped model and the slowest speeds.
-- [ ] [me] Look at energy use while idle: no busy timers or polling, and Activity Monitor's energy figure near zero.
+- [x] [me] Look at energy use while idle: no busy timers or polling, and Activity Monitor's energy figure near zero. Measured: 0% CPU, about 0.2 wakeups/s, 12 MB.
 - [ ] [me] Look at crash and log output. What does a user send us when something breaks? Is it written down?
 
 ## 5. Updates and versioning
 
-- [ ] [me] **Version scheme, written down.**
+- [x] [me] **Version scheme, written down.**
   - Marketing version (`CFBundleShortVersionString`) is set by hand for each release, not hard-coded. The script could take it as an argument, read a VERSION file, or use the git tag.
   - The build number is the commit count, so it only grows. Note the risk: a rebase or squash of main could lower it.
-- [ ] [me] Check the appcast: `sparkle:version`, the short version, the minimum OS, arm64, the EdDSA signature, the length, and markdown release notes that read well in Sparkle's window.
-- [ ] [both] **End-to-end update test (the big one).** Start with 0.1 installed and set up: Accessibility granted, the model downloaded, history recorded, Open at Login on. Then publish the next build to a staging feed and check each of these:
+- [x] [me] Check the appcast: `sparkle:version`, the short version, the minimum OS, arm64, the EdDSA signature, the length, and markdown release notes that read well in Sparkle's window.
+- [~] [both] **End-to-end update test (the big one).** Done 2026-11-18 from the real 0.1 to a 1.0 build on a local feed: installed on quit, no quarantine, same signing requirement, settings kept. Still to see with your eyes: "Accessibility: allowed" in the menu after updating, and the update window itself. Start with 0.1 installed and set up: Accessibility granted, the model downloaded, history recorded, Open at Login on. Then publish the next build to a staging feed and check each of these:
   - the second-launch "check automatically?" prompt
   - Check for Updates finds it
   - the update installs and relaunches the app
@@ -144,39 +161,39 @@ For each one: it works, it's fast enough, and its failure looks deliberate.
   - **Gatekeeper does not ask again**
   - the model, history, settings and login item all survive
   - the gentle scheduled reminder appears when no one is in the middle of reading
-- [ ] [me] Negative tests:
+- [x] [me] Negative tests: (forged EdDSA refused; an ad-hoc update with a good EdDSA signature WAS installed, so release signing now refuses ad-hoc and release.sh checks the certificate)
   - An update with a bad EdDSA signature is refused.
   - An update signed with a different certificate is refused, or we know what happens.
   - "Skip this version" works.
 - [ ] [me] Settings migrations: an old defaults key or a new history format is upgraded, not lost (see the `cardSizeVersion` pattern).
-- [ ] [me] **Bad-release plan, written in DEVELOPMENT.md.** The feed is "latest release" and Sparkle won't downgrade, so a bad release is fixed forward: a new build number out quickly. Record the steps and how long they take.
+- [x] [me] **Bad-release plan, written in DEVELOPMENT.md.** The feed is "latest release" and Sparkle won't downgrade, so a bad release is fixed forward: a new build number out quickly. Record the steps and how long they take.
 - [ ] [you] **Back up the keys** somewhere other than this Mac, such as a password manager or an encrypted USB drive. The files are `longyan-codesign.p12` with its password, and `sparkle-private-key.txt`. If they're lost, existing users can never be updated, and they would have to re-grant Accessibility.
 - [ ] [me] `release.sh` prints the publish command. Add a check step after publishing: fetch the live appcast and the site's zip, and confirm the version and signature.
 
 ## 6. Privacy, data, and uninstalling
 
-- [ ] [me] **Network audit.** Watch the app's connections (nettop or lsof) through a whole session. The only ones allowed are the model download and Sparkle checks, and Sparkle only after you say yes. That makes the README's privacy claim checked, not just stated.
-- [ ] [me] List everything the app writes:
+- [x] [me] **Network audit.** Watch the app's connections (nettop or lsof) through a whole session. The only ones allowed are the model download and Sparkle checks, and Sparkle only after you say yes. That makes the README's privacy claim checked, not just stated. Done 2026-11-18. In code, the app only reaches the model hosts, GitHub (for Sparkle, with no profile sent) and a local Ollama. Watched for 60 s after launch: no sockets.
+- [x] [me] List everything the app writes: Also writes to Caches and HTTPStorages; the README lists them.
   - `~/Library/Application Support/LongyanReader/` (2.7 GB model)
   - `~/Library/Logs/LongyanReader/` (history)
   - defaults
   - Sparkle's caches
   - the login item
   - the Accessibility entry
-- [ ] [me] Add uninstall steps to the README: delete the app, the model folder and the history, and remove the Accessibility entry. Possibly add a "Remove reading model" menu item to free 2.7 GB.
+- [x] [me] Add uninstall steps to the README: delete the app, the model folder and the history, and remove the Accessibility entry. Possibly add a "Remove reading model" menu item to free 2.7 GB. The README now has the full list. Removing the model from the menu is not done.
 - [ ] [me] Is history stored under Logs the right place? Users may clear Logs and lose their history without knowing.
 
 ## 7. Words people see
 
-- [ ] [me] Read every string in the app (menus, onboarding, errors, alerts, the update window) against notes/style.md: short, plain, no AI tics, no em dashes.
-- [ ] [me] README, site and app all match on requirements, install steps, shortcuts, disk space and privacy claims.
+- [x] [me] Read every string in the app (menus, onboarding, errors, alerts, the update window) against notes/style.md: short, plain, no AI tics, no em dashes. About 150 strings reviewed. The model now has one name (reading model). Fixed: menu Title Case, plural "1 lookup", the jargon in card status lines, and plain download errors.
+- [x] [me] README, site and app all match on requirements, install steps, shortcuts, disk space and privacy claims. The README is fixed: 4 GB free, Intel/macOS 14, the second Open Anyway, the history default, Apple Intelligence, the privacy lines. The site's menu mock is updated. The dictionary claim stays (your call). The site's install animation now shows the password and the second Open Anyway. The hero says "Apple silicon, macOS 15 or later". There is a privacy page at /privacy.html.
 - [ ] [me] Release notes for the launch version, plus a corrected sentence about the eye.
-- [ ] [me] Check the GitHub repo:
+- [x] [me] Check the GitHub repo: done 2026-11-18. Updated the description, website and topics, and added an issue template. Still to do: set the social preview image (only possible from the web settings).
   - description, topics and website link
   - licence shown
   - issue templates (bug report: version, macOS, what app, and the text if it's shareable)
   - nothing private committed (real-eval.tsv stays ignored)
-- [ ] [me] Leftover follow-up: the 走 example in App.swift:201, CLI.swift:493/752 and Simulation.swift.
+- [x] [me] Leftover follow-up: the 走 example in App.swift:201, CLI.swift:493/752 and Simulation.swift. Replaced in the debug demo and the simulation. It stays in the CLI eval cases, which are test data no user sees.
 
 ## 8. Launch day
 

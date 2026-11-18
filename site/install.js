@@ -15,7 +15,7 @@
   const progress = document.getElementById("ob-progress");
   const obBar = desk.querySelector(".ob-bar b");
   const moving = document.documentElement.classList.contains("motion");
-  const DUR = [5600, 5200, 5600, 7200];
+  const DUR = [5600, 5200, 8800, 7200];
   // Each app's own menus, as its menu bar shows them.
   const APP = [
     ["Finder", "File Edit View Go Window Help"], ["Finder", "File Edit View Go Window Help"],

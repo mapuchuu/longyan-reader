@@ -32,7 +32,7 @@ enum SenseChooser {
 
     /// Why no sense picker can run, for the card's dictionary-order line.
     static var noPickerReason: String {
-        LocalModel.enabled ? "local model not running, and Apple's model: \(unavailableReason)" : unavailableReason
+        LocalModel.enabled ? "download the reading model to pick the meaning here" : "Apple's model: \(unavailableReason)"
     }
 
     static var unavailableReason: String {

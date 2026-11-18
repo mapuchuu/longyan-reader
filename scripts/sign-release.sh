@@ -15,6 +15,14 @@ kc="$dir/longyan-signing.keychain-db"
 identity="Longyan Reader (self-signed)"
 
 if [ ! -f "$kc" ]; then
+  # Sparkle installs any update whose EdDSA signature is good, whatever its code signature,
+  # so an ad-hoc release would reach every user and cost them the Accessibility grant.
+  # Only a fork or a test build, which can't ship to our users, may go ahead.
+  if [ "${LONGYAN_ALLOW_ADHOC:-}" != 1 ]; then
+    echo "no signing keychain at $kc: restore it from the backup (DEVELOPMENT.md, Releases)" >&2
+    echo "LONGYAN_ALLOW_ADHOC=1 signs ad-hoc instead, for a fork or a test build only" >&2
+    exit 1
+  fi
   echo "warning: no signing keychain at $kc; signing ad-hoc" >&2
   codesign --force --deep --sign - "$app/Contents/Frameworks/"*.framework
   codesign --force --sign - "$app"

@@ -149,8 +149,8 @@ final class PhraseState: ObservableObject {
         var noFit: Set<Int> = []
         func reportMisses() {
             for t in words where out[t.id] == nil {
-                onMiss(t.id, noFit.contains(t.id) ? "Dictionary order: no listed meaning was picked for this sentence"
-                                                  : "Dictionary order: couldn't place this word in the sentence")
+                onMiss(t.id, noFit.contains(t.id) ? "Dictionary order · none of the listed meanings fit this sentence"
+                                                  : "Dictionary order · couldn't tell which meaning fits here")
             }
         }
         words.removeAll { t in
@@ -351,7 +351,7 @@ final class PhraseState: ObservableObject {
                     withAnimation(cardMotion) { choices[token.id] = choice }
                 }
             } catch {
-                failures[token.id] = "Dictionary order: couldn't place this word in the sentence"
+                failures[token.id] = "Dictionary order · couldn't tell which meaning fits here"
             }
             choosing.remove(token.id)
             onLayoutChange()
@@ -508,7 +508,7 @@ struct PhraseView: View {
                 } else if let f = state.failures[token.id] {
                     Text(f).cardFont(TextSize.subheadline).foregroundStyle(.secondary)
                 } else if state.choices[token.id]?.viaTranslation == true {
-                    Text("Matched to the sentence translation").cardFont(TextSize.subheadline).foregroundStyle(.secondary)
+                    Text("Picked to match the translation").cardFont(TextSize.subheadline).foregroundStyle(.secondary)
                 } else if let here = state.meaningHere(token) {
                     (Text("In this sentence: ").foregroundColor(.secondary) + Text(here).fontWeight(.medium))
                         .cardFont(TextSize.callout)
@@ -617,7 +617,7 @@ final class PhrasePrep {
         } else {
             translation = nil   // a stream that broke off mustn't stay up as the translation
             do { translation = try await Translator.translate(selection.text) }
-            catch { translationError = String(describing: error).prefix(60).description }
+            catch { translationError = error.localizedDescription }
         }
         translationDone = true
         translationMs = Int(Date().timeIntervalSince(started) * 1000)

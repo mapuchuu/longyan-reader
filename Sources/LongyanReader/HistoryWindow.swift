@@ -78,7 +78,8 @@ enum HistoryExport {
         let rows = unique(entries).map { e in
             [day.string(from: e.date), e.kind.rawValue, e.text, e.pinyin, e.meaning, e.gloss, e.sentence].map(field).joined(separator: ",")
         }
-        return (["date,type,chinese,pinyin,meaning,dictionary,sentence"] + rows).joined(separator: "\r\n") + "\r\n"
+        // The byte-order mark tells Excel the file is UTF-8; without it Chinese opens garbled.
+        return "\u{FEFF}" + (["date,type,chinese,pinyin,meaning,dictionary,sentence"] + rows).joined(separator: "\r\n") + "\r\n"
     }
 
     /// Anki's text import (File › Import): the header lines set the separator, note type and
@@ -120,6 +121,7 @@ enum HistoryExport {
 @MainActor
 final class HistoryModel: ObservableObject {
     @Published var entries: [HistoryEntry] = []
+    @Published var loading = true
     @Published var search = ""
     @Published var kind: HistoryEntry.Kind? = nil
     @Published var isOn = Log.keep != .off
@@ -128,9 +130,22 @@ final class HistoryModel: ObservableObject {
 
     init(dict: @escaping () -> CEDict?) { self.dict = dict; reload() }
 
+    private var loads = 0
+
+    /// Read off the main thread: a long history takes a while to parse, and the window
+    /// should open at once rather than beachball.
     func reload() {
         isOn = Log.keep != .off
-        entries = HistoryReader.entries(dict: dict())
+        loads += 1
+        let load = loads, d = dict()
+        Task.detached(priority: .userInitiated) {
+            let e = HistoryReader.entries(dict: d)
+            await MainActor.run { [weak self] in
+                guard let self, load == self.loads else { return }   // a newer reload wins
+                self.entries = e
+                self.loading = false
+            }
+        }
     }
 
     var shown: [HistoryEntry] {
@@ -149,7 +164,7 @@ final class HistoryModel: ObservableObject {
         let panel = NSSavePanel()
         panel.nameFieldStringValue = anki ? "Longyan Reader flashcards.txt" : "Longyan Reader history.csv"
         panel.allowedContentTypes = [anki ? .plainText : .commaSeparatedText]
-        panel.message = anki ? "In Anki, choose File › Import and pick this file; it goes into the deck \"Longyan Reader\"."
+        panel.message = anki ? "In Anki, choose File › Import and pick this file; it goes into the deck “Longyan Reader”."
                              : "One row per word and meaning, newest first."
         NSApp.activate()
         guard panel.runModal() == .OK, let url = panel.url else { return }
@@ -228,7 +243,7 @@ struct HistoryView: View {
                 }
                 HStack {
                     let shown = model.shown.count
-                    Text(shown == model.entries.count ? "\(shown) lookups" : "\(shown) of \(model.entries.count) lookups")
+                    Text(model.loading ? "Loading…" : shown == model.entries.count ? (shown == 1 ? "1 lookup" : "\(shown) lookups") : "\(shown) of \(model.entries.count) lookups")
                     Spacer()
                     if !model.isOn { Text("History is off; new lookups aren't added.") }
                 }

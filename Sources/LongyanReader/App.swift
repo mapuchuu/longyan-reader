@@ -198,7 +198,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     var lines: [String] = []
                     let screen = NSScreen.main?.visibleFrame ?? .zero
                     let anchor = NSRect(x: screen.midX - 180, y: screen.midY + 200, width: 60, height: 20)
-                    let passage = Array("奶奶上个月走了，全家人都很难过。")
+                    let passage = Array("最近工作太卷了，我想躺平。")
                     let selection = Selection(passage: passage, range: 5..<6, bounds: nil, source: .accessibility, appName: "Demo")
                     self.show(selection, near: anchor)
                     for (label, wait) in [("after 0.1 s", 0.1), ("after 0.3 s", 0.2), ("after 0.6 s", 0.3), ("after 1.0 s", 0.4), ("after 2.5 s (answer in)", 1.5)] {
@@ -250,14 +250,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let menu = NSMenu()
         menu.addItem(withTitle: "Highlight Chinese text, then click the eye or press ⌃⌥L", action: nil, keyEquivalent: "").isEnabled = false
         menu.addItem(.separator())
-        let chipItem = menu.addItem(withTitle: "Show Button on Selection", action: #selector(toggleChip), keyEquivalent: "")
+        let chipItem = menu.addItem(withTitle: "Show Eye Next to Selection", action: #selector(toggleChip), keyEquivalent: "")
         chipItem.target = self
         chipItem.state = chip.isEnabled ? .on : .off
         menu.addItem(.separator())
-        menu.addItem(withTitle: "Dictionary: " + (dict.map { "\($0.entryCount) entries" } ?? "loading…"), action: nil, keyEquivalent: "")
-        let localLabel = LocalModel.backend == .embedded ? "Qwen 3.5 4B (built in)" : "\(LocalModel.name) (via Ollama)"
-        menu.addItem(withTitle: "Sense chooser: " + (localModelReady ? localLabel
-                                                     : "Apple on-device model, " + SenseChooser.unavailableReason),
+        menu.addItem(withTitle: "Dictionary: " + (dict.map { "\($0.entryCount.formatted()) entries" } ?? "loading…"), action: nil, keyEquivalent: "")
+        let localLabel = LocalModel.backend == .embedded ? "Qwen 3.5 4B" : "Qwen 3.5 4B from Ollama"
+        menu.addItem(withTitle: "Reading model: " + (localModelReady ? localLabel
+                                                     : LocalModel.enabled ? "not downloaded (Apple's model: \(SenseChooser.unavailableReason))"
+                                                     : "Apple's model (\(SenseChooser.unavailableReason))"),
                      action: nil, keyEquivalent: "")
         // The model file isn't bundled (2.7 GB); offer it until it's here.
         let downloader = ModelDownloader.shared
@@ -268,11 +269,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                          action: #selector(cancelModelDownload), keyEquivalent: "").target = self
         case .verifying:
             menu.addItem(withTitle: "Checking Download…", action: nil, keyEquivalent: "")
-        case .failed(let why) where EmbeddedModel.modelPath == nil:
+        case .failed(let why) where EmbeddedModel.modelPath == nil || EmbeddedModel.fileUnloadable:
             menu.addItem(withTitle: "Download failed: \(why)", action: nil, keyEquivalent: "")
             menu.addItem(withTitle: "Retry Download", action: #selector(downloadModel), keyEquivalent: "").target = self
         default:
-            if EmbeddedModel.modelPath == nil {
+            if EmbeddedModel.fileUnloadable {
+                // The file is there but won't load: offer a fresh copy (it replaces the file).
+                menu.addItem(withTitle: "The reading model won't open", action: nil, keyEquivalent: "")
+                menu.addItem(withTitle: "Download It Again (2.7 GB)…", action: #selector(downloadModel), keyEquivalent: "").target = self
+            } else if EmbeddedModel.modelPath == nil {
                 menu.addItem(withTitle: "Download Reading Model (2.7 GB)…", action: #selector(downloadModel), keyEquivalent: "").target = self
             }
         }
@@ -283,7 +288,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             item.representedObject = choice.id
             item.state = LocalModel.name == choice.id ? .on : .off
         }
-        let pickerItem = menu.addItem(withTitle: "Sense Picker", action: nil, keyEquivalent: "")
+        let pickerItem = menu.addItem(withTitle: "Reading Model", action: nil, keyEquivalent: "")
         menu.setSubmenu(pickerMenu, for: pickerItem)
 
         let appearanceMenu = NSMenu()
@@ -312,7 +317,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         let appearanceItem = menu.addItem(withTitle: "Appearance", action: nil, keyEquivalent: "")
         menu.setSubmenu(appearanceMenu, for: appearanceItem)
-        menu.addItem(withTitle: "History…", action: #selector(showHistory), keyEquivalent: "y").target = self
+        menu.addItem(withTitle: "Lookup History", action: #selector(showHistory), keyEquivalent: "y").target = self
         let historyMenu = NSMenu()
         for (keep, label) in [(Log.Keep.off, "Off"), (.days30, "Keep 30 Days"), (.all, "Keep Everything")] {
             let item = historyMenu.addItem(withTitle: label, action: #selector(selectHistory(_:)), keyEquivalent: "")
@@ -324,12 +329,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         reveal.target = self
         let clear = historyMenu.addItem(withTitle: "Clear History…", action: hasHistory ? #selector(clearHistory) : nil, keyEquivalent: "")
         clear.target = self
-        let historyItem = menu.addItem(withTitle: "Lookup History", action: nil, keyEquivalent: "")
+        let historyItem = menu.addItem(withTitle: "Keep History", action: nil, keyEquivalent: "")
         menu.setSubmenu(historyMenu, for: historyItem)
-        menu.addItem(withTitle: "Accessibility: " + (AXIsProcessTrusted() ? "allowed" : "not allowed"), action: nil, keyEquivalent: "")
+        menu.addItem(withTitle: "Accessibility: " + (AXIsProcessTrusted() ? "on" : "off"), action: nil, keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Open Accessibility Settings…", action: #selector(openAccessibility), keyEquivalent: "").target = self
-        menu.addItem(withTitle: "Refresh Status", action: #selector(refresh), keyEquivalent: "").target = self
+        menu.addItem(withTitle: "Check Again", action: #selector(refresh), keyEquivalent: "").target = self
         menu.addItem(.separator())
         if LoginItem.available {
             let login = menu.addItem(withTitle: "Open at Login", action: #selector(toggleOpenAtLogin), keyEquivalent: "")
@@ -339,7 +344,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if Updates.available {
             menu.addItem(withTitle: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "").target = self
         }
-        menu.addItem(withTitle: "Report an Issue…", action: #selector(reportIssue), keyEquivalent: "").target = self
+        menu.addItem(withTitle: "Report a Problem", action: #selector(reportIssue), keyEquivalent: "").target = self
         menu.addItem(withTitle: "About Longyan Reader", action: #selector(showAbout), keyEquivalent: "").target = self
         menu.addItem(withTitle: "Quit Longyan Reader", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         statusItem.menu = menu
@@ -425,7 +430,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
 
         ---
-        Longyan Reader \(version), macOS \(os.majorVersion).\(os.minorVersion).\(os.patchVersion), \(String(cString: chip)), \(Int((Double(ProcessInfo.processInfo.physicalMemory) / 1_073_741_824).rounded())) GB, sense picker: \(model)
+        Longyan Reader \(version), macOS \(os.majorVersion).\(os.minorVersion).\(os.patchVersion), \(String(cString: chip)), \(Int((Double(ProcessInfo.processInfo.physicalMemory) / 1_073_741_824).rounded())) GB, reading model: \(model)
         """
         var url = URLComponents(string: "https://github.com/mapuchuu/longyan-reader/issues/new")!
         url.queryItems = [URLQueryItem(name: "body", value: body)]
@@ -443,7 +448,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if case .failed = ModelDownloader.shared.state {} else {
             let alert = NSAlert()
             alert.messageText = "Download the reading model?"
-            alert.informativeText = "It picks the right meaning for each word and translates phrases. 2.7 GB, runs on your Mac."
+            alert.informativeText = "It picks the meaning each word has in its sentence and translates phrases. It's a 2.7 GB download and runs on your Mac."
             alert.addButton(withTitle: "Download")
             alert.addButton(withTitle: "Cancel")
             NSApp.activate()
@@ -499,6 +504,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func hotKeyPressed() {
         chip.hide()
+        // Without Accessibility nothing can be read (and the ⌘C fallback is dropped too):
+        // say so, instead of "highlight some Chinese text" when they already have.
+        guard AXIsProcessTrusted() else { Onboarding.shared.show(); return }
         LocalModel.warmUp()
         if case .selection(let s) = SelectionReader.readAccessibility(), s.trimmed().hasChinese {
             show(s.trimmed(), near: s.bounds.map(Self.appKitRect) ?? Self.mouseBox)
@@ -513,7 +521,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if let s = await SelectionReader.readByCopying()?.trimmed(), s.hasChinese {
                 show(s, near: Self.mouseBox)
             } else {
-                hint("Highlight some Chinese text first", near: Self.mouseBox)
+                hint("Highlight Chinese text, or point at a word and press ⌃⌥L", near: Self.mouseBox)
                 Log.write(["event": "miss", "trace": SelectionReader.trace + TextCapture.trace,
                            "frontApp": NSWorkspace.shared.frontmostApplication?.localizedName ?? ""])
             }
@@ -561,7 +569,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let grammar = GrammarWords.entry(context.word, in: context.passage, at: context.wordRange.lowerBound)
         let modelReady = SenseChooser.canChoose && !senses.isEmpty && grammar == nil
         let state = LookupState(context: context, senses: senses,
-                                phase: modelReady ? .choosing : .dictionaryOnly(senses.isEmpty ? "not in dictionary" : SenseChooser.noPickerReason))
+                                phase: modelReady ? .choosing : .dictionaryOnly(senses.isEmpty ? LookupView.notInDictionary : SenseChooser.noPickerReason))
         state.onLayoutChange = { [weak self] in Task { await self?.relayout() } }
         // A lone character inside a longer word (彻 in 彻底) also shows that word. A word with one
         // meaning, or one a cue settles, shows it at once; otherwise the model picks it after the
@@ -625,7 +633,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 } catch is CancellationError {
                     return   // a newer card replaced this one
                 } catch {
-                    state.phase = error is NoSenseFits ? .dictionaryOnly("no listed meaning was picked for this sentence")
+                    state.phase = error is NoSenseFits ? .dictionaryOnly("none of the listed meanings fit this sentence")
                         : .failed(String(describing: error).prefix(80).description)
                     popup.endHold()
                     record["error"] = String(describing: error)
@@ -736,8 +744,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 /// The lookup history: one JSON line per lookup in ~/Library/Logs/LongyanReader/lookups.jsonl,
-/// on this Mac only. It holds the sentences read, so it's off for new installs; the menu turns
-/// it on for 30 days or for good, and Clear moves the file to the Trash.
+/// on this Mac only. It's on for new installs (it's what History shows); the menu keeps it for
+/// 30 days or turns it off, and Clear moves the file to the Trash.
 enum Log {
     enum Keep: String, CaseIterable { case off, days30, all }
 
@@ -769,7 +777,9 @@ enum Log {
         r["at"] = ISO8601DateFormatter().string(from: Date())
         guard let data = try? JSONSerialization.data(withJSONObject: r, options: [.sortedKeys]) else { return }
         if let h = try? FileHandle(forWritingTo: file) {
-            h.seekToEndOfFile(); h.write(data); h.write("\n".data(using: .utf8)!); try? h.close()
+            // The throwing calls: the old write raises an exception (a crash) on a full disk.
+            defer { try? h.close() }
+            do { try h.seekToEnd(); try h.write(contentsOf: data + Data("\n".utf8)) } catch {}
         } else {
             FileManager.default.createFile(atPath: file.path, contents: data + "\n".data(using: .utf8)!,
                                            attributes: [.posixPermissions: 0o600])

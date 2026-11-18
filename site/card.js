@@ -621,7 +621,7 @@
         // Back to the model's answer, or why the order is the dictionary's.
         const status = q(".lc-status");
         const back = st.userPicked && st.suggested && st.suggested.n !== st.choice.n;
-        const caption = info.phase !== "chosen" ? info.phase : info.viaTranslation && !st.userPicked ? "Matched to the sentence translation" : "";
+        const caption = info.phase !== "chosen" ? info.phase : info.viaTranslation && !st.userPicked ? "Picked to match the translation" : "";
         const statusKey = `${back ? st.suggested.meaning : ""}|${caption}`;
         if (statusKey !== status.dataset.key) {
           const showing = !status.hidden && !status._collapse;
@@ -788,7 +788,7 @@
         const status = d.querySelector(".lc-dstatus");
         status.innerHTML = "";
         if (r.failure && !st.picked.has(r.id)) status.append(h("div", "lc-caption", esc(r.failure)));
-        else if (r.viaTranslation && !st.picked.has(r.id)) status.append(h("div", "lc-caption", "Matched to the sentence translation"));
+        else if (r.viaTranslation && !st.picked.has(r.id)) status.append(h("div", "lc-caption", "Picked to match the translation"));
         else if (r.here && !st.picked.has(r.id)) status.append(h("div", "lc-here", `<span>In this sentence: </span><b>${esc(r.here)}</b>`));
         const back = st.picked.has(r.id) && (r.grammar || st.picked.get(r.id) !== r.shown);
         if (back) {

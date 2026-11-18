@@ -67,7 +67,7 @@ extension AppDelegate {
             lines.append("— \(style), \(mode)")
 
             // 1. Pick an alternate meaning after the answer: the tint must stay.
-            show(word("奶奶上个月走了，全家人都很难过。", 5), near: anchor)
+            show(word("最近工作太卷了，我想躺平。", 5), near: anchor)
             let state = lastLookupState
             await waitForAnswer(state)
             await wait(0.5)
@@ -122,7 +122,7 @@ extension AppDelegate {
         await wait(0.3)
         check(single?.choice?.meaningHere == headline && headline != nil,
               "clicking the chosen meaning keeps the headline (\(headline ?? "none"))")
-        show(word("奶奶上个月走了，全家人都很难过。", 5), near: anchor)
+        show(word("最近工作太卷了，我想躺平。", 5), near: anchor)
         let multi = lastLookupState
         await waitForAnswer(multi)
         let suggestedText = multi?.choice?.meaningHere
@@ -202,7 +202,7 @@ extension AppDelegate {
 
         // 2e. A real drag on the card moves it, and it stays there as it changes size. The next
         //     card opens by its word again. Uses the pointer, and puts it back afterwards.
-        show(word("奶奶上个月走了，全家人都很难过。", 5), near: anchor)
+        show(word("最近工作太卷了，我想躺平。", 5), near: anchor)
         let dragged = lastLookupState
         await waitForAnswer(dragged)
         await wait(0.5)
@@ -269,7 +269,7 @@ extension AppDelegate {
             }
             popup.close()
             await wait(0.2)
-            show(word("奶奶上个月走了，全家人都很难过。", 5), near: anchor)
+            show(word("最近工作太卷了，我想躺平。", 5), near: anchor)
             await wait(0.4)
             check(popup.windowOrigin?.x == home?.x, "the next card opens by its word again")
             popup.scrolledOutside()

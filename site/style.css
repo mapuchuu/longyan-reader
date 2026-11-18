@@ -104,6 +104,8 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .button svg { width: 15px; height: 15px; margin-left: 7px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; transition: transform .3s var(--ease-out); }
 .button:hover svg { transform: translateY(2px); }
 .hero-actions .button-quiet { height: 50px; }
+/* Who it runs on, under the buttons: before anyone downloads it for an Intel Mac. */
+.hero-fine { flex-basis: 100%; margin: -16px 0 0; font-size: 14px; color: rgba(245, 245, 247, .5); letter-spacing: -0.01em; }
 .button-quiet { display: inline-flex; align-items: center; gap: 6px; font-size: 17px; font-weight: 500; text-decoration: none; color: rgba(245, 245, 247, .86); transition: color .2s; }
 .button-quiet svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: transform .3s var(--ease-out); }
 .button-quiet:hover { color: #fff; }
@@ -930,12 +932,41 @@ figcaption b { color: var(--ink); font-weight: 600; }
 .set-label { display: block; height: 18px; margin: 16px 0 6px 4px; font-size: 12px; font-weight: 700; }
 .set-group .blocked { height: 52px; }
 .blocked u { flex: none; width: 92px; height: 24px; display: grid; place-items: center; border-radius: 6px; text-decoration: none; font-weight: 500; background: rgba(0, 0, 0, .07); }
-.s2 .set-scroll { animation: scroll 5.6s cubic-bezier(.45, 0, .25, 1) both; }
-@keyframes scroll { 0%, 12% { transform: none; } 38%, 100% { transform: translateY(-150px); } }
-.s2 .pointer { animation: cur2 5.6s cubic-bezier(.45, 0, .25, 1) both; }
-@keyframes cur2 { 0% { transform: translate(600px, 425px); } 14%, 38% { transform: translate(470px, 250px); } 58%, 68% { transform: translate(590px, 217px); } 100% { transform: translate(600px, 425px); } }
-.s2 .blocked u { animation: open 5.6s steps(1) both; }
-@keyframes open { 0% { background: rgba(0, 0, 0, .07); color: inherit; } 61% { background: #0a84ff; color: #fff; } 67%, 100% { background: rgba(0, 0, 0, .07); color: inherit; } }
+/* 8.8 s: scroll, Open Anyway, the password, then Open Anyway once more. */
+.s2 .set-scroll { animation: scroll 8.8s cubic-bezier(.45, 0, .25, 1) both; }
+@keyframes scroll { 0%, 7.6% { transform: none; } 24%, 100% { transform: translateY(-150px); } }
+.s2 .pointer { animation: cur2 8.8s cubic-bezier(.45, 0, .25, 1) both; }
+@keyframes cur2 {
+  0% { transform: translate(600px, 425px); }
+  9%, 24% { transform: translate(470px, 250px); }
+  37%, 47% { transform: translate(590px, 217px); }
+  58%, 66% { transform: translate(439px, 323px); }
+  79%, 87% { transform: translate(321px, 323px); }
+  100% { transform: translate(600px, 425px); }
+}
+.s2 .blocked u { animation: open 8.8s steps(1) both; }
+@keyframes open { 0% { background: rgba(0, 0, 0, .07); color: inherit; } 39% { background: #0a84ff; color: #fff; } 43%, 100% { background: rgba(0, 0, 0, .07); color: inherit; } }
+.auth, .reopen { z-index: 3; opacity: 0; background: rgba(242, 241, 247, .985); }
+.auth { top: 160px; height: 192px; padding-top: 16px; }
+.auth-lock { width: 30px; height: 37px; margin: 0 0 2px; }
+.auth-field {
+  width: 100%; height: 24px; margin-top: 12px; box-sizing: border-box; padding: 0 9px; display: flex; align-items: center; gap: 5px;
+  border-radius: 6px; background: #fff; box-shadow: 0 0 0 .5px rgba(0, 0, 0, .2), 0 0 0 3px rgba(10, 132, 255, .45);
+}
+.auth-field i { width: 6px; height: 6px; border-radius: 50%; background: #1d1d1f; opacity: 0; }
+.s2 .auth { animation: auth 8.8s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes auth { 0%, 45% { opacity: 0; transform: scale(.94); } 48%, 66% { opacity: 1; transform: none; } 69%, 100% { opacity: 0; transform: scale(.97); } }
+/* The password, a dot at a time. */
+.s2 .auth-field i { animation: dot 8.8s steps(1) both; animation-delay: calc(var(--n) * 90ms); }
+.auth-field i:nth-child(1) { --n: 0; } .auth-field i:nth-child(2) { --n: 1; } .auth-field i:nth-child(3) { --n: 2; } .auth-field i:nth-child(4) { --n: 3; }
+.auth-field i:nth-child(5) { --n: 4; } .auth-field i:nth-child(6) { --n: 5; } .auth-field i:nth-child(7) { --n: 6; } .auth-field i:nth-child(8) { --n: 7; }
+@keyframes dot { 0%, 51% { opacity: 0; } 52%, 100% { opacity: 1; } }
+.s2 .auth .default { animation: press2 8.8s steps(1) both; }
+@keyframes press2 { 0% { background: #0a84ff; } 64% { background: #0062cc; } 67%, 100% { background: #0a84ff; } }
+.s2 .reopen { animation: reopen 8.8s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes reopen { 0%, 70% { opacity: 0; transform: scale(.94); } 73%, 88% { opacity: 1; transform: none; } 91%, 100% { opacity: 0; transform: scale(.97); } }
+.s2 .reopen .anyway { animation: press-any 8.8s steps(1) both; }
+@keyframes press-any { 0% { background: rgba(0, 0, 0, .07); color: inherit; } 85% { background: #0a84ff; color: #fff; } 88%, 100% { background: rgba(0, 0, 0, .07); color: inherit; } }
 
 /* 4. The app's own first window. */
 .onboard { left: 200px; top: 98px; width: 340px; height: 258px; }
@@ -1004,6 +1035,23 @@ figcaption b { color: var(--ink); font-weight: 600; }
 footer { padding: 28px 0 44px; font-size: 12.5px; color: #8e8e93; }
 footer p { margin: 0 0 6px; }
 footer a { color: #a1a1a6; }
+
+/* The privacy page: one readable column. */
+.doc { padding: 128px 0 72px; }
+.doc-wrap { max-width: 680px; margin: 0 auto; padding: 0 28px; }
+.doc h1 { font-size: 48px; line-height: 1.08; letter-spacing: -0.03em; }
+.doc-date { margin: 12px 0 36px; font-size: 14px; color: var(--graphite); }
+.doc-lead { font-size: 21px; line-height: 1.45; letter-spacing: -0.016em; color: var(--ink); }
+.doc h2 { margin: 44px 0 12px; font-size: 24px; letter-spacing: -0.02em; }
+.doc p, .doc li { color: rgba(245, 245, 247, .78); }
+.doc p { margin: 0 0 14px; }
+.doc ul { margin: 0 0 14px; padding-left: 1.15em; }
+.doc li { margin-bottom: 10px; }
+.doc li b { color: var(--ink); font-weight: 600; }
+.doc a { color: var(--t3); text-decoration: none; }
+.doc a:hover { text-decoration: underline; }
+.doc code { font: 14px/1 ui-monospace, "SF Mono", Menlo, monospace; color: var(--ink); background: rgba(255, 255, 255, .08); padding: 2px 5px; border-radius: 5px; overflow-wrap: anywhere; }
+@media (max-width: 600px) { .doc { padding-top: 100px; } .doc h1 { font-size: 36px; } .doc-lead { font-size: 19px; } }
 
 /* Scroll reveals (only when motion is allowed; see motion.js). */
 .motion [data-reveal] { opacity: 0; transform: translateY(36px); transition: opacity 1s var(--ease-out), transform 1.2s var(--ease-out); }
@@ -1089,6 +1137,7 @@ footer a { color: #a1a1a6; }
      neither looks out of line. */
   .hero-actions { flex-direction: column; align-items: stretch; gap: 12px; }
   .hero-actions .button-quiet { justify-content: center; height: 50px; border: 1px solid rgba(255, 255, 255, .3); border-radius: 999px; }
+  .hero-fine { margin: 2px 0 0; text-align: center; font-size: 13px; }
   .eyebrow { font-size: 16px; margin-bottom: 12px; }
   .try-head p { font-size: 16px; }
   .lit-line { font-size: 30px; }
