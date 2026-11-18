@@ -93,6 +93,7 @@ For each one: it works, it's fast enough, and its failure looks deliberate.
   - [me] ⌃⌥L doesn't clash with common apps. If it does, can it be changed?
 - [ ] **Reading text.** [me] Test each of these: Safari, Chrome, Firefox, Arc, Preview (PDF), Books, Kindle, Notes, Pages, Word, Mail, Messages, WeChat, VS Code/Electron, Terminal, and a scanned PDF with no text layer.
   - For each, the result is one of: works, falls back to ⌘C, or fails clearly.
+  - Done 2026-11-18 with ⌃⌥L (the eye is off on this Mac): TextEdit and Preview (PDF) read through Accessibility, with the sentence, and pick well (躺平, 卷 under the pointer, 咬定). Pages first fell back to ⌘C with only the word (根本 in 根本没出门 got "fundamental" with a confident check), and the word under the pointer found nothing. Fixed 2026-11-19: the app turns on the VoiceOver switch for Pages, Keynote and Numbers, so Pages gives the sentence (根本 = absolutely (not)) and the word under the pointer (found in 2 to 3 ms from line and character bounds). A word copied with no sentence now shows dictionary order instead of a pick. Not tried: browsers, Terminal and VS Code (can't be driven here), Books (blocked), Mail, Messages, Notes (private), WeChat, Word, Kindle.
   - The ⌘C fallback restores the previous clipboard, including images and rich text.
 - [ ] **Word card** [me]: the sense chosen for this sentence, pinyin with tone colors, notes, other senses, and changing the pick.
 - [ ] **Phrase card** [me]: it opens instantly, the translation streams in, and word meanings follow. Check:
@@ -101,6 +102,7 @@ For each one: it works, it's fast enough, and its failure looks deliberate.
   - traditional characters
   - numbers and punctuation only
   - a non-Chinese selection, which should produce no card or a polite one
+  - Done 2026-11-18 in TextEdit: traditional (這不科學, 科學 = rational), numbers (2023年…3000块 kept in the translation), mixed Chinese and English, and English alone (no card) all behave.
 - [x] **Model quality** [me]: run `scripts/evals.sh` against `eval-baseline.tsv`, with no regressions since v0.1. Done 2026-11-18: no regressions, and real-T is 49/52. The stored phrase target of 83 is stale (main scores 82 without the fix too); refresh it with `--update` on the release build.
 - [ ] **Listen** [me]: with the default system voice, and on a Mac that has no Chinese voice installed.
 - [ ] **History** [me]:

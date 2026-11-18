@@ -127,12 +127,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         chip.start()
         refresh()   // also checks whether the local model is running
 
-        // Switch on Chromium's page accessibility as soon as a browser comes to the front.
+        // Switch on Chromium's and iWork's document accessibility as soon as the app comes to
+        // the front, and again a moment later for an app that was still starting up.
         NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
         ) { note in
             if let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication {
                 SelectionReader.prepare(app)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    if app.isActive, !app.isTerminated { SelectionReader.prepare(app) }
+                }
             }
         }
         if let front = NSWorkspace.shared.frontmostApplication { SelectionReader.prepare(front) }
@@ -196,6 +200,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 return
             }
             if arg == "partof" { self.lastLookupState?.openPartOf(); return }
+            if arg.hasPrefix("capture:") {
+                // Debug: the word-under-pointer capture at a screen point (CG space). capture:<x>,<y>
+                let f = arg.dropFirst(8).split(separator: ",").compactMap { Double($0) }
+                guard f.count == 2 else { return }
+                let started = Date()
+                let c = TextCapture.at(CGPoint(x: f[0], y: f[1]))
+                let ms = Int(Date().timeIntervalSince(started) * 1000)
+                let word = c.flatMap { c in self.dict.flatMap { Segmenter.word(at: c.index, in: c.passage, dict: $0)?.word } }
+                let out = c.map { "index \($0.index) of \($0.passage.count), word \(word ?? "-"), \(ms) ms" } ?? "nothing, \(ms) ms"
+                try? (out + "\ntrace: " + TextCapture.trace.joined(separator: " | "))
+                    .write(to: Log.directory.appendingPathComponent("ax-probe.txt"), atomically: true, encoding: .utf8)
+                return
+            }
             if arg.hasPrefix("show:") {
                 // Debug: open a card mid-screen and leave it open. show:<passage>|<from>|<to>
                 let f = arg.dropFirst(5).split(separator: "|").map(String.init)
@@ -620,24 +637,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let selection = selection.wholeWords(dict: dict)
         if isSingleWord(selection, dict: dict) {
             let context = Segmenter.context(for: selection.range, in: selection.passage)
-            showWord(context, appName: selection.appName, near: anchor)
+            // Copied text (the ⌘C fallback) is only the word itself: with no sentence the
+            // model's pick would be a guess shown as an answer, so dictionary order instead.
+            let p = selection.passage
+            let alone = !p.indices.contains { !selection.range.contains($0) && (isCJK(p[$0]) || p[$0].isLetter) }
+            showWord(context, appName: selection.appName, near: anchor, alone: alone)
         } else {
             showPhrase(selection, dict: dict, near: anchor)
         }
     }
 
     private func showWord(_ captured: CapturedText) {
-        guard let dict, let context = Segmenter.word(at: captured.index, in: captured.passage, dict: dict) else { return }
+        guard let dict else { hint("Dictionary still loading…", near: Self.mouseBox); return }
+        guard let context = Segmenter.word(at: captured.index, in: captured.passage, dict: dict) else {
+            hint("Highlight Chinese text, or point at a word and press ⌃⌥L", near: Self.mouseBox)
+            return
+        }
         showWord(context, appName: captured.appName, near: Self.mouseBox)
     }
 
-    private func showWord(_ context: WordInContext, appName: String?, near anchor: NSRect) {
+    private func showWord(_ context: WordInContext, appName: String?, near anchor: NSRect, alone: Bool = false) {
         guard let dict else { return }
         let senses = dict.senses(for: context.word)
         let grammar = GrammarWords.entry(context.word, in: context.passage, at: context.wordRange.lowerBound)
-        let modelReady = SenseChooser.canChoose && !senses.isEmpty && grammar == nil
-        let state = LookupState(context: context, senses: senses,
-                                phase: modelReady ? .choosing : .dictionaryOnly(senses.isEmpty ? LookupView.notInDictionary : SenseChooser.noPickerReason))
+        let modelReady = SenseChooser.canChoose && !senses.isEmpty && grammar == nil && !(alone && senses.count > 1)
+        let why = senses.isEmpty ? LookupView.notInDictionary
+            : alone && senses.count > 1 ? "this app doesn't share the sentence" : SenseChooser.noPickerReason
+        let state = LookupState(context: context, senses: senses, phase: modelReady ? .choosing : .dictionaryOnly(why))
         state.onLayoutChange = { [weak self] in Task { await self?.relayout() } }
         // A lone character inside a longer word (彻 in 彻底) also shows that word. A word with one
         // meaning, or one a cue settles, shows it at once; otherwise the model picks it after the

@@ -10,6 +10,8 @@ The first full release. Highlight Chinese in any app with a drag or a double-cli
 - Translations of part of a sentence stay closer to what you highlighted.
 - Traditional characters get the same notes as simplified ones.
 - Numbers stay in a selection: 2023年 is looked up whole.
+- Pages, Keynote and Numbers now share the sentence around a selection, and the word under the pointer works there.
+- A word copied from an app that doesn't share the sentence shows its meanings in dictionary order instead of a guess.
 - Clearer messages when the reading model is missing or fails to download. Downloads recover from bad connections.
 - Exported spreadsheets open in Excel with the Chinese intact.
 

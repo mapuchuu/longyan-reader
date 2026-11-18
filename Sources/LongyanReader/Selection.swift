@@ -151,23 +151,35 @@ enum SelectionReader {
 
     /// Chromium browsers build their page accessibility tree only when an assistive app
     /// turns on AXEnhancedUserInterface (the VoiceOver switch); Electron apps use
-    /// AXManualAccessibility. Called when such an app comes to the front, so the tree is
-    /// ready by the time text is selected. Chrome keeps it on until it quits.
+    /// AXManualAccessibility. Pages, Keynote and Numbers need the switch too: without it their
+    /// document is a blank canvas to Accessibility, so only ⌘C worked, with no sentence around
+    /// the selection. Called when such an app comes to the front, so the tree is ready by the
+    /// time text is selected. The app keeps it on until it quits.
     private static var preparedPIDs: Set<pid_t> = []
     static let chromiumBrowsers: Set<String> = [
         "com.google.Chrome", "com.google.Chrome.beta", "com.google.Chrome.canary", "org.chromium.Chromium",
         "com.brave.Browser", "com.microsoft.edgemac", "company.thebrowser.Browser", "com.vivaldi.Vivaldi",
         "com.operasoftware.Opera",
     ]
+    static let iWork: Set<String> = ["com.apple.Pages", "com.apple.Keynote", "com.apple.Numbers"]
     static func prepare(_ app: NSRunningApplication) {
-        guard AXIsProcessTrusted(), !preparedPIDs.contains(app.processIdentifier) else { return }
+        guard AXIsProcessTrusted() else { return }
         let element = AXUIElementCreateApplication(app.processIdentifier)
-        var ok = AXUIElementSetAttributeValue(element, "AXManualAccessibility" as CFString, kCFBooleanTrue) == .success
-        if chromiumBrowsers.contains(app.bundleIdentifier ?? "") {
-            ok = AXUIElementSetAttributeValue(element, "AXEnhancedUserInterface" as CFString, kCFBooleanTrue) == .success || ok
+        let id = app.bundleIdentifier ?? ""
+        // An app still starting up can accept the switch and then reset it (Pages does), so
+        // it's read back every time: one quick query.
+        if chromiumBrowsers.contains(id) || iWork.contains(id) {
+            AXUIElementSetMessagingTimeout(element, 0.3)
+            var value: CFTypeRef?
+            let on = AXUIElementCopyAttributeValue(element, "AXEnhancedUserInterface" as CFString, &value) == .success
+                && (value as? Bool) == true
+            if !on { AXUIElementSetAttributeValue(element, "AXEnhancedUserInterface" as CFString, kCFBooleanTrue) }
         }
+        guard !preparedPIDs.contains(app.processIdentifier) else { return }
         // An app not ready yet (just launched) is tried again next time.
-        if ok { preparedPIDs.insert(app.processIdentifier) }
+        if AXUIElementSetAttributeValue(element, "AXManualAccessibility" as CFString, kCFBooleanTrue) == .success {
+            preparedPIDs.insert(app.processIdentifier)
+        }
     }
 
     /// Text fields, TextEdit, Notes, Pages, Preview: selection as a character range.
