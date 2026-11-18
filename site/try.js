@@ -285,12 +285,14 @@
     })(t0);
   }
 
+  // Firefox gives a keyboard click detail 1, like a mouse's, so the pointer is tracked instead.
+  document.querySelectorAll("[data-try]").forEach((a) => a.addEventListener("pointerdown", () => { a._pressed = performance.now(); }));
   document.querySelectorAll("[data-try]").forEach((a) => a.addEventListener("click", (e) => {
     if (!window.LongyanHero) return;
     e.preventDefault();
     glideTo(window.LongyanHero.formedY(), { story: true });
     // From the keyboard, carry on into the sentence: its first word takes the focus once it's there.
-    if (e.detail === 0) {
+    if (e.detail === 0 || !(performance.now() - (a._pressed || -1e9) < 1500)) {
       const t0 = performance.now();
       (function focusFirst() {
         const w = story.classList.contains("is-formed") && box.querySelector(".line.current .w");

@@ -411,8 +411,13 @@
     card.width = prevWidth || Math.min(BASE[kind] * z, window.innerWidth - 16);
     card.el.style.width = card.width + "px";
     if (inline) { card.el.classList.add("lc-inline"); card.el.removeAttribute("role"); inline.replaceChildren(card.el); }
-    else document.body.append(card.el);
+    else {
+      document.body.append(card.el);
+      card.el.setAttribute("aria-label", model.speech ? `Meaning of ${model.speech}` : "Meaning");
+      card.el.tabIndex = -1;
+    }
     build(card);
+    takeFocus(card);
     card.actions = makeActions(card, model);
     if (!inline) makeHandles(card);
     wire(card);
@@ -734,7 +739,7 @@
       c.innerHTML = `
         <div class="lc-v m">
           <div class="lc-v xs">
-            <div class="lc-head"><span class="lc-hw"></span><span class="lc-py"></span><span class="lc-spacer"></span><span class="lc-slot"></span></div>
+            <div class="lc-head"><span class="lc-hw" lang="zh-CN"></span><span class="lc-py"></span><span class="lc-spacer"></span><span class="lc-slot"></span></div>
             <div class="lc-meaning"><div class="lc-headline"></div><div class="lc-sub">Meaning in this sentence</div></div>
             ${info.partOf ? `<button type="button" class="lc-part" title="Look up ${esc(info.partOf.word)}"><span class="lc-part-of">Part of</span><span class="lc-part-word" lang="zh-CN">${esc(info.partOf.word)}</span><span class="lc-part-py">${esc(info.partOf.pinyin)}</span>${info.partOf.meaning ? `<span class="lc-part-meaning">${esc(info.partOf.meaning)}</span>` : ""}<span class="lc-part-chev">${SYM.chevronRight}</span></button>` : ""}
             <div class="lc-status"></div>
@@ -1028,7 +1033,7 @@
       const z = window.innerWidth < 760 ? 0.9 : 1;
       const ch = makeChrome("peek", z);
       ch.el.classList.add("lc-peek");
-      ch.content.innerHTML = `<div class="lc-v xs"><div class="lc-head"><span class="lc-hw"></span><span class="lc-py"></span></div><div class="lc-headline"></div></div>`;
+      ch.content.innerHTML = `<div class="lc-v xs"><div class="lc-head"><span class="lc-hw" lang="zh-CN"></span><span class="lc-py"></span></div><div class="lc-headline"></div></div>`;
       document.body.append(ch.el);
       peekEl = ch.el;
     }
@@ -1055,7 +1060,26 @@
     // A press in the demo's sentence starts the next selection, and so the next card.
     close(false, false, !!e.target.closest(".lines"));
   }, true);
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && open) close(false, true); });
+  // Opened from the keyboard, the card takes the focus so Tab reaches its rows and buttons;
+  // Esc gives it back to where it came from.
+  let keyed = false;
+  document.addEventListener("keydown", () => { keyed = true; }, true);
+  document.addEventListener("pointerdown", () => { keyed = false; }, true);
+  function takeFocus(card) {
+    if (!keyed || card.inline) return;
+    const from = document.activeElement;
+    requestAnimationFrame(() => {
+      if (open !== card) return;
+      card.returnFocus = from && from !== document.body ? from : null;
+      card.el.focus({ preventScroll: true });
+    });
+  }
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape" || !open) return;
+    const back = open.el.contains(document.activeElement) ? open.returnFocus : null;
+    close(false, true);
+    if (back && back.isConnected) back.focus({ preventScroll: true });
+  });
   window.addEventListener("scroll", () => { if (open && !open.wasMoved) close(); }, { passive: true });
   window.addEventListener("resize", () => { if (open) close(true, true); });
 

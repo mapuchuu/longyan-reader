@@ -517,17 +517,28 @@
   // across (the first bar), then the second bar fills while you try it, and the button on to the
   // statement comes in. Scrolling through the hold takes the same timeline over: whichever is
   // further along, the clock or the scroll, is where it is, so a reader who scrolls on sees the
-  // bars run with them rather than a wait. Scrolling back above the sentence resets it, to play
-  // again next time.
+  // bars run with them rather than a wait. Scrolling back up runs it all backwards: the hold
+  // drains in step with the scroll, so it's empty right where the sentence formed, and the clock
+  // waits a moment before filling it again. Above the sentence it resets, to play again next time.
   const LEAD = 0.6, SELECT = 1.6, TRY = 4.6;
   const bars = story ? [...story.querySelectorAll(".try-progress b")] : [];
-  let lastHold = -1, formedAt = null;
+  let lastHold = -1, formed = false, hold = 0, clock = 0, lastPos = 0, backAt = -Infinity;
   function holdAt(p) {
-    if (p < FORMED) { if (formedAt != null) story.classList.remove("tried", "try-done"); formedAt = null; }
-    else if (formedAt == null) formedAt = performance.now();
-    // How far through the hold the scroll is, from just past where "See how it works" stops.
-    const scrolled = clamp(((p - FORMED) / (1 - FORMED) - 0.06) / 0.8);
-    const u = formedAt == null ? 0 : still ? TRY : Math.max((performance.now() - formedAt) / 1000, scrolled * TRY);
+    const now = performance.now();
+    if (p < FORMED) { if (formed) story.classList.remove("tried", "try-done"); formed = false; }
+    else if (!formed) { formed = true; hold = 0; clock = now; lastPos = 0; }
+    // How far through the hold the scroll is: pos from where the sentence formed, scrolled from
+    // just past where "See how it works" stops.
+    const pos = clamp((p - FORMED) / (1 - FORMED));
+    const scrolled = clamp((pos - 0.06) / 0.8);
+    if (formed) {
+      const dt = Math.min(0.1, (now - clock) / 1000); clock = now;
+      if (pos < lastPos - 1e-5) { hold *= pos / lastPos; backAt = now; }
+      else if (now - backAt > 1000) hold += dt;
+      lastPos = pos;
+      hold = Math.min(TRY, Math.max(hold, scrolled * TRY));
+    }
+    const u = !formed ? 0 : still ? TRY : hold;
     if (Math.abs(u - lastHold) < 0.0005) return;
     lastHold = u;
     const hl = clamp((u - LEAD) / (SELECT - LEAD));
@@ -538,6 +549,7 @@
     if (hl >= 0.999) cls.add("hl-done");
     else if (hl < 0.85) cls.remove("hl-done");
     if (u >= TRY) cls.add("try-done");
+    else if (u < TRY - 0.4) cls.remove("try-done");
   }
 
   // The eye's characters floating out into the lines: up and over in an arc, growing, their
