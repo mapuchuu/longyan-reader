@@ -32,6 +32,7 @@ Backdrops (`paper.js`, for the statement's card, the recording and the closing) 
 ## Crispness
 
 - The mark is drawn from its geometry, not traced: three nested eye shapes (each the hull of a circle and two points, half-widths 1, 5/8 and 3/14) and one wedge. The stroke is even all round and the edges are as sharp as the screen. The old PNG wobbled.
+- The tab icon is the mark in white on a black rounded square that fills the icon (`images/tab-icon.svg`, with `favicon.ico` for browsers that want one). The app icon, with its margin and shadow, is too small to read at 16px. On iPhone the home-screen icon is the same, square and opaque (`images/touch-icon.png`); iOS rounds it.
 - One material: characters. Everything in the hero is drawn in them, whole. No masks, no halo, no glow.
 - The selection is the system blue with an iridescent violet-and-rose sheen moving through it, sized to the selection so even one character shows it.
 - On a wide screen the ridges are scaled to the screen's height, as on a phone, so they're broad ranges rather than many small bumps. They stay low under the headline and open into a valley under the eye. As the story plays they fall away and fade, as on a phone.
