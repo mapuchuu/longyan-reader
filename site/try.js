@@ -252,13 +252,24 @@
   // A slow glide down to the sentence, so the eye can be seen breaking up into it (the
   // browser's own smooth scroll is over in half a second). Any wheel, touch or key of the
   // visitor's own stops it where it is.
+  // A CSS cubic-bezier timing function: x(t) solved for t by Newton's method, then y(t).
+  function bezier(x1, y1, x2, y2) {
+    const f = (a, b, t) => 3 * a * t * (1 - t) ** 2 + 3 * b * t * t * (1 - t) + t ** 3;
+    const df = (a, b, t) => 3 * a * (1 - t) ** 2 + 6 * (b - a) * t * (1 - t) + 3 * (1 - b) * t * t;
+    return (u) => {
+      let t = u;
+      for (let i = 0; i < 8; i++) { const d = df(x1, x2, t); if (Math.abs(d) < 1e-6) break; t -= (f(x1, x2, t) - u) / d; t = Math.min(1, Math.max(0, t)); }
+      return f(y1, y2, t);
+    };
+  }
+
   function glideTo(y) {
     const from = window.scrollY, dist = y - from;
     if (reduce || Math.abs(dist) < 2) { window.scrollTo(0, y); return; }
-    // Slow away, quick through the middle, slow to rest (an ease-in-out on a quintic, so
-    // both ends are clearly gentle).
-    const dur = Math.min(3000, 1800 + Math.abs(dist) * 1.2), t0 = performance.now();
-    const ease = (u) => (u < 0.5 ? 16 * u ** 5 : 1 - Math.pow(-2 * u + 2, 5) / 2);
+    // Away at once, then a long, gentle settle: cubic-bezier(.25, .4, .1, 1), so it is moving
+    // on the first frame after the click and only slows near the end.
+    const dur = Math.min(1400, 700 + Math.abs(dist) * 0.25), t0 = performance.now();
+    const ease = bezier(0.25, 0.4, 0.1, 1);
     let stopped = false;
     const stop = () => { stopped = true; };
     const opts = { passive: true, once: true };
