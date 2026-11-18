@@ -55,6 +55,7 @@ final class EmbeddedModel: @unchecked Sendable {
     private var lastUse = Date()
     private var backendReady = false
     private var exitHandlerSet = false
+    private var contextFailedAt: Date?
 
     private init() {}
 
@@ -62,8 +63,13 @@ final class EmbeddedModel: @unchecked Sendable {
     func warmUp() { queue.async { _ = try? self.loadIfNeeded() } }
 
     private func loadIfNeeded() throws {
+        // Quitting: a request queued behind the exit handler's free must not load it again.
+        if Self.exiting.isSet { throw CancellationError() }
         if ctx != nil { return }
         if let loadError { throw loadError }
+        // A context that couldn't be made (short on memory) is tried again a minute later,
+        // not on every selection: each try reads the whole 2.7 GB file.
+        if let at = contextFailedAt, Date().timeIntervalSince(at) < 60 { throw Self.error("couldn't create a context") }
         guard let path = Self.modelPath else { throw Self.error("no model file") }
         if !backendReady {
             llama_log_set({ _, _, _ in }, nil)
@@ -85,7 +91,7 @@ final class EmbeddedModel: @unchecked Sendable {
         if let t = env["LONGYAN_THREADS"].flatMap(Int32.init) { cp.n_threads = t; cp.n_threads_batch = t }
         if let f = env["LONGYAN_FA"].flatMap(Int32.init) { cp.flash_attn_type = llama_flash_attn_type(rawValue: f) }
         guard let c = llama_init_from_model(m, cp) else {
-            llama_model_free(m); throw Self.error("couldn't create a context")   // tried again next time
+            llama_model_free(m); contextFailedAt = Date(); throw Self.error("couldn't create a context")
         }
         model = m; ctx = c; vocab = llama_model_get_vocab(m)
         // ggml frees its Metal device at exit and asserts nothing still uses it, so the context
@@ -131,6 +137,8 @@ final class EmbeddedModel: @unchecked Sendable {
             continuation.onTermination = { _ in stop.set() }
             queue.async {
                 do {
+                    // Cancelled while queued (a newer selection): skip the prompt read entirely.
+                    if stop.isSet { throw CancellationError() }
                     try self.loadIfNeeded()
                     try self.generate(prompt: Self.render(messages), maxTokens: maxTokens ?? 512, grammar: grammar,
                                       banned: self.wordTokens(banned), endsAt: endsAt, stop: stop) { continuation.yield($0) }
@@ -295,12 +303,15 @@ final class EmbeddedModel: @unchecked Sendable {
             continuation.onTermination = { _ in stop.set() }
             queue.async {
                 do {
+                    // Cancelled while queued (a newer selection): skip the prompt read entirely.
+                    if stop.isSet { throw CancellationError() }
                     try self.loadIfNeeded()
                     let started = Date()
                     let digits = (0...9).map { self.tokenize(String($0)) }
                     guard digits.allSatisfy({ $0.count == 1 }), let first = steps.first else { throw Self.error("digits aren't single tokens") }
                     let tokens = self.tokenize(Self.render(messages) + first.text)
-                    guard tokens.count + 4 * steps.count < Int(Self.contextSize) else { throw Self.error("prompt too long (\(tokens.count) tokens)") }
+                    let stepTokens = steps.dropFirst().reduce(2 * steps.count) { $0 + self.tokenize($1.text).count }
+                    guard tokens.count + stepTokens < Int(Self.contextSize) else { throw Self.error("prompt too long (\(tokens.count) tokens)") }
                     let keep = try self.read(tokens)
                     var pending: [llama_token] = []
                     for (i, step) in steps.enumerated() {

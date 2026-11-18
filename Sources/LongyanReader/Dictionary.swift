@@ -142,7 +142,7 @@ final class CEDict {
             return standalone && s.gloss.hasPrefix("(bound form)") ? 1 : 0
         }
         out = [0, 1, 2].flatMap { r in out.filter { rank($0) == r } }
-        if handOrdered, SenseOrder.enabled, let order = SenseOrder.shared[word] { out = order.apply(to: out) }
+        if handOrdered, SenseOrder.enabled, let order = SenseOrder.shared[word] ?? SenseOrder.shared[simplified(word)] { out = order.apply(to: out) }
         if out.isEmpty, let first = ordered.first {
             // Only cross-references exist. Show what they point to (干活儿 → 干活), under this
             // word's own reading; else show them rather than nothing.
@@ -176,7 +176,21 @@ final class CEDict {
 
     /// The app's compiled copy when there is one (and extra words aren't switched off for a
     /// comparison), else the text: the bundle's, LONGYAN_CEDICT, or Resources/ in the repo.
+    /// The last dictionary loaded, for lookups that only have a word (notes keyed by simplified form).
+    private(set) static var current: CEDict?
+
+    /// 關係 → 关系: notes, examples and sense orders are keyed by the simplified headword.
+    func simplified(_ word: String) -> String {
+        entries(for: word).first { $0.traditional == word && $0.simplified != word }?.simplified ?? word
+    }
+
     static func load() throws -> CEDict {
+        let d = try loadDictionary()
+        current = d
+        return d
+    }
+
+    private static func loadDictionary() throws -> CEDict {
         if ProcessInfo.processInfo.environment["LONGYAN_NO_EXTRA_WORDS"] == nil,
            ProcessInfo.processInfo.environment["LONGYAN_CEDICT"] == nil,
            let url = Bundle.main.url(forResource: "cedict", withExtension: "bin") {

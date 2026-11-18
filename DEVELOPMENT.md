@@ -43,7 +43,7 @@ The sense picker and translator is Qwen 3.5 4B (Q4_K_M), run in the app with [ll
 
 The model file isn't bundled. `ModelDownloader.swift` fetches `Qwen3.5-4B-Q4_K_M.gguf` from `unsloth/Qwen3.5-4B-GGUF` at a pinned revision, trying hf-mirror.com first and then huggingface.co. It resumes partial downloads and keeps the file only if its SHA-256 matches. It goes to `~/Library/Application Support/LongyanReader/models/`. The file is byte-identical to Ollama's `qwen3.5:4b`, so if Ollama has it the app uses that copy instead. `LONGYAN_GGUF` points at any other file.
 
-Without the file the app uses [Ollama](https://ollama.com) if it's running, and Apple's on-device model otherwise (macOS 26 only). `LONGYAN_BACKEND=ollama` forces Ollama for comparison. Choosing `apple` under Sense Picker, or setting `LONGYAN_MODEL=apple`, turns the local model off.
+Without the file the app uses [Ollama](https://ollama.com) if it's running, and Apple's on-device model otherwise (macOS 26 only). `LONGYAN_BACKEND=ollama` forces Ollama for comparison. Choosing Apple's Model Only under Reading Model, or setting `LONGYAN_MODEL=apple`, turns the local model off.
 
 Some details:
 
@@ -98,7 +98,7 @@ $B --render-onboarding offer out.png                # draw a state of the welcom
 
 A scripted simulation drives the real cards through the same code paths as clicks and checks the results: the tint and surface before and after picking another meaning in every style and mode, early picks not being overwritten by the model, hint timers not closing the next card, picking and switching in phrase rows, live style switching, and fast repeated lookups leaving one card. It needs a `--dev` build. Post the notification `simulate`; the report goes to `~/Library/Logs/LongyanReader/simulation.txt`, and your settings are restored afterwards.
 
-Each lookup appends a few hundred bytes to `~/Library/Logs/LongyanReader/lookups.jsonl`. Misses record why the selection couldn't be read.
+Each lookup appends a few hundred bytes to `~/Library/Application Support/LongyanReader/History/lookups.jsonl` (in `~/Library/Logs/LongyanReader/` before 1.0; the app moves it at launch). Misses record why the selection couldn't be read.
 
 ## Notes
 

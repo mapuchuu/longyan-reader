@@ -8,10 +8,18 @@
 # signing certificate, scripts/sign-release.sh) and the update key in the login keychain,
 # created by Sparkle's generate_keys (backup: sparkle-private-key.txt in that folder).
 set -euo pipefail
+notes=""; [ -n "${1:-}" ] && notes="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
 cd "$(dirname "$0")/.."
 tools="$HOME/Library/Application Support/LongyanReader-signing/sparkle-2.10.1/bin"
 [ -x "$tools/generate_appcast" ] || { echo "Sparkle's tools aren't in $tools" >&2; exit 1; }
 [ -z "$(git status --porcelain)" ] || { echo "commit first: the build number is the commit count" >&2; exit 1; }
+# The release tag must point at the commit that was built, so release from pushed main.
+[ "$(git branch --show-current)" = main ] || { echo "release from main" >&2; exit 1; }
+git fetch -q origin main
+[ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || { echo "HEAD isn't origin/main: push (or pull) first" >&2; exit 1; }
+next=$(sed -n 's/^version=//p' scripts/build-app.sh)
+! git rev-parse -q --verify "refs/tags/v$next" >/dev/null && ! gh release view "v$next" >/dev/null 2>&1 \
+  || { echo "v$next already exists: bump version in scripts/build-app.sh" >&2; exit 1; }
 
 scripts/build-app.sh --release
 # Every release must be signed with the project certificate: installed copies take any update
@@ -24,7 +32,7 @@ out="build/release-$version"
 rm -rf "$out"; mkdir -p "$out"
 cp "build/LongyanReader-$version.zip" "$out/"
 # Release notes travel with the zip: generate_appcast embeds a .md of the same name.
-[ -n "${1:-}" ] && cp "$1" "$out/LongyanReader-$version.md"
+[ -n "$notes" ] && cp "$notes" "$out/LongyanReader-$version.md"
 # The update key: the exported file if it's there (no keychain prompt), else the login keychain.
 keyfile="$HOME/Library/Application Support/LongyanReader-signing/sparkle-private-key.txt"
 key=(); [ -f "$keyfile" ] && key=(--ed-key-file "$keyfile")
@@ -38,4 +46,5 @@ echo
 echo "release $version (build $build) in $out:"
 ls -1 "$out"
 echo
-echo "publish:  gh release create v$version $out/LongyanReader-$version.zip $out/LongyanReader.zip $out/appcast.xml --title \"Longyan Reader $version\" --notes-file <notes>"
+echo "publish:  gh release create v$version $out/LongyanReader-$version.zip $out/LongyanReader.zip $out/appcast.xml --target $(git rev-parse HEAD) --title \"Longyan Reader $version\" --notes-file ${notes:-<notes>}"
+echo "then:     scripts/check-release.sh   (checks the live feed and the site's zip against this build)"

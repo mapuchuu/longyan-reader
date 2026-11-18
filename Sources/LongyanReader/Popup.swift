@@ -493,8 +493,9 @@ final class PopupController {
             if e.keyCode == 53 { self.close() }
         }) { monitors.append(m) }
         if let m = NSEvent.addLocalMonitorForEvents(matching: [.keyDown], handler: { [weak self] e in
-            if e.keyCode == 53 { self?.close(); return nil }
-            return e
+            // Only Esc meant for the card: in History, a save panel or onboarding it's theirs.
+            guard e.keyCode == 53, let self, e.window == nil || e.window === self.panel else { return e }
+            self.close(); return nil
         }) { monitors.append(m) }
     }
 

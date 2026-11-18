@@ -28,12 +28,19 @@ enum NotesStore {
     /// so it shows whichever paraphrase (literal or figurative) was picked.
     static func note(_ word: String, _ sense: Sense?) -> StoredNote? {
         guard let sense else { return nil }
+        let word = headword(word)
         if let n = shared[key(word, sense.pinyin, sense.gloss)] { return n }
         return word.count == 4 ? byWord[word] : nil
     }
 
     /// True only for the sense the note was written for (no idiom fallback).
-    static func hasExactNote(_ word: String, _ sense: Sense) -> Bool { shared[key(word, sense.pinyin, sense.gloss)] != nil }
+    static func hasExactNote(_ word: String, _ sense: Sense) -> Bool { shared[key(headword(word), sense.pinyin, sense.gloss)] != nil }
+
+    /// Notes are written under the simplified form; traditional text finds them through it.
+    static func headword(_ word: String) -> String {
+        guard word.contains(where: isCJK), byWord[word] == nil, let dict = CEDict.current else { return word }
+        return dict.simplified(word)
+    }
 }
 
 /// Fixed casual patterns the model doesn't read as their noted sense, however it's asked
@@ -78,7 +85,7 @@ enum ExamplesStore {
     }()
 
     static func examples(_ word: String, _ sense: Sense) -> [String] {
-        shared[NotesStore.key(word, sense.pinyin, sense.gloss)] ?? []
+        shared[NotesStore.key(word, sense.pinyin, sense.gloss)] ?? shared[NotesStore.key(NotesStore.headword(word), sense.pinyin, sense.gloss)] ?? []
     }
 }
 

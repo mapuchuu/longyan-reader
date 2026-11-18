@@ -879,6 +879,7 @@ private struct FooterButton<Label: View>: View {
         .animation(.easeOut(duration: 0.15), value: hovering)
         .animation(.easeOut(duration: 0.2), value: cardHovered)
         .help(help)
+        .accessibilityLabel(help)
     }
 }
 
@@ -913,6 +914,8 @@ struct CloseBadge: View {
         .buttonStyle(FooterButtonStyle())
         .onHover { hovering = $0 }
         .help("Close")
+        .accessibilityLabel("Close")
+        .accessibilityHidden(!shown)
         .opacity(shown ? 1 : 0)
         .scaleEffect(shown ? 1 : 0.7)
         .allowsHitTesting(shown)

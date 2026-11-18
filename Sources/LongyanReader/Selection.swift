@@ -12,6 +12,15 @@ struct Selection {
     let source: Source
     let appName: String?
 
+    /// The range is clamped to the passage: apps report selections in UTF-16 units, and an
+    /// edge inside a character (CRLF, an emoji sequence) leaves fewer characters than counted.
+    init(passage: [Character], range: Range<Int>, bounds: CGRect?, source: Source, appName: String?) {
+        let lo = min(max(0, range.lowerBound), passage.count)
+        self.passage = passage
+        self.range = lo..<min(max(lo, range.upperBound), passage.count)
+        self.bounds = bounds; self.source = source; self.appName = appName
+    }
+
     var text: String { String(passage[range]) }
 
     func withoutBounds() -> Selection {
@@ -23,8 +32,10 @@ struct Selection {
     func trimmed() -> Selection {
         let s = unwrapped()
         var lo = s.range.lowerBound, hi = s.range.upperBound
-        while lo < hi, !isCJK(s.passage[lo]), !s.passage[lo].isLetter { lo += 1 }
-        while hi > lo, !isCJK(s.passage[hi - 1]), !s.passage[hi - 1].isLetter { hi -= 1 }
+        // Digits stay: 2023年 or 100元 is what was meant.
+        func keep(_ c: Character) -> Bool { isCJK(c) || c.isLetter || c.isNumber }
+        while lo < hi, !keep(s.passage[lo]) { lo += 1 }
+        while hi > lo, !keep(s.passage[hi - 1]) { hi -= 1 }
         return Selection(passage: s.passage, range: lo..<hi, bounds: bounds, source: source, appName: appName)
     }
 
@@ -259,7 +270,7 @@ enum SelectionReader {
         let doc: PDFDocument
         if let cached = cachedPDF, cached.url == url { doc = cached.doc }
         else {
-            guard let d = PDFDocument(url: url) else { note("pdf: couldn't open \(url.lastPathComponent)"); return nil }
+            guard let d = PDFDocument(url: url) else { note("pdf: couldn't open the file"); return nil }
             doc = d
             cachedPDF = (url, d)
         }
@@ -307,10 +318,23 @@ enum SelectionReader {
 
     /// Sends ⌘C to the front app, reads the copied text, then puts the previous
     /// clipboard back. Works almost everywhere but gives no surrounding context.
+    @MainActor
     static func readByCopying() async -> Selection? {
         let pasteboard = NSPasteboard.general
-        let saved: [[(NSPasteboard.PasteboardType, Data)]] = (pasteboard.pasteboardItems ?? []).map { item in
-            item.types.compactMap { t in item.data(forType: t).map { (t, $0) } }
+        // A password manager marks what it copies as concealed and clears it later by its
+        // change count; putting it back would leave the password on the clipboard for good.
+        let concealed = NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType")
+        let saved: [[(NSPasteboard.PasteboardType, Data)]] = (pasteboard.pasteboardItems ?? [])
+            .filter { !$0.types.contains(concealed) }
+            .map { item in item.types.compactMap { t in item.data(forType: t).map { (t, $0) } } }
+        func restore() {
+            pasteboard.clearContents()
+            let items = saved.map { pairs -> NSPasteboardItem in
+                let item = NSPasteboardItem()
+                for (type, data) in pairs { item.setData(data, forType: type) }
+                return item
+            }
+            if !items.isEmpty { pasteboard.writeObjects(items) }
         }
         // Held ⌃⌥ (from the hotkey) would turn ⌘C into a different shortcut.
         for _ in 0..<30 where !CGEventSource.flagsState(.combinedSessionState)
@@ -322,16 +346,19 @@ enum SelectionReader {
         for _ in 0..<20 where pasteboard.changeCount == before {
             try? await Task.sleep(for: .milliseconds(20))
         }
-        guard pasteboard.changeCount != before else { note("copy: nothing was copied"); return nil }
-        let copied = pasteboard.string(forType: .string)
-
-        pasteboard.clearContents()
-        let restored = saved.map { pairs -> NSPasteboardItem in
-            let item = NSPasteboardItem()
-            for (type, data) in pairs { item.setData(data, forType: type) }
-            return item
+        guard pasteboard.changeCount != before else {
+            note("copy: nothing was copied")
+            // A slow app may still copy after we stop waiting: put the clipboard back if it does.
+            Task { @MainActor in
+                for _ in 0..<80 {
+                    try? await Task.sleep(for: .milliseconds(20))
+                    if pasteboard.changeCount != before { restore(); return }
+                }
+            }
+            return nil
         }
-        if !restored.isEmpty { pasteboard.writeObjects(restored) }
+        let copied = pasteboard.string(forType: .string)
+        restore()
 
         guard let copied, !copied.isEmpty else { return nil }
         let passage = Array(copied)

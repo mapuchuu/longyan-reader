@@ -11,6 +11,8 @@ flags=()
 version=1.0
 # The build number Sparkle compares to decide what's newer: the commit count, which only grows.
 build=$(git rev-list --count HEAD)
+# A shallow clone (CI's default) would count only a few commits and look older to Sparkle.
+[ "$(git rev-parse --is-shallow-repository)" = false ] || { echo "full clone needed: the build number is the commit count" >&2; exit 1; }
 # Updates: the feed is appcast.xml on the latest GitHub release (scripts/release.sh writes it),
 # and each update must be signed with the private half of this key.
 feed="https://github.com/mapuchuu/longyan-reader/releases/latest/download/appcast.xml"
@@ -28,7 +30,7 @@ mkdir -p "$app/Contents/Frameworks"
 ditto --arch "$(uname -m)" .build/release/llama.framework "$app/Contents/Frameworks/llama.framework"
 codesign --force --sign - "$app/Contents/Frameworks/llama.framework"   # re-signed for releases
 # Sparkle (updates) with its helpers: Autoupdate, Updater.app and the XPC services.
-ditto .build/release/Sparkle.framework "$app/Contents/Frameworks/Sparkle.framework"
+ditto --arch "$(uname -m)" .build/release/Sparkle.framework "$app/Contents/Frameworks/Sparkle.framework"
 codesign --force --deep --sign - "$app/Contents/Frameworks/Sparkle.framework"   # re-signed for releases
 # The dictionary ships compiled (DictionaryFile.swift): opens in ~1 ms instead of ~1.4 s of
 # parsing. Compiling checks every headword against the text.
@@ -57,7 +59,7 @@ cat > "$app/Contents/Info.plist" <<PLIST
   <key>CFBundleVersion</key><string>$build</string>
   <key>SUFeedURL</key><string>$feed</string>
   <key>SUPublicEDKey</key><string>$update_key</string>
-  <key>NSHumanReadableCopyright</key><string>Free and open source (MIT)</string>
+  <key>NSHumanReadableCopyright</key><string>Free and open source (MIT). Dictionary: CC-CEDICT, CC BY-SA 4.0.</string>
   <key>LSMinimumSystemVersion</key><string>15.0</string>
   <key>LSUIElement</key><true/>
 </dict></plist>
@@ -70,7 +72,9 @@ if [ "$mode" = "--release" ]; then
   scripts/sign-release.sh "$app"
   zip="build/LongyanReader-$version.zip"
   rm -f "$zip"
-  ditto -c -k --keepParent "$app" "$zip"
+  # No extended attributes or resource forks: other unzip tools would leave them as ._ files
+  # inside the bundle, which breaks its signature.
+  ditto -c -k --norsrc --noextattr --keepParent "$app" "$zip"
   echo "built $app and $zip"
   shasum -a 256 "$zip"
 else

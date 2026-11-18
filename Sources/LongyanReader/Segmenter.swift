@@ -4,8 +4,18 @@ import NaturalLanguage
 func isCJK(_ c: Character) -> Bool {
     c.unicodeScalars.contains { s in
         (0x4E00...0x9FFF).contains(s.value) || (0x3400...0x4DBF).contains(s.value) ||
-        (0x20000...0x2A6DF).contains(s.value) || (0xF900...0xFAFF).contains(s.value)
+        (0x20000...0x2A6DF).contains(s.value) || (0xF900...0xFAFF).contains(s.value) ||
+        (0x2A700...0x323AF).contains(s.value) || (0x2F800...0x2FA1F).contains(s.value) ||
+        s.value == 0x3007   // 〇, as in 二〇二三年
     }
+}
+
+/// Simplified or traditional: the tokenizer splits 我們 and 覺得 when told it's simplified.
+func chineseScript(of text: String) -> NLLanguage {
+    let r = NLLanguageRecognizer()
+    r.languageConstraints = [.simplifiedChinese, .traditionalChinese]
+    r.processString(text)
+    return r.dominantLanguage ?? .simplifiedChinese
 }
 
 /// The word under the cursor and the passage around it.
@@ -89,7 +99,7 @@ enum Segmenter {
         let lo = max(0, index - 40), hi = min(passage.count, index + 40)
         let text = String(passage[lo..<hi])
         let tokenizer = NLTokenizer(unit: .word)
-        tokenizer.setLanguage(.simplifiedChinese)
+        tokenizer.setLanguage(chineseScript(of: text))
         tokenizer.string = text
         let target = index - lo
         var found: Range<Int>?
@@ -117,7 +127,7 @@ extension Segmenter {
     static func phrase(_ range: Range<Int>, in passage: [Character], dict: CEDict) -> [PhraseToken] {
         let text = String(passage[range])
         let tokenizer = NLTokenizer(unit: .word)
-        tokenizer.setLanguage(.simplifiedChinese)
+        tokenizer.setLanguage(chineseScript(of: text))
         tokenizer.string = text
         var pieces: [Range<Int>] = []
         tokenizer.enumerateTokens(in: text.startIndex..<text.endIndex) { r, _ in

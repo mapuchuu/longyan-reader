@@ -15,12 +15,36 @@ enum Main {
         let delegate = AppDelegate()
         app.delegate = delegate
         app.setActivationPolicy(.accessory)
+        app.mainMenu = editingMenu()
         app.run()
+    }
+
+    /// Menu-bar apps have no menu bar of their own, but text fields and windows still take their
+    /// shortcuts from the main menu: without it ⌘V in History's search and ⌘W do nothing.
+    @MainActor
+    private static func editingMenu() -> NSMenu {
+        let main = NSMenu()
+        let appMenu = NSMenu()
+        appMenu.addItem(withTitle: "Quit Longyan Reader", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        main.addItem(withTitle: "", action: nil, keyEquivalent: "").submenu = appMenu
+        let file = NSMenu(title: "File")
+        file.addItem(withTitle: "Close", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        main.addItem(withTitle: "File", action: nil, keyEquivalent: "").submenu = file
+        let edit = NSMenu(title: "Edit")
+        edit.addItem(withTitle: "Undo", action: Selector(("undo:")), keyEquivalent: "z")
+        edit.addItem(withTitle: "Redo", action: Selector(("redo:")), keyEquivalent: "Z")
+        edit.addItem(.separator())
+        edit.addItem(withTitle: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        edit.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        edit.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        edit.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+        main.addItem(withTitle: "Edit", action: nil, keyEquivalent: "").submenu = edit
+        return main
     }
 }
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem!
     private var hotKey: HotKey?
     private(set) var dict: CEDict?
@@ -57,9 +81,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var localModelReady = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Accessibility calls wait up to about 6 s by default for an app that doesn't answer, and
+        // they run on the main thread: the default for every element, not just each app's own.
+        AXUIElementSetMessagingTimeout(AXUIElementCreateSystemWide(), 0.5)
         // Saved card widths now mean a zoom level; sizes saved by the box-resizing
         // version would open cards shrunk, so start those fresh once.
         let defaults = UserDefaults.standard
+        Log.migrate()
         Log.trim()
         applyAppearance()
         if defaults.integer(forKey: "cardSizeVersion") < 2 {
@@ -237,7 +265,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Without Accessibility nothing works, so explain it before the system prompt appears.
         // Then it offers the model download, which the menu also follows.
         ModelDownloader.shared.observe { [weak self] in
-            if ModelDownloader.shared.state == .done { LocalModel.select(LocalModel.name); self?.refresh() }
+            if ModelDownloader.shared.state == .done {
+                // Downloading is choosing it, even after picking Apple's model earlier.
+                LocalModel.select(LocalModel.choices[0].id); self?.refresh()
+            }
             else { self?.rebuildMenu() }
         }
         Onboarding.shared.onTrusted = { [weak self] in self?.rebuildMenu() }
@@ -247,6 +278,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: Menu
 
     private func rebuildMenu() {
+        let menu = makeMenu()
+        menu.delegate = self
+        statusItem.menu = menu
+    }
+
+    /// Rebuilt in place each time the menu opens, so History, Accessibility and the
+    /// model's line are current (the first lookup creates the history file, for one).
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        guard menu === statusItem.menu else { return }
+        let fresh = makeMenu()
+        menu.removeAllItems()
+        for item in fresh.items { fresh.removeItem(item); menu.addItem(item) }
+    }
+
+    private func makeMenu() -> NSMenu {
         let menu = NSMenu()
         menu.addItem(withTitle: "Highlight Chinese text, then click the eye or press ⌃⌥L", action: nil, keyEquivalent: "").isEnabled = false
         menu.addItem(.separator())
@@ -334,20 +380,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(withTitle: "Accessibility: " + (AXIsProcessTrusted() ? "on" : "off"), action: nil, keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Open Accessibility Settings…", action: #selector(openAccessibility), keyEquivalent: "").target = self
-        menu.addItem(withTitle: "Check Again", action: #selector(refresh), keyEquivalent: "").target = self
+        menu.addItem(withTitle: "Check Accessibility Again", action: #selector(refresh), keyEquivalent: "").target = self
         menu.addItem(.separator())
+        // Opened straight from Downloads, macOS runs a read-only copy from a temporary folder:
+        // it can't update itself, and a login item would point at a path that goes away.
+        let translocated = Onboarding.translocated
+        if translocated {
+            menu.addItem(withTitle: "Move the app to Applications to get updates", action: nil, keyEquivalent: "")
+        }
         if LoginItem.available {
-            let login = menu.addItem(withTitle: "Open at Login", action: #selector(toggleOpenAtLogin), keyEquivalent: "")
+            let login = menu.addItem(withTitle: "Open at Login", action: translocated ? nil : #selector(toggleOpenAtLogin), keyEquivalent: "")
             login.target = self
             login.state = LoginItem.isEnabled ? .on : .off
         }
         if Updates.available {
-            menu.addItem(withTitle: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "").target = self
+            menu.addItem(withTitle: "Check for Updates…", action: translocated ? nil : #selector(checkForUpdates), keyEquivalent: "").target = self
         }
         menu.addItem(withTitle: "Report a Problem", action: #selector(reportIssue), keyEquivalent: "").target = self
         menu.addItem(withTitle: "About Longyan Reader", action: #selector(showAbout), keyEquivalent: "").target = self
         menu.addItem(withTitle: "Quit Longyan Reader", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
-        statusItem.menu = menu
+        return menu
     }
 
     @objc private func toggleChip() { chip.isEnabled.toggle(); rebuildMenu() }
@@ -743,9 +795,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-/// The lookup history: one JSON line per lookup in ~/Library/Logs/LongyanReader/lookups.jsonl,
-/// on this Mac only. It's on for new installs (it's what History shows); the menu keeps it for
-/// 30 days or turns it off, and Clear moves the file to the Trash.
+/// The lookup history: one JSON line per lookup in
+/// ~/Library/Application Support/LongyanReader/History/lookups.jsonl, on this Mac only. It's on
+/// for new installs (it's what History shows); the menu keeps it for 30 days or turns it off,
+/// and Clear moves the file to the Trash. Diagnostics (traces, probe output) go to `directory`,
+/// under Logs, which cleanup tools empty freely; history moved out of there in 1.0.
 enum Log {
     enum Keep: String, CaseIterable { case off, days30, all }
 
@@ -754,7 +808,30 @@ enum Log {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }()
-    static var file: URL { directory.appendingPathComponent("lookups.jsonl") }
+    static let historyDirectory: URL = {
+        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("LongyanReader/History")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }()
+    static var file: URL { historyDirectory.appendingPathComponent("lookups.jsonl") }
+
+    /// Before 1.0 the history was in Logs/LongyanReader. Moves it here once, at launch; if both
+    /// exist, the old lines go first (they're older) and the old file goes to the Trash.
+    static func migrate() {
+        let fm = FileManager.default
+        let old = directory.appendingPathComponent("lookups.jsonl")
+        guard fm.fileExists(atPath: old.path) else { return }
+        if !fm.fileExists(atPath: file.path) {
+            guard (try? fm.moveItem(at: old, to: file)) != nil else { return }
+        } else {
+            guard let a = try? Data(contentsOf: old), let b = try? Data(contentsOf: file) else { return }
+            let joined = a.isEmpty || a.last == UInt8(ascii: "\n") ? a + b : a + Data("\n".utf8) + b
+            guard (try? joined.write(to: file, options: .atomic)) != nil else { return }
+            try? fm.trashItem(at: old, resultingItemURL: nil)
+        }
+        try? fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)
+    }
 
     /// On (kept whole) unless the reader turns it off: it's what the History window shows
     /// and exports as flashcards.

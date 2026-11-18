@@ -70,7 +70,7 @@ enum TextCapture {
         let passage = Array(text)
         let index = text.distance(from: text.startIndex, to: stringIndex)
         guard passage.indices.contains(index), isCJK(passage[index]) else {
-            note("ax: character at point is not Chinese (\(passage.indices.contains(index) ? String(passage[index]) : "out of range"))")
+            note("ax: character at point is not Chinese")
             return nil
         }
 

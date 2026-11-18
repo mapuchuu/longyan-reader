@@ -84,6 +84,13 @@ final class SelectionChip {
         }
         let inset = (size - Self.target) / 2
         origin = NSPoint(x: origin.x - inset, y: origin.y - inset)
+        // Kept on the screen it belongs to, clear of the menu bar and Dock: a selection that
+        // ends at the right edge would otherwise put the button off-screen or on the next display.
+        if let screen = NSScreen.screens.first(where: { NSMouseInRect(point, $0.frame, false) }) ?? NSScreen.main {
+            let v = screen.visibleFrame
+            origin.x = min(max(origin.x, v.minX), v.maxX - size)
+            origin.y = min(max(origin.y, v.minY), v.maxY - size)
+        }
         let panel = NSPanel(contentRect: NSRect(origin: origin, size: NSSize(width: size, height: size)),
                             styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         panel.isOpaque = false
@@ -149,6 +156,10 @@ struct ChipButtonView: View {
             .onChanged { _ in pressed = true }
             .onEnded { _ in pressed = false; action() })
         .help("Look up (⌃⌥L)")
+        .accessibilityElement()
+        .accessibilityLabel("Look up")
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { action() }
         .animation(.spring(response: 0.25, dampingFraction: 0.7), value: hovering)
         .animation(.spring(response: 0.2, dampingFraction: 0.7), value: pressed)
         .frame(maxWidth: .infinity, maxHeight: .infinity)

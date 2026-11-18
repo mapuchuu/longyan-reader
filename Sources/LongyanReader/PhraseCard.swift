@@ -361,7 +361,7 @@ final class PhraseState: ObservableObject {
 
 /// The first dictionary sense, as one short meaning for a row.
 func shortGloss(_ senses: [Sense]?) -> String {
-    senses?.first.map { Gloss.short($0.gloss) } ?? "—"
+    senses?.first.map { Gloss.short($0.gloss) } ?? LookupView.notInDictionary
 }
 
 /// A sense's first meaning, for the word card's headline.

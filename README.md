@@ -56,9 +56,9 @@ If you already have `qwen3.5:4b` in [Ollama](https://ollama.com), the app uses t
 
 Everything runs on your Mac. What you look up is never sent anywhere.
 
-The app only goes online to download the reading model when you ask for it, and to check for updates once you've said yes. Update checks send no information about your Mac. Report a Problem opens a GitHub issue in your browser with the app and macOS versions filled in, and nothing is sent until you submit it.
+The app only goes online to download the reading model when you ask for it, and to check for updates once you've said yes. Update checks send no information about your Mac. Report a Problem opens a GitHub issue in your browser with the app and macOS versions, chip, memory and reading model filled in, and nothing is sent until you submit it.
 
-History is on by default. It keeps each word you look up with its sentence, in `~/Library/Logs/LongyanReader/`, and stays there unless you export it. Turn it off or clear it under **Keep History** in the menu.
+History is on by default. It keeps each word you look up with its sentence and the app it was in, in `~/Library/Application Support/LongyanReader/History`, and stays there unless you export it. Keep 30 days, turn it off, or clear it under **Keep History** in the menu. Clearing moves it to the Trash.
 
 The [privacy page](https://longyan.app/privacy.html) has the details.
 
@@ -71,11 +71,11 @@ The app checks GitHub for new versions (it asks before doing this automatically)
 Quit the app, then move these to the Trash:
 
 - **Longyan Reader** in Applications
-- `~/Library/Application Support/LongyanReader` (the reading model)
-- `~/Library/Logs/LongyanReader` (your history)
+- `~/Library/Application Support/LongyanReader` (the reading model and your history)
+- `~/Library/Logs/LongyanReader`, if it's there (history from before 1.0)
 - anything named `LongyanReader` or `com.mapuchuu.longyanreader` in `~/Library/Caches` and `~/Library/HTTPStorages`
 
-Then remove it from System Settings > Privacy & Security > Accessibility, and from Login Items if you turned on Open at Login. Its settings go with `defaults delete com.mapuchuu.longyanreader` in Terminal.
+Then remove it from System Settings > Privacy & Security > Accessibility, and from System Settings > General > Login Items & Extensions if you turned on Open at Login. Its settings go with `defaults delete com.mapuchuu.longyanreader` in Terminal.
 
 ## Building from source
 

@@ -38,7 +38,7 @@ Who does each item:
   - `SUFeedURL` and `SUPublicEDKey`
   - copyright line
 - [x] [me] The binary and frameworks are arm64 only, and the appcast says `hardwareRequirements arm64`.
-- [ ] [me] There is no `DEV_TOOLS` code in the release binary: no debug notification, probe, or simulation hooks.
+- [x] [me] There is no `DEV_TOOLS` code in the release binary: no debug notification, probe, or simulation hooks. Checked 2026-11-18: none in the binary. The developer command-line tools (`--eval`, `--notes-*`) are there but only run from Terminal; the notes tools need a key in the keychain.
 - [x] [me] Check which dev-only CLI paths can be reached in a shipped binary. Examples are `NotesBuilder`, which calls the Anthropic API, and `--simulate`. They are probably harmless, but nothing in the shipped app may go online in ways the README doesn't mention. Gate them, or record why they're fine.
 - [x] [me] Signatures:
   - `codesign --verify --deep --strict` passes.
@@ -46,7 +46,7 @@ Who does each item:
   - Sparkle's helpers are signed inside out.
   - Hardened runtime is on where Sparkle needs it.
 - [x] [me] Licences are in `Contents/Resources/Licenses`: CC-CEDICT, MIT, llama.cpp and Sparkle. The About window or a menu item shows them.
-- [ ] [me] Check the zip's size and that it unzips to a single `Longyan Reader.app` with its symlinks intact (ditto).
+- [x] [me] Check the zip's size and that it unzips to a single `Longyan Reader.app` with its symlinks intact (ditto). Checked 2026-11-18: 12 MB; plain `unzip` gives one app, symlinks intact, no `._` files, signature valid.
 - [x] [me] `release.sh` refuses a dirty tree, and the build number is higher than 97.
 
 ## 2. First install, as a stranger would do it
@@ -128,10 +128,32 @@ Also fixed 2026-11-18:
 - CSV export has a BOM for Excel.
 - History loads off the main thread.
 
+Code sweep 2026-11-18 (five audits: crashes, text, UI, release, docs). Fixed:
+- A selection edge inside a character (CRLF, emoji sequence) could index past the passage. Ranges are now clamped.
+- A lookup queued at quit could load the model again during teardown.
+- Digits were trimmed off selections, so dates lost the year and 100元 became 元.
+- Traditional text was tokenized as simplified (我們 split) and found no notes.
+- 〇 and CJK Extensions C onward weren't counted as Chinese.
+- ⌘C fallback: runs on main, restores the clipboard after a late copy, and never puts back a password manager's copy.
+- No main menu, so ⌘V/⌘C/⌘A/⌘W didn't work in History.
+- Esc anywhere in the app closed the card.
+- Onboarding registered the login item before the reader chose.
+- Downloading after picking Apple's model left Apple's model selected.
+- The eye could sit off-screen or under the menu bar.
+- The menu went stale; it's now rebuilt on open.
+- VoiceOver labels on the card buttons and the eye.
+- AX calls could block main for ~6 s; the global timeout is now 0.5 s.
+- Cancelled requests no longer read their prompt; a failed context waits a minute before retrying.
+- Translocated (run from Downloads): menu says to move it, Open at Login and Check for Updates are off.
+- Release zip had ._ AppleDouble files; release.sh now checks branch, push state and existing tag.
+- Privacy page and README: history keeps the app name, Clear moves to Trash, the Ollama check, the miss note. Miss traces no longer carry a PDF file name or the character.
+
 Still open:
 - The usage simulation. It posts real clicks, so run it when no system dialog is on screen.
-- ⌘C fallback timing. An app that copies after 400 ms leaves the user's clipboard replaced.
-- 2024年3月15日 comes out as "March 15th": the year is dropped.
+- Names get glosses (王小明 = king/young/clear). Post-launch.
+- Tone sandhi (一, 不) isn't shown. A display decision.
+- Kangxi radicals and compatibility ideographs from PDFs aren't normalised.
+- "Windows coming soon" on the site: confirm or remove.
 
 - [ ] [me] Run the usage simulation (`Simulation.swift`) for a long session: no crashes, flat memory, the model unloaded after 5 idle minutes.
 - [ ] [me] Through sleep and wake, and with the network changing (proxy on and off), the next lookup still works.
@@ -168,20 +190,20 @@ Still open:
 - [ ] [me] Settings migrations: an old defaults key or a new history format is upgraded, not lost (see the `cardSizeVersion` pattern).
 - [x] [me] **Bad-release plan, written in DEVELOPMENT.md.** The feed is "latest release" and Sparkle won't downgrade, so a bad release is fixed forward: a new build number out quickly. Record the steps and how long they take.
 - [ ] [you] **Back up the keys** somewhere other than this Mac, such as a password manager or an encrypted USB drive. The files are `longyan-codesign.p12` with its password, and `sparkle-private-key.txt`. If they're lost, existing users can never be updated, and they would have to re-grant Accessibility.
-- [ ] [me] `release.sh` prints the publish command. Add a check step after publishing: fetch the live appcast and the site's zip, and confirm the version and signature.
+- [x] [me] `release.sh` prints the publish command. Add a check step after publishing: fetch the live appcast and the site's zip, and confirm the version and signature. Done: `scripts/check-release.sh`, tested on the 0.1 release and on a tampered zip.
 
 ## 6. Privacy, data, and uninstalling
 
 - [x] [me] **Network audit.** Watch the app's connections (nettop or lsof) through a whole session. The only ones allowed are the model download and Sparkle checks, and Sparkle only after you say yes. That makes the README's privacy claim checked, not just stated. Done 2026-11-18. In code, the app only reaches the model hosts, GitHub (for Sparkle, with no profile sent) and a local Ollama. Watched for 60 s after launch: no sockets.
 - [x] [me] List everything the app writes: Also writes to Caches and HTTPStorages; the README lists them.
   - `~/Library/Application Support/LongyanReader/` (2.7 GB model)
-  - `~/Library/Logs/LongyanReader/` (history)
+  - `~/Library/Application Support/LongyanReader/History/` (history; in Logs before 1.0)
   - defaults
   - Sparkle's caches
   - the login item
   - the Accessibility entry
 - [x] [me] Add uninstall steps to the README: delete the app, the model folder and the history, and remove the Accessibility entry. Possibly add a "Remove reading model" menu item to free 2.7 GB. The README now has the full list. Removing the model from the menu is not done.
-- [ ] [me] Is history stored under Logs the right place? Users may clear Logs and lose their history without knowing.
+- [x] [me] Is history stored under Logs the right place? Users may clear Logs and lose their history without knowing. No: from 1.0 it's in `~/Library/Application Support/LongyanReader/History/`, moved there at launch. README, privacy page and About updated.
 
 ## 7. Words people see
 

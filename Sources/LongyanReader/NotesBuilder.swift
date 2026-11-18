@@ -109,7 +109,7 @@ enum NotesBuilder {
     static func unjudgedLookups() throws -> [(word: String, count: Int, sentence: String)] {
         let judged = Set(try judgedWords().map(\.word))
         var counts: [String: Int] = [:], sentences: [String: String] = [:]
-        let log = try String(contentsOf: Log.directory.appendingPathComponent("lookups.jsonl"), encoding: .utf8)
+        let log = try String(contentsOf: Log.file, encoding: .utf8)
         for line in log.split(whereSeparator: \.isNewline) {
             guard let r = try? JSONSerialization.jsonObject(with: Data(line.utf8)) as? [String: Any],
                   !["Simulation", "Demo"].contains(r["app"] as? String ?? "") else { continue }

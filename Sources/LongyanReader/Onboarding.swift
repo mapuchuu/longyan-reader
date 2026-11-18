@@ -39,7 +39,7 @@ final class Onboarding {
             }
         }
         NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: w, queue: .main) { [weak self] _ in
-            Task { @MainActor in self?.timer?.invalidate(); self?.timer = nil; self?.window = nil }
+            Task { @MainActor in model.commitOpenAtLogin(); self?.timer?.invalidate(); self?.timer = nil; self?.window = nil }
         }
     }
 
@@ -52,12 +52,16 @@ final class Onboarding {
         NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
     }
 
-    /// The Accessibility grant belongs to the app at its path; moving it later means granting again.
+    /// Outside Applications the app can be run from a read-only, translocated copy (no updates),
+    /// and it's easy to lose. The Accessibility grant follows the signing certificate, not the path.
     static var outsideApplications: Bool {
         let path = Bundle.main.bundlePath
         return !(path.hasPrefix("/Applications/") || path.hasPrefix(NSHomeDirectory() + "/Applications/"))
             && path.hasSuffix(".app")
     }
+
+    /// Run from Downloads with the quarantine flag, macOS opens a copy from a temporary folder.
+    static var translocated: Bool { Bundle.main.bundlePath.contains("/AppTranslocation/") }
 }
 
 @MainActor
@@ -70,7 +74,15 @@ final class OnboardingModel: ObservableObject {
     /// "About 4 minutes left", once the download has run long enough to tell.
     @Published var timeLeft: String?
     @Published var openAtLogin = LoginItem.isEnabled {
-        didSet { if !rendering, openAtLogin != oldValue { LoginItem.set(openAtLogin) } }
+        didSet { if !rendering, !loginPending, openAtLogin != oldValue { LoginItem.set(openAtLogin) } }
+    }
+    /// The offered tick is only a suggestion until the reader moves on (download or close),
+    /// so Later doesn't leave a login item they never agreed to.
+    private var loginPending = false
+    func commitOpenAtLogin() {
+        guard loginPending else { return }
+        loginPending = false
+        LoginItem.set(openAtLogin)
     }
     private var rendering = false
     var foundInOllama = false
@@ -88,6 +100,7 @@ final class OnboardingModel: ObservableObject {
     func offerOpenAtLogin() {
         guard !rendering, LoginItem.available, !UserDefaults.standard.bool(forKey: "onboarding.loginOffered") else { return }
         UserDefaults.standard.set(true, forKey: "onboarding.loginOffered")
+        loginPending = true
         openAtLogin = true
     }
 
@@ -171,7 +184,7 @@ struct OnboardingView: View {
             .foregroundStyle(.secondary)
         HStack {
             Spacer()
-            Button("Later", action: done)
+            Button("Later", action: done).keyboardShortcut(.cancelAction)
             Button("Open System Settings") { Onboarding.openAccessibilitySettings() }
                 .keyboardShortcut(.defaultAction)
         }
@@ -255,8 +268,8 @@ private struct ModelStep: View {
 
     private func choice(_ primary: String) -> some View {
         buttons {
-            Button("Later", action: done)
-            Button(primary) { model.startDownload() }.keyboardShortcut(.defaultAction)
+            Button("Later", action: done).keyboardShortcut(.cancelAction)
+            Button(primary) { model.commitOpenAtLogin(); model.startDownload() }.keyboardShortcut(.defaultAction)
         }
     }
 
@@ -293,7 +306,7 @@ enum About {
         add("\n\nNotes\n", font: bold)
         add("The notes were written by Claude and checked against the dictionary meanings they belong to. They can contain mistakes.")
         add("\n\nPrivacy\n", font: bold)
-        add("Lookups are processed on this Mac. Your history (Lookup History in the menu, which exports flashcards) is kept on this Mac in ~/Library/Logs/LongyanReader/lookups.jsonl, readable only by your account. Keep History in the menu turns it off or clears it.")
+        add("Lookups are processed on this Mac. Your history (Lookup History in the menu, which exports flashcards) is kept on this Mac in ~/Library/Application Support/LongyanReader/History, readable only by your account. Keep History in the menu turns it off or clears it.")
         NSApp.activate()
         var options: [NSApplication.AboutPanelOptionKey: Any] = [.applicationName: "Longyan Reader", .credits: credits]
         if let mark = Icons.mark(size: 64) {
