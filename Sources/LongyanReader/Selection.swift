@@ -92,12 +92,26 @@ enum SelectionReader {
 
     /// Why the last read failed; written to the lookup log.
     static var trace: [String] = []
+    /// The focused element's role at the last read; nil when the app named none.
+    static var lastFocusedRole: String?
+
+    /// Roles that hold things other than text (files, rows, controls). A drag there selects
+    /// those, so an unreadable "selection" in one isn't text worth offering to look up.
+    private static let notTextRoles: Set<String> = [
+        kAXListRole, kAXOutlineRole, kAXBrowserRole, kAXImageRole, kAXButtonRole, kAXCheckBoxRole,
+        kAXRadioButtonRole, kAXSliderRole, kAXScrollBarRole, kAXSplitterRole, kAXToolbarRole,
+        kAXMenuRole, kAXMenuBarRole, kAXMenuItemRole, kAXPopUpButtonRole, kAXTabGroupRole,
+        kAXWindowRole, "AXDockItem", kAXColumnRole, kAXRowRole,
+    ]
+    /// Whether an unreadable selection may still be text, so the eye is worth showing.
+    static var unreadableMayBeText: Bool { lastFocusedRole.map { !notTextRoles.contains($0) } ?? true }
     private static func note(_ s: String) { trace.append(s) }
 
     // MARK: Accessibility (no side effects)
 
     static func readAccessibility(from target: NSRunningApplication? = nil) -> Result {
         trace = []
+        lastFocusedRole = nil
         guard AXIsProcessTrusted() else { note("not trusted"); return .unreadable }
         guard let app = target ?? NSWorkspace.shared.frontmostApplication else { return .unreadable }
         let appElement = AXUIElementCreateApplication(app.processIdentifier)
@@ -109,6 +123,7 @@ enum SelectionReader {
             return .unreadable
         }
         let role: String = attribute(focused, kAXRoleAttribute) ?? "?"
+        lastFocusedRole = role
         note("focused \(role) in \(app.localizedName ?? "?")")
 
         // Web pages first: their text views also answer the plain-text queries, but without context.
@@ -249,11 +264,16 @@ enum SelectionReader {
         var lo = 0
         let start = AXTextMarkerRangeCopyStartMarker(range as! AXTextMarkerRange)
         for attr in ["AXParagraphTextMarkerRangeForTextMarker", "AXLineTextMarkerRangeForTextMarker"] {
-            if let around: CFTypeRef = parameterized(e, attr, start),
-               let text: String = parameterized(e, "AXStringForTextMarkerRange", around),
-               let r = text.range(of: selected) {
+            guard let around: CFTypeRef = parameterized(e, attr, start), CFGetTypeID(around) == AXTextMarkerRangeGetTypeID(),
+                  let text: String = parameterized(e, "AXStringForTextMarkerRange", around) else { continue }
+            // The text from the paragraph's start to the selection's says which copy was
+            // selected when the same words appear twice (打 in two sentences).
+            let paragraphStart = AXTextMarkerRangeCopyStartMarker(around as! AXTextMarkerRange)
+            let before = AXTextMarkerRangeCreate(kCFAllocatorDefault, paragraphStart, start)
+            let prefix: String? = parameterized(e, "AXStringForTextMarkerRange", before)
+            if let found = nearest(selected, in: Array(text), to: prefix?.count) {
                 passageText = text
-                lo = text.distance(from: text.startIndex, to: r.lowerBound)
+                lo = found
                 break
             }
         }
@@ -265,6 +285,19 @@ enum SelectionReader {
         note("web: \(selected.count) chars selected, context \(passageText.count)")
         return .selection(Selection(passage: Array(passageText), range: lo..<(lo + selected.count), bounds: bounds,
                                     source: .accessibility, appName: app))
+    }
+
+    /// Where `needle` appears in `hay`, the copy nearest `offset` when it appears more than once
+    /// (a browser's count can be off by a character or two around line breaks).
+    static func nearest(_ needle: String, in hay: [Character], to offset: Int?) -> Int? {
+        let n = Array(needle)
+        guard !n.isEmpty, hay.count >= n.count else { return nil }
+        var best: Int?
+        for i in 0...(hay.count - n.count) where hay[i] == n[0] && Array(hay[i..<(i + n.count)]) == n {
+            guard let offset else { return i }
+            if best.map({ abs(i - offset) < abs($0 - offset) }) ?? true { best = i }
+        }
+        return best
     }
 
     // MARK: Preview PDFs

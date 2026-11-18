@@ -25,20 +25,26 @@ struct WordInContext {
     let wordRange: Range<Int>      // character offsets into passage
     let alternatives: [String]     // other dictionary words covering the same character
 
-    var sentence: String {
+    /// Where the sentence holding the word starts and ends in the passage.
+    private var sentenceBounds: Range<Int> {
         let stops: Set<Character> = ["。", "！", "？", "；", "!", "?", ";", "\n", "\r\n", "\r", "\u{2029}"]
         var lo = wordRange.lowerBound, hi = wordRange.upperBound
         while lo > 0, !stops.contains(passage[lo - 1]), wordRange.lowerBound - lo < 160 { lo -= 1 }
         while hi < passage.count, !stops.contains(passage[hi]), hi - wordRange.upperBound < 160 { hi += 1 }
         if hi < passage.count { hi += 1 }   // keep the closing punctuation
-        return String(passage[lo..<hi]).trimmingCharacters(in: .whitespacesAndNewlines)
+        return lo..<hi
+    }
+
+    var sentence: String {
+        String(passage[sentenceBounds]).trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     /// The sentence alone with the word bracketed; a fallback when the wider passage is rejected.
+    /// Bracketed where it is, not where it first appears: in 行不行，这一行很难 the second 行 is the one.
     var markedSentence: String {
-        let s = sentence
-        guard let r = s.range(of: word) else { return markedPassage }
-        return s.replacingCharacters(in: r, with: "【" + word + "】")
+        let b = sentenceBounds
+        return (String(passage[b.lowerBound..<wordRange.lowerBound]) + "【" + word + "】"
+                + String(passage[wordRange.upperBound..<b.upperBound])).trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     /// Up to ~240 characters around the word with the word bracketed 【】, for the model.

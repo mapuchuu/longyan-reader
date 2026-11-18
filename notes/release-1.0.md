@@ -4,6 +4,7 @@ The first full release. Highlight Chinese in any app with a drag or a double-cli
 
 - Report a Problem in the menu opens a GitHub issue with your Mac's details filled in. Nothing is sent until you submit it.
 - If the reading model is damaged, the menu offers to download it again.
+- Right-click the eye to hide it in that app, or turn it off. ⌃⌥L still works.
 
 **Better**
 
@@ -17,6 +18,8 @@ The first full release. Highlight Chinese in any app with a drag or a double-cli
 
 **Fixed**
 
+- The eye no longer appears after selecting files in Finder or rows in a list.
+- When a word appears twice in a paragraph, the meaning is picked for the one you highlighted.
 - Phrase cards no longer drop every word after an emoji.
 - Some words showed a pointer to another entry instead of a meaning.
 - Crashes when quitting during a lookup and on a full disk.

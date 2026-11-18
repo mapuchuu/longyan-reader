@@ -103,7 +103,8 @@ final class OnboardingModel: ObservableObject {
 
     /// Ticked the first time the reader gets past Accessibility; after that it's theirs to change.
     func offerOpenAtLogin() {
-        guard !rendering, LoginItem.available, !UserDefaults.standard.bool(forKey: "onboarding.loginOffered") else { return }
+        guard !rendering, LoginItem.available, !Onboarding.translocated,
+              !UserDefaults.standard.bool(forKey: "onboarding.loginOffered") else { return }
         UserDefaults.standard.set(true, forKey: "onboarding.loginOffered")
         loginPending = true
         openAtLogin = true
@@ -281,7 +282,9 @@ private struct ModelStep: View {
     /// The step's buttons, with Open at Login beside them in every state.
     private func buttons(@ViewBuilder _ content: () -> some View) -> some View {
         HStack {
-            if LoginItem.available || CommandLine.arguments.contains("--render-onboarding") {
+            // Run from Downloads, a login item would point at a temporary copy that goes away;
+            // the window already asks them to move the app first.
+            if (LoginItem.available && !Onboarding.translocated) || CommandLine.arguments.contains("--render-onboarding") {
                 Toggle("Open at login", isOn: $model.openAtLogin).toggleStyle(.checkbox)
             }
             Spacer()

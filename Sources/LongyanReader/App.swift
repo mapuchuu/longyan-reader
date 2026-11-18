@@ -121,6 +121,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         chip.onShow = { [weak self] selection in self?.prepare(selection) }
+        chip.onSettingsChange = { [weak self] in self?.rebuildMenu() }
         chip.onClick = { [weak self] selection, chipFrame in
             Task { @MainActor in await self?.chipClicked(selection, chipFrame: chipFrame) }
         }
@@ -329,9 +330,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let menu = NSMenu()
         menu.addItem(withTitle: "Highlight Chinese text, then click the eye or press ⌃⌥L", action: nil, keyEquivalent: "").isEnabled = false
         menu.addItem(.separator())
-        let chipItem = menu.addItem(withTitle: "Show Eye Next to Selection", action: #selector(toggleChip), keyEquivalent: "")
+        let chipItem = menu.addItem(withTitle: "Show Eye When You Highlight Text", action: #selector(toggleChip), keyEquivalent: "")
         chipItem.target = self
         chipItem.state = chip.isEnabled ? .on : .off
+        // Apps the eye was hidden in from its right-click menu; unticking one shows it there again.
+        let hidden = chip.hiddenApps
+        if chip.isEnabled, !hidden.isEmpty {
+            let hiddenMenu = NSMenu()
+            for id in hidden {
+                let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id)
+                let name = url.map { FileManager.default.displayName(atPath: $0.path).replacingOccurrences(of: ".app", with: "") } ?? id
+                let item = hiddenMenu.addItem(withTitle: name, action: #selector(showEyeAgain(_:)), keyEquivalent: "")
+                item.target = self; item.representedObject = id; item.state = .on
+            }
+            menu.setSubmenu(hiddenMenu, for: menu.addItem(withTitle: "Hide Eye In", action: nil, keyEquivalent: ""))
+        }
         menu.addItem(.separator())
         menu.addItem(withTitle: "Dictionary: " + (dict.map { "\($0.entryCount.formatted()) entries" } ?? "loading…"), action: nil, keyEquivalent: "")
         let localLabel = LocalModel.backend == .embedded ? "Qwen 3.5 4B" : "Qwen 3.5 4B from Ollama"
@@ -436,6 +449,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func toggleChip() { chip.isEnabled.toggle(); rebuildMenu() }
+    @objc private func showEyeAgain(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? String else { return }
+        chip.hiddenApps.removeAll { $0 == id }
+        rebuildMenu()
+    }
     // MARK: Appearance
 
     /// "system", "light" or "dark"; applies to the cards and the selection button.
