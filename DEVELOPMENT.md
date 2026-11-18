@@ -139,7 +139,7 @@ Sparkle's tools (2.10.1) are in the same folder.
 - `paper.js` draws the backdrops (sheets of colour over a night ground, like a Mac wallpaper) with one WebGL context. `motion.js` does the scroll reveals, pins the statement and shows its three lines one at a time with a progress bar per line, stepping its card along with them (meanings, then the pick, then the note), and loads the video.
 - `tiles.js` brings new words into the History tile; the other tiles' loops are CSS, run while `motion.js` marks a tile "live". `install.js` plays the install steps on the Mac screen: each scene is a CSS animation started by a class on the desk (`s0` to `s3`), laid out at 760 px (620 on a phone) and scaled to fit.
 - `index.html` loads the stylesheet and scripts with a version stamp (`?v=…`). Change it when they change, so browsers and GitHub Pages' cache don't serve old copies.
-- The recording is `site/media/reading-2.mp4` (HEVC, 2240×1260, about 2.6 Mbit/s, no audio, fast start) with `reading-2-h264.mp4` (H.264, 4.5 Mbit/s) for browsers without HEVC, and `reading-2.jpg` as its first frame. To replace it, use new file names (browsers cache these) and update `index.html`; if its shape changes, match `aspect-ratio` on `.screen`.
+- The recording is `site/media/reading-3.mp4` (HEVC, 2240×1260, about 2.6 Mbit/s, no audio, fast start) with `reading-3-h264.mp4` (H.264, 4.5 Mbit/s) for browsers without HEVC, and `reading-3.jpg` as its first frame. To replace it, use new file names (browsers cache these) and update `index.html`; if its shape changes, match `aspect-ratio` on `.screen`.
 - To preview, serve the folder (`python3 -m http.server --directory site`). `?still` turns off scroll motion for screenshots.
 
 ## Licenses

@@ -108,19 +108,17 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .button-quiet svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: transform .3s var(--ease-out); }
 .button-quiet:hover { color: #fff; }
 .button-quiet:hover svg { transform: translateY(2px); }
-.fine { margin: 22px 0 0; font-size: 13px; color: #8e8e93; }
 
 
 /* The opening plays in once: the lines rise, then the rest fades up. */
 .motion .rise > span { transform: translateY(105%); }
-.motion .eyebrow, .motion .hero-sub, .motion .hero-actions, .motion .fine { opacity: 0; transform: translateY(12px); }
+.motion .eyebrow, .motion .hero-sub, .motion .hero-actions { opacity: 0; transform: translateY(12px); }
 .motion.hero-ready .rise > span { transform: none; transition: transform 1s var(--glide) .25s; }
 .motion.hero-ready .rise + .rise > span { transition-delay: .37s; }
-.motion.hero-ready .eyebrow, .motion.hero-ready .hero-sub, .motion.hero-ready .hero-actions, .motion.hero-ready .fine { opacity: 1; transform: none; transition: opacity .8s var(--glide), transform .9s var(--glide); }
+.motion.hero-ready .eyebrow, .motion.hero-ready .hero-sub, .motion.hero-ready .hero-actions { opacity: 1; transform: none; transition: opacity .8s var(--glide), transform .9s var(--glide); }
 .motion.hero-ready .eyebrow { transition-delay: .1s; }
 .motion.hero-ready .hero-sub { transition-delay: .7s; }
 .motion.hero-ready .hero-actions { transition-delay: .82s; }
-.motion.hero-ready .fine { transition-delay: .94s; }
 
 /* The sentences, once formed: three lines like lyrics, the middle one to read. */
 /* The sentence hands over from the canvas to text in one frame, with no fade, so it never
@@ -759,9 +757,10 @@ figcaption b { color: var(--ink); font-weight: 600; }
   to { margin-top: 0; opacity: 1; background: transparent; }
 }
 
-/* Menu: it hangs from its eye in a menu bar across the top, right-aligned at the edge as a
-   status menu too wide to start at its icon is. It drops open, and the highlight runs down. */
-.tile .stage-menu { place-items: start end; padding: 38px 12px 30px 30px; }
+/* Menu: the eye in a menu bar across the top, and its menu centred in the room under the
+   bar (the padding keeps the bar's 30px out of the centring). It drops open, and the
+   highlight runs down. */
+.tile .stage-menu { place-items: center; padding: 46px 30px 16px; }
 .stage-menu .menubar {
   position: absolute; z-index: 3; left: 0; right: 0; top: 0; height: 30px; display: flex; justify-content: flex-end; align-items: center; gap: 16px; padding: 0 18px;
   font-size: 13px; font-weight: 500; color: #fff;
@@ -771,7 +770,7 @@ figcaption b { color: var(--ink); font-weight: 600; }
 .menubar-eye { display: grid; place-items: center; width: 34px; height: 22px; border-radius: 6px; background: rgba(255, 255, 255, .3); }
 .menubar-eye svg { width: 20px; height: auto; }
 .stage-menu .ui-menu { background: rgba(248, 247, 252, .88); }
-.motion .ui-menu { opacity: 0; transform: scale(.96) translateY(-6px); transform-origin: 90% 0; transition: opacity .35s ease-out, transform .5s var(--ease-out); }
+.motion .ui-menu { opacity: 0; transform: scale(.96) translateY(-6px); transform-origin: 50% 0; transition: opacity .35s ease-out, transform .5s var(--ease-out); }
 .motion .in .ui-menu { opacity: 1; transform: none; transition-delay: .7s; }
 .ui-menu .menu-item:nth-of-type(3) { --k: 1; } .ui-menu .menu-item:nth-of-type(4) { --k: 2; }
 .ui-menu .menu-item:nth-of-type(5) { --k: 3; } .ui-menu .menu-item:nth-of-type(6) { --k: 4; }
@@ -1015,7 +1014,7 @@ footer a { color: #a1a1a6; }
 .motion .grid [data-reveal]:nth-child(2n) { transition-delay: .1s; }
 
 /* The social preview (?og): the eye, the land and the headline. */
-.og .bar, .og .hero-actions, .og .fine { display: none; }
+.og .bar, .og .hero-actions { display: none; }
 .og .story { height: auto; }
 .og .story-pin { height: 630px; min-height: 0; }
 
@@ -1064,7 +1063,7 @@ footer a { color: #a1a1a6; }
   .tile .glass-box { padding: 18px; aspect-ratio: 20 / 21; }
   .tile .stage-history { padding: 30px 0 0; }
   .stage-history .ui-history { width: 90%; }
-  .tile .stage-menu { padding: 40px 8px 18px 18px; }
+  .tile .stage-menu { padding: 44px 18px 14px; }
   .stage-menu .menubar { padding: 0 12px; }
   .notes-stack { height: 152px; }
   .notes-stack .note { height: 152px; }
