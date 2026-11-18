@@ -515,14 +515,19 @@
   // Once the sentence has formed it plays on its own, in seconds, while the page holds still
   // (it never scrolls itself): a beat to see it, then "Highlight" is selected as if dragged
   // across (the first bar), then the second bar fills while you try it, and the button on to the
-  // statement comes in. Scrolling back above the sentence resets it, to play again next time.
-  const LEAD = 0.6, SELECT = 1.6, TRY = 7.6;
+  // statement comes in. Scrolling through the hold takes the same timeline over: whichever is
+  // further along, the clock or the scroll, is where it is, so a reader who scrolls on sees the
+  // bars run with them rather than a wait. Scrolling back above the sentence resets it, to play
+  // again next time.
+  const LEAD = 0.6, SELECT = 1.6, TRY = 4.6;
   const bars = story ? [...story.querySelectorAll(".try-progress b")] : [];
   let lastHold = -1, formedAt = null;
   function holdAt(p) {
     if (p < FORMED) { if (formedAt != null) story.classList.remove("tried", "try-done"); formedAt = null; }
     else if (formedAt == null) formedAt = performance.now();
-    const u = formedAt == null ? 0 : still ? TRY : (performance.now() - formedAt) / 1000;
+    // How far through the hold the scroll is, from just past where "See how it works" stops.
+    const scrolled = clamp(((p - FORMED) / (1 - FORMED) - 0.06) / 0.8);
+    const u = formedAt == null ? 0 : still ? TRY : Math.max((performance.now() - formedAt) / 1000, scrolled * TRY);
     if (Math.abs(u - lastHold) < 0.0005) return;
     lastHold = u;
     const hl = clamp((u - LEAD) / (SELECT - LEAD));
@@ -656,7 +661,14 @@
   document.addEventListener("visibilitychange", () => { visible = !document.hidden; if (visible && running) kick(); });
   new IntersectionObserver((entries) => { for (const e of entries) e.isIntersecting ? start() : stop(); }).observe(canvas);
 
+  // The headline never waits on the eye: it rises as soon as the font is in, or after 0.8 s
+  // whatever the font is doing (a Safari font load can hang in a background tab or on a cold
+  // cache), and before any of the drawing is set up, so nothing there can keep it hidden.
+  const showCopy = () => document.documentElement.classList.add("hero-ready");
+  setTimeout(showCopy, 800);
+
   function boot() {
+    showCopy();
     lastW = window.innerWidth;
     layout();
     // ?t=5 starts five seconds in and ?p=0.6 jumps to that point of the story, for screenshots.
@@ -664,10 +676,10 @@
     if (params.has("p")) window.scrollTo(0, scrollFor(+params.get("p")));
     readScroll();
     progress = target;
-    document.documentElement.classList.add("hero-ready");
     if (reduce) draw(100); else start();
   }
   // The text needs the Chinese font loaded, or it would be drawn in a fallback.
   const fontsReady = document.fonts && document.fonts.load ? Promise.all([document.fonts.load(`400 14px ${ZH}`, "眼"), document.fonts.load(`600 14px ${ZH}`, "眼")]).catch(() => {}) : Promise.resolve();
-  fontsReady.then(boot);
+  // The eye is drawn once the font is in, or after 1.5 s with whatever the browser has.
+  Promise.race([fontsReady, new Promise((r) => setTimeout(r, 1500))]).then(boot);
 })();

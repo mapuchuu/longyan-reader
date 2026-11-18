@@ -116,6 +116,9 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .motion.hero-ready .rise > span { transform: none; transition: transform 1s var(--glide) .25s; }
 .motion.hero-ready .rise + .rise > span { transition-delay: .37s; }
 .motion.hero-ready .eyebrow, .motion.hero-ready .hero-sub, .motion.hero-ready .hero-actions { opacity: 1; transform: none; transition: opacity .8s var(--glide), transform .9s var(--glide); }
+/* If the script never gets to say so, the copy comes in on its own after 2.5 s. */
+.motion:not(.hero-ready) .rise > span, .motion:not(.hero-ready) .eyebrow, .motion:not(.hero-ready) .hero-sub, .motion:not(.hero-ready) .hero-actions { animation: copy-failsafe .9s var(--glide) 2.5s forwards; }
+@keyframes copy-failsafe { to { opacity: 1; transform: none; } }
 .motion.hero-ready .eyebrow { transition-delay: .1s; }
 .motion.hero-ready .hero-sub { transition-delay: .7s; }
 .motion.hero-ready .hero-actions { transition-delay: .82s; }
@@ -802,10 +805,8 @@ figcaption b { color: var(--ink); font-weight: 600; }
 .step-bar { display: block; height: 3px; margin-top: 12px; border-radius: 2px; background: rgba(255, 255, 255, .12); overflow: hidden; opacity: 0; transition: opacity .4s; }
 .step-bar b { display: block; height: 100%; background: rgba(245, 245, 247, .85); transform: scaleX(0); transform-origin: left; border-radius: inherit; }
 .motion .steps li.on .step-bar { opacity: 1; }
-.aside { text-wrap: pretty; font-size: 15px; line-height: 1.5; color: var(--graphite); max-width: 32em; }
 .started { display: none; color: var(--t2); font-weight: 500; }
 .started.on { display: block; }
-.install .aside { margin: 2px 0 0 48px; }
 
 .mac { position: relative; }
 .mac-screen {
@@ -990,7 +991,9 @@ figcaption b { color: var(--ink); font-weight: 600; }
 /* A soft dusk behind the words, so they read even where the sheets are at their brightest. */
 .closing .wrap::before, .watch-copy::before { content: ""; position: absolute; z-index: -1; inset: -70px 0; background: radial-gradient(closest-side, rgba(10, 8, 34, .5), rgba(10, 8, 34, 0)); pointer-events: none; }
 .closing-mark { display: block; width: 92px; height: auto; margin: 0 auto 26px; color: #fff; filter: drop-shadow(0 10px 28px rgba(5, 8, 30, .4)); }
-.closing h2 { color: #fff; font-size: 56px; }
+/* Always on one line: where the screen is too narrow for it at its own size, it scales with
+   the screen (it measures 12.2em). */
+.closing h2 { color: #fff; font-size: min(56px, calc((100vw - 40px) / 12.3)); white-space: nowrap; }
 .closing h2 .plus { font-weight: 300; color: rgba(255, 255, 255, .55); margin: 0 .04em; }
 .features .section-head h2 { max-width: 15em; }
 .closing p { text-wrap: balance; font-size: 21px; color: rgba(255, 255, 255, .84); margin: 14px auto 30px; max-width: 30em; letter-spacing: -0.016em; }
@@ -1033,7 +1036,8 @@ footer a { color: #a1a1a6; }
   h1 { font-size: min(72px, 8.4vw); }
 }
 @media (max-width: 900px) {
-  h2, .closing h2 { font-size: 40px; }
+  h2 { font-size: 40px; }
+  .closing h2 { font-size: min(40px, calc((100vw - 40px) / 12.3)); }
   .features .grid { grid-template-columns: 1fr; gap: 56px; }
   .install-grid { grid-template-columns: minmax(0, 1fr); row-gap: 44px; }
   .mac { order: -1; }
@@ -1045,7 +1049,8 @@ footer a { color: #a1a1a6; }
   .wrap, .bar-inner, .screen-wrap { padding: 0 16px; }
   .hero-copy { left: 16px; right: 16px; }
   h1 { font-size: 42px; }
-  h2, .closing h2 { font-size: 32px; }
+  h2 { font-size: 32px; }
+  .closing h2 { font-size: min(32px, calc((100vw - 40px) / 12.3)); }
   .hero-sub, .section-head p, .watch-copy p, .closing p { font-size: 17px; }
   .hide-small { display: none; }
   .bar-links { gap: 18px; }
@@ -1054,20 +1059,23 @@ footer a { color: #a1a1a6; }
   .screen { margin-top: 40px; border-radius: 12px; }
   .features { padding-top: 130px; }
   .paper-box, .glass-box { border-radius: 20px; }
-  .tile .glass-box { padding: 18px; aspect-ratio: 20 / 21; }
-  .tile .stage-history { padding: 30px 0 0; }
+  /* Landscape on a phone too, so a tile is a window onto the app and not a poster of it. */
+  .tile .glass-box { padding: 16px; aspect-ratio: 4 / 3; }
+  .tile .stage-history { padding: 22px 0 0; }
   .stage-history .ui-history { width: 90%; }
-  .tile .stage-menu { padding: 44px 18px 14px; }
+  .tile .stage-menu { padding: 34px 8px 10px; }
   .stage-menu .menubar { padding: 0 12px; }
-  .notes-stack { height: 152px; }
-  .notes-stack .note { height: 152px; }
-  .ui-tones span { font-size: 40px; }
-  .ui-tones { padding: 14px 8px 16px; }
+  .notes-stack { height: 136px; margin-top: 24px; }
+  .notes-stack .note { height: 136px; padding: 12px 14px; }
+  .notes-stack .note p { font-size: 13.5px; line-height: 1.42; }
+  .ui-tones span { font-size: 38px; }
+  .ui-tones { padding: 10px 8px 12px; }
   .contour { width: 36px; height: 27px; }
   .steps li { padding-left: 44px; }
   .steps button { font-size: 17px; }
-  .install .aside { margin-left: 44px; }
-  .ui-menu { white-space: normal; max-width: 100%; }
+  .ui-menu { white-space: normal; max-width: 100%; font-size: 12.5px; padding: 4px; }
+  .menu-item { padding: 3px 9px; }
+  .ui-menu hr { margin: 4px 9px; }
   .install { padding: 130px 0 110px; }
   /* On a phone the screen shows the middle of the desk, where everything happens, larger. */
   .mac-screen { aspect-ratio: 620 / 450; }

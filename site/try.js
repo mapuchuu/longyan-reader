@@ -263,13 +263,15 @@
     };
   }
 
-  function glideTo(y) {
+  function glideTo(y, how = {}) {
     const from = window.scrollY, dist = y - from;
     if (reduce || Math.abs(dist) < 2) { window.scrollTo(0, y); return; }
     // Away at once, then a long, gentle settle: cubic-bezier(.25, .4, .1, 1), so it is moving
-    // on the first frame after the click and only slows near the end.
-    const dur = Math.min(1400, 700 + Math.abs(dist) * 0.25), t0 = performance.now();
-    const ease = bezier(0.25, 0.4, 0.1, 1);
+    // on the first frame after the click and only slows near the end. `story` is for the
+    // opening: just as prompt off the mark, but an even pace through the middle and longer in
+    // all, so the eye is seen breaking up into the sentence on the way down.
+    const dur = how.story ? 2400 : Math.min(1400, 700 + Math.abs(dist) * 0.25), t0 = performance.now();
+    const ease = how.story ? bezier(0.3, 0.2, 0.3, 1) : bezier(0.25, 0.4, 0.1, 1);
     let stopped = false;
     const stop = () => { stopped = true; };
     const opts = { passive: true, once: true };
@@ -286,7 +288,7 @@
   document.querySelectorAll("[data-try]").forEach((a) => a.addEventListener("click", (e) => {
     if (!window.LongyanHero) return;
     e.preventDefault();
-    glideTo(window.LongyanHero.formedY());
+    glideTo(window.LongyanHero.formedY(), { story: true });
     // From the keyboard, carry on into the sentence: its first word takes the focus once it's there.
     if (e.detail === 0) {
       const t0 = performance.now();

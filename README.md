@@ -7,15 +7,13 @@ It lives in the menu bar and runs entirely on your Mac. No account, no API key, 
 Download it from **[longyan.app](https://longyan.app)** or the [latest release](https://github.com/mapuchuu/longyan-reader/releases/latest).
 
 <p align="center">
-  <img src="site/images/word-light.png" width="300" alt="Word card for 走 in 奶奶上个月走了, showing the meaning 'to die'">
-  &nbsp;
   <img src="site/images/phrase-light.png" width="325" alt="Phrase card for 最近工作太卷了，我想躺平, with a translation and each word's meaning">
 </p>
 
 ## Features
 
 - Works in most apps: Safari, Chrome, Preview, Notes, Pages, Electron apps and others.
-- Picks the dictionary meaning that fits the sentence. 走 in 奶奶上个月走了 is "to die", not "to walk".
+- Picks the dictionary meaning that fits the sentence. 躺平 in 最近工作太卷了，我想躺平 is "to opt out of the rat race", not "to lie stretched out".
 - Translates phrases and sentences, slang included (内卷, 躺平, 摸鱼).
 - Short notes on words where the English gloss misses something, like 关系 or 面子.
 - Pinyin with tone colors, and a button to hear the word.
