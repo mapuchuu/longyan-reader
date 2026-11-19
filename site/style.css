@@ -58,10 +58,14 @@ section { position: relative; }
 /* Tabbing into it brings it back. */
 .bar.tucked:focus-within { transform: none; }
 .bar-inner { max-width: 1120px; margin: 0 auto; padding: 0 28px; height: 52px; display: flex; align-items: center; justify-content: space-between; }
-.brand { white-space: nowrap; display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 15px; text-decoration: none; letter-spacing: -0.01em; }
+/* The name as Apple sets a product's name in its 52 px bar: SF Pro Display, semibold, 21 px,
+   tracked a touch open (+0.011em, Apple's tracking at that size). On a phone, 17 px, as
+   Apple's bars step down there, so it keeps its room beside the links. */
+.brand { white-space: nowrap; display: flex; align-items: center; gap: 10px; font: 600 21px/1.14 var(--display); letter-spacing: .011em; text-decoration: none; }
 /* The mark alone, white on the black bar: the app icon's negative. Its width set so its
    height sits with the cap height of the name beside it. */
-.brand-mark { width: 25px; height: auto; flex: none; color: var(--ink); }
+.brand-mark { width: 29px; height: auto; flex: none; color: var(--ink); }
+@media (max-width: 759px) { .brand { font-size: 17px; letter-spacing: -0.01em; gap: 8px; } .brand-mark { width: 24px; } }
 .bar-links { display: flex; align-items: center; gap: 26px; font-size: 13.5px; }
 .bar-links a { text-decoration: none; color: rgba(245, 245, 247, .72); transition: color .2s; }
 .bar-links a:hover { color: var(--ink); }
