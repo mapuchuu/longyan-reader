@@ -310,8 +310,8 @@
     if (st) glideTo(st.getBoundingClientRect().top + window.scrollY);
   }));
 
-  // The hero's Download for Mac: down to the closing, where the download button is, with what
-  // it needs (Apple silicon, macOS 15), on the same glide. Without script it's a plain link.
+  // In-page links (the hero's Installation steps, the install section's Download below): down
+  // to where they point, on the same glide. Without script they're plain links.
   document.querySelectorAll("[data-glide]").forEach((a) => a.addEventListener("click", (e) => {
     const t = document.querySelector(a.getAttribute("href"));
     if (!t) return;

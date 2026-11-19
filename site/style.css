@@ -109,7 +109,7 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .button-quiet { display: inline-flex; align-items: center; gap: 6px; font-size: 17px; font-weight: 500; text-decoration: none; color: rgba(245, 245, 247, .86); transition: color .2s; }
 .button-quiet svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: transform .3s var(--ease-out); }
 .button-quiet:hover { color: #fff; }
-.button-quiet:hover svg { transform: translateY(2px); }
+.button-quiet:hover svg { transform: translateX(2px); }
 
 
 /* The opening plays in once: the lines rise, then the rest fades up. */
@@ -170,22 +170,13 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 @keyframes hi-sheen { from { background-position: 0% 0; } to { background-position: 200% 0; } }
 @media (prefers-reduced-motion: reduce) { .line .hi { animation: none; } }
 
-/* Once the heading is in, scrolling selects "Highlight", the way you'd drag across it: the
-   selection follows the scroll (hero.js sets --hl, 0 to 1), and it shrinks again going back.
-   Once the word is selected the sentence catches the light, character by character, so it
-   reads as the thing to select. Two bars
-   under it fill on their own: the first with the selection, the second while you try it. */
-.hl { position: relative; z-index: 0; }
-.hl::before {
-  content: ""; position: absolute; z-index: -1; left: -.07em; right: -.05em; top: .02em; bottom: -.04em; border-radius: .09em;
-  background: linear-gradient(105deg,
-    rgba(10, 132, 255, .64) 0%, rgba(84, 116, 255, .62) 18%, rgba(150, 110, 248, .6) 32%, rgba(214, 118, 214, .56) 42%,
-    rgba(120, 132, 255, .62) 54%, rgba(40, 156, 255, .64) 68%, rgba(10, 132, 255, .64) 100%);
-  background-size: 200% 100%; animation: hi-sheen 4.5s linear infinite;
-  clip-path: inset(0 calc((1 - var(--hl, 0)) * 100%) 0 0 round .09em);
-}
-.hl-done .line.current .c { animation: iri 1s ease-in-out both; animation-delay: calc(.15s + var(--i) * 55ms); }
-@keyframes iri { 0%, 100% { color: var(--ink); } 25% { color: #5ea8ff; } 50% { color: #a78bfa; } 75% { color: #f0a3d8; } }
+/* A moment after the heading is in, the sentence catches the light, character by character,
+   so it reads as the thing to select, in the hero's inks (hero.js). One bar under it fills
+   while you try it, on its own or as you scroll. */
+.on-mouse { display: none; }
+@media (hover: hover) and (pointer: fine) { .on-touch { display: none; } .on-mouse { display: inline; } }
+.cued .line.current .c { animation: iri 1s ease-in-out both; animation-delay: calc(.15s + var(--i) * 55ms); }
+@keyframes iri { 0%, 100% { color: var(--ink); } 25% { color: #6b9bff; } 50% { color: #a98bff; } 75% { color: #ec82d6; } }
 .try-progress {
   position: absolute; left: 0; right: 0; top: calc(var(--bottom-y) + 84px); display: flex; justify-content: center; gap: 8px;
   opacity: 0; visibility: hidden; transition: opacity .4s ease-out, visibility 0s .4s; pointer-events: none;
@@ -194,6 +185,7 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .lit-progress i, .try-progress i { width: 72px; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, .14); overflow: hidden; }
 .lit-progress b, .try-progress b { display: block; height: 100%; border-radius: inherit; background: rgba(245, 245, 247, .85); transform: scaleX(0); transform-origin: left; }
 .lit-progress b { transition: transform .15s linear; }
+.try-progress i { width: 152px; }
 /* Once the second bar is full, the button takes you on to the statement. Until then it isn't
    there at all, to the pointer or the keyboard. */
 .try-continue {
@@ -211,7 +203,7 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .try-continue:focus-visible { outline: 2px solid var(--t3); outline-offset: 3px; }
 .try-done .try-continue { visibility: visible; opacity: 1; transform: translate(-50%, 0); transition: opacity .7s var(--ease-out), transform .8s var(--ease-out), visibility 0s, background .2s, border-color .2s; }
 .button:focus-visible { border-radius: 999px; }
-@media (prefers-reduced-motion: reduce) { .hl::before, .hl-done .line.current .c { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .cued .line.current .c { animation: none; } }
 
 
 /* The lookup card (card.js), as the app draws it in dark appearance on Liquid Glass. Every
@@ -814,8 +806,16 @@ figcaption b { color: var(--ink); font-weight: 600; }
 .step-bar { display: block; height: 3px; margin-top: 12px; border-radius: 2px; background: rgba(255, 255, 255, .12); overflow: hidden; opacity: 0; transition: opacity .4s; }
 .step-bar b { display: block; height: 100%; background: rgba(245, 245, 247, .85); transform: scaleX(0); transform-origin: left; border-radius: inherit; }
 .motion .steps li.on .step-bar { opacity: 1; }
+/* Under the heading, a quiet pointer on to the download at the end of the page; once a
+   download has started, the note that it has takes its place. */
+.install-hint { display: inline-flex; align-items: center; gap: 6px; margin-top: 14px; font-size: 17px; font-weight: 500; color: var(--graphite); text-decoration: none; letter-spacing: -0.012em; transition: color .2s; }
+.install-hint svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.install-hint:hover { color: #f5f5f7; }
+.motion .in .install-hint svg { animation: nudge 1.6s var(--ease-out) 1s 2; }
+@keyframes nudge { 0%, 100% { transform: none; } 30% { transform: translateY(3px); } }
 .started { display: none; color: var(--t2); font-weight: 500; }
 .started.on { display: block; }
+.install-hint:has(~ .started.on) { display: none; }
 
 .mac { position: relative; }
 .mac-screen {

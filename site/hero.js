@@ -28,8 +28,10 @@
 
   const FORMED = 0.33;     // story progress at which the sentences have formed
   const ZH = '"PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif';
-  // The hero's one ink: blue to lavender, left to right.
-  const BLUE = [161, 189, 227], LAV = [194, 171, 224], INK = [245, 245, 247];
+  // The hero's inks: the paper's own hues (paper.js), azure through violet and magenta to
+  // coral, lightened just enough to read as small characters on black.
+  const AZURE = [107, 155, 255], VIOLET = [169, 139, 255], MAGENTA = [236, 130, 214], CORAL = [255, 159, 133];
+  const INK = [245, 245, 247];
   const PUNCT = /[，。？！、：；“”（）《》…—]/;
   // Characters too light to fill a square of the eye.
   const SPARSE = /[一二三十八人入了个上下几儿小大卜七九工口]/;
@@ -209,16 +211,16 @@
         if (done) break;
       }
     }
-    // Each character's tint, from a slow field across the eye: mostly blue and lavender, with
-    // a little rose and mint where the field turns, like the colours in a pearl.
+    // Each character's tint, from a slow field across the eye: azure into violet, turning to
+    // magenta and coral where the field turns, like light along the paper's folds.
     for (const g of out) {
       const u = (g.x + g.w / 2 - eye.x) / eye.w, v = (g.y + g.w / 2 - eye.y) / eye.h;
       g.col = pearl(0.62 * u + 0.3 * v + 0.12 * Math.sin(6.2 * v + 2.4 * u) + (g.rnd - 0.5) * 0.1);
     }
     return { unit: h, ucols, urows, ux0, uy0, owner, glyphs: out };
   }
-  // The pearl tints in order; t runs 0..1 across the eye and wraps.
-  const PEARL = [[158, 208, 222], BLUE, LAV, [222, 174, 208], LAV, BLUE];
+  // The tints in order; t runs 0..1 across the eye and wraps.
+  const PEARL = [AZURE, AZURE, VIOLET, MAGENTA, CORAL, VIOLET];
   function pearl(t) {
     t = ((t % 1) + 1) % 1 * PEARL.length;
     const i = Math.floor(t), f = t - i, a = PEARL[i], b = PEARL[(i + 1) % PEARL.length];
@@ -268,7 +270,7 @@
       const t = a.getContext("2d");
       t.drawImage(white, 0, 0);
       t.globalCompositeOperation = "source-in";
-      t.fillStyle = rgb(mix(BLUE, LAV, k / 3)); t.fillRect(0, 0, a.width, a.height);
+      t.fillStyle = rgb(mix(AZURE, VIOLET, k / 3)); t.fillRect(0, 0, a.width, a.height);
       return a;
     });
   }
@@ -513,14 +515,13 @@
   }
 
   // Once the sentence has formed it plays on its own, in seconds, while the page holds still
-  // (it never scrolls itself): a beat to see it, then "Highlight" is selected as if dragged
-  // across (the first bar), then the second bar fills while you try it, and the button on to the
-  // statement comes in. Scrolling through the hold takes the same timeline over: whichever is
+  // (it never scrolls itself): a beat to see it, then the sentence catches the light, and the
+  // bar fills while you try it; once it's full the button on to the statement comes in. Scrolling through the hold takes the same timeline over: whichever is
   // further along, the clock or the scroll, is where it is, so a reader who scrolls on sees the
   // bars run with them rather than a wait. Scrolling back up runs it all backwards: the hold
   // drains in step with the scroll, so it's empty right where the sentence formed, and the clock
   // waits a moment before filling it again. Above the sentence it resets, to play again next time.
-  const LEAD = 0.6, SELECT = 1.6, TRY = 4.6;
+  const CUE = 1.6, TRY = 4.6;
   const bars = story ? [...story.querySelectorAll(".try-progress b")] : [];
   let lastHold = -1, formed = false, hold = 0, clock = 0, lastPos = 0, backAt = -Infinity;
   function holdAt(p) {
@@ -528,7 +529,7 @@
     if (p < FORMED) { if (formed) story.classList.remove("tried", "try-done"); formed = false; }
     else if (!formed) { formed = true; hold = 0; clock = now; lastPos = 0; }
     // How far through the hold the scroll is: pos from where the sentence formed, scrolled from
-    // just past where "See how it works" stops.
+    // just past where "Try it in your browser" stops.
     const pos = clamp((p - FORMED) / (1 - FORMED));
     const scrolled = clamp((pos - 0.06) / 0.8);
     if (formed) {
@@ -539,15 +540,13 @@
       hold = Math.min(TRY, Math.max(hold, scrolled * TRY));
     }
     const u = !formed ? 0 : still ? TRY : hold;
-    if (Math.abs(u - lastHold) < 0.0005) return;
+    // Skip tiny steps, but never the last one: the bar has to reach full for the button.
+    if (u === lastHold || (Math.abs(u - lastHold) < 0.0005 && u !== TRY && u !== 0)) return;
     lastHold = u;
-    const hl = clamp((u - LEAD) / (SELECT - LEAD));
-    story.style.setProperty("--hl", hl.toFixed(4));
-    if (bars[0]) bars[0].style.transform = `scaleX(${clamp(u / SELECT).toFixed(4)})`;
-    if (bars[1]) bars[1].style.transform = `scaleX(${clamp((u - SELECT) / (TRY - SELECT)).toFixed(4)})`;
+    if (bars[0]) bars[0].style.transform = `scaleX(${clamp(u / TRY).toFixed(4)})`;
     const cls = story.classList;
-    if (hl >= 0.999) cls.add("hl-done");
-    else if (hl < 0.85) cls.remove("hl-done");
+    if (u >= CUE) cls.add("cued");
+    else if (u < CUE - 0.4) cls.remove("cued");
     if (u >= TRY) cls.add("try-done");
     else if (u < TRY - 0.4) cls.remove("try-done");
   }
