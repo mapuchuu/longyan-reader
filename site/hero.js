@@ -518,14 +518,13 @@
   }
 
   // Once the sentence has formed it plays on its own, in seconds, while the page holds still
-  // (it never scrolls itself): a beat to see it, then the sentence catches the light, and the
-  // bar fills while you try it; once it's full the button on to the statement comes in. Scrolling through the hold takes the same timeline over: whichever is
-  // further along, the clock or the scroll, is where it is, so a reader who scrolls on sees the
-  // bars run with them rather than a wait. Scrolling back up runs it all backwards: the hold
-  // drains in step with the scroll, so it's empty right where the sentence formed, and the clock
-  // waits a moment before filling it again. Above the sentence it resets, to play again next time.
-  const CUE = 1.6, TRY = 4.6;
-  const bars = story ? [...story.querySelectorAll(".try-progress b")] : [];
+  // (it never scrolls itself): a beat to see it, then the sentence catches the light, and a
+  // moment later the button on to the statement comes in. Scrolling through the hold takes the
+  // same timeline over: whichever is further along, the clock or the scroll, is where it is, so
+  // a reader who scrolls on gets there with them rather than waiting. Scrolling back up runs it
+  // backwards: the hold drains in step with the scroll, and the clock waits a moment before
+  // filling it again. Above the sentence it resets, to play again next time.
+  const CUE = 1.6, TRY = 2.8;
   let lastHold = -1, formed = false, hold = 0, clock = 0, lastPos = 0, backAt = -Infinity;
   function holdAt(p) {
     const now = performance.now();
@@ -543,10 +542,9 @@
       hold = Math.min(TRY, Math.max(hold, scrolled * TRY));
     }
     const u = !formed ? 0 : still ? TRY : hold;
-    // Skip tiny steps, but never the last one: the bar has to reach full for the button.
+    // Skip tiny steps, but never the last one: the button comes in at the end.
     if (u === lastHold || (Math.abs(u - lastHold) < 0.0005 && u !== TRY && u !== 0)) return;
     lastHold = u;
-    if (bars[0]) bars[0].style.transform = `scaleX(${clamp(u / TRY).toFixed(4)})`;
     const cls = story.classList;
     if (u >= CUE) cls.add("cued");
     else if (u < CUE - 0.4) cls.remove("cued");

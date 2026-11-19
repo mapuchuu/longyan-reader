@@ -171,25 +171,18 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 @media (prefers-reduced-motion: reduce) { .line .hi { animation: none; } }
 
 /* A moment after the heading is in, the sentence catches the light, character by character,
-   so it reads as the thing to select, in the hero's inks (hero.js). One bar under it fills
-   while you try it, on its own or as you scroll. */
+   so it reads as the thing to select, in the hero's inks (hero.js). */
 .on-mouse { display: none; }
 @media (hover: hover) and (pointer: fine) { .on-touch { display: none; } .on-mouse { display: inline; } }
 .cued .line.current .c { animation: iri 1s ease-in-out both; animation-delay: calc(.15s + var(--i) * 55ms); }
 @keyframes iri { 0%, 100% { color: var(--ink); } 25% { color: #6b9bff; } 50% { color: #a98bff; } 75% { color: #ec82d6; } }
-.try-progress {
-  position: absolute; left: 0; right: 0; top: calc(var(--bottom-y) + 84px); display: flex; justify-content: center; gap: 8px;
-  opacity: 0; visibility: hidden; transition: opacity .4s ease-out, visibility 0s .4s; pointer-events: none;
-}
-.is-formed .try-progress { visibility: visible; opacity: 1; transition: opacity .8s var(--ease-out) .5s, visibility 0s; }
-.lit-progress i, .try-progress i { width: 72px; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, .14); overflow: hidden; }
-.lit-progress b, .try-progress b { display: block; height: 100%; border-radius: inherit; background: rgba(245, 245, 247, .85); transform: scaleX(0); transform-origin: left; }
+.lit-progress i { width: 72px; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, .14); overflow: hidden; }
+.lit-progress b { display: block; height: 100%; border-radius: inherit; background: rgba(245, 245, 247, .85); transform: scaleX(0); transform-origin: left; }
 .lit-progress b { transition: transform .15s linear; }
-.try-progress i { width: 152px; }
-/* Once the second bar is full, the button takes you on to the statement. Until then it isn't
-   there at all, to the pointer or the keyboard. */
+/* A moment after the cue, the button on to the statement comes in. Until then it isn't there
+   at all, to the pointer or the keyboard. */
 .try-continue {
-  position: absolute; left: 50%; top: calc(var(--bottom-y) + 116px);
+  position: absolute; left: 50%; top: calc(var(--bottom-y) + 80px);
   display: inline-flex; align-items: center; height: 44px; padding: 0 20px 0 22px; white-space: nowrap;
   font: 500 16px/1 var(--text); letter-spacing: -0.012em; color: #fff;
   background: #000; border: 1px solid rgba(255, 255, 255, .9); border-radius: 999px; cursor: pointer; pointer-events: auto;
