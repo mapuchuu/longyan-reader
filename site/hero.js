@@ -524,7 +524,7 @@
   // a reader who scrolls on gets there with them rather than waiting. Scrolling back up runs it
   // backwards: the hold drains in step with the scroll, and the clock waits a moment before
   // filling it again. Above the sentence it resets, to play again next time.
-  const CUE = 1.6, TRY = 2.8;
+  const CUE = 1.6, TRY = 4.4;
   let lastHold = -1, formed = false, hold = 0, clock = 0, lastPos = 0, backAt = -Infinity;
   function holdAt(p) {
     const now = performance.now();

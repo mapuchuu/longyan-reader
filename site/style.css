@@ -527,24 +527,42 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 #lit-card .lc-note { background: rgba(48, 209, 88, .14); }
 #lit-card .lc-note-head, #lit-card .lc-note-head .culture { color: #30d158; }
 
-/* The appearance switch: a small segmented control of two symbols, as quiet as a window's own
-   controls, so it reads as a detail of the demo and not a feature of the page. */
-.appearance { position: relative; display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr; margin: 14px 0 0 2px; padding: 2px; border-radius: 8px; background: rgba(255, 255, 255, .06); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .06); }
-.appearance button {
-  position: relative; z-index: 1; display: grid; place-items: center;
-  width: 30px; height: 22px; padding: 0; border: 0; border-radius: 6px; background: none; cursor: pointer;
-  color: rgba(245, 245, 247, .38); transition: color .25s;
+/* The appearance switch: an iOS segmented control. A capsule track with a raised capsule
+   thumb that springs across, shrinks a touch while held, and can be dragged from side to side,
+   snapping to the segment under the finger and choosing it on release. */
+.appearance {
+  position: relative; display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+  margin: 16px 0 0 2px; padding: 3px; border-radius: 999px;
+  background: rgba(118, 118, 128, .24); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .05);
+  touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
 }
-.appearance button[aria-checked="true"] { color: rgba(245, 245, 247, .92); }
-.appearance button:hover { color: rgba(245, 245, 247, .75); }
-.appearance button:focus-visible { outline: 2px solid rgba(10, 132, 255, .85); outline-offset: 1px; }
-.appearance svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.appearance button {
+  position: relative; z-index: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-width: 88px; height: 30px; padding: 0 14px; border: 0; border-radius: 999px; background: none; cursor: pointer;
+  font: inherit; font-size: 13px; font-weight: 500; letter-spacing: -0.01em;
+  color: rgba(235, 235, 245, .6); transition: color .25s, opacity .2s;
+}
+.appearance button[aria-checked="true"] { color: #fff; font-weight: 600; }
+.appearance button.pressed:not([aria-checked="true"]) { opacity: .5; }
+@media (hover: hover) { .appearance button:not([aria-checked="true"]):hover { color: rgba(235, 235, 245, .85); } }
+.appearance button:focus-visible { outline: 2px solid rgba(10, 132, 255, .9); outline-offset: 2px; }
+.appearance svg { width: 14px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .appearance-thumb {
-  position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc(50% - 2px); border-radius: 6px;
-  background: rgba(255, 255, 255, .12); box-shadow: 0 1px 2px rgba(0, 0, 0, .25), inset 0 0 0 .5px rgba(255, 255, 255, .1);
-  transition: transform .35s cubic-bezier(.32, .72, 0, 1);
+  position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px); border-radius: 999px;
+  background: linear-gradient(rgba(255, 255, 255, .26), rgba(255, 255, 255, .17));
+  box-shadow: 0 3px 8px rgba(0, 0, 0, .28), 0 1px 1px rgba(0, 0, 0, .16), inset 0 .5px 0 rgba(255, 255, 255, .28), inset 0 0 0 .5px rgba(255, 255, 255, .1);
+  transition: transform .5s cubic-bezier(.3, 1.3, .5, 1), scale .25s cubic-bezier(.3, .7, .4, 1);
 }
 .lit-demo:not(.light) .appearance-thumb { transform: translateX(100%); }
+.appearance.held .appearance-thumb { scale: .94; }
+.appearance.drag-light .appearance-thumb { transform: none; }
+.appearance.drag-dark .appearance-thumb { transform: translateX(100%); }
+.appearance.drag-light button[data-appearance="light"], .appearance.drag-dark button[data-appearance="dark"] { color: #fff; }
+.appearance.drag-light button[data-appearance="dark"], .appearance.drag-dark button[data-appearance="light"] { color: rgba(235, 235, 245, .6); }
+@media (prefers-reduced-motion: reduce) { .appearance-thumb { transition: none; } }
+/* Apple's mark on the download buttons, sized to the cap height and sitting on the baseline. */
+.apple, .button .apple { width: .95em; height: 1.1em; fill: currentColor; stroke: none; flex: none; vertical-align: -0.16em; margin: 0 .4em 0 0; }
+.button:hover .apple { transform: none; }
 .lit .every { color: #bf5af2; }
 .lit .ctx { color: #30d158; }
 /* It is as tall as its content, so it has nothing to scroll: a swipe on it scrolls the page. */
@@ -1092,7 +1110,7 @@ footer a { color: #a1a1a6; }
 @media (max-width: 600px) {
   .lit-stage { padding: 16px 14px 18px; border-radius: 20px; min-height: 384px; }
   .lit-stage .lit-sentence { font-size: 18px; letter-spacing: .04em; margin-bottom: 12px; }
-  .appearance { margin-top: 12px; }
+  .appearance { margin-top: 14px; }
   .wrap, .bar-inner, .screen-wrap { padding: 0 16px; }
   .hero-copy { left: 16px; right: 16px; }
   h1 { font-size: 42px; }

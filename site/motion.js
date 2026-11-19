@@ -46,9 +46,40 @@
     let saved = null;
     try { saved = localStorage.getItem("lc-appearance-2"); } catch (_) {}
     set(saved === "light" ? "light" : "dark", false);
-    radios.forEach((b) => b.addEventListener("click", () => set(b.dataset.appearance, true)));
+    // Keyboard presses arrive as clicks with no detail; pointers are handled below.
+    radios.forEach((b) => b.addEventListener("click", (e) => { if (!e.detail) set(b.dataset.appearance, true); }));
+    // Pointers work as on iOS: pressing the chosen segment grabs the thumb, which can then be
+    // dragged across and snaps to the side under the finger; pressing the other one dims it,
+    // and either is chosen on release over it.
+    const sw = demo.querySelector(".appearance");
+    let grab = null;
+    const sideAt = (x) => { const r = sw.getBoundingClientRect(); return x < r.left + r.width / 2 ? "light" : "dark"; };
+    const inside = (e) => { const r = sw.getBoundingClientRect(); return e.clientX > r.left - 24 && e.clientX < r.right + 24 && e.clientY > r.top - 40 && e.clientY < r.bottom + 40; };
+    const show = (e) => {
+      const side = sideAt(e.clientX), over = inside(e);
+      if (grab.held) { sw.classList.toggle("drag-light", side === "light"); sw.classList.toggle("drag-dark", side === "dark"); }
+      else radios.forEach((b) => b.classList.toggle("pressed", over && b.dataset.appearance === side));
+    };
+    sw.addEventListener("pointerdown", (e) => {
+      if (e.button) return;
+      const mode = demo.classList.contains("light") ? "light" : "dark";
+      grab = { id: e.pointerId, held: sideAt(e.clientX) === mode };
+      sw.setPointerCapture(e.pointerId);
+      sw.classList.toggle("held", grab.held);
+      show(e);
+    });
+    sw.addEventListener("pointermove", (e) => { if (grab && e.pointerId === grab.id) show(e); });
+    const end = (e, commit) => {
+      if (!grab || e.pointerId !== grab.id) return;
+      if (commit && (grab.held || inside(e))) set(sideAt(e.clientX), true);
+      grab = null;
+      sw.classList.remove("held", "drag-light", "drag-dark");
+      radios.forEach((b) => b.classList.remove("pressed"));
+    };
+    sw.addEventListener("pointerup", (e) => end(e, true));
+    sw.addEventListener("pointercancel", (e) => end(e, false));
     // Arrow keys move between the two, as in any radio group.
-    demo.querySelector(".appearance").addEventListener("keydown", (e) => {
+    sw.addEventListener("keydown", (e) => {
       if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) return;
       e.preventDefault();
       const next = demo.classList.contains("light") ? "dark" : "light";

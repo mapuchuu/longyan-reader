@@ -15,7 +15,7 @@
 <link rel="icon" href="favicon.ico" sizes="32x32">
 <link rel="icon" href="images/tab-icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="images/touch-icon.png">
-<link rel="stylesheet" href="style.css?v=1119d">
+<link rel="stylesheet" href="style.css?v=1119e">
 <script>
   // Scroll motion, unless the visitor asked for less (or ?still, for screenshots).
   if (!matchMedia("(prefers-reduced-motion: reduce)").matches && !/[?&]still/.test(location.search)) document.documentElement.classList.add("motion");
@@ -30,7 +30,7 @@
       <a class="hide-small" href="#features">Features</a>
       <a class="hide-small" href="#install">Install</a>
       <a href="https://github.com/mapuchuu/longyan-reader">GitHub</a>
-      <a class="bar-download" href="https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip" title="For Macs with Apple silicon and macOS 15 or later" data-download>Download</a>
+      <a class="bar-download" href="#install" data-glide><svg class="apple" viewBox="3 2.5 16.5 19.5" aria-hidden="true"><path d="M16.37 12.6c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.77-3.32-1.8-1.41-.14-2.76.83-3.47.83-.72 0-1.82-.81-2.99-.79-1.54.02-2.96.9-3.75 2.27-1.6 2.78-.41 6.88 1.15 9.13.76 1.1 1.67 2.34 2.86 2.3 1.15-.05 1.58-.74 2.97-.74 1.39 0 1.78.74 2.99.72 1.24-.02 2.02-1.12 2.77-2.23.87-1.28 1.23-2.52 1.25-2.58-.03-.01-2.4-.92-2.42-3.65zM14.1 5.86c.63-.77 1.06-1.83.94-2.89-.91.04-2.02.61-2.67 1.37-.58.67-1.1 1.76-.96 2.8 1.02.08 2.06-.52 2.69-1.28z"/></svg>Download</a>
     </div>
   </div>
 </nav>
@@ -80,8 +80,8 @@
         </div>
         <div class="appearance" role="radiogroup" aria-label="Card appearance">
           <i class="appearance-thumb" aria-hidden="true"></i>
-          <button type="button" role="radio" aria-checked="false" data-appearance="light" aria-label="Light" title="Light"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.9"/><path d="M8 1.6v1.6M8 12.8v1.6M1.6 8h1.6M12.8 8h1.6M3.5 3.5l1.1 1.1M11.4 11.4l1.1 1.1M3.5 12.5l1.1-1.1M11.4 4.6l1.1-1.1"/></svg></button>
-          <button type="button" role="radio" aria-checked="true" data-appearance="dark" aria-label="Dark" title="Dark"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.2 9.9A5.6 5.6 0 0 1 6.1 2.8a5.6 5.6 0 1 0 7.1 7.1z"/></svg></button>
+          <button type="button" role="radio" aria-checked="false" data-appearance="light" ><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.9"/><path d="M8 1.6v1.6M8 12.8v1.6M1.6 8h1.6M12.8 8h1.6M3.5 3.5l1.1 1.1M11.4 11.4l1.1 1.1M3.5 12.5l1.1-1.1M11.4 4.6l1.1-1.1"/></svg><span>Light</span></button>
+          <button type="button" role="radio" aria-checked="true" data-appearance="dark" ><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.2 9.9A5.6 5.6 0 0 1 6.1 2.8a5.6 5.6 0 1 0 7.1 7.1z"/></svg><span>Dark</span></button>
         </div>
       </figure>
     </div>
@@ -99,8 +99,8 @@
   <div class="screen-wrap">
     <figure class="screen" id="screen">
       <video muted loop playsinline preload="none" poster="media/reading-4b.jpg" aria-label="Longyan Reader explaining a sentence in Chrome and a phrase in a PDF in Preview">
-        <source data-src="media/reading-5.mp4" type='video/mp4; codecs="hvc1"'>
-        <source data-src="media/reading-5-h264.mp4" type="video/mp4">
+        <source data-src="media/reading-6.mp4" type='video/mp4; codecs="hvc1"'>
+        <source data-src="media/reading-6-h264.mp4" type="video/mp4">
       </video>
     </figure>
   </div>
@@ -310,7 +310,7 @@
     <svg class="closing-mark" viewBox="0 0 1200 848.53" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M0 424.26L300 124.26A424.26 424.26 0 0 1 900 124.26L1200 424.26L900 724.26A424.26 424.26 0 0 1 300 724.26ZM225 424.26L412.5 236.76A265.17 265.17 0 0 1 787.5 236.76L975 424.26L787.5 611.76A265.17 265.17 0 0 1 412.5 611.76ZM471.43 424.26L535.71 359.98A90.91 90.91 0 0 1 664.29 359.98L728.57 424.26L664.29 488.55A90.91 90.91 0 0 1 535.71 488.55ZM728.57 424.26L975 424.26L851.79 547.48Z"/></svg>
     <h2>Free, offline, &amp; open source</h2>
     <p>There’s no account to make and nothing to pay. All the code is public on <a href="https://github.com/mapuchuu/longyan-reader">GitHub</a>.</p>
-    <a class="button" href="https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip" data-download>Download for Mac</a>
+    <a class="button" href="https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip" data-download><svg class="apple" viewBox="3 2.5 16.5 19.5" aria-hidden="true"><path d="M16.37 12.6c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.77-3.32-1.8-1.41-.14-2.76.83-3.47.83-.72 0-1.82-.81-2.99-.79-1.54.02-2.96.9-3.75 2.27-1.6 2.78-.41 6.88 1.15 9.13.76 1.1 1.67 2.34 2.86 2.3 1.15-.05 1.58-.74 2.97-.74 1.39 0 1.78.74 2.99.72 1.24-.02 2.02-1.12 2.77-2.23.87-1.28 1.23-2.52 1.25-2.58-.03-.01-2.4-.92-2.42-3.65zM14.1 5.86c.63-.77 1.06-1.83.94-2.89-.91.04-2.02.61-2.67 1.37-.58.67-1.1 1.76-.96 2.8 1.02.08 2.06-.52 2.69-1.28z"/></svg>Download for Mac</a>
     <p class="closing-fine">Apple silicon, macOS 15 or later. Windows coming soon.</p>
   </div>
 </section>
@@ -325,13 +325,13 @@
   </div>
 </footer>
 
-<script src="data.js?v=1119d"></script>
-<script src="card.js?v=1119d"></script>
-<script src="hero.js?v=1119d"></script>
-<script src="try.js?v=1119d"></script>
-<script src="paper.js?v=1119d"></script>
-<script src="motion.js?v=1119d"></script>
-<script src="tiles.js?v=1119d"></script>
-<script src="install.js?v=1119d"></script>
+<script src="data.js?v=1119e"></script>
+<script src="card.js?v=1119e"></script>
+<script src="hero.js?v=1119e"></script>
+<script src="try.js?v=1119e"></script>
+<script src="paper.js?v=1119e"></script>
+<script src="motion.js?v=1119e"></script>
+<script src="tiles.js?v=1119e"></script>
+<script src="install.js?v=1119e"></script>
 </body>
 </html>
