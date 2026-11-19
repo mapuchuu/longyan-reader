@@ -24,6 +24,12 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      # The videos aren't in git (each version added 25-36 MB to every clone); they're
+      # assets of the site-media pre-release, fetched into site/media/ here.
+      - name: Fetch the videos
+        run: gh release download site-media --repo "$GITHUB_REPOSITORY" --dir site/media --pattern '*.mp4'
+        env:
+          GH_TOKEN: ${{ github.token }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

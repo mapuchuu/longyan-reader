@@ -5,3 +5,6 @@ Resources/jieba-dict.txt
 notes/real-eval.tsv
 .vendor-download/
 site/_shot.html
+
+# Site videos live on the site-media release, not in git (see DEVELOPMENT.md).
+site/media/*.mp4
