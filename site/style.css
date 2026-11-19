@@ -65,7 +65,7 @@ section { position: relative; }
 .bar-links { display: flex; align-items: center; gap: 26px; font-size: 13.5px; }
 .bar-links a { text-decoration: none; color: rgba(245, 245, 247, .72); transition: color .2s; }
 .bar-links a:hover { color: var(--ink); }
-.bar-links .bar-download { background: var(--ink); color: #000; padding: 5px 13px; border-radius: 999px; font-weight: 500; }
+.bar-links .bar-download { display: inline-flex; align-items: center; background: var(--ink); color: #000; padding: 5px 13px; border-radius: 999px; font-weight: 500; }
 .bar-links .bar-download:hover { color: #000; background: #fff; }
 
 /* Buttons */
@@ -73,7 +73,7 @@ section { position: relative; }
   display: inline-flex; align-items: center; justify-content: center;
   background: var(--ink); color: #000;
   font: 500 17px/1 var(--text); letter-spacing: -0.012em;
-  height: 50px; padding: 0 28px; border-radius: 999px; text-decoration: none;
+  height: 46px; padding: 0 22px; border-radius: 999px; text-decoration: none;
   transition: background .2s, transform .25s var(--ease-out);
 }
 .button:hover { background: #fff; }
@@ -103,7 +103,7 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .hero-actions { display: flex; align-items: flex-start; gap: 28px; flex-wrap: wrap; }
 .button svg { width: 15px; height: 15px; margin-left: 7px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; transition: transform .3s var(--ease-out); }
 .button:hover svg { transform: translateY(2px); }
-.hero-actions .button-quiet { height: 50px; }
+.hero-actions .button-quiet { height: 46px; }
 /* Who it runs on, under the buttons: before anyone downloads it for an Intel Mac. */
 .hero-fine { flex-basis: 100%; margin: -16px 0 0; font-size: 14px; color: rgba(245, 245, 247, .5); letter-spacing: -0.01em; }
 .button-quiet { display: inline-flex; align-items: center; gap: 6px; font-size: 17px; font-weight: 500; text-decoration: none; color: rgba(245, 245, 247, .86); transition: color .2s; }
@@ -564,7 +564,39 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .apple, .button .apple { width: .95em; height: 1.1em; fill: currentColor; stroke: none; flex: none; vertical-align: -0.16em; margin: 0 .4em 0 0; }
 .button:hover .apple { transform: none; }
 .button .apple { margin-right: .6em; translate: 0 -1px; }
-.button:has(.apple) { padding-left: 26px; }
+.button:has(.apple) { padding-left: 20px; }
+
+/* The arrow on the hero's button and the nav's Download: a slot of no width that springs open
+   on hover (or while pressed, on touch) as the arrow grows into it, from a little smaller and
+   back toward the label, to its place. Nothing clips it, so it's always whole. Going away is
+   quicker and plainer, so it never lingers. The arrow stands as tall as the capitals. */
+.button, .bar-download { --grow-ease: linear(0, .27 7%, .45 14%, .61 22%, .72 30%, .8 38%, .85 45%, .89 53%, .92 61%, .94 69%, .96 76%, .97 84%, .985 92%, 1); }
+.grow {
+  display: inline-flex; align-items: center; flex: none; width: 0; margin-left: 0;
+  transition: width .32s cubic-bezier(.4, 0, .2, 1), margin .32s cubic-bezier(.4, 0, .2, 1);
+}
+.button .grow svg, .bar-download .grow svg {
+  flex: none; width: 1em; height: 1em; margin: 0; translate: 0 -.04em;
+  fill: none; stroke: currentColor; stroke-width: 1.65; stroke-linecap: round; stroke-linejoin: round;
+  opacity: 0; transform: translateX(-.35em) scale(.55); transform-origin: 50% 50%;
+  transition: opacity .14s ease-in, transform .3s cubic-bezier(.4, 0, .2, 1);
+}
+@media (hover: hover) {
+  .button:hover .grow, .bar-download:hover .grow { width: 1em; margin-left: .65em; transition: width .6s var(--grow-ease), margin .6s var(--grow-ease); }
+  .button:hover .grow svg, .bar-download:hover .grow svg { opacity: 1; transform: none; transition: opacity .28s ease-out .06s, transform .6s var(--grow-ease); }
+}
+.button:is(:active, :focus-visible) .grow, .bar-download:is(:active, :focus-visible) .grow { width: 1em; margin-left: .65em; transition: width .6s var(--grow-ease), margin .6s var(--grow-ease); }
+.button:is(:active, :focus-visible) .grow svg, .bar-download:is(:active, :focus-visible) .grow svg { opacity: 1; transform: none; transition: opacity .28s ease-out .06s, transform .6s var(--grow-ease); }
+/* The nav's Download is the last thing in the bar, so it grows into the bar's margin on the
+   right instead of pushing its label left under the pointer. */
+@media (hover: hover) and (min-width: 760px) {
+  .bar-links .bar-download { transition: color .2s, background .2s, margin .32s cubic-bezier(.4, 0, .2, 1); }
+  .bar-links .bar-download:hover { margin-right: -1.65em; transition: color .2s, background .2s, margin .6s var(--grow-ease); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .grow, .grow svg, .bar-links .bar-download { transition: none !important; }
+  .button .grow svg, .bar-download .grow svg { transform: none; }
+}
 .lit .every { color: #bf5af2; }
 .lit .ctx { color: #30d158; }
 /* It is as tall as its content, so it has nothing to scroll: a swipe on it scrolls the page. */
@@ -1155,7 +1187,7 @@ footer a { color: #a1a1a6; }
   /* Too narrow for the two side by side: two matching pills, one over the other, so
      neither looks out of line. */
   .hero-actions { flex-direction: column; align-items: stretch; gap: 12px; }
-  .hero-actions .button-quiet { justify-content: center; height: 50px; border: 1px solid rgba(255, 255, 255, .3); border-radius: 999px; }
+  .hero-actions .button-quiet { justify-content: center; height: 46px; border: 1px solid rgba(255, 255, 255, .3); border-radius: 999px; }
   .hero-fine { margin: 2px 0 0; text-align: center; font-size: 13px; }
   .eyebrow { font-size: 16px; margin-bottom: 12px; }
   .try-head p { font-size: 16px; }
