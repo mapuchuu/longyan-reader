@@ -171,7 +171,7 @@
     el.innerHTML = `<div class="pick-tip">
         <div class="pick-glass"></div>
         <svg class="pick-shape" aria-hidden="true"><defs><linearGradient id="pick-edge" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".24"/><stop offset=".5" stop-color="#fff" stop-opacity=".1"/><stop offset="1" stop-color="#fff" stop-opacity=".07"/></linearGradient></defs><path/></svg>
-        <p class="pick-title">Picked for this sentence</p>
+        <p class="pick-title">Picked from context</p>
       </div>`;
     document.body.append(el);
     const tip = el.firstElementChild, glass = tip.children[0], shape = tip.children[1], outline = shape.querySelector("path");
@@ -201,10 +201,10 @@
       if (!side || !rr) { el.classList.remove("on"); return; }
       // Centred on the row, kept on screen; the arrow stays on the row's middle either way.
       let ty = Math.max(8, Math.min(mid - h / 2, vh - h - 8));
-      // Placed even while hidden, and shown only once placed on this side, so it springs out
-      // from where it belongs rather than from wherever it was.
-      const glide = el.classList.contains("on") && n.side === side;
-      n.y = glide ? n.y + (ty - n.y) * 0.2 : ty;
+      // On the row exactly, every frame, so it moves with the card's own motion and never
+      // trails it. Placed even while hidden, and shown only once placed on this side, so it
+      // comes out where it belongs rather than from wherever it was.
+      n.y = ty;
       const x = Math.round(side === "right" ? cr.right + reach : cr.left - reach - w), y = Math.round(n.y);
       const { r, base } = TIP, ay = Math.round(Math.max(r + base, Math.min(mid - y, h - r - base)) * 2) / 2;
       const key = `${w}|${h}|${ay}|${side}`;

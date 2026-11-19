@@ -513,10 +513,12 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 }
 .pick-note.on { visibility: visible; transition: none; }
 .pick-tip {
-  position: relative; opacity: 0; transform: scale(.9);
+  position: relative; opacity: 0; transform: scale(.94);
   transition: opacity .16s ease-out, transform 0s .2s;
 }
-.pick-note.on .pick-tip { opacity: 1; transform: none; transition: opacity .2s ease-out .1s, transform .5s cubic-bezier(.3, 1.2, .5, 1) .1s; }
+/* Out of its arrow's tip on an ease that lands without overshooting, so its height never
+   bounces past its size. */
+.pick-note.on .pick-tip { opacity: 1; transform: none; transition: opacity .22s ease-out .1s, transform .42s cubic-bezier(.2, .9, .25, 1) .1s; }
 /* Glass a step lighter than the card's: it floats above it, so it's raised a level, as a
    popover over a window is, and reads at a glance over the black. */
 .pick-glass {
