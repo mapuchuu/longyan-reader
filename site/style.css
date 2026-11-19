@@ -563,6 +563,8 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 /* Apple's mark on the download buttons, sized to the cap height and sitting on the baseline. */
 .apple, .button .apple { width: .95em; height: 1.1em; fill: currentColor; stroke: none; flex: none; vertical-align: -0.16em; margin: 0 .4em 0 0; }
 .button:hover .apple { transform: none; }
+.button .apple { margin-right: .6em; translate: 0 -1px; }
+.button:has(.apple) { padding-left: 26px; }
 .lit .every { color: #bf5af2; }
 .lit .ctx { color: #30d158; }
 /* It is as tall as its content, so it has nothing to scroll: a swipe on it scrolls the page. */
