@@ -314,13 +314,12 @@
     fine = pack(unit);
     lit = document.createElement("canvas");
     lit.width = canvas.width; lit.height = canvas.height;
-    const l = lit.getContext("2d");
-    l.setTransform(dpr, 0, 0, dpr, 0, 0); l.textAlign = "center"; l.textBaseline = "middle";
+    litCtx = lit.getContext("2d");
+    litCtx.setTransform(dpr, 0, 0, dpr, 0, 0); litCtx.textAlign = "center"; litCtx.textBaseline = "middle";
     for (const g of fine.glyphs) {
-      l.fillStyle = rgb(g.col);
       // Big characters a little lighter in weight, so they don't outshine the rest.
-      l.font = `${g.w >= unit * 3 ? 500 : 600} ${g.w * 0.94}px ${ZH}`;
-      l.fillText(g.ch, g.x + g.w / 2, g.y + g.w / 2 + g.w * 0.04);
+      g.wt = g.w >= unit * 3 ? 500 : 600;
+      drawLit(g);
     }
 
     // The mountains, under the eye.
@@ -353,6 +352,15 @@
     placeLines();
   }
 
+  // One of the eye's characters on the lit layer, in its tint; `fresh` clears its square first.
+  let litCtx = null;
+  function drawLit(g, fresh) {
+    if (fresh) litCtx.clearRect(g.x - 1, g.y - 1, g.w + 2, g.w + 2);
+    litCtx.fillStyle = rgb(g.col);
+    litCtx.font = `${g.wt} ${g.w * 0.94}px ${ZH}`;
+    litCtx.fillText(g.ch, g.x + g.w / 2, g.y + g.w / 2 + g.w * 0.04);
+  }
+
   // MARK: Words in the eye
 
   // The word a character of the eye is part of, in its sentence.
@@ -377,9 +385,12 @@
     document.dispatchEvent(new CustomEvent("longyan:lines", { detail: { lines: lines.map((l) => ({ ...l })), W, H, current } }));
   }
 
-  // Each character of the sentence floats out of somewhere in the eye, the same character
-  // when one's to hand. Most come from its big characters, so you see them lift out of the
-  // shape; the rest from the middle sizes.
+  // Each character of the sentence floats out of somewhere in the eye, and it's the same
+  // character all the way: one already in the eye where there's one to hand, or else a
+  // character of the eye becomes it from the start (so pointing at it reads it in this
+  // sentence). Most come from its big characters, so you see them lift out of the shape; the
+  // rest from the middle sizes. Punctuation isn't in the eye, so it just fades in in place as
+  // the line lands.
   function buildFlights() {
     flights = [];
     if (!fine) return;
@@ -389,12 +400,14 @@
     if (big.length < 12) big = all;
     if (mid.length < 40) mid = all;
     const used = new Set();
+    const sentence = demo[current].sentence, home = PAGE.findIndex((p) => p.s === sentence);
     let j = 0;
     for (const l of lines) [...l.text].forEach((ch, k) => {
       j++;
+      if (PUNCT.test(ch)) { flights.push({ line: l, k, ch, g: -1, start: 0.2 }); return; }
       const pool = hash(j * 5.1 + current * 2.3) < 0.6 ? big : mid;
       let pick = -1;
-      for (let a = 0; a < 40; a++) {
+      for (let a = 0; a < 60; a++) {
         const q = pool[Math.floor(hash(current * 97 + j * 13.1 + a * 0.71) * pool.length)];
         if (used.has(q)) continue;
         if (pick < 0) pick = q;
@@ -403,7 +416,15 @@
       if (pick < 0) return;
       used.add(pick);
       const g = fine.glyphs[pick];
-      flights.push({ line: l, k, ch, g: pick, x0: g.x + g.w / 2, y0: g.y + g.w / 2, size0: g.w * 0.94, col: g.col,
+      if (g.ch !== ch) {
+        // It becomes this character, read in this sentence if it's one of the eye's, else
+        // wherever the character comes up in them.
+        let s = home, i = home >= 0 ? (l.k === 0 ? k : -1) : -1;
+        if (i < 0 || PAGE[s].s[i] !== ch) { s = PAGE.findIndex((p) => p.s.includes(ch)); i = s >= 0 ? PAGE[s].s.indexOf(ch) : -1; }
+        Object.assign(g, { ch }, s >= 0 ? { s, i } : {});
+        drawLit(g, true);
+      }
+      flights.push({ line: l, k, ch, g: pick, x0: g.x + g.w / 2, y0: g.y + g.w / 2 + g.w * 0.04, size0: g.w * 0.94, col: g.col, wt: g.wt,
         start: 0.04 + hash(j * 3.3 + current) * 0.1 });
     });
   }
@@ -561,15 +582,25 @@
       if (p <= f.start) continue;
       const u = easeInOut(clamp((p - f.start) / 0.18));
       const x1 = f.line.x + (f.k + 0.5) * f.line.size, y1 = f.line.y;
+      if (f.g < 0) {
+        ctx.font = `400 ${Math.round(f.line.size * 0.9 * 2) / 2}px ${ZH}`;
+        ctx.globalAlpha = (f.line.k === 0 ? 1 : 0.3) * smooth(0.3, 1, u);
+        ctx.fillStyle = rgb(INK);
+        ctx.fillText(f.ch, x1, y1);
+        continue;
+      }
       const x0 = f.x0;
       const x = x0 + (x1 - x0) * u;
       const y = f.y0 + (y1 - f.y0) * u - Math.sin(u * Math.PI) * Math.min(120, Math.abs(x1 - x0) * 0.25 + 40);
       const size = f.size0 + (f.line.size * 0.9 - f.size0) * u;
       const final = f.line.k === 0 ? 1 : 0.3;
-      ctx.font = `${u > 0.6 ? 400 : 600} ${Math.round(size * 2) / 2}px ${ZH}`;
-      ctx.globalAlpha = 1 - (1 - final) * smooth(0.6, 1, u);
+      // It leaves at the eye's weight and lands at the line's without snapping between them.
+      const a = 1 - (1 - final) * smooth(0.6, 1, u), m = smooth(0.4, 0.75, u), px = Math.round(size * 2) / 2;
       ctx.fillStyle = rgb(mix(f.col, INK, smooth(0.35, 0.85, u)));
-      ctx.fillText(f.ch, x, y);
+      // The lighter weight sits solid underneath and the bolder one fades off it, so the
+      // character thins without dimming on the way.
+      ctx.globalAlpha = a; ctx.font = `400 ${px}px ${ZH}`; ctx.fillText(f.ch, x, y);
+      if (m < 1) { ctx.globalAlpha = a * (1 - m); ctx.font = `${f.wt} ${px}px ${ZH}`; ctx.fillText(f.ch, x, y); }
     }
     ctx.globalAlpha = 1;
   }
