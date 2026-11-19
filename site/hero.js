@@ -29,8 +29,11 @@
   const FORMED = 0.33;     // story progress at which the sentences have formed
   const ZH = '"PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif';
   // The hero's inks: the paper's own hues (paper.js), azure through violet and magenta to
-  // coral, lightened just enough to read as small characters on black.
-  const AZURE = [107, 155, 255], VIOLET = [169, 139, 255], MAGENTA = [236, 130, 214], CORAL = [255, 159, 133];
+  // coral, lightened to read as small characters on black and softened toward a grey lilac,
+  // so the opening is quieter than the paper it leads to.
+  const MIST = [196, 196, 212], SOFT = 0.45;
+  const soft = (c) => c.map((v, k) => Math.round(v + (MIST[k] - v) * SOFT));
+  const AZURE = soft([107, 155, 255]), VIOLET = soft([169, 139, 255]), MAGENTA = soft([236, 130, 214]), CORAL = soft([255, 159, 133]);
   const INK = [245, 245, 247];
   const PUNCT = /[，。？！、：；“”（）《》…—]/;
   // Characters too light to fill a square of the eye.

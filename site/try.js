@@ -1,6 +1,7 @@
-// The demo sentence lifted from the eye, as text to read the way the app does. Selecting
-// works as it does in any Mac text: drag across characters, double-click for a word (and drag
-// on by words), triple-click for the sentence, shift-click to extend. Let go and the card
+// The demo sentence lifted from the eye, as text to read the way the app does. A click or a
+// tap looks up the word under it; otherwise selecting works as it does in any Mac text: drag
+// across characters, double-click for a word (and drag on by words), triple-click for the
+// sentence, shift-click to extend. Let go and the card
 // opens for what the app reads there, while the selection stays exactly where it was made, as
 // it does in any app: one character is one character (and its card says which word it's
 // part of); a selection that cuts a word in half gets the card for the whole word, as the app
@@ -172,7 +173,6 @@
     last = { t: now, x: e.clientX, y: e.clientY, n };
     if (Card() && Card().open) Card().close(false, false, true);
     const d = demo[indexOf(0)];
-    const touch = e.pointerType === "touch";
     if (n === 3) {
       press = { mode: "word", a: 0, b: d.tokens.length - 1, id: e.pointerId };
       paint(d.tokens[0].range[0], d.tokens[d.tokens.length - 1].range[1]);
@@ -187,7 +187,7 @@
       paint(Math.min(a, c), Math.max(a, c));
     } else {
       const c = caretAt(e.clientX);
-      press = { mode: "char", a: c, b: c, id: e.pointerId, touch, x: e.clientX };
+      press = { mode: "char", a: c, b: c, id: e.pointerId, click: true, x: e.clientX, y: e.clientY };
       sel = null;
       paint(c, c);
     }
@@ -211,9 +211,13 @@
   });
   box.addEventListener("pointerup", (e) => {
     if (!press || e.pointerId !== press.id) return;
-    // A tap on a phone takes the word under it; a click on a Mac only places the caret.
-    if (press.touch && press.a === press.b) {
-      const t = wordAtChar(charAt(press.x));
+    // A click or a tap, without a drag, takes the word under it. A wobble of a few pixels is
+    // still a click, even if it crossed into the next character.
+    // On punctuation it takes nothing.
+    if (press.click && (press.a === press.b || Math.hypot(e.clientX - press.x, e.clientY - press.y) < 4)) {
+      const ci = charAt(press.x), d = demo[indexOf(0)];
+      if (!d.tokens.some((tk) => ci >= tk.range[0] && ci < tk.range[1])) { press = null; clear(); return; }
+      const t = wordAtChar(ci);
       press = { mode: "word", a: t, b: t };
     }
     release();
