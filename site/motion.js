@@ -128,20 +128,23 @@
   window.addEventListener("resize", update);
   update();
 
-  // The recording loads and plays only while it's on screen; until then it shows its poster.
+  // The recording starts loading a screen and a half before it scrolls in, so it's ready
+  // by the time it's seen, and plays only while it's on screen. Until then it shows its poster.
   // HEVC where the browser has it (much smaller for the same sharpness), else H.264.
   const video = document.querySelector("#screen video");
   if (video) {
     // Without motion it doesn't play by itself, so it gets the usual controls instead.
     if (!moving) video.controls = true;
+    const fetcher = new IntersectionObserver((entries) => {
+      if (!entries[0].isIntersecting) return;
+      fetcher.disconnect();
+      video.preload = "auto";
+      video.querySelectorAll("source[data-src]").forEach((s) => (s.src = s.dataset.src));
+      video.load();
+    }, { rootMargin: "150% 0px" });
+    fetcher.observe(video);
     new IntersectionObserver((entries) => {
-      const on = entries[0].isIntersecting;
-      if (on && !video.dataset.loaded) {
-        video.dataset.loaded = "1";
-        video.querySelectorAll("source[data-src]").forEach((s) => (s.src = s.dataset.src));
-        video.load();
-      }
-      if (on && moving) video.play().catch(() => {});
+      if (entries[0].isIntersecting && moving) video.play().catch(() => {});
       else video.pause();
     }, { threshold: 0.3 }).observe(video);
   }
