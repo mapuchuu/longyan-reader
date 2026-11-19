@@ -376,7 +376,8 @@
   function placeLines() {
     const s = demo[current].sentence;
     const size = Math.floor(Math.min(narrow ? 40 : 64, (W - (narrow ? 32 : 240)) / s.length));
-    const y = Math.round(H * (narrow ? 0.4 : 0.42));
+    // High enough to leave the room below it for a whole card.
+    const y = Math.round(H * (narrow ? 0.31 : 0.33));
     // Centred on its ink: a closing 。 or ！ sits in the left of its square, so the line is
     // nudged right by the blank part of that square.
     const tail = /[。！？，]$/.test(s) ? size * 0.28 : 0;

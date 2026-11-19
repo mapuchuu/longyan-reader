@@ -25,6 +25,14 @@
 
   // MARK: The lines, where hero.js drew them
 
+  // A word whose meaning here comes with a note (卷, 躺平): it's marked, so the first click
+  // can find what's worth clicking.
+  function hasNote(d, tk) {
+    const card = d.cards[`${tk.range[0]}-${tk.range[1]}`];
+    const sense = card && card.chosen != null && (d.words[card.word] || [])[card.chosen - 1];
+    return !!(sense && sense.note);
+  }
+
   function build(detail) {
     lines = detail.lines; current = detail.current;
     els = lines.map((l) => {
@@ -49,6 +57,7 @@
           group.className = ti < 0 ? "punct" : "w";
           if (ti >= 0) {
             group.dataset.t = ti;
+            if (hasNote(d, d.tokens[ti])) group.classList.add("noted");
             if (l.k === 0) { group.tabIndex = 0; group.setAttribute("role", "button"); group.setAttribute("aria-label", `Look up ${d.tokens[ti].text}`); }
           }
           el.append(group);
@@ -111,14 +120,119 @@
     // Where the selection will be once it has settled, not where it is mid-way.
     const r = { left: box.left + sel.a * size, right: box.left + sel.b * size, top: selRect().top, bottom: selRect().bottom };
     const key = `${start}-${end}`;
+    let opened = null;
     if (word) {
-      const card = d.cards[key];
-      if (!card) return;
-      Card().openWord({ senses: d.words[card.word] || [], card, inPlace, onPart: (part) => openPart(part) }, r);
+      const info = d.cards[key];
+      if (!info) return;
+      const senses = d.words[info.word] || [];
+      const picks = info.chosen != null && senses.length > 1 && !info.grammar;
+      opened = Card().openWord({ senses, card: info, inPlace, onPart: (part) => openPart(part) }, r);
+      if (opened && picks) pickNote(opened, info.chosen - 1);
     } else {
       const phrase = d.phrases[key];
-      if (phrase) Card().openPhrase({ phrase, words: d.words }, r);
+      if (phrase) opened = Card().openPhrase({ phrase, words: d.words }, r);
     }
+    if (!opened) return;
+    const at = selRect().top, s0 = sel;
+    opened.anchorStill = () => sel === s0 && story.classList.contains("is-formed") && Math.abs(selRect().top - at) < 2;
+    story.classList.add("card-open");
+    const prevClose = opened.onClose;
+    opened.onClose = () => { if (prevClose) prevClose(); if (!Card().open) story.classList.remove("card-open", "covered"); };
+    // The way on to how it picks stays, unless the card is over it.
+    const more = root.querySelector(".try-continue");
+    (function cover() {
+      if (Card().open !== opened || !more) return;
+      const a = opened.el.getBoundingClientRect(), b = more.getBoundingClientRect();
+      story.classList.toggle("covered", a.left < b.right + 12 && a.right > b.left - 12 && a.top < b.bottom + 12 && a.bottom > b.top - 12);
+      requestAnimationFrame(cover);
+    })();
+  }
+
+  // MARK: The note beside the card
+
+  // A beat after the card is in, the meaning it picked takes a blue wash, and a small tip
+  // springs out beside the card pointing at it: one line, in the card's own glass, with a
+  // soft arrow on the row. The row's check stays the only check. The tip is outside the card,
+  // so the card stays as the app shows it, and only beside it: where there's no room (a
+  // phone), the blue row says it alone.
+  const TIP = { gap: 6, arrow: 8, base: 8, r: 12 };
+  // The tip and its arrow as one outline, the arrow on the left, pointing at y = ay.
+  function tipPath(w, h, ay) {
+    const { arrow: A, base: b, r } = TIP, f = (v) => Math.round(v * 100) / 100;
+    return `M${A + r},0 H${f(A + w - r)} A${r},${r} 0 0 1 ${f(A + w)},${r} V${f(h - r)} A${r},${r} 0 0 1 ${f(A + w - r)},${f(h)}` +
+      ` H${A + r} A${r},${r} 0 0 1 ${A},${f(h - r)} V${f(ay + b)} C${A},${f(ay + b * 0.45)} 1.6,${f(ay + 1.7)} .6,${f(ay + 0.55)}` +
+      ` Q0,${f(ay)} .6,${f(ay - 0.55)} C1.6,${f(ay - 1.7)} ${A},${f(ay - b * 0.45)} ${A},${f(ay - b)} V${r} A${r},${r} 0 0 1 ${A + r},0 Z`;
+  }
+  let note = null;
+  function pickNote(card, chosen) {
+    dropNote();
+    const el = document.createElement("div");
+    el.className = "pick-note";
+    el.innerHTML = `<div class="pick-tip">
+        <div class="pick-glass"></div>
+        <svg class="pick-shape" aria-hidden="true"><defs><linearGradient id="pick-edge" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".24"/><stop offset=".5" stop-color="#fff" stop-opacity=".1"/><stop offset="1" stop-color="#fff" stop-opacity=".07"/></linearGradient></defs><path/></svg>
+        <p class="pick-title">Picked for this sentence</p>
+      </div>`;
+    document.body.append(el);
+    const tip = el.firstElementChild, glass = tip.children[0], shape = tip.children[1], outline = shape.querySelector("path");
+    const n = { el, card, chosen, y: null, raf: 0, from: performance.now() + (reduce ? 0 : 260), key: "" };
+    note = n;
+    const mark = (row) => card.el.querySelectorAll(".lc-row.here").forEach((r) => { if (r !== row) r.classList.remove("here"); });
+    n.unmark = () => mark(null);
+    const track = () => {
+      n.raf = 0;
+      if (note !== n) return;
+      if (!card.el.isConnected || Card().open !== card) { dropNote(); return; }
+      n.raf = requestAnimationFrame(track);
+      const cr = card.el.getBoundingClientRect(), vw = innerWidth, vh = innerHeight;
+      const row = card.el.querySelector(`.lc-row[data-i="${chosen}"]`);
+      const check = row && row.querySelector(".lc-check.on");
+      const otherPicked = !check && card.el.querySelector(".lc-check.on");
+      // Picked something else: it's the visitor's pick now, not the app's, so neither shows.
+      const show = !!check && !otherPicked && performance.now() >= n.from;
+      mark(show ? row : null);
+      if (show) row.classList.add("here");
+      const w = el.offsetWidth, h = el.offsetHeight, reach = TIP.gap + TIP.arrow;
+      const side = cr.right + reach + w <= vw - 16 ? "right" : cr.left - reach - w >= 16 ? "left" : null;
+      // Not while the row is scrolled out of the card's view: the arrow would point at nothing.
+      const rr = row && row.getBoundingClientRect(), sv = card.scroll.getBoundingClientRect();
+      const mid = rr && rr.top + rr.height / 2;
+      const inView = rr && mid > sv.top + 8 && mid < sv.bottom - 8;
+      if (!side || !rr) { el.classList.remove("on"); return; }
+      // Centred on the row, kept on screen; the arrow stays on the row's middle either way.
+      let ty = Math.max(8, Math.min(mid - h / 2, vh - h - 8));
+      // Placed even while hidden, and shown only once placed on this side, so it springs out
+      // from where it belongs rather than from wherever it was.
+      const glide = el.classList.contains("on") && n.side === side;
+      n.y = glide ? n.y + (ty - n.y) * 0.2 : ty;
+      const x = Math.round(side === "right" ? cr.right + reach : cr.left - reach - w), y = Math.round(n.y);
+      const { r, base } = TIP, ay = Math.round(Math.max(r + base, Math.min(mid - y, h - r - base)) * 2) / 2;
+      const key = `${w}|${h}|${ay}|${side}`;
+      if (key !== n.key) {
+        n.key = key;
+        const d = tipPath(w, h, ay);
+        // The outline is drawn arrow-left; on the left of the card it's mirrored, arrow-right.
+        const W = w + TIP.arrow, left = side === "right" ? -TIP.arrow : 0, flip = side === "right" ? "none" : "scaleX(-1)";
+        outline.setAttribute("d", d);
+        shape.setAttribute("viewBox", `-.5 -.5 ${W + 1} ${h + 1}`);
+        Object.assign(shape.style, { left: left - 0.5 + "px", top: "-.5px", width: W + 1 + "px", height: h + 1 + "px", transform: flip });
+        Object.assign(glass.style, { left: left + "px", top: "0", width: W + "px", height: h + "px", transform: flip, clipPath: `path("${d}")` });
+        // It springs out of its arrow's tip.
+        tip.style.transformOrigin = `${side === "right" ? -TIP.arrow : w + TIP.arrow}px ${ay}px`;
+      }
+      el.dataset.side = side;
+      el.style.transform = `translate(${x}px, ${y}px)`;
+      el.classList.toggle("on", show && inView && n.side === side);
+      n.side = side;
+    };
+    n.raf = requestAnimationFrame(track);
+  }
+  function dropNote() {
+    if (!note) return;
+    const n = note; note = null;
+    cancelAnimationFrame(n.raf); n.unmark();
+    n.el.classList.remove("on");
+    setTimeout(() => n.el.remove(), 300);
   }
 
   // "Part of 躺平" on a character's card: the word's card replaces this one where it stands,
@@ -191,6 +305,7 @@
       sel = null;
       paint(c, c);
     }
+    box.classList.add("pressing");
     try { box.setPointerCapture(e.pointerId); } catch (_) {}
   });
   box.addEventListener("pointermove", (e) => {
@@ -210,6 +325,7 @@
     }
   });
   box.addEventListener("pointerup", (e) => {
+    box.classList.remove("pressing");
     if (!press || e.pointerId !== press.id) return;
     // A click or a tap, without a drag, takes the word under it. A wobble of a few pixels is
     // still a click, even if it crossed into the next character.
@@ -222,7 +338,7 @@
     }
     release();
   });
-  box.addEventListener("pointercancel", () => { press = null; });
+  box.addEventListener("pointercancel", () => { press = null; box.classList.remove("pressing"); });
 
   box.addEventListener("keydown", (e) => {
     const w = e.target.closest(".w");
@@ -239,7 +355,7 @@
   });
   // A press anywhere else lets go of the selection, as it would in any text.
   document.addEventListener("pointerdown", (e) => {
-    if (!sel || e.target.closest(".lines, .lc-card")) return;
+    if (!sel || e.target.closest(".lines, .lc-card, .pick-note")) return;
     clear();
   });
 
@@ -309,10 +425,11 @@
   // "How it picks the meaning", once the sentence has had its turn: on to the statement, the
   // same slow glide.
   // The statement's first line comes in as its pinned stretch reaches the top.
-  document.querySelectorAll("[data-continue]").forEach((b) => b.addEventListener("click", () => {
+  function toStatement() {
     const st = document.getElementById("statement");
     if (st) glideTo(st.getBoundingClientRect().top + window.scrollY);
-  }));
+  }
+  document.querySelectorAll("[data-continue]").forEach((b) => b.addEventListener("click", toStatement));
 
   // In-page links (the hero's Installation steps, the install section's Download below): down
   // to where they point, on the same glide. Without script they're plain links.

@@ -299,7 +299,24 @@
   try { pinned = sessionStorage.getItem("lc-pinned") === "1"; } catch (_) {}
   const BASE = { word: 360, phrase: 390 };
   const MIN_W = 240, MAX_W = 1000;
-  const zoomFor = () => (window.innerWidth < 760 ? 1 : 1.1);
+  const zoomFor = () => (window.innerWidth < 760 ? 1 : 1.15);
+  // On a desktop a card that won't fit the room next to its selection is zoomed down until it
+  // does, as far as FIT_MIN, so it always shows whole rather than cut off at the window's edge.
+  const FIT_MIN = 0.9;
+  function fitZoom(card) {
+    if (window.innerWidth < 760) return;
+    const a = card.anchor, vh = window.innerHeight, z = card.zoom;
+    const need = card.content.offsetHeight;
+    const below = vh - a.bottom - 24, above = a.top - 24;
+    const room = below >= need ? below : Math.max(below, above);
+    if (need <= room) return;
+    const z2 = Math.max(FIT_MIN, Math.floor((z * room / need) * 100) / 100);
+    if (z2 >= z) return;
+    card.zoom = z2;
+    card.el.style.setProperty("--z", z2);
+    card.width = Math.min(BASE[card.kind] * z2, window.innerWidth - 16);
+    card.el.style.width = card.width + "px";
+  }
 
   function makeChrome(kind, z) {
     const el = h("div", "lc-card");
@@ -445,6 +462,7 @@
       }
       return card;
     }
+    fitZoom(card);
     place(card, true);
     // Spring in: scale from 0.96 at the edge nearest the selection, 4 pt toward it, as the
     // window fades in over 0.14 s.
@@ -1080,7 +1098,9 @@
     close(false, true);
     if (back && back.isConnected) back.focus({ preventScroll: true });
   });
-  window.addEventListener("scroll", () => { if (open && !open.wasMoved) close(); }, { passive: true });
+  // A scroll closes the card, unless its selection hasn't moved (the demo's sentence holds
+  // still for a while as the page scrolls on).
+  window.addEventListener("scroll", () => { if (open && !open.wasMoved && !(open.anchorStill && open.anchorStill())) close(); }, { passive: true });
   window.addEventListener("resize", () => { if (open) close(true, true); });
 
   window.LongyanCard = {
