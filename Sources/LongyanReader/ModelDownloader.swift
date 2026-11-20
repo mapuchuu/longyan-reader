@@ -1,5 +1,6 @@
 import CryptoKit
 import Foundation
+import Network
 
 /// Downloads the local model (Qwen 3.5 4B, Q4_K_M, Apache 2.0) into
 /// ~/Library/Application Support/LongyanReader/models/. Tries hf-mirror.com first (reachable
@@ -12,6 +13,11 @@ import Foundation
 /// 16 of them got 3 MB/s where one got 25 KB/s. Finished pieces are listed in a file beside
 /// the download, with how far each unfinished one got, so a stop or quit costs at most a few
 /// seconds of data.
+///
+/// When a host fails (an error, or nothing at all for `stallWindow`) three times, the next host
+/// is tried; only failures on the host in use count, so eight connections failing at once count
+/// as one host failing. After every host has failed three rounds in a row the download stops.
+/// While the Mac is offline nothing counts: pieces wait for the network and carry on.
 @MainActor
 final class ModelDownloader: NSObject {
     static let shared = ModelDownloader()
@@ -22,7 +28,9 @@ final class ModelDownloader: NSObject {
     nonisolated static let path = testFolder == nil
         ? "unsloth/Qwen3.5-4B-GGUF/resolve/e87f176479d0855a907a41277aca2f8ee7a09523/Qwen3.5-4B-Q4_K_M.gguf"
         : "unsloth/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-Q4_K_M.gguf"
-    nonisolated static let hosts = ["https://hf-mirror.com/", "https://huggingface.co/"]
+    /// LONGYAN_DOWNLOAD_HOSTS=a,b replaces them, to test failing hosts.
+    nonisolated static let hosts = ProcessInfo.processInfo.environment["LONGYAN_DOWNLOAD_HOSTS"]?
+        .split(separator: ",").map(String.init) ?? ["https://hf-mirror.com/", "https://huggingface.co/"]
     nonisolated static let size: Int64 = testFolder == nil ? 2_740_937_888 : 532_517_120
     nonisolated static let sha256 = testFolder == nil
         ? "00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4"
@@ -75,7 +83,11 @@ final class ModelDownloader: NSObject {
     private var watchdog: Timer?
     private var lastShown = 0.0
     private var host = 0
-    private var failuresSinceProgress = 0
+    private var hostFailures = 0     // on the host in use, since a byte last arrived
+    private var rounds = 0           // times every host has failed in turn, since a byte last arrived
+    private var network: NWPathMonitor?
+    private var online = true
+    private var waitingForNetwork: [Piece] = []
     private var lastProblem: String?   // why the last reply or connection failed, for the failure message
 
     var isRunning: Bool {
@@ -102,7 +114,15 @@ final class ModelDownloader: NSObject {
         handle = h
         // Unfinished pieces first, so their bytes are kept.
         waiting = (0..<Self.pieceCount).filter { !finished.contains($0) }.sorted { (started[$0] != nil ? 0 : 1) < (started[$1] != nil ? 0 : 1) }
-        host = 0; failuresSinceProgress = 0; lastProblem = nil
+        host = 0; hostFailures = 0; rounds = 0; lastProblem = nil
+        online = true; waitingForNetwork = []
+        let monitor = NWPathMonitor()
+        monitor.pathUpdateHandler = { [weak self] path in
+            let up = path.status == .satisfied
+            DispatchQueue.main.async { MainActor.assumeIsolated { self?.networkChanged(up) } }
+        }
+        monitor.start(queue: .main)
+        network = monitor
         lastShown = progress
         state = .downloading(lastShown)
         watchdog = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
@@ -133,6 +153,7 @@ final class ModelDownloader: NSObject {
     private func stopAll() {
         if handle != nil { saveLedger() }
         watchdog?.invalidate(); watchdog = nil
+        network?.cancel(); network = nil; waitingForNetwork = []
         for p in active.values { p.session?.invalidateAndCancel() }
         active = [:]; bySession = [:]; waiting = []
         try? handle?.close(); handle = nil
@@ -175,19 +196,29 @@ final class ModelDownloader: NSObject {
         s.dataTask(with: req).resume()
     }
 
-    /// A piece that went wrong: after three failures in a row with nothing received the next
-    /// host is tried, and after every host has failed three times the download stops.
+    /// A piece that went wrong. Its connection must already be dropped.
     private func retry(_ p: Piece, because problem: String) {
         lastProblem = problem
-        failuresSinceProgress += 1
-        if failuresSinceProgress % 3 == 0 { host = (host + 1) % Self.hosts.count }
-        if failuresSinceProgress >= 3 * Self.hosts.count * 2 {
+        // Offline, every request fails at once: wait for the network instead of counting.
+        if !online { waitingForNetwork.append(p); return }
+        // A failure on a host already left behind says nothing about the one in use.
+        if p.host == host {
+            hostFailures += 1
+            if hostFailures >= 3 {
+                hostFailures = 0
+                host = (host + 1) % Self.hosts.count
+                if host == 0 { rounds += 1 }
+            }
+        }
+        if rounds >= 3 {
             stopAll()
             state = .failed(problem)
             return
         }
-        // A moment's pause, so a host that's down isn't asked again many times a second.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+        // A pause, so a host that's down isn't asked again many times a second, and longer each
+        // round, so a network that drops for a minute doesn't end the download.
+        let pause: TimeInterval = [1, 10, 30][rounds]
+        DispatchQueue.main.asyncAfter(deadline: .now() + pause) { [weak self] in
             MainActor.assumeIsolated {
                 guard let self, self.active[p.index] === p else { return }
                 self.request(p)
@@ -197,11 +228,33 @@ final class ModelDownloader: NSObject {
 
     private func checkStalls() {
         saveLedger()
+        guard online else { return }
         let now = Date()
-        for p in active.values where now.timeIntervalSince(p.windowStart) >= Self.stallWindow {
+        for p in active.values where handle != nil && p.session != nil && now.timeIntervalSince(p.windowStart) >= Self.stallWindow {
             let rate = Double(p.windowBytes) / now.timeIntervalSince(p.windowStart)
-            if rate < Self.stallRate { request(p) } else { p.windowStart = now; p.windowBytes = 0 }
+            if p.windowBytes == 0 {
+                // Nothing at all: the host may be unreachable. A failure, so another host gets a turn.
+                drop(p)
+                retry(p, because: "\(URL(string: Self.hosts[p.host])?.host ?? "the server") didn't answer")
+            } else if rate < Self.stallRate { request(p) } else { p.windowStart = now; p.windowBytes = 0 }
         }
+    }
+
+    private func drop(_ p: Piece) {
+        guard let s = p.session else { return }
+        bySession[ObjectIdentifier(s)] = nil
+        p.session = nil
+        s.invalidateAndCancel()
+    }
+
+    private func networkChanged(_ up: Bool) {
+        guard network != nil, up != online else { return }
+        online = up
+        guard up else { return }
+        // Back online: a fresh start for every host, and the waiting pieces go again.
+        hostFailures = 0; rounds = 0
+        for p in waitingForNetwork where active[p.index] === p { request(p) }
+        waitingForNetwork = []
     }
 
     private func finish(_ p: Piece) {
@@ -313,7 +366,7 @@ extension ModelDownloader: URLSessionDataDelegate {
                 return
             }
             p.next += n; p.windowBytes += n
-            failuresSinceProgress = 0
+            hostFailures = 0; rounds = 0
             if p.done { finish(p); return }   // the last one starts the check
             let shown = progress
             if shown - lastShown >= 0.005 { lastShown = shown; state = .downloading(shown) }

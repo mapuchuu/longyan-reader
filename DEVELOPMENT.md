@@ -126,7 +126,7 @@ The model sees each noted sense with the first sentence of its note. A few fixed
 1. Bump `version` in `scripts/build-app.sh` (1.0, 1.1, 1.0.1 for a fix) and commit. The build number is the commit count, so the tree has to be clean. Never rewrite main's history: a lower commit count would make the next release look older than the last.
 2. Run `scripts/release.sh notes.md`, where `notes.md` is what's new (shown in the update window). It stops if the app isn't signed with the project certificate.
 3. Test the update locally (below) before publishing.
-4. Run the `gh release create` command it prints. Not as a draft or prerelease: installed copies and the website follow `releases/latest`.
+4. Run the commands it prints, in order: create the release as a draft with all three files, then publish it as latest (installed copies and the website follow `releases/latest`, which skips drafts and prereleases), then `scripts/check-release.sh`, then deploy the site. A draft first means the feed never points at a release that's missing a file.
 5. Check the live feed (`curl -sL https://github.com/mapuchuu/longyan-reader/releases/latest/download/appcast.xml`) shows the new build number.
 
 A bad release can't be pulled back: Sparkle never offers an older build, so the fix is a new release with a higher build number. Deleting the release only stops new downloads.

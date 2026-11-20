@@ -301,6 +301,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             // Downloading is choosing it, even after picking Apple's model earlier.
             if ModelDownloader.shared.state == .done { LocalModel.select(LocalModel.choices[0].id); self?.refresh() }
         }
+        // Outside Applications it can't update; moving relaunches it, so onboarding waits.
+        if AppMover.offerAtLaunch() { return }
         Onboarding.shared.showIfNeeded()
     }
 
@@ -426,8 +428,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // Opened straight from Downloads, macOS runs a read-only copy from a temporary folder:
         // it can't update itself, and a login item would point at a path that goes away.
         let translocated = Onboarding.translocated
-        if translocated {
-            menu.addItem(withTitle: "Move the app to Applications to get updates", action: nil, keyEquivalent: "")
+        if Updates.available && Onboarding.outsideApplications {
+            menu.addItem(withTitle: "Move to Applications to Get Updates…", action: #selector(moveToApplications), keyEquivalent: "").target = self
         }
         if LoginItem.available {
             let login = menu.addItem(withTitle: "Open at Login", action: translocated ? nil : #selector(toggleOpenAtLogin), keyEquivalent: "")
@@ -504,6 +506,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
     @objc private func showAbout() { About.show() }
     @objc private func checkForUpdates() { Updates.checkNow() }
+    @objc private func moveToApplications() { AppMover.offer() }
     /// A new GitHub issue with the app, macOS and model versions filled in (nothing else: no
     /// lookups, no file paths), opened in the browser for the reader to write and send.
     @objc private func reportIssue() {
