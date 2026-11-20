@@ -43,7 +43,18 @@ final class EmbeddedModel: @unchecked Sendable {
     /// The tokens now in the context, so a request that starts the same way (the system
     /// prompt, the worked examples) only reads what's new.
     private var cached: [llama_token] = []
-    private struct Snapshot { let tokens: [llama_token]; let data: [UInt8] }
+    /// A saved state, in pages of its own that go straight back to the system when it's dropped.
+    /// (In Swift arrays, freed 58 MB blocks stayed with the process: 4 kept states grew to ~700 MB.)
+    private final class Snapshot {
+        let tokens: [llama_token]
+        let count: Int
+        let bytes: UnsafeMutableRawPointer
+        init?(tokens: [llama_token], count: Int) {
+            guard let p = mmap(nil, count, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0), p != MAP_FAILED else { return nil }
+            self.tokens = tokens; self.count = count; bytes = p
+        }
+        deinit { munmap(bytes, count) }
+    }
     private var snapshots: [Snapshot] = []
     /// Each is 58–81 MB (Qwen 3.5 4B's recurrent state is ~53 MB, plus ~0.03 MB a prompt token).
     /// In every test, each reuse was of the latest one; two cover a card's pick and translation.
@@ -58,6 +69,7 @@ final class EmbeddedModel: @unchecked Sendable {
     private var lastUse = Date()
     private var backendReady = false
     private var exitHandlerSet = false
+    private var pressure: DispatchSourceMemoryPressure?
     private var contextFailedAt: Date?
 
     private init() {}
@@ -75,7 +87,7 @@ final class EmbeddedModel: @unchecked Sendable {
         if let at = contextFailedAt, Date().timeIntervalSince(at) < 60 { throw Self.error("couldn't create a context") }
         guard let path = Self.modelPath else { throw Self.error("no model file") }
         if !backendReady {
-            llama_log_set({ _, _, _ in }, nil)
+            if ProcessInfo.processInfo.environment["LONGYAN_LLAMA_LOG"] != "1" { llama_log_set({ _, _, _ in }, nil) }
             llama_backend_init()
             backendReady = true
         }
@@ -88,6 +100,9 @@ final class EmbeddedModel: @unchecked Sendable {
         var cp = llama_context_default_params()
         cp.n_ctx = Self.contextSize
         cp.n_batch = Self.contextSize
+        // Only the last token's next-word odds are ever read. By default the work buffer is sized
+        // for odds at every token of a batch (~250k numbers each), about 0.5 GB with nothing in it.
+        cp.n_outputs_max = 1
         cp.n_threads = Int32(max(1, min(8, ProcessInfo.processInfo.activeProcessorCount - 2)))
         cp.n_threads_batch = cp.n_threads
         let env = ProcessInfo.processInfo.environment
@@ -110,6 +125,21 @@ final class EmbeddedModel: @unchecked Sendable {
                 if DispatchQueue.getSpecific(key: EmbeddedModel.onQueue) != nil { m.free() } else { m.queue.sync { m.free() } }
             }
             exitHandlerSet = true
+        }
+        // On an 8 GB Mac the model is most of what the app uses. When memory runs short the
+        // saved states go first (up to ~230 MB); if it's critical the model goes too, and the
+        // next lookup loads it again. The handler runs on the queue, so never mid-request.
+        if pressure == nil {
+            let src = DispatchSource.makeMemoryPressureSource(eventMask: [.warning, .critical], queue: queue)
+            src.setEventHandler { [unowned self, unowned src] in
+                if ProcessInfo.processInfo.environment["LONGYAN_TIMING"] == "1" {
+                    FileHandle.standardError.write(Data("memory pressure: \(src.data.contains(.critical) ? "critical" : "warning")\n".utf8))
+                }
+                self.snapshots = []; self.prefixes = []
+                if src.data.contains(.critical), self.ctx != nil { self.free() }
+            }
+            src.resume()
+            pressure = src
         }
         noteUse()
     }
@@ -170,20 +200,21 @@ final class EmbeddedModel: @unchecked Sendable {
         return s + "<|im_start|>assistant\n<think>\n\n</think>\n\n"
     }
 
-    /// Reads a prompt into the context, reusing what's already there, and leaves the logits
-    /// for what comes after its last token. Returns how many tokens were reused.
     private func save(_ tokens: [llama_token]) -> Snapshot? {
         guard let ctx else { return nil }
         let size = llama_state_seq_get_size(ctx, 0)
-        var data = [UInt8](repeating: 0, count: size)
-        guard data.withUnsafeMutableBufferPointer({ llama_state_seq_get_data(ctx, $0.baseAddress, size, 0) }) == size else { return nil }
-        return Snapshot(tokens: tokens, data: data)
+        guard let snap = Snapshot(tokens: tokens, count: size),
+              llama_state_seq_get_data(ctx, snap.bytes.assumingMemoryBound(to: UInt8.self), size, 0) == size else { return nil }
+        return snap
     }
 
     private func restore(_ snap: Snapshot) -> Bool {
         guard let ctx else { return false }
-        return snap.data.withUnsafeBufferPointer { llama_state_seq_set_data(ctx, $0.baseAddress, $0.count, 0) } > 0
+        return llama_state_seq_set_data(ctx, snap.bytes.assumingMemoryBound(to: UInt8.self), snap.count, 0) > 0
     }
+
+    /// Reads a prompt into the context, reusing what's already there, and leaves the logits
+    /// for what comes after its last token. Returns how many tokens were reused.
 
     private var imStart: llama_token { tokenize("<|im_start|>").first ?? -1 }
 
@@ -241,7 +272,7 @@ final class EmbeddedModel: @unchecked Sendable {
                     if timing {
                         let all = snapshots + prefixes
                         FileHandle.standardError.write(Data(String(format: "snapshot: %d tokens, %.1f MB; %d kept, %.1f MB\n", body.count,
-                            Double(snap.data.count) / 1e6, all.count, Double(all.reduce(0) { $0 + $1.data.count }) / 1e6).utf8))
+                            Double(snap.count) / 1e6, all.count, Double(all.reduce(0) { $0 + $1.count }) / 1e6).utf8))
                     }
                 }
             }
