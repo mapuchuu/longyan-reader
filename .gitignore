@@ -1,4 +1,5 @@
 .build/
+.build-local/
 build/
 notes/pilot/batch.json
 Resources/jieba-dict.txt
@@ -8,3 +9,4 @@ site/_shot.html
 
 # Site videos live on the site-media release, not in git (see DEVELOPMENT.md).
 site/media/*.mp4
+Vendor/

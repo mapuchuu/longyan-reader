@@ -74,6 +74,22 @@ final class EmbeddedModel: @unchecked Sendable {
 
     private init() {}
 
+    /// The tokens the model may write (Resources/output-tokens.txt, scripts/make-output-tokens.py):
+    /// English words and pieces, ASCII and the control tokens, 68k of Qwen 3.5's 248k. Only
+    /// their rows of the output table are kept (patches/llama.cpp-output-tokens.patch), so the
+    /// rest, ~380 MB of the 4B's 521 MB table, is never read. Picks only read digits; replies
+    /// are English. LONGYAN_TRIM=0 keeps the whole table; so does LONGYAN_PICK=generate, whose
+    /// replies repeat the Chinese words.
+    private static let outputTokens: [llama_token]? = {
+        let env = ProcessInfo.processInfo.environment
+        guard env["LONGYAN_TRIM"] != "0", env["LONGYAN_PICK"] != "generate",
+              let url = Bundle.main.url(forResource: "output-tokens", withExtension: "txt")
+                ?? URL(fileURLWithPath: FileManager.default.currentDirectoryPath + "/Resources/output-tokens.txt") as URL?,
+              let text = try? String(contentsOf: url, encoding: .utf8) else { return nil }
+        let ids = text.split(separator: "\n").compactMap { llama_token($0) }
+        return ids.isEmpty ? nil : ids
+    }()
+
     /// Loads the model if needed (about a second from a warm disk cache). Safe to call often.
     func warmUp() { queue.async { _ = try? self.loadIfNeeded() } }
 
@@ -93,9 +109,30 @@ final class EmbeddedModel: @unchecked Sendable {
         }
         var mp = llama_model_default_params()
         mp.n_gpu_layers = 99
-        guard let m = llama_model_load_from_file(path, mp) else {
+        // Trimmed, the full word table (and the small norm just before it in the file) loads on the
+        // CPU side, outside the GPU's mapped range, which Metal keeps wired. Only the rows the input
+        // looks up are then read; the kept output rows get a GPU copy of their own.
+        let trim = Self.outputTokens != nil
+        let pattern = strdup("^(token_embd|output_norm)\\.weight$")
+        defer { Darwin.free(pattern) }
+        var overrides = [llama_model_tensor_buft_override(pattern: pattern, buft: ggml_backend_cpu_buffer_type()),
+                         llama_model_tensor_buft_override(pattern: nil, buft: nil)]
+        let loaded = overrides.withUnsafeMutableBufferPointer { o -> OpaquePointer? in
+            if trim {
+                mp.tensor_buft_overrides = UnsafePointer(o.baseAddress)
+                mp.use_extra_bufts = false   // else the CPU side repacks the whole table into a copy of its own
+            }
+            return llama_model_load_from_file(path, mp)
+        }
+        guard let m = loaded else {
             Self.brokenFlag.set()
             loadError = Self.error("couldn't load \(path)"); throw loadError!
+        }
+        if let ids = Self.outputTokens {
+            let ok = ids.withUnsafeBufferPointer { llama_model_set_output_tokens(m, $0.baseAddress, Int32($0.count)) }
+            if ProcessInfo.processInfo.environment["LONGYAN_TIMING"] == "1" {
+                FileHandle.standardError.write(Data("output rows: \(ok ? "\(ids.count) kept" : "couldn't trim")\n".utf8))
+            }
         }
         var cp = llama_context_default_params()
         cp.n_ctx = Self.contextSize

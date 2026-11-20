@@ -9,6 +9,8 @@ scripts/build-app.sh
 open "build/Longyan Reader.app"
 ```
 
+The first build also builds llama.cpp into `Vendor/` (`scripts/build-llama.sh`, about 20 seconds): release b11588 with `patches/llama.cpp-output-tokens.patch`. It runs again whenever the patch changes. If cmake and ninja aren't installed, it gets them from pip. Run it once before a bare `swift build`.
+
 `scripts/build-app.sh --dev` adds the debug notification used by the probe and the usage simulation (see below). It's never in release builds, since any local process can post one.
 
 Local builds are ad-hoc signed with a designated requirement on the bundle ID only, so the Accessibility permission carries over between rebuilds. Release builds don't do this, because that requirement would let any app with the same bundle ID inherit the permission.
@@ -39,7 +41,7 @@ Dragging the bottom-right corner zooms the card from 0.8× to 2.2×. Word and ph
 
 ## The model
 
-The sense picker and translator is Qwen 3.5 4B (Q4_K_M), run in the app with [llama.cpp](https://github.com/ggml-org/llama.cpp) (release b11588's Metal framework, a SwiftPM binary target bundled in `Contents/Frameworks`).
+The sense picker and translator is Qwen 3.5 4B (Q4_K_M), run in the app with [llama.cpp](https://github.com/ggml-org/llama.cpp) (release b11588 with one patch, built by `scripts/build-llama.sh` and bundled in `Contents/Frameworks`).
 
 The model file isn't bundled. `ModelDownloader.swift` fetches `Qwen3.5-4B-Q4_K_M.gguf` from `unsloth/Qwen3.5-4B-GGUF` at a pinned revision, trying hf-mirror.com first and then huggingface.co. It resumes partial downloads and keeps the file only if its SHA-256 matches. It goes to `~/Library/Application Support/LongyanReader/models/`. The file is byte-identical to Ollama's `qwen3.5:4b`, so if Ollama has it the app uses that copy instead. `LONGYAN_GGUF` points at any other file.
 
@@ -51,6 +53,7 @@ Some details:
 - The weights are mapped from disk, not copied, so the app's own memory footprint with the model loaded is about 0.6 GB. macOS can drop the mapped pages under memory pressure and read them back later. When macOS warns that memory is low, the saved states below are dropped; when it's critical, the model is unloaded too.
 - Only the last token's next-word odds are read, so the context keeps room for one (`n_outputs_max`). The default sized llama.cpp's work buffer for every token of a batch: 507 MB instead of 79.
 - Qwen 3.5 is a hybrid model, and its recurrent state can't be cut back to a shared prefix. So the state at the end of each of the last two prompts is saved (58 to 81 MB each), and a repeated prompt, such as a card prepared and then opened, skips re-reading it. The state after each kind of prompt's fixed start (instructions and examples) is saved too, so a new passage reads only its own turn. Saved states live in their own pages: in Swift arrays, the freed ones stayed with the process and the footprint grew past 1 GB. `LONGYAN_LLAMA_LOG=1` shows llama.cpp's own log.
+- The model can only write the tokens in `Resources/output-tokens.txt` (67,535 of 248,320: everything in CC-CEDICT's English definitions, single-token English words, ASCII and control tokens; `scripts/make-output-tokens.py` makes it). Our llama.cpp patch adds `llama_model_set_output_tokens`, which copies only those rows of the output table to the GPU. The full table is shared with the input side and loads on the CPU side, so only the rows the prompt looks up are read. On the t3 set, resident memory went from 3,115 to 2,830 MB and each written token from 15.7 to 13.4 ms. The footprint rose from 544 to 684 MB, since the GPU copy of the kept rows counts there and the mapped file doesn't. Timing also moves: the kept logits are read back at once, so the wait for the prompt's last token counts as prompt time (about 11 ms more) instead of answer time. Picks read only digits and replies are English, so nothing else is needed. On the t3 set 12 of 570 translations changed, judged blind: on the test split one got better and one turned wrong (81% right either way), and dev was unchanged. Real reading was the same (P 132/136, T 49/52). `LONGYAN_TRIM=0` keeps the whole table.
 - Picks aren't generated as text. The answer up to each number (`{\n  "w01": `, or `等=` on a phrase's line) is added to the prompt and the number is read from the model's probabilities for the next token. That's one pass per word instead of one per token, with identical results in about half the time: a single word takes about 0.13 s, a phrase 0.21 s. `LONGYAN_PICK=generate` generates them instead, for comparison.
 - On real reading, even picks with under 50% confidence were mostly right (9 of 11), so no pick is held back for low confidence.
 - A selection's translation, read in its sentence, often went on to finish the clause (卷了，我想 "…I want to lie flat"). So the English glosses of the sentence's other words, minus any the selection's own words share, are kept out while decoding (`OutsideWords.swift`). Once the selection's words are all said and the next word would be a kept-out one, the reply stops there. Only the built-in model does this. `LONGYAN_NO_BAN=1` turns it off and `LONGYAN_BAN_LOG=1` prints the kept-out words.
@@ -172,4 +175,4 @@ The videos in `site/media/` aren't in git: they're assets of the `site-media` pr
 
 ## Licenses
 
-Data derived from CC-CEDICT (`Resources/cedict_ts.u8`, `Resources/sense-order.tsv`, `Resources/sense-everyday.tsv`, `Resources/extra-words.u8`, and the compiled `cedict.bin`, shipped with the dictionary's license header in `Contents/Resources/Licenses/`) is CC BY-SA 4.0, as CC-CEDICT requires. llama.cpp and Sparkle are MIT; their licenses are in `Resources/licenses/` and ship with the app.
+Data derived from CC-CEDICT (`Resources/cedict_ts.u8`, `Resources/sense-order.tsv`, `Resources/sense-everyday.tsv`, `Resources/extra-words.u8`, `Resources/output-tokens.txt`, and the compiled `cedict.bin`, shipped with the dictionary's license header in `Contents/Resources/Licenses/`) is CC BY-SA 4.0, as CC-CEDICT requires. llama.cpp (and our patch to it) and Sparkle are MIT; their licenses are in `Resources/licenses/` and ship with the app.

@@ -3,6 +3,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 [ -f Resources/cedict_ts.u8 ] || scripts/fetch-cedict.sh
+# llama.cpp with our patch: built again whenever the patch changes.
+[ "$(cat Vendor/llama.stamp 2>/dev/null)" = "$(shasum -a 256 patches/llama.cpp-output-tokens.patch scripts/build-llama.sh)" ] || scripts/build-llama.sh
 # --dev adds the debug notification (probe, usage simulation; see App.swift), never in releases.
 # --release makes the download: a plain ad-hoc signature and build/LongyanReader-<version>.zip.
 mode="${1:-}"
@@ -45,7 +47,7 @@ codesign --force --deep --sign - "$app/Contents/Frameworks/Sparkle.framework"   
 cp LICENSE "$app/Contents/Resources/Licenses/Longyan-Reader.txt"
 cp Resources/licenses/llama.cpp-LICENSE.txt "$app/Contents/Resources/Licenses/llama.cpp.txt"
 cp Resources/licenses/Sparkle-LICENSE.txt "$app/Contents/Resources/Licenses/Sparkle.txt"
-cp Resources/AppIcon.icns Resources/longyan-mark.png Resources/notes.json Resources/examples.json Resources/note-cues.json Resources/sense-order.tsv Resources/sense-everyday.tsv "$app/Contents/Resources/"
+cp Resources/AppIcon.icns Resources/longyan-mark.png Resources/notes.json Resources/examples.json Resources/note-cues.json Resources/sense-order.tsv Resources/sense-everyday.tsv Resources/output-tokens.txt "$app/Contents/Resources/"
 cat > "$app/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
