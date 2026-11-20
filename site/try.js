@@ -127,10 +127,12 @@
       const senses = d.words[info.word] || [];
       const picks = info.chosen != null && senses.length > 1 && !info.grammar;
       opened = Card().openWord({ senses, card: info, inPlace, onPart: (part) => openPart(part) }, r);
-      if (opened && picks) pickNote(opened, info.chosen - 1);
+      if (opened && picks) pickNote(opened, () => ({ scope: opened.el, chosen: info.chosen - 1, id: "word" }));
     } else {
       const phrase = d.phrases[key];
       if (phrase) opened = Card().openPhrase({ phrase, words: d.words }, r);
+      // On a phrase's card, the same tip on a word's meaning while its list is open.
+      if (opened && opened.pickTarget) pickNote(opened, opened.pickTarget);
     }
     if (!opened) return;
     const at = selRect().top, s0 = sel;
@@ -154,7 +156,8 @@
   // springs out beside the card pointing at it: one line, in the card's own glass, with a
   // soft arrow on the row. The row's check stays the only check. The tip is outside the card,
   // so the card stays as the app shows it, and only beside it: where there's no room (a
-  // phone), the blue row says it alone.
+  // phone), the blue row says it alone. On a phrase's card it's the same, for the word whose
+  // meanings are open: it comes once the list has opened, and goes as the list closes.
   const TIP = { gap: 6, arrow: 8, base: 8, r: 12 };
   // The tip and its arrow as one outline, the arrow on the left, pointing at y = ay.
   function tipPath(w, h, ay) {
@@ -164,7 +167,9 @@
       ` Q0,${f(ay)} .6,${f(ay - 0.55)} C1.6,${f(ay - 1.7)} ${A},${f(ay - b * 0.45)} ${A},${f(ay - b)} V${r} A${r},${r} 0 0 1 ${A + r},0 Z`;
   }
   let note = null;
-  function pickNote(card, chosen) {
+  // `target()`: where the pick is now, { scope, chosen, id }, or null while there's none to show.
+  const OPENING = 260;
+  function pickNote(card, target) {
     dropNote();
     const el = document.createElement("div");
     el.className = "pick-note";
@@ -175,7 +180,7 @@
       </div>`;
     document.body.append(el);
     const tip = el.firstElementChild, glass = tip.children[0], shape = tip.children[1], outline = shape.querySelector("path");
-    const n = { el, card, chosen, y: null, raf: 0, from: performance.now() + (reduce ? 0 : 260), key: "" };
+    const n = { el, card, y: null, raf: 0, from: 0, key: "", id: null, hold: 0 };
     note = n;
     const mark = (row) => card.el.querySelectorAll(".lc-row.here").forEach((r) => { if (r !== row) r.classList.remove("here"); });
     n.unmark = () => mark(null);
@@ -184,14 +189,20 @@
       if (note !== n) return;
       if (!card.el.isConnected || Card().open !== card) { dropNote(); return; }
       n.raf = requestAnimationFrame(track);
-      const cr = card.el.getBoundingClientRect(), vw = innerWidth, vh = innerHeight;
-      const row = card.el.querySelector(`.lc-row[data-i="${chosen}"]`);
+      const cr = card.el.getBoundingClientRect(), vw = innerWidth, vh = innerHeight, now = performance.now();
+      const t = target();
+      // A new list (or the card itself) opening: the tip waits until it's in.
+      if ((t && t.id) !== n.id) { n.id = t && t.id; n.from = now + (reduce ? 0 : OPENING); }
+      const row = t && t.scope.querySelector(`.lc-row[data-i="${t.chosen}"]`);
       const check = row && row.querySelector(".lc-check.on");
-      const otherPicked = !check && card.el.querySelector(".lc-check.on");
+      const otherPicked = t && !check && t.scope.querySelector(".lc-check.on");
       // Picked something else: it's the visitor's pick now, not the app's, so neither shows.
-      const show = !!check && !otherPicked && performance.now() >= n.from;
+      const show = !!check && !otherPicked && now >= n.from;
       mark(show ? row : null);
       if (show) row.classList.add("here");
+      // Going: it fades where it stood, rather than following a list that's closing.
+      if (!show && el.classList.contains("on")) { el.classList.remove("on"); n.hold = now + 240; }
+      if (!show && now < n.hold) return;
       const w = el.offsetWidth, h = el.offsetHeight, reach = TIP.gap + TIP.arrow;
       const side = cr.right + reach + w <= vw - 16 ? "right" : cr.left - reach - w >= 16 ? "left" : null;
       // Not while the row is scrolled out of the card's view: the arrow would point at nothing.

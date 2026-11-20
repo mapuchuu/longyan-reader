@@ -1027,6 +1027,15 @@
         for (const col of cols) col.style.width = "var(--col)";
       }
       for (const e of rowEls) renderRow(e, false);
+      // For the page around the card: while a word's meanings are open, and the app picked one
+      // of them from the sentence, the open list and that meaning. Nothing while closed, or
+      // for a word it couldn't pick from context (one meaning, grammar, matched to the
+      // translation, a guess).
+      card.pickTarget = () => {
+        const e = rowEls.find((x) => x.r.id === st.expanded && x.detail), r = e && e.r;
+        if (!r || r.senses.length < 2 || r.shown == null || r.grammar || r.viaTranslation || r.guess || r.failure) return null;
+        return { scope: e.detail, chosen: r.shown, id: r.id };
+      };
     });
   }
 
