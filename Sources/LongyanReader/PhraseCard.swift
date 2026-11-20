@@ -8,6 +8,8 @@ final class PhraseState: ObservableObject {
     let selection: Selection
     let tokens: [PhraseToken]
     let senses: [Int: [Sense]]
+    /// Each word's everyday sense, shown when nothing else picks one.
+    private let everyday: [Int: Int]
     /// Rows line up with the translation once it's whole: aligning on every streamed word
     /// re-read the whole translation per word and could flip a row's meaning mid-stream.
     @Published var translation: String? { didSet { if !streaming { alignToTranslation() } } }
@@ -54,9 +56,9 @@ final class PhraseState: ObservableObject {
     }
 
     /// The sense the row showed before the reader picked: the model's, else the one that fits
-    /// the translation, else the first.
+    /// the translation, else the everyday one.
     private func suggestedSense(_ token: PhraseToken) -> Int {
-        suggested[token.id].map { $0.senseNumber - 1 } ?? translationSense[token.id] ?? 0
+        suggested[token.id].map { $0.senseNumber - 1 } ?? translationSense[token.id] ?? everyday[token.id] ?? 0
     }
 
     /// Whether the reader has moved this row away from its suggested meaning.
@@ -84,9 +86,13 @@ final class PhraseState: ObservableObject {
         self.selection = selection
         let tokens = Segmenter.phrase(selection.range, in: selection.passage, dict: dict)
         self.tokens = tokens
-        var senses: [Int: [Sense]] = [:]
-        for t in tokens { senses[t.id] = dict.senses(for: t.text) }
+        var senses: [Int: [Sense]] = [:], everyday: [Int: Int] = [:]
+        for t in tokens {
+            senses[t.id] = dict.senses(for: t.text)
+            everyday[t.id] = dict.everydayIndex(for: t.text, in: senses[t.id] ?? [])
+        }
         self.senses = senses
+        self.everyday = everyday
     }
 
     /// Takes the senses chosen up front; the reader's own picks stay.
@@ -307,12 +313,12 @@ final class PhraseState: ObservableObject {
     }
 
     /// Index of the sense the row shows: the reader's or model's choice, else the one that
-    /// fits the translation, else the first.
+    /// fits the translation, else the everyday one (sense-everyday.tsv).
     func shownSense(_ token: PhraseToken) -> Int? {
         if let grammar = grammar(token) { return senses[token.id]?.firstIndex { $0.pinyin == grammar.reading } ?? 0 }
         if let c = choices[token.id] { return c.senseNumber - 1 }
         if let i = translationSense[token.id] { return i }
-        return (senses[token.id] ?? []).isEmpty ? nil : 0
+        return (senses[token.id] ?? []).isEmpty ? nil : everyday[token.id] ?? 0
     }
 
     /// The model's wording for this word in this passage, when it adds something to the gloss.

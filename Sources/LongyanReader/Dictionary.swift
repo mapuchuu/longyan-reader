@@ -164,6 +164,16 @@ final class CEDict {
         return Array(out.prefix(limit))
     }
 
+    /// Where in `list` (this word's `senses(for:)`) the everyday meaning is, to show first when
+    /// no model picks: from sense-everyday.tsv, else 0. A traditional form uses its simplified
+    /// form's line, matched by gloss.
+    func everydayIndex(for word: String, in list: [Sense]) -> Int {
+        let s = simplified(word)
+        guard let (form, order) = SenseOrder.everyday[word].map({ (word, $0) }) ?? SenseOrder.everyday[s].map({ (s, $0) }),
+              let first = order.apply(to: senses(for: form, handOrdered: false)).first else { return 0 }
+        return list.firstIndex { $0.gloss == first.gloss && (form != word || $0.pinyin == first.pinyin) } ?? 0
+    }
+
     /// How many senses a model chooses between, to keep its prompt short. Common senses sort first.
     static let modelSenseLimit = 14
 

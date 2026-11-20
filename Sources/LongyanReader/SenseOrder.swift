@@ -38,12 +38,19 @@ struct SenseOrder {
     /// LONGYAN_NO_SENSE_ORDER=1 turns the file off, for before/after comparisons.
     static let enabled = ProcessInfo.processInfo.environment["LONGYAN_NO_SENSE_ORDER"] == nil
 
-    static let shared: [String: SenseOrder] = {
-        let url = Bundle.main.url(forResource: "sense-order", withExtension: "tsv")
-            ?? URL(fileURLWithPath: FileManager.default.currentDirectoryPath + "/Resources/sense-order.tsv")
+    static let shared = load("sense-order")
+
+    /// Resources/sense-everyday.tsv: the meaning to show first when no model picks one, in the
+    /// same format. It's kept apart from sense-order.tsv because the order of the list the model
+    /// reads nudges its pick: moving 追's "to chase" up for everyone made 4B slightly worse.
+    static let everyday = enabled ? load("sense-everyday") : [:]
+
+    private static func load(_ name: String) -> [String: SenseOrder] {
+        let url = Bundle.main.url(forResource: name, withExtension: "tsv")
+            ?? URL(fileURLWithPath: FileManager.default.currentDirectoryPath + "/Resources/\(name).tsv")
         guard let text = try? String(contentsOf: url, encoding: .utf8) else { return [:] }
         return parse(text)
-    }()
+    }
 
     static func parse(_ text: String) -> [String: SenseOrder] {
         var out: [String: SenseOrder] = [:]

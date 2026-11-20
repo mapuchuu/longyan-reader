@@ -263,6 +263,10 @@ enum LocalModel {
     (translate its sense, not its characters). Reply with the English translation only.
     """
 
+    /// EXPERIMENT (LONGYAN_PROMPT2=1): small words small models drop, and the subject they guess.
+    static let promptV2 = ProcessInfo.processInfo.environment["LONGYAN_PROMPT2"] == "1"
+    static let keepWords = "Keep the small words that change the meaning, such as 才 (only then), 都 (even, all), 又 (again), 却 (yet) and 也 (also). If the part has no subject, take it from the surrounding text; don't assume I or you."
+
     private static func contextPrompt(_ context: String, _ part: String) -> String {
         "Surrounding text: \(context)\nTranslate only this part of it: \(part)"
     }
@@ -283,7 +287,7 @@ enum LocalModel {
     /// selection is all said: 4B kept finishing the clause (卷了，我想 "…I want to lie flat").
     static func translate(_ text: String, context: String? = nil, dict: CEDict? = nil,
                           partial: @MainActor (String) -> Void = { _ in }) async throws -> String {
-        var messages = [["role": "system", "content": translationInstructions]]
+        var messages = [["role": "system", "content": translationInstructions + (promptV2 ? " " + keepWords : "")]]
         if let context {
             // Told only to translate the part, the 4B model still translated the whole sentence
             // about a third of the time; two worked examples stop that (real reading: 22/52 →
@@ -292,7 +296,9 @@ enum LocalModel {
                 messages.append(["role": "user", "content": contextPrompt(c, part)])
                 messages.append(["role": "assistant", "content": english])
             }
-            messages.append(["role": "user", "content": contextPrompt(context, text)])
+            var prompt = contextPrompt(context, text)
+            if let note = IdiomHints.note(for: text, dict: dict) { prompt += "\n" + note }   // EXPERIMENT
+            messages.append(["role": "user", "content": prompt])
         } else {
             messages.append(["role": "user", "content": text])
         }

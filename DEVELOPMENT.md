@@ -171,4 +171,4 @@ The videos in `site/media/` aren't in git: they're assets of the `site-media` pr
 
 ## Licenses
 
-Data derived from CC-CEDICT (`Resources/cedict_ts.u8`, `Resources/sense-order.tsv`, `Resources/extra-words.u8`, and the compiled `cedict.bin`, shipped with the dictionary's license header in `Contents/Resources/Licenses/`) is CC BY-SA 4.0, as CC-CEDICT requires. llama.cpp and Sparkle are MIT; their licenses are in `Resources/licenses/` and ship with the app.
+Data derived from CC-CEDICT (`Resources/cedict_ts.u8`, `Resources/sense-order.tsv`, `Resources/sense-everyday.tsv`, `Resources/extra-words.u8`, and the compiled `cedict.bin`, shipped with the dictionary's license header in `Contents/Resources/Licenses/`) is CC BY-SA 4.0, as CC-CEDICT requires. llama.cpp and Sparkle are MIT; their licenses are in `Resources/licenses/` and ship with the app.

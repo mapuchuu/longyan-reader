@@ -119,7 +119,10 @@ enum CLI {
             for (word, order) in SenseOrder.shared where dict.senses(for: word, handOrdered: false).count != order.count {
                 misses.append("sense order: \(word) was written for \(order.count) senses, now \(dict.senses(for: word, handOrdered: false).count)")
             }
-            print("notes \(NotesStore.shared.count), examples \(ExamplesStore.shared.count), cues \(NoteCues.byWord.values.map(\.count).reduce(0, +)), sense orders \(SenseOrder.shared.count): \(misses.count) unmatched")
+            for (word, order) in SenseOrder.everyday where dict.senses(for: word, handOrdered: false).count != order.count {
+                misses.append("everyday sense: \(word) was written for \(order.count) senses, now \(dict.senses(for: word, handOrdered: false).count)")
+            }
+            print("notes \(NotesStore.shared.count), examples \(ExamplesStore.shared.count), cues \(NoteCues.byWord.values.map(\.count).reduce(0, +)), sense orders \(SenseOrder.shared.count), everyday senses \(SenseOrder.everyday.count): \(misses.count) unmatched")
             misses.forEach { print("  " + $0) }
             if !misses.isEmpty { exit(1) }
         case "--senses-all" where args.count >= 3:
@@ -138,6 +141,56 @@ enum CLI {
                 let senses = dict.senses(for: word).forModel
                 print(word + "\t" + senses.enumerated().map { "\($0 + 1). \($1.gloss)" }.joined(separator: " | "))
             }
+        case "--teach" where args.count >= 3:
+            // EXPERIMENT: passages with the selection in 【】, one per line → selection, the context
+            // the app sends, and the translation, tab separated (training data for a smaller model).
+            let dict = try CEDict.load()
+            for line in try String(contentsOfFile: args[2], encoding: .utf8).split(separator: "\n") {
+                let s = String(line), raw = s.replacingOccurrences(of: "【", with: "").replacingOccurrences(of: "】", with: "")
+                let passage = Array(raw)
+                guard let a = s.firstIndex(of: "【"), let b = s.firstIndex(of: "】") else { continue }
+                let lo0 = s.distance(from: s.startIndex, to: a), hi0 = s.distance(from: s.startIndex, to: b) - 1
+                let r = Segmenter.wholeWords(lo0..<hi0, in: passage, dict: dict)
+                let selected = String(passage[r]), context = Segmenter.translationContext(for: r, in: passage)
+                let t = (try? await LocalModel.translate(selected, context: context, dict: dict)) ?? ""
+                print("\(selected)\t\(context ?? "")\t\(t.replacingOccurrences(of: "\n", with: " "))")
+                fflush(stdout)
+            }
+        case "--hints" where args.count >= 3:
+            // EXPERIMENT: passages with the selection in 【】, one per line → the selection the app sends and
+            // IdiomHints for it ("word=gloss" joined by " ;; "), tab separated, for other translators' runners.
+            let dict = try CEDict.load()
+            for line in try String(contentsOfFile: args[2], encoding: .utf8).split(separator: "\n") {
+                let s = String(line), passage = Array(s.replacingOccurrences(of: "【", with: "").replacingOccurrences(of: "】", with: ""))
+                guard let a = s.firstIndex(of: "【"), let b = s.firstIndex(of: "】") else { print(""); continue }
+                let lo0 = s.distance(from: s.startIndex, to: a), hi0 = s.distance(from: s.startIndex, to: b) - 1
+                let r = Segmenter.wholeWords(lo0..<hi0, in: passage, dict: dict)
+                print("\(String(passage[r]))\t" + IdiomHints.hints(for: String(passage[r]), dict: dict).map { "\($0.0)=\($0.1)" }.joined(separator: " ;; "))
+            }
+        case "--card-rows" where args.count >= 3:
+            // EXPERIMENT: passages with the selection in 【】, one per line → every phrase-card row, tab separated:
+            // line number (0-based), word, grammar summary or -, the word's senses numbered (n. gloss | ...), the
+            // current model's pick (sense number or -), the everyday sense shown with no model. Picks run as the card runs them, after the translation.
+            let dict = try CEDict.load()
+            for (n, line) in try String(contentsOfFile: args[2], encoding: .utf8).split(separator: "\n", omittingEmptySubsequences: false).enumerated() {
+                let s = String(line), raw = s.replacingOccurrences(of: "【", with: "").replacingOccurrences(of: "】", with: "")
+                let passage = Array(raw)
+                guard let a = s.firstIndex(of: "【"), let b = s.firstIndex(of: "】") else { continue }
+                let lo0 = s.distance(from: s.startIndex, to: a), hi0 = s.distance(from: s.startIndex, to: b) - 1
+                let r = Segmenter.wholeWords(lo0..<hi0, in: passage, dict: dict)
+                let selected = String(passage[r]), context = Segmenter.translationContext(for: r, in: passage)
+                if selected.count == 1 || !dict.senses(for: selected).isEmpty { continue }   // a word card, not a phrase card
+                let tokens = Segmenter.phrase(r, in: passage, dict: dict)
+                let translation = try? await LocalModel.translate(selected, context: context, dict: dict)
+                let picks = await PhraseState.resolve(tokens, in: passage, dict: dict, translation: translation)
+                for t in tokens {
+                    let senses = dict.senses(for: t.text)
+                    let grammar = GrammarWords.entry(t.text, in: passage, at: t.range.lowerBound)?.summary ?? "-"
+                    let list = senses.enumerated().map { "\($0 + 1). \($1.gloss.prefix(90))" }.joined(separator: " | ")
+                    print("\(n)\t\(t.text)\t\(grammar.replacingOccurrences(of: "\t", with: " "))\t\(list.replacingOccurrences(of: "\t", with: " "))\t\(picks[t.id].map { String($0.senseNumber) } ?? "-")\t\(dict.everydayIndex(for: t.text, in: senses) + 1)")
+                }
+                fflush(stdout)
+            }
         case "--eval-real" where args.count >= 3:
             // Lookups from real reading: --eval-real notes/real-eval.tsv [P|S|T] [nocontext]
             //   P  passage with the selection in 【】, a word in it, wanted senses: the phrase card's pick
@@ -150,6 +203,7 @@ enum CLI {
             let withContext = !args.contains("nocontext")
             var right: [String: Int] = [:], total: [String: Int] = [:], unoffered = 0
             var ms: [String: Int] = [:], calibration = Calibration()
+            var substringRight = 0   // T right under the old substring matching, for comparison
             for line in try String(contentsOfFile: args[2], encoding: .utf8).split(separator: "\n") where !line.hasPrefix("#") {
                 let f = line.split(separator: "\t", omittingEmptySubsequences: false).map(String.init)
                 guard f.count >= 4, only == nil || f[0] == only else { continue }
@@ -173,7 +227,8 @@ enum CLI {
                     let lower = t.lowercased()
                     let must = f[3].lowercased().split(separator: "|").map(String.init)
                     let mustNot = f.count > 4 ? f[4].lowercased().split(separator: "|").map(String.init) : []
-                    let ok = (must.isEmpty || must.contains { lower.contains($0) }) && !mustNot.contains { lower.contains($0) }
+                    let ok = (must.isEmpty || must.contains { containsPhrase($0, in: lower) }) && !mustNot.contains { containsPhrase($0, in: lower) }
+                    if (must.isEmpty || must.contains { lower.contains($0) }) && !mustNot.contains { lower.contains($0) } { substringRight += 1 }
                     if ok { right[kind, default: 0] += 1 } else { print("WRONG T [\(selected)] want \(f[3])\(mustNot.isEmpty ? "" : ", not " + f[4]): \(t)") }
                     continue
                 }
@@ -205,6 +260,7 @@ enum CLI {
             for k in total.keys.sorted() {
                 print("\(k): right \(right[k, default: 0])/\(total[k]!), \(ms[k, default: 0] / max(total[k]!, 1)) ms each")
             }
+            if total["T"] != nil { print("T with substring matching: right \(substringRight)") }
             if unoffered > 0 { print("right sense not offered: \(unoffered)") }
         case "--eval-single" where args.count >= 3:
             // The same file as --eval-phrase, picked the way a single-word card does.
@@ -612,9 +668,12 @@ enum CLI {
             addWord(text)
             // As App.showWord does for a selection of one word.
             let context = Segmenter.context(for: range, in: passage)
-            let senses = dict.senses(for: context.word)
+            var senses = dict.senses(for: context.word)
             let grammar = GrammarWords.entry(context.word, in: passage, at: range.lowerBound)
             let modelReady = SenseChooser.canChoose && !senses.isEmpty && grammar == nil
+            if !modelReady, grammar == nil, case let i = dict.everydayIndex(for: context.word, in: senses), i > 0 {
+                senses.insert(senses.remove(at: i), at: 0)
+            }
             let state = LookupState(context: context, senses: senses,
                                     phase: modelReady ? .choosing : .dictionaryOnly(senses.isEmpty ? "not in dictionary" : SenseChooser.noPickerReason))
             var partRange: Range<Int>?
@@ -873,4 +932,16 @@ struct Calibration {
         guard counts.contains(where: { $0.all > 0 }) else { return }
         print("confidence: " + zip(Self.bands, counts).map { "\($0.label) \($1.right) of \($1.all) correct" }.joined(separator: ", "))
     }
+}
+
+/// Whether a translation contains a wanted phrase as whole words, for the T evals: "ok" doesn't
+/// match "look". Short phrases may take an ending ("pay" matches "pays", "paid" is listed
+/// separately); phrases with spaces at the edges or not starting with a letter match as written.
+func containsPhrase(_ phrase: String, in text: String) -> Bool {
+    let p = phrase.lowercased(), t = text.lowercased()
+    guard p.trimmingCharacters(in: .whitespaces) == p, p.first?.isLetter == true else { return t.contains(p) }
+    let stems: Set<String> = ["stud", "smil"]
+    let end = p.count <= 4 && !stems.contains(p) ? "(s|es|ed|d|ing|ly|n|ped|ted|ting|ping|ning)?\\b" : ""
+    let pattern = "\\b" + NSRegularExpression.escapedPattern(for: p) + end
+    return t.range(of: pattern, options: .regularExpression) != nil
 }

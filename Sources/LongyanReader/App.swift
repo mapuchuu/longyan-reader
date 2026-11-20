@@ -675,9 +675,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func showWord(_ context: WordInContext, appName: String?, near anchor: NSRect, alone: Bool = false) {
         guard let dict else { return }
-        let senses = dict.senses(for: context.word)
+        var senses = dict.senses(for: context.word)
         let grammar = GrammarWords.entry(context.word, in: context.passage, at: context.wordRange.lowerBound)
         let modelReady = SenseChooser.canChoose && !senses.isEmpty && grammar == nil && !(alone && senses.count > 1)
+        // No model will pick, so nothing reads this list but the card: the everyday meaning goes first.
+        if !modelReady, grammar == nil, case let i = dict.everydayIndex(for: context.word, in: senses), i > 0 {
+            senses.insert(senses.remove(at: i), at: 0)
+        }
         let why = senses.isEmpty ? LookupView.notInDictionary
             : alone && senses.count > 1 ? "this app doesn't share the sentence" : SenseChooser.noPickerReason
         let state = LookupState(context: context, senses: senses, phase: modelReady ? .choosing : .dictionaryOnly(why))

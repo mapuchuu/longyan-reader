@@ -45,7 +45,7 @@ codesign --force --deep --sign - "$app/Contents/Frameworks/Sparkle.framework"   
 cp LICENSE "$app/Contents/Resources/Licenses/Longyan-Reader.txt"
 cp Resources/licenses/llama.cpp-LICENSE.txt "$app/Contents/Resources/Licenses/llama.cpp.txt"
 cp Resources/licenses/Sparkle-LICENSE.txt "$app/Contents/Resources/Licenses/Sparkle.txt"
-cp Resources/AppIcon.icns Resources/longyan-mark.png Resources/notes.json Resources/examples.json Resources/note-cues.json Resources/sense-order.tsv "$app/Contents/Resources/"
+cp Resources/AppIcon.icns Resources/longyan-mark.png Resources/notes.json Resources/examples.json Resources/note-cues.json Resources/sense-order.tsv Resources/sense-everyday.tsv "$app/Contents/Resources/"
 cat > "$app/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

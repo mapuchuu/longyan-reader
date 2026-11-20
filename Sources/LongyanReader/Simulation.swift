@@ -188,6 +188,11 @@ extension AppDelegate {
                   "words CC-CEDICT lacks (extra-words.u8) are found and kept whole (\(opposite.joined(separator: " ")))")
             let stale = SenseOrder.shared.filter { dict.senses(for: $0.key, handOrdered: false).count != $0.value.count }.map(\.key)
             check(stale.isEmpty, "every sense-order.tsv line matches the dictionary (stale: \(stale.sorted().joined()))")
+            let staleEveryday = SenseOrder.everyday.filter { dict.senses(for: $0.key, handOrdered: false).count != $0.value.count }.map(\.key)
+            check(staleEveryday.isEmpty, "every sense-everyday.tsv line matches the dictionary (stale: \(staleEveryday.sorted().joined()))")
+            let zhui = dict.senses(for: "追")
+            check(zhui[dict.everydayIndex(for: "追", in: zhui)].gloss.contains("chase") && dict.senses(for: "追") == zhui,
+                  "with no model, 追 shows \"to chase\" first; the list the model reads is unchanged")
             let yan = dict.senses(for: "眼")
             check(yan.first?.gloss.hasPrefix("eye") == true && !yan.forModel.contains { $0.gloss.contains("salient") }
                   && yan.contains { $0.gloss.contains("salient") },
