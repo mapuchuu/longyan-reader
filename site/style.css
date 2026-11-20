@@ -611,10 +611,11 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 @media (prefers-reduced-motion: reduce) { .appearance-thumb { transition: none; } }
 /* Apple's mark on the download buttons, set the way Apple sets it beside a word: the apple's
    body as tall as the capitals, standing on the baseline, only the leaf rising above. The
-   viewBox is the ink, so .925em is the glyph. The buttons align it by baseline rather than
+   viewBox is the ink, so .925em is the glyph; overflow stays visible so the curves' edge pixels
+   are not clipped where the box lands between pixels. The buttons align it by baseline rather than
    centring the box, which would lift it by half the leaf. The negative top margin keeps the
    leaf from growing the line. */
-.apple, .button .apple { width: .753em; height: .925em; fill: currentColor; stroke: none; flex: none; vertical-align: baseline; margin: -.1em .4em -.02em 0; }
+.apple, .button .apple { width: .753em; height: .925em; overflow: visible; fill: currentColor; stroke: none; flex: none; vertical-align: baseline; margin: -.1em .4em -.02em 0; }
 .button:hover .apple { transform: none; }
 .button:has(.apple), .bar-links .bar-download { flex-wrap: wrap; align-content: center; align-items: baseline; }
 .bar-links .bar-download .grow { align-self: center; }
