@@ -111,7 +111,7 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .button:hover svg { transform: translateY(2px); }
 .hero-actions .button-quiet { height: 46px; }
 /* Who it runs on, under the buttons: before anyone downloads it for an Intel Mac. */
-.hero-fine { flex-basis: 100%; margin: -16px 0 0; font-size: 14px; color: rgba(245, 245, 247, .5); letter-spacing: -0.01em; }
+.hero-fine { flex-basis: 100%; margin: -16px 0 0; font-size: 14px; line-height: 1.5; color: rgba(245, 245, 247, .5); letter-spacing: -0.01em; }
 .button-quiet { display: inline-flex; align-items: center; gap: 6px; font-size: 17px; font-weight: 500; text-decoration: none; color: rgba(245, 245, 247, .86); transition: color .2s; }
 .button-quiet svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: transform .3s var(--ease-out); }
 .button-quiet:hover { color: #fff; }
@@ -911,16 +911,28 @@ figcaption b { color: var(--ink); font-weight: 600; }
 .step-bar { display: block; height: 3px; margin-top: 12px; border-radius: 2px; background: rgba(255, 255, 255, .12); overflow: hidden; opacity: 0; transition: opacity .4s; }
 .step-bar b { display: block; height: 100%; background: rgba(245, 245, 247, .85); transform: scaleX(0); transform-origin: left; border-radius: inherit; }
 .motion .steps li.on .step-bar { opacity: 1; }
-/* Under the heading, a quiet pointer on to the download at the end of the page; once a
-   download has started, the note that it has takes its place. */
-.install-hint { display: inline-flex; align-items: center; gap: 6px; margin-top: 14px; font-size: 17px; font-weight: 500; color: var(--graphite); text-decoration: none; letter-spacing: -0.012em; transition: color .2s; }
-.install-hint svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-.install-hint:hover { color: #f5f5f7; }
-.motion .in .install-hint svg { animation: nudge 1.6s var(--ease-out) 1s 2; }
-@keyframes nudge { 0%, 100% { transform: none; } 30% { transform: translateY(3px); } }
-.started { display: none; color: var(--t2); font-weight: 500; }
-.started.on { display: block; }
-.install-hint:has(~ .started.on) { display: none; }
+/* Under the heading, the download itself, so the steps follow it. Once a download has
+   started, a note that it has takes the button's place, with a way to try again. */
+.install-get { display: grid; place-items: center; min-height: 46px; margin-top: 26px; }
+.install-get > * { grid-area: 1 / 1; }
+.section-head .started { display: none; margin: 0; font-size: 17px; font-weight: 500; color: var(--graphite); letter-spacing: -0.012em; }
+.started-done { color: var(--t2); }
+.started a { color: #f5f5f7; text-decoration: none; }
+.started a:hover { text-decoration: underline; }
+.install.downloading .install-get .button { visibility: hidden; }
+.install.downloading .section-head .started { display: block; }
+.section-head .install-fine { margin: 18px auto 0; max-width: none; font-size: 14px; line-height: 1.5; color: rgba(245, 245, 247, .5); letter-spacing: -0.01em; }
+
+/* A phone can't run the app, so there each download button copies the page's link instead,
+   to open on a Mac. The nav's Download takes a phone to these steps. */
+.for-phone { display: none; }
+/* The small print under each download: where its second line has to wrap, evenly. */
+.hero-fine, .install-fine { text-wrap: balance; }
+.fine-line { display: block; }
+@media (hover: none) and (pointer: coarse) {
+  .for-mac { display: none !important; }
+  .for-phone { display: inline; }
+}
 
 .mac { position: relative; }
 .mac-screen {
@@ -1141,7 +1153,9 @@ figcaption b { color: var(--ink); font-weight: 600; }
 .closing p { text-wrap: balance; font-size: 21px; color: rgba(255, 255, 255, .84); margin: 14px auto 30px; max-width: 30em; letter-spacing: -0.016em; }
 .closing p a { color: #fff; }
 .closing .button { background: #fff; }
-.closing .closing-fine { font-size: 13px; color: rgba(255, 255, 255, .88); text-shadow: 0 1px 8px rgba(5, 8, 30, .45); margin: 18px auto 0; }
+/* The page ends on reassurance, not another download: the steps just above have one. */
+.closing .closing-link { color: #fff; text-shadow: 0 1px 8px rgba(5, 8, 30, .45); }
+.closing .closing-link:hover { color: #fff; opacity: .8; }
 
 footer { padding: 28px 0 44px; font-size: 12.5px; color: #8e8e93; }
 footer p { margin: 0 0 6px; }

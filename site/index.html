@@ -15,7 +15,7 @@
 <link rel="icon" href="favicon.ico" sizes="32x32">
 <link rel="icon" href="images/tab-icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="images/touch-icon.png">
-<link rel="stylesheet" href="style.css?v=1120d">
+<link rel="stylesheet" href="style.css?v=1120f">
 <script>
   // Scroll motion, unless the visitor asked for less (or ?still, for screenshots).
   if (!matchMedia("(prefers-reduced-motion: reduce)").matches && !/[?&]still/.test(location.search)) document.documentElement.classList.add("motion");
@@ -30,7 +30,7 @@
       <a class="hide-small" href="#features">Features</a>
       <a class="hide-small" href="#install">Install</a>
       <a href="https://github.com/mapuchuu/longyan-reader">GitHub</a>
-      <a class="bar-download" href="#install" data-glide><svg class="apple" viewBox="4.04 2.97 14.75 18.11" aria-hidden="true"><path d="M16.37 12.6c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.77-3.32-1.8-1.41-.14-2.76.83-3.47.83-.72 0-1.82-.81-2.99-.79-1.54.02-2.96.9-3.75 2.27-1.6 2.78-.41 6.88 1.15 9.13.76 1.1 1.67 2.34 2.86 2.3 1.15-.05 1.58-.74 2.97-.74 1.39 0 1.78.74 2.99.72 1.24-.02 2.02-1.12 2.77-2.23.87-1.28 1.23-2.52 1.25-2.58-.03-.01-2.4-.92-2.42-3.65zM14.1 5.86c.63-.77 1.06-1.83.94-2.89-.91.04-2.02.61-2.67 1.37-.58.67-1.1 1.76-.96 2.8 1.02.08 2.06-.52 2.69-1.28z"/></svg>Download<i class="grow" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M8 2.6v10.8M3.9 9.3 8 13.4l4.1-4.1"/></svg></i></a>
+      <a class="bar-download" href="https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip" data-download><svg class="apple" viewBox="4.04 2.97 14.75 18.11" aria-hidden="true"><path d="M16.37 12.6c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.77-3.32-1.8-1.41-.14-2.76.83-3.47.83-.72 0-1.82-.81-2.99-.79-1.54.02-2.96.9-3.75 2.27-1.6 2.78-.41 6.88 1.15 9.13.76 1.1 1.67 2.34 2.86 2.3 1.15-.05 1.58-.74 2.97-.74 1.39 0 1.78.74 2.99.72 1.24-.02 2.02-1.12 2.77-2.23.87-1.28 1.23-2.52 1.25-2.58-.03-.01-2.4-.92-2.42-3.65zM14.1 5.86c.63-.77 1.06-1.83.94-2.89-.91.04-2.02.61-2.67 1.37-.58.67-1.1 1.76-.96 2.8 1.02.08 2.06-.52 2.69-1.28z"/></svg>Download<i class="grow" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M8 2.6v10.8M3.9 9.3 8 13.4l4.1-4.1"/></svg></i></a>
     </div>
   </div>
 </nav>
@@ -45,8 +45,8 @@
       <p class="hero-sub">Highlight Chinese in any app, and Longyan shows you what it means in the context of that sentence.</p>
       <div class="hero-actions">
         <a class="button" href="#try" data-try>Try it in your browser<i class="grow" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M8 2.6v10.8M3.9 9.3 8 13.4l4.1-4.1"/></svg></i></a>
-        <a class="button-quiet" href="#install" data-glide>Installation steps <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg></a>
-        <p class="hero-fine">Free, for Macs with Apple silicon and macOS 15 or later.</p>
+        <a class="button-quiet" href="https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip" data-download><span class="for-mac">Download for Mac</span><span class="for-phone">Copy link for your Mac</span> <svg class="for-mac" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5"/></svg></a>
+        <p class="hero-fine">Free · Apple silicon · macOS 15 or later</p>
       </div>
     </div>
     <div class="try" id="try">
@@ -187,8 +187,11 @@
 <section class="install" id="install">
   <div class="wrap section-head center" data-reveal>
     <h2>Installation for macOS</h2>
-    <a class="install-hint" href="#download" data-glide>Download below <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5"/></svg></a>
-    <p class="started" id="started" role="status">Your download has started.</p>
+    <div class="install-get">
+      <a class="button" href="https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip" data-download><svg class="apple" viewBox="4.04 2.97 14.75 18.11" aria-hidden="true"><path d="M16.37 12.6c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.77-3.32-1.8-1.41-.14-2.76.83-3.47.83-.72 0-1.82-.81-2.99-.79-1.54.02-2.96.9-3.75 2.27-1.6 2.78-.41 6.88 1.15 9.13.76 1.1 1.67 2.34 2.86 2.3 1.15-.05 1.58-.74 2.97-.74 1.39 0 1.78.74 2.99.72 1.24-.02 2.02-1.12 2.77-2.23.87-1.28 1.23-2.52 1.25-2.58-.03-.01-2.4-.92-2.42-3.65zM14.1 5.86c.63-.77 1.06-1.83.94-2.89-.91.04-2.02.61-2.67 1.37-.58.67-1.1 1.76-.96 2.8 1.02.08 2.06-.52 2.69-1.28z"/></svg><span class="for-mac">Download for Mac</span><span class="for-phone">Copy link for your Mac</span></a>
+      <p class="started" id="started" role="status"><span class="started-done">Your download has started.</span> Didn’t start? <a href="https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip">Try again</a></p>
+    </div>
+    <p class="install-fine"><span class="fine-line">Free · Apple silicon · macOS 15 or later</span><span class="fine-line">About 2.8&nbsp;GB in total, including the reading model.</span></p>
   </div>
   <div class="wrap install-grid" data-reveal>
     <div class="steps-col">
@@ -196,7 +199,7 @@
       <li><button type="button" data-step="0" aria-pressed="true">Open the zip and drag <b>Longyan&nbsp;Reader</b> to Applications.</button><i class="step-bar"><b></b></i></li>
       <li><button type="button" data-step="1" aria-pressed="false">Open it. macOS says it can’t verify the app. Click <b>Done</b>.</button><i class="step-bar"><b></b></i></li>
       <li><button type="button" data-step="2" aria-pressed="false">In System Settings › Privacy &amp; Security, scroll down and click <b>Open Anyway</b>. Enter your password, then click <b>Open Anyway</b> again.</button><i class="step-bar"><b></b></i></li>
-      <li><button type="button" data-step="3" aria-pressed="false">Turn on Accessibility when the app asks, and download the reading model.</button><i class="step-bar"><b></b></i></li>
+      <li><button type="button" data-step="3" aria-pressed="false">Turn on Accessibility when the app asks. Then download the 2.7&nbsp;GB reading model, or click <b>Later</b> and get it from the menu bar any time.</button><i class="step-bar"><b></b></i></li>
     </ol>
     </div>
     <div class="mac" aria-hidden="true">
@@ -309,9 +312,8 @@
   <div class="wrap" data-reveal>
     <svg class="closing-mark" viewBox="0 0 1200 848.53" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M0 424.26L300 124.26A424.26 424.26 0 0 1 900 124.26L1200 424.26L900 724.26A424.26 424.26 0 0 1 300 724.26ZM225 424.26L412.5 236.76A265.17 265.17 0 0 1 787.5 236.76L975 424.26L787.5 611.76A265.17 265.17 0 0 1 412.5 611.76ZM471.43 424.26L535.71 359.98A90.91 90.91 0 0 1 664.29 359.98L728.57 424.26L664.29 488.55A90.91 90.91 0 0 1 535.71 488.55ZM728.57 424.26L975 424.26L851.79 547.48Z"/></svg>
     <h2>Free, offline, &amp; open source</h2>
-    <p>There’s no account to make and nothing to pay. All the code is public on <a href="https://github.com/mapuchuu/longyan-reader">GitHub</a>.</p>
-    <a class="button" href="https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip" data-download><svg class="apple" viewBox="4.04 2.97 14.75 18.11" aria-hidden="true"><path d="M16.37 12.6c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.77-3.32-1.8-1.41-.14-2.76.83-3.47.83-.72 0-1.82-.81-2.99-.79-1.54.02-2.96.9-3.75 2.27-1.6 2.78-.41 6.88 1.15 9.13.76 1.1 1.67 2.34 2.86 2.3 1.15-.05 1.58-.74 2.97-.74 1.39 0 1.78.74 2.99.72 1.24-.02 2.02-1.12 2.77-2.23.87-1.28 1.23-2.52 1.25-2.58-.03-.01-2.4-.92-2.42-3.65zM14.1 5.86c.63-.77 1.06-1.83.94-2.89-.91.04-2.02.61-2.67 1.37-.58.67-1.1 1.76-.96 2.8 1.02.08 2.06-.52 2.69-1.28z"/></svg>Download for Mac</a>
-    <p class="closing-fine">Apple silicon, macOS 15 or later. Windows coming soon.</p>
+    <p>There’s no account to make and nothing to pay, and all the code is public.</p>
+    <a class="button-quiet closing-link" href="https://github.com/mapuchuu/longyan-reader">View the code on GitHub <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg></a>
   </div>
 </section>
 
@@ -325,13 +327,13 @@
   </div>
 </footer>
 
-<script src="data.js?v=1120d"></script>
-<script src="card.js?v=1120d"></script>
-<script src="hero.js?v=1120d"></script>
-<script src="try.js?v=1120d"></script>
-<script src="paper.js?v=1120d"></script>
-<script src="motion.js?v=1120d"></script>
-<script src="tiles.js?v=1120d"></script>
-<script src="install.js?v=1120d"></script>
+<script src="data.js?v=1120f"></script>
+<script src="card.js?v=1120f"></script>
+<script src="hero.js?v=1120f"></script>
+<script src="try.js?v=1120f"></script>
+<script src="paper.js?v=1120f"></script>
+<script src="motion.js?v=1120f"></script>
+<script src="tiles.js?v=1120f"></script>
+<script src="install.js?v=1120f"></script>
 </body>
 </html>

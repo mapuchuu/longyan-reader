@@ -442,8 +442,7 @@
   }
   document.querySelectorAll("[data-continue]").forEach((b) => b.addEventListener("click", toStatement));
 
-  // In-page links (the hero's Installation steps, the install section's Download below): down
-  // to where they point, on the same glide. Without script they're plain links.
+  // In-page links: down to where they point, on the same glide. Without script they're plain links.
   document.querySelectorAll("[data-glide]").forEach((a) => a.addEventListener("click", (e) => {
     const t = document.querySelector(a.getAttribute("href"));
     if (!t) return;
@@ -451,11 +450,42 @@
     glideTo(t.getBoundingClientRect().top + window.scrollY);
   }));
 
-  // After a download starts, point to the install steps.
-  document.querySelectorAll("[data-download]").forEach((a) => a.addEventListener("click", () => {
-    const note = document.getElementById("started");
-    if (note) note.classList.add("on");
-    setTimeout(() => document.getElementById("install").scrollIntoView({ behavior: reduce ? "auto" : "smooth" }), 300);
+  // Every Download downloads. On a Mac the link does it, and the page glides to the install
+  // steps, where a note says it has started (with a way to try again). A phone can't run the
+  // app: there the buttons copy this page's link to open on a Mac, and the nav's Download
+  // takes it to the steps.
+  const phone = matchMedia("(hover: none) and (pointer: coarse)");
+  const install = document.getElementById("install");
+  const toInstall = () => glideTo(install.getBoundingClientRect().top + window.scrollY);
+  const PAGE = "https://longyan.app/#install";
+  function copy(text) {
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text).then(() => true, () => copyOld(text));
+    return Promise.resolve(copyOld(text));
+  }
+  function copyOld(text) {
+    const t = document.createElement("textarea");
+    t.value = text; t.setAttribute("readonly", ""); t.style.cssText = "position:fixed;opacity:0;top:0;left:0";
+    document.body.append(t); t.select();
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch (_) {}
+    t.remove();
+    return ok;
+  }
+  document.querySelectorAll("[data-download]").forEach((a) => a.addEventListener("click", (e) => {
+    if (phone.matches) {
+      e.preventDefault();
+      if (a.classList.contains("bar-download")) { toInstall(); return; }
+      const label = a.querySelector(".for-phone");
+      copy(PAGE).then((ok) => {
+        if (!label) return;
+        clearTimeout(a._copied);
+        label.textContent = ok ? "Link copied" : "Couldn’t copy. Open longyan.app on your Mac";
+        a._copied = setTimeout(() => { label.textContent = "Copy link for your Mac"; }, ok ? 2200 : 4000);
+      });
+      return;
+    }
+    install.classList.add("downloading");
+    if (!install.contains(a)) setTimeout(toInstall, 300);
   }));
 
   if (window.LongyanHero && window.LongyanHero.lines().length) build({ lines: window.LongyanHero.lines(), current: 0 });
