@@ -452,12 +452,17 @@
 
   // Every Download downloads. On a Mac the link does it, and the page glides to the install
   // steps, where a note says it has started (with a way to try again). A phone can't run the
-  // app: there the buttons copy this page's link to open on a Mac, and the nav's Download
-  // takes it to the steps.
+  // app: there the buttons open the share sheet (AirDrop, Messages, Mail) to send this page to
+  // a Mac, or copy its link where there's no share sheet, and the nav's Download takes it to
+  // the steps.
   const phone = matchMedia("(hover: none) and (pointer: coarse)");
   const install = document.getElementById("install");
   const toInstall = () => glideTo(install.getBoundingClientRect().top + window.scrollY);
   const PAGE = "https://longyan.app/#install";
+  const SHARE = { title: "Longyan Reader", url: PAGE };
+  const canShare = !!(navigator.share && (!navigator.canShare || navigator.canShare(SHARE)));
+  const PHONE_LABEL = canShare ? "Send to your Mac" : "Copy link for your Mac";
+  document.querySelectorAll("[data-download] .for-phone").forEach((l) => { l.textContent = PHONE_LABEL; });
   function copy(text) {
     if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text).then(() => true, () => copyOld(text));
     return Promise.resolve(copyOld(text));
@@ -471,17 +476,22 @@
     t.remove();
     return ok;
   }
+  function copyWithNote(a) {
+    const label = a.querySelector(".for-phone");
+    copy(PAGE).then((ok) => {
+      if (!label) return;
+      clearTimeout(a._copied);
+      label.textContent = ok ? "Link copied" : "Couldn’t copy. Open longyan.app on your Mac";
+      a._copied = setTimeout(() => { label.textContent = PHONE_LABEL; }, ok ? 2200 : 4000);
+    });
+  }
   document.querySelectorAll("[data-download]").forEach((a) => a.addEventListener("click", (e) => {
     if (phone.matches) {
       e.preventDefault();
       if (a.classList.contains("bar-download")) { toInstall(); return; }
-      const label = a.querySelector(".for-phone");
-      copy(PAGE).then((ok) => {
-        if (!label) return;
-        clearTimeout(a._copied);
-        label.textContent = ok ? "Link copied" : "Couldn’t copy. Open longyan.app on your Mac";
-        a._copied = setTimeout(() => { label.textContent = "Copy link for your Mac"; }, ok ? 2200 : 4000);
-      });
+      // Closing the sheet is an AbortError: nothing to do. Any other failure copies instead.
+      if (canShare) navigator.share(SHARE).catch((err) => { if (!err || err.name !== "AbortError") copyWithNote(a); });
+      else copyWithNote(a);
       return;
     }
     install.classList.add("downloading");
