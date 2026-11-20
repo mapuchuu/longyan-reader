@@ -69,6 +69,9 @@ section { position: relative; }
 .bar-links { display: flex; align-items: center; gap: 26px; font-size: 13.5px; }
 .bar-links a { text-decoration: none; color: rgba(245, 245, 247, .72); transition: color .2s; }
 .bar-links a:hover { color: var(--ink); }
+/* GitHub as its mark, at the links' cap height and a touch over, with room to tap. */
+.bar-links .bar-gh { display: inline-grid; place-items: center; width: 30px; height: 30px; margin: 0 -6px; }
+.bar-gh svg { width: 18px; height: 18px; display: block; }
 .bar-links .bar-download { display: inline-flex; align-items: center; background: var(--ink); color: #000; padding: 5px 13px; border-radius: 999px; font-weight: 500; }
 .bar-links .bar-download:hover { color: #000; background: #fff; }
 
@@ -921,6 +924,10 @@ figcaption b { color: var(--ink); font-weight: 600; }
 .started a:hover { text-decoration: underline; }
 .install.downloading .install-get .button { visibility: hidden; }
 .install.downloading .section-head .started { display: block; }
+/* Under the steps, why step 2 and 3 are needed at all: one quiet paragraph. */
+.install-why { max-width: 40em; margin: 72px auto 0; text-align: center; text-wrap: pretty; font-size: 15px; line-height: 1.55; color: var(--graphite); letter-spacing: -0.01em; }
+.install-why b { font-weight: 600; color: rgba(245, 245, 247, .82); }
+.install-why a { color: rgba(245, 245, 247, .82); }
 .section-head .install-fine { margin: 18px auto 0; max-width: none; font-size: 14px; line-height: 1.5; color: rgba(245, 245, 247, .5); letter-spacing: -0.01em; }
 
 /* A phone can't run the app, so there each download button copies the page's link instead,
