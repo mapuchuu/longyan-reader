@@ -23,6 +23,58 @@ enum CLI {
         while true { RunLoop.main.run(mode: .default, before: .distantFuture) }
     }
 
+    /// --pressure FILE [wait]: translates the 【】 lines of FILE, then checks what memory pressure
+    /// frees. Without `wait` it runs the handler's work directly (warning, then critical) and
+    /// translates again after each; with `wait` it waits for macOS's own notices
+    /// (`sudo memory_pressure -S -l warn`, then `-l critical`) and reports each change.
+    @MainActor private static func pressureTest(_ args: [String]) async throws {
+        let dict = try CEDict.load()
+        let lines = try String(contentsOfFile: args[2], encoding: .utf8).split(separator: "\n").map(String.init)
+        func translateAll() async -> [String] {
+            var out: [String] = []
+            for s in lines {
+                let raw = s.replacingOccurrences(of: "【", with: "").replacingOccurrences(of: "】", with: "")
+                let passage = Array(raw)
+                guard let a = s.firstIndex(of: "【"), let b = s.firstIndex(of: "】") else { continue }
+                let lo = s.distance(from: s.startIndex, to: a), hi = s.distance(from: s.startIndex, to: b) - 1
+                let r = Segmenter.wholeWords(lo..<hi, in: passage, dict: dict)
+                out.append((try? await LocalModel.translate(String(passage[r]), context: Segmenter.translationContext(for: r, in: passage), dict: dict)) ?? "")
+            }
+            return out
+        }
+        func memoryMB() -> (footprint: Double, resident: Double) {
+            var info = task_vm_info_data_t(), n = mach_msg_type_number_t(MemoryLayout<task_vm_info_data_t>.size / MemoryLayout<natural_t>.size)
+            let kr = withUnsafeMutablePointer(to: &info) { $0.withMemoryRebound(to: integer_t.self, capacity: Int(n)) { task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), $0, &n) } }
+            return kr == KERN_SUCCESS ? (Double(info.phys_footprint) / 1e6, Double(info.resident_size) / 1e6) : (-1, -1)
+        }
+        func show(_ label: String) -> String {
+            let m = EmbeddedModel.shared.memoryState()
+            let mem = memoryMB()
+            let line = String(format: "%@: model %@, %d saved states (%.0f MB), footprint %.0f MB, resident %.0f MB", label, m.loaded ? "loaded" : "not loaded", m.states, m.stateMB, mem.footprint, mem.resident)
+            FileHandle.standardError.write(Data((line + "\n").utf8)); return line
+        }
+        let first = await translateAll()
+        _ = show("after \(lines.count) translations")
+        if args.count > 3, args[3] == "wait" {
+            if ProcessInfo.processInfo.environment["LONGYAN_IDLE_UNLOAD"] != "0" { print("set LONGYAN_IDLE_UNLOAD=0, or the idle unload looks like pressure") }
+            FileHandle.standardError.write(Data("waiting for memory pressure (ctrl-C to stop)\n".utf8))
+            var last = ""
+            while true {
+                try await Task.sleep(for: .seconds(1))
+                let m = EmbeddedModel.shared.memoryState()
+                let now = "\(m.loaded) \(m.states)"
+                if now != last { if !last.isEmpty { _ = show("changed at \(Date().formatted(date: .omitted, time: .standard))") }; last = now }
+            }
+        }
+        for critical in [false, true] {
+            EmbeddedModel.shared.simulatePressure(critical: critical)
+            _ = show(critical ? "after critical" : "after warning")
+            let again = await translateAll()
+            _ = show("translated again")
+            print("answers \(again == first ? "identical" : "differ: \(zip(first, again).filter { $0 != $1 }.count) of \(first.count)")")
+        }
+    }
+
     @MainActor private static func downloadTest(_ args: [String]) async {
         guard ModelDownloader.testFolder != nil else { print("set LONGYAN_DOWNLOAD_TEST=folder first"); return }
         let d = ModelDownloader.shared, t = Date()
@@ -51,6 +103,8 @@ enum CLI {
 
     private static func dispatch(_ args: [String]) async throws {
         switch args[1] {
+        case "--pressure" where args.count >= 3:
+            try await pressureTest(args)
         case "--download":
             // With LONGYAN_DOWNLOAD_TEST=folder. `--download N` stops after N seconds and starts
             // again, to test resuming.

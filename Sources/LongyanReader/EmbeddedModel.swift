@@ -65,7 +65,11 @@ final class EmbeddedModel: @unchecked Sendable {
     static let contextSize: UInt32 = 2048
     /// Like Ollama, the model (about 3 GB) is let go after five idle minutes; the next lookup,
     /// or selecting Chinese text (warmUp), loads it again in about a second.
-    private static let idleUnload: TimeInterval = 300
+    /// LONGYAN_IDLE_UNLOAD=seconds changes it (--pressure's wait turns it off with 0).
+    private static let idleUnload: TimeInterval = {
+        guard let v = ProcessInfo.processInfo.environment["LONGYAN_IDLE_UNLOAD"].flatMap(Double.init) else { return 300 }
+        return v > 0 ? v : .infinity
+    }()
     private var lastUse = Date()
     private var backendReady = false
     private var exitHandlerSet = false
@@ -169,16 +173,29 @@ final class EmbeddedModel: @unchecked Sendable {
         if pressure == nil {
             let src = DispatchSource.makeMemoryPressureSource(eventMask: [.warning, .critical], queue: queue)
             src.setEventHandler { [unowned self, unowned src] in
-                if ProcessInfo.processInfo.environment["LONGYAN_TIMING"] == "1" {
-                    FileHandle.standardError.write(Data("memory pressure: \(src.data.contains(.critical) ? "critical" : "warning")\n".utf8))
-                }
-                self.snapshots = []; self.prefixes = []
-                if src.data.contains(.critical), self.ctx != nil { self.free() }
+                self.relieve(critical: src.data.contains(.critical))
             }
             src.resume()
             pressure = src
         }
         noteUse()
+    }
+
+    /// Memory is short: the saved states go; if it's critical, the model too.
+    private func relieve(critical: Bool) {
+        if ProcessInfo.processInfo.environment["LONGYAN_TIMING"] == "1" {
+            FileHandle.standardError.write(Data("memory pressure: \(critical ? "critical" : "warning") at \(Date().formatted(date: .omitted, time: .standard))\n".utf8))
+        }
+        snapshots = []; prefixes = []
+        if critical, ctx != nil { free() }
+    }
+
+    /// For --pressure: what the handler would do, run as if macOS had sent it.
+    func simulatePressure(critical: Bool) { queue.sync { relieve(critical: critical) } }
+
+    /// For --pressure: whether the model is loaded, and the saved states it holds.
+    func memoryState() -> (loaded: Bool, states: Int, stateMB: Double) {
+        queue.sync { (ctx != nil, snapshots.count + prefixes.count, Double((snapshots + prefixes).reduce(0) { $0 + $1.count }) / 1e6) }
     }
 
     /// Quitting: waits out a load or request in progress (a request stops at its next token),
@@ -192,6 +209,7 @@ final class EmbeddedModel: @unchecked Sendable {
     /// Called on the queue after each load and request.
     private func noteUse() {
         lastUse = Date()
+        guard Self.idleUnload.isFinite else { return }
         queue.asyncAfter(deadline: .now() + Self.idleUnload + 1) {
             if self.ctx != nil, Date().timeIntervalSince(self.lastUse) >= Self.idleUnload { self.free() }
         }
