@@ -23,8 +23,38 @@ enum CLI {
         while true { RunLoop.main.run(mode: .default, before: .distantFuture) }
     }
 
+    @MainActor private static func downloadTest(_ args: [String]) async {
+        guard ModelDownloader.testFolder != nil else { print("set LONGYAN_DOWNLOAD_TEST=folder first"); return }
+        let d = ModelDownloader.shared, t = Date()
+        var shown = -1
+        await withCheckedContinuation { (done: CheckedContinuation<Void, Never>) in
+            var resumed = false
+            d.observe {
+                switch d.state {
+                case .downloading(let p) where Int(p * 20) != shown:
+                    shown = Int(p * 20); print(String(format: "%3.0f%%  %.0f s", p * 100, Date().timeIntervalSince(t)))
+                case .verifying: print("verifying")
+                case .done, .failed:
+                    if !resumed { resumed = true; done.resume() }
+                default: break
+                }
+            }
+            d.start()
+            if args.count > 2, let n = Double(args[2]) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + n) {
+                    print("stopping"); d.cancel(); print("starting again"); d.start()
+                }
+            }
+        }
+        print("\(d.state) in \(Int(Date().timeIntervalSince(t))) s")
+    }
+
     private static func dispatch(_ args: [String]) async throws {
         switch args[1] {
+        case "--download":
+            // With LONGYAN_DOWNLOAD_TEST=folder. `--download N` stops after N seconds and starts
+            // again, to test resuming.
+            await downloadTest(args)
         case "--status":
             let t = Date()
             let dict = try CEDict.load()
