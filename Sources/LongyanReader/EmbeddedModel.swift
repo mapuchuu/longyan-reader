@@ -48,6 +48,9 @@ final class EmbeddedModel: @unchecked Sendable {
     /// Each is 58–81 MB (Qwen 3.5 4B's recurrent state is ~53 MB, plus ~0.03 MB a prompt token).
     /// In every test, each reuse was of the latest one; two cover a card's pick and translation.
     private static let maxSnapshots = 2
+    /// The states after each kind of prompt's fixed start (a pick's, a translation's).
+    private var prefixes: [Snapshot] = []
+    private static let maxPrefixes = 2
     static let contextSize: UInt32 = 2048
     /// Like Ollama, the model (about 3 GB) is let go after five idle minutes; the next lookup,
     /// or selecting Chinese text (warmUp), loads it again in about a second.
@@ -130,7 +133,7 @@ final class EmbeddedModel: @unchecked Sendable {
     private func free() {
         if let ctx { llama_free(ctx) }
         if let model { llama_model_free(model) }
-        ctx = nil; model = nil; vocab = nil; cached = []; snapshots = []
+        ctx = nil; model = nil; vocab = nil; cached = []; snapshots = []; prefixes = []
     }
 
     /// Streams a chat reply. `messages` are role/content pairs as sent to Ollama; `grammar`
@@ -169,6 +172,21 @@ final class EmbeddedModel: @unchecked Sendable {
 
     /// Reads a prompt into the context, reusing what's already there, and leaves the logits
     /// for what comes after its last token. Returns how many tokens were reused.
+    private func save(_ tokens: [llama_token]) -> Snapshot? {
+        guard let ctx else { return nil }
+        let size = llama_state_seq_get_size(ctx, 0)
+        var data = [UInt8](repeating: 0, count: size)
+        guard data.withUnsafeMutableBufferPointer({ llama_state_seq_get_data(ctx, $0.baseAddress, size, 0) }) == size else { return nil }
+        return Snapshot(tokens: tokens, data: data)
+    }
+
+    private func restore(_ snap: Snapshot) -> Bool {
+        guard let ctx else { return false }
+        return snap.data.withUnsafeBufferPointer { llama_state_seq_set_data(ctx, $0.baseAddress, $0.count, 0) } > 0
+    }
+
+    private var imStart: llama_token { tokenize("<|im_start|>").first ?? -1 }
+
     private func read(_ tokens: [llama_token]) throws -> Int {
         guard let ctx, let model else { throw Self.error("not loaded") }
         // Reuse what's already been read. A plain transformer keeps its cache up to where this
@@ -188,25 +206,42 @@ final class EmbeddedModel: @unchecked Sendable {
         } else {
             llama_memory_clear(memory, true)
             cached = []
-            if let i = snapshots.firstIndex(where: { $0.tokens == body }),
-               snapshots[i].data.withUnsafeBufferPointer({ llama_state_seq_set_data(ctx, $0.baseAddress, $0.count, 0) }) > 0 {
-                if ProcessInfo.processInfo.environment["LONGYAN_TIMING"] == "1" {
-                    FileHandle.standardError.write(Data("snapshot hit: \(snapshots.count - 1 - i) back\n".utf8))
-                }
+            let timing = ProcessInfo.processInfo.environment["LONGYAN_TIMING"] == "1"
+            if let i = snapshots.firstIndex(where: { $0.tokens == body }), restore(snapshots[i]) {
+                if timing { FileHandle.standardError.write(Data("snapshot hit: \(snapshots.count - 1 - i) back\n".utf8)) }
                 snapshots.append(snapshots.remove(at: i))   // most recently used last
                 cached = body
                 keep = body.count
             } else {
-                llama_memory_clear(memory, true)
-                try decode(body, startingAt: 0)
-                let size = llama_state_seq_get_size(ctx, 0)
-                var data = [UInt8](repeating: 0, count: size)
-                if data.withUnsafeMutableBufferPointer({ llama_state_seq_get_data(ctx, $0.baseAddress, size, 0) }) == size {
-                    snapshots.append(Snapshot(tokens: body, data: data))
+                // The fixed start of the prompt (the instructions and worked examples, up to the
+                // last user turn) is the same for every lookup of a kind, so its state is kept
+                // too, and a new passage reads only its own turn.
+                let starts = body.indices.filter { body[$0] == imStart }
+                let cut = starts.count >= 2 ? starts[starts.count - 2] : 0
+                if cut >= 64, let i = prefixes.firstIndex(where: { $0.tokens.count == cut && body.starts(with: $0.tokens) }),
+                   restore(prefixes[i]) {
+                    prefixes.append(prefixes.remove(at: i))
+                    cached = prefixes.last!.tokens
+                    keep = cut
+                    if timing { FileHandle.standardError.write(Data("prefix hit: \(cut) tokens\n".utf8)) }
+                } else if cut >= 64 {
+                    llama_memory_clear(memory, true)
+                    try decode(Array(body[..<cut]), startingAt: 0)
+                    if let p = save(Array(body[..<cut])) {
+                        prefixes.append(p)
+                        if prefixes.count > Self.maxPrefixes { prefixes.removeFirst() }
+                    }
+                } else {
+                    llama_memory_clear(memory, true)
+                }
+                try decode(Array(body[cached.count...]), startingAt: cached.count)
+                if let snap = save(body) {
+                    snapshots.append(snap)
                     if snapshots.count > Self.maxSnapshots { snapshots.removeFirst() }
-                    if ProcessInfo.processInfo.environment["LONGYAN_TIMING"] == "1" {
+                    if timing {
+                        let all = snapshots + prefixes
                         FileHandle.standardError.write(Data(String(format: "snapshot: %d tokens, %.1f MB; %d kept, %.1f MB\n", body.count,
-                            Double(size) / 1e6, snapshots.count, Double(snapshots.reduce(0) { $0 + $1.data.count }) / 1e6).utf8))
+                            Double(snap.data.count) / 1e6, all.count, Double(all.reduce(0) { $0 + $1.data.count }) / 1e6).utf8))
                     }
                 }
             }
@@ -295,6 +330,7 @@ final class EmbeddedModel: @unchecked Sendable {
             FileHandle.standardError.write(Data(String(format: "timing: prompt %d tok (%d new%@) %.0f ms, answer %d tok %.0f ms: %@\n",
                 tokens.count, tokens.count - keep, llama_model_is_hybrid(model) ? ", hybrid" : "", promptMs, produced,
                 Date().timeIntervalSince(answerStart) * 1000, Self.completeUTF8(bytes).debugDescription).utf8))
+
         }
     }
 
@@ -375,8 +411,14 @@ final class EmbeddedModel: @unchecked Sendable {
         return (Pick(number: j == 0 ? 1 : 9 + j, confidence: share * share2), j == 0 ? [] : [digits[j - 1]])
     }
 
-    private func decode(_ tokens: [llama_token], startingAt pos: Int) throws {
+    private func decode(_ tokens: [llama_token], startingAt pos: Int, allLogits: Bool = false) throws {
         guard let ctx, !tokens.isEmpty else { return }
+        guard decodeRaw(ctx, tokens, at: pos, allLogits: allLogits) else { cached = []; throw Self.error("decode failed") }
+        cached += tokens
+    }
+
+    private func decodeRaw(_ ctx: OpaquePointer, _ tokens: [llama_token], at pos: Int, allLogits: Bool = false) -> Bool {
+        guard !tokens.isEmpty else { return true }
         var batch = llama_batch_init(Int32(tokens.count), 0, 1)
         defer { llama_batch_free(batch) }
         for (i, t) in tokens.enumerated() {
@@ -384,11 +426,10 @@ final class EmbeddedModel: @unchecked Sendable {
             batch.pos[i] = Int32(pos + i)
             batch.n_seq_id[i] = 1
             batch.seq_id[i]![0] = 0
-            batch.logits[i] = i == tokens.count - 1 ? 1 : 0
+            batch.logits[i] = allLogits || i == tokens.count - 1 ? 1 : 0
         }
         batch.n_tokens = Int32(tokens.count)
-        guard llama_decode(ctx, batch) == 0 else { cached = []; throw Self.error("decode failed") }
-        cached += tokens
+        return llama_decode(ctx, batch) == 0
     }
 
     private func tokenize(_ text: String) -> [llama_token] {
