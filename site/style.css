@@ -609,10 +609,15 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .appearance.drag-light button[data-appearance="light"], .appearance.drag-dark button[data-appearance="dark"] { color: #fff; }
 .appearance.drag-light button[data-appearance="dark"], .appearance.drag-dark button[data-appearance="light"] { color: rgba(235, 235, 245, .6); }
 @media (prefers-reduced-motion: reduce) { .appearance-thumb { transition: none; } }
-/* Apple's mark on the download buttons, sized to the cap height and sitting on the baseline. */
-.apple, .button .apple { width: .95em; height: 1.1em; fill: currentColor; stroke: none; flex: none; vertical-align: -0.16em; margin: 0 .4em 0 0; }
+/* Apple's mark on the download buttons, set the way Apple sets it beside a word: the apple's
+   body as tall as the capitals, standing on the baseline, only the leaf rising above. The
+   viewBox is the ink, so .925em is the glyph. The buttons align it by baseline rather than
+   centring the box, which would lift it by half the leaf. The negative top margin keeps the
+   leaf from growing the line. */
+.apple, .button .apple { width: .753em; height: .925em; fill: currentColor; stroke: none; flex: none; vertical-align: baseline; margin: -.1em .4em -.02em 0; }
 .button:hover .apple { transform: none; }
-.button .apple { margin-right: .6em; translate: 0 -1px; }
+.button:has(.apple), .bar-links .bar-download { flex-wrap: wrap; align-content: center; align-items: baseline; }
+.bar-links .bar-download .grow { align-self: center; }
 .button:has(.apple) { padding-left: 20px; }
 
 /* The arrow on the hero's button and the nav's Download: a slot of no width that springs open
