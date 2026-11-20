@@ -362,6 +362,10 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 /* The padding sits inside its one child: a block opening from height 0 can't go below its own
    padding, so padding on .lc-detail itself would jump open by it on the first frame. */
 .lc-detail > .lc-v { padding: calc(2 * var(--u)) 0 calc(8 * var(--u)); }
+/* The rows' highlights reach 8 pt past the text, and the block is clipped while it opens, so
+   its box reaches that far too (only sideways, which opening doesn't touch): a blue row comes
+   in at its full width, rather than at the text's and then widening when the clip lets go. */
+.lc-detail { margin: 0 calc(-8 * var(--u)); padding-left: calc(8 * var(--u)); padding-right: calc(8 * var(--u)); }
 .lc-here { font-size: calc(12 * var(--u)); }
 .lc-here b { font-weight: 500; }
 
