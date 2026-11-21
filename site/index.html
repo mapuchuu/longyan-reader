@@ -15,7 +15,7 @@
 <link rel="icon" href="favicon.ico" sizes="32x32">
 <link rel="icon" href="images/tab-icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="images/touch-icon.png">
-<link rel="stylesheet" href="style.css?v=1120i">
+<link rel="stylesheet" href="style.css?v=1121a">
 <script>
   // Scroll motion, unless the visitor asked for less (or ?still, for screenshots).
   if (!matchMedia("(prefers-reduced-motion: reduce)").matches && !/[?&]still/.test(location.search)) document.documentElement.classList.add("motion");
@@ -197,9 +197,8 @@
     <div class="steps-col">
     <ol class="steps" id="steps">
       <li><button type="button" data-step="0" aria-pressed="true">Open the zip and drag <b>Longyan&nbsp;Reader</b> to Applications.</button><i class="step-bar"><b></b></i></li>
-      <li><button type="button" data-step="1" aria-pressed="false">Open it. macOS says it can’t verify the app. Click <b>Done</b>.</button><i class="step-bar"><b></b></i></li>
-      <li><button type="button" data-step="2" aria-pressed="false">In System Settings › Privacy &amp; Security, scroll down and click <b>Open Anyway</b>. Enter your password, then click <b>Open Anyway</b> again.</button><i class="step-bar"><b></b></i></li>
-      <li><button type="button" data-step="3" aria-pressed="false">Turn on Accessibility when the app asks. Then download the 2.7&nbsp;GB reading model, or click <b>Later</b> and get it from the menu bar any time.</button><i class="step-bar"><b></b></i></li>
+      <li><button type="button" data-step="1" aria-pressed="false">Open it. macOS asks if you’re sure, since it came from the internet. Click <b>Open</b>.</button><i class="step-bar"><b></b></i></li>
+      <li><button type="button" data-step="2" aria-pressed="false">Turn on Accessibility when the app asks. Then download the 2.7&nbsp;GB reading model, or click <b>Later</b> and get it from the menu bar any time.</button><i class="step-bar"><b></b></i></li>
     </ol>
     </div>
     <div class="mac" aria-hidden="true">
@@ -225,53 +224,18 @@
             <img class="ghost-icon" src="images/icon.png" alt="">
           </div>
 
-          <!-- 2. The first open: macOS can't verify it. -->
+          <!-- 2. The first open: macOS asks once, as for anything downloaded. -->
           <div class="scene sc1">
             <div class="alert">
               <img src="images/icon.png" alt="">
-              <b>“Longyan Reader” Not Opened</b>
-              <p>Apple could not verify “Longyan Reader” is free of malware that may harm your Mac or compromise your privacy.</p>
-              <div class="alert-buttons"><span>Move to Trash</span><span class="default">Done</span></div>
+              <b>“Longyan Reader” is an app downloaded from the Internet. Are you sure you want to open it?</b>
+              <p>Safari downloaded this file today at 9:41 from github.com.</p>
+              <div class="alert-buttons"><span>Cancel</span><span class="default">Open</span></div>
             </div>
           </div>
 
-          <!-- 3. System Settings: Open Anyway. -->
+          <!-- 3. The app's own first window: Accessibility, then the reading model. -->
           <div class="scene sc2">
-            <div class="win settings-win">
-              <div class="win-bar"><i class="lights"><i></i><i></i><i></i></i><b>Privacy &amp; Security</b></div>
-              <div class="set-side">
-                <span class="set-search">Search</span>
-                <span><i style="--c:#0a84ff"></i>Wi‑Fi</span><span><i style="--c:#0a84ff"></i>Bluetooth</span><span><i style="--c:#0a84ff"></i>Network</span>
-                <span class="gap"><i style="--c:#8e8e93"></i>General</span><span><i style="--c:#0a84ff"></i>Accessibility</span><span><i style="--c:#1d1d1f"></i>Appearance</span>
-                <span class="sel"><i style="--c:#0a84ff"></i>Privacy &amp; Security</span><span><i style="--c:#1d1d1f"></i>Desktop &amp; Dock</span>
-              </div>
-              <div class="set-main"><div class="set-scroll">
-                <div class="set-group"><span>Location Services<em>On</em></span><span>Contacts</span><span>Calendars</span><span>Accessibility</span><span>Full Disk Access</span></div>
-                <small class="set-label">Security</small>
-                <div class="set-group">
-                  <span>Allow applications from<em>App Store &amp; Known Developers</em></span>
-                  <span class="blocked">“Longyan Reader” was blocked to protect your Mac.<u>Open Anyway</u></span>
-                </div>
-              </div></div>
-            </div>
-            <!-- Then macOS asks for the password, and once more whether to open it. -->
-            <div class="alert auth">
-              <svg class="auth-lock" viewBox="0 0 40 48" aria-hidden="true"><rect x="4" y="20" width="32" height="26" rx="5" fill="#8e8e93"/><path d="M11 21v-7a9 9 0 0 1 18 0v7" fill="none" stroke="#8e8e93" stroke-width="5"/></svg>
-              <b>Privacy &amp; Security</b>
-              <p>Enter your password to allow this.</p>
-              <span class="auth-field"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
-              <div class="alert-buttons"><span>Cancel</span><span class="default">Modify Settings</span></div>
-            </div>
-            <div class="alert reopen">
-              <img src="images/icon.png" alt="">
-              <b>Open “Longyan Reader”?</b>
-              <p>Apple could not verify “Longyan Reader” is free of malware that may harm your Mac or compromise your privacy.</p>
-              <div class="alert-buttons"><span class="anyway">Open Anyway</span><span class="default">Done</span></div>
-            </div>
-          </div>
-
-          <!-- 4. The app's own first window: Accessibility, then the reading model. -->
-          <div class="scene sc3">
             <div class="win onboard">
               <div class="win-bar"><i class="lights"><i></i><i></i><i></i></i></div>
               <div class="ob-body">
@@ -305,7 +269,6 @@
       </div>
     </div>
   </div>
-  <p class="wrap install-why" data-reveal><b>Why macOS warns you.</b> Apple only checks apps from developers in its paid developer program. Longyan is free and open source, so it isn’t part of it.</p>
 </section>
 
 <section class="closing" id="download">
@@ -328,13 +291,13 @@
   </div>
 </footer>
 
-<script src="data.js?v=1120i"></script>
-<script src="card.js?v=1120i"></script>
-<script src="hero.js?v=1120i"></script>
-<script src="try.js?v=1120i"></script>
-<script src="paper.js?v=1120i"></script>
-<script src="motion.js?v=1120i"></script>
-<script src="tiles.js?v=1120i"></script>
-<script src="install.js?v=1120i"></script>
+<script src="data.js?v=1121a"></script>
+<script src="card.js?v=1121a"></script>
+<script src="hero.js?v=1121a"></script>
+<script src="try.js?v=1121a"></script>
+<script src="paper.js?v=1121a"></script>
+<script src="motion.js?v=1121a"></script>
+<script src="tiles.js?v=1121a"></script>
+<script src="install.js?v=1121a"></script>
 </body>
 </html>

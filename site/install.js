@@ -1,5 +1,5 @@
-// Installing, played on a Mac's screen: the four steps one after another, each scene a CSS
-// animation started by a class on the desk ("s0" to "s3"). The step it's on is lit in the
+// Installing, played on a Mac's screen: the three steps one after another, each scene a CSS
+// animation started by a class on the desk ("s0" to "s2"). The step it's on is lit in the
 // list beside it, with a bar filling as it plays. It plays only while it's on screen, and goes
 // round again. Clicking a step shows that one. With motion reduced, nothing plays: each step
 // shows its scene as a still.
@@ -15,11 +15,11 @@
   const progress = document.getElementById("ob-progress");
   const obBar = desk.querySelector(".ob-bar b");
   const moving = document.documentElement.classList.contains("motion");
-  const DUR = [5600, 5200, 8800, 7200];
+  const DUR = [5600, 5200, 7200];
   // Each app's own menus, as its menu bar shows them.
   const APP = [
     ["Finder", "File Edit View Go Window Help"], ["Finder", "File Edit View Go Window Help"],
-    ["System Settings", "Edit View Window Help"], ["Longyan Reader", "Edit Window Help"],
+    ["Longyan Reader", "Edit Window Help"],
   ];
   const menus = desk.querySelector(".mb-menus");
 
@@ -45,11 +45,11 @@
     paint();
   }
 
-  // The reading model's download, in step 4: the bar and its words move together.
+  // The reading model's download, in step 3: the bar and its words move together.
   function paint() {
     const f = Math.min(1, elapsed / DUR[step]);
     bars[step].style.transform = `scaleX(${f})`;
-    if (step === 3 && moving) {
+    if (step === 2 && moving) {
       const p = 0.1 + 0.42 * Math.max(0, Math.min(1, (f - 0.64) / 0.36));
       obBar.style.transform = `scaleX(${p})`;
       const left = Math.max(2, Math.round(6 * (1 - p)));
