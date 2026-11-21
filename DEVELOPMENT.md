@@ -124,7 +124,7 @@ The model sees each noted sense with the first sentence of its note. A few fixed
 ## Releases
 
 1. Bump `version` in `scripts/build-app.sh` (1.0, 1.1, 1.0.1 for a fix) and commit. The build number is the commit count, so the tree has to be clean. Never rewrite main's history: a lower commit count would make the next release look older than the last.
-2. Run `scripts/release.sh notes.md`, where `notes.md` is what's new (shown in the update window). It stops if the app isn't signed with the project certificate.
+2. Run `scripts/release.sh notes.md`, where `notes.md` is what's new (shown in the update window). It signs the app with the project's Developer ID, notarizes and staples it (`scripts/notarize.sh`, a few minutes), and stops if either step didn't work.
 3. Test the update locally (below) before publishing.
 4. Run the commands it prints, in order: create the release as a draft with all three files, then publish it as latest (installed copies and the website follow `releases/latest`, which skips drafts and prereleases), then `scripts/check-release.sh`, then deploy the site. A draft first means the feed never points at a release that's missing a file.
 5. Check the live feed (`curl -sL https://github.com/mapuchuu/longyan-reader/releases/latest/download/appcast.xml`) shows the new build number.
@@ -147,12 +147,17 @@ Unzip the previous release somewhere, open it, and use Check for Updates (or set
 
 Tested from 0.1 (build 97) to 1.0 (build 128) on 2026-11-18: the update installed on quit, nothing quarantined, same requirement. A forged EdDSA signature was refused. An ad-hoc signed update with a good EdDSA signature was installed, which is why the release scripts refuse to sign ad-hoc.
 
+Tested again from the real 0.1 to the notarized Developer ID 1.0 (build 174) on 2026-11-21: downloaded in the background, installed on quit, no quarantine, Gatekeeper accepts it as notarized. On this Mac Accessibility stayed on after the change of certificate, so no prompt appeared. That may not hold on every Mac, so the README and release notes say what to do if it asks.
+
 The release is signed, zipped, and written to `build/release-<version>/` with `appcast.xml`. Installed copies read the feed from the latest release, so publishing the release is what ships the update. The zip is uploaded twice: once with the version in its name, which the appcast points to, and once as `LongyanReader.zip`, which the website's download button links to.
 
-Two keys are needed to make releases. Both are kept outside the repo in `~/Library/Application Support/LongyanReader-signing/`, and both need a backup:
+Three things are needed to make releases. The keys are kept outside the repo in `~/Library/Application Support/LongyanReader-signing/`, and need a backup:
 
-- The self-signed code-signing certificate, `longyan-codesign.p12` (password in the login keychain under `longyan-signing`). It keeps every version the same app as far as macOS is concerned, so Accessibility stays allowed after an update.
+- The Developer ID Application certificate, `developer-id.p12`, imported into `longyan-signing.keychain-db` in that folder (its password is in the login keychain under `longyan-signing`). The app's designated requirement names the team (`team_id` in `scripts/build-app.sh`), so every version is the same app as far as macOS is concerned and Accessibility stays allowed after an update. A lost certificate can be replaced by another one from the same team without users noticing; a different team can't.
 - Sparkle's update key (in the login keychain, exported as `sparkle-private-key.txt`). Without it, installed copies will reject updates.
+- The notary login, saved in the login keychain as the profile `longyan-notary` (`xcrun notarytool store-credentials longyan-notary --apple-id <Apple ID> --team-id <team>`, which asks for an app-specific password from account.apple.com). It can be made again at any time.
+
+Releases up to 0.1 were signed with a self-signed certificate (`longyan-codesign.p12`, kept in the same keychain). 1.0 moved to Developer ID, so 0.1 users grant Accessibility once more after that update. Don't go back: every change of certificate costs every user the grant.
 
 Sparkle's tools (2.10.1) are in the same folder. `release.sh` signs the feed with `sparkle-private-key.txt` when it's there, so it doesn't wait on a keychain prompt.
 

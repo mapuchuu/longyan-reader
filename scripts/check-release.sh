@@ -5,11 +5,13 @@
 #   - the feed's newest item is this version and build
 #   - the site's zip and the feed's zip are byte for byte the local build/release-<version> zip
 #   - the feed's length and EdDSA signature match that zip
-#   - the app inside is signed with the Longyan Reader certificate and says this version
+#   - the app inside is signed with the project's Developer ID, notarized, and says this version
 # LONGYAN_RELEASE_BASE points it somewhere else (a file:// folder) for testing.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 version="${1:-$(sed -n 's/^version=//p' scripts/build-app.sh)}"
+team_id=$(sed -n 's/^team_id=//p' scripts/build-app.sh)
+[ -n "$team_id" ] || { echo "set team_id in scripts/build-app.sh (the Developer ID team)" >&2; exit 1; }
 out="build/release-$version"
 base="${LONGYAN_RELEASE_BASE:-https://github.com/mapuchuu/longyan-reader/releases/latest/download}"
 [ -f "$out/LongyanReader.zip" ] || { echo "no $out: run scripts/release.sh first" >&2; exit 1; }
@@ -61,8 +63,11 @@ if [ -f "$tmp/site.zip" ]; then
   app="$tmp/app/Longyan Reader.app"
   if [ -d "$app" ]; then
     codesign --verify --deep --strict "$app" 2>/dev/null && ok "code signature valid" || bad "code signature invalid"
-    codesign -dr - "$app" 2>&1 | grep -q 'certificate root = H"0c8ae0b42d467fa1412ed3e5b8f6cd5354b99c99"' \
-      && ok "signed with the Longyan Reader certificate" || bad "not signed with the Longyan Reader certificate"
+    codesign -dr - "$app" 2>&1 | grep -Eq "anchor apple generic.*certificate leaf\[subject\.OU\] = \"?$team_id\"?([ )]|$)" \
+      && ok "signed with the project's Developer ID ($team_id)" || bad "not signed with the project's Developer ID ($team_id)"
+    xcrun stapler validate -q "$app" 2>/dev/null && ok "notarization ticket stapled" || bad "no notarization ticket stapled"
+    spctl --assess --type execute -vv "$app" 2>&1 | grep -q "source=Notarized Developer ID" \
+      && ok "Gatekeeper accepts it as notarized" || bad "Gatekeeper doesn't accept it as notarized"
     v=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$app/Contents/Info.plist")
     [ "$v" = "$version" ] && ok "app says $v" || bad "app says '$v', expected $version"
   else

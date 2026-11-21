@@ -8,6 +8,7 @@ The first full release. Highlight Chinese in any app with a drag or a double-cli
 
 **Better**
 
+- The app is now notarized by Apple, so installing no longer needs the Open Anyway step in System Settings.
 - Translations of part of a sentence stay closer to what you highlighted.
 - Traditional characters get the same notes, grammar rules and particle styling as simplified ones.
 - Numbers stay in a selection: 2023年 is looked up whole.
@@ -25,5 +26,7 @@ The first full release. Highlight Chinese in any app with a drag or a double-cli
 - Crashes when quitting during a lookup and on a full disk.
 - A password copied from a password manager no longer comes back to the clipboard after a lookup.
 - History no longer loses words or breaks on a damaged file.
+
+Updating from 0.1: 1.0 is signed differently, so the app may ask for Accessibility again. If it does, turn it on again.
 
 Needs an Apple silicon Mac with macOS 15 or later.

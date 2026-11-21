@@ -5,9 +5,10 @@
 #   scripts/release.sh notes.md    notes.md: what's new, shown in the update window and on the
 #                                  release page (required: an update with no notes looks broken)
 #
-# Needs the signing folder ~/Library/Application Support/LongyanReader-signing/ (the code
-# signing certificate, scripts/sign-release.sh) and the update key in the login keychain,
-# created by Sparkle's generate_keys (backup: sparkle-private-key.txt in that folder).
+# Needs the signing folder ~/Library/Application Support/LongyanReader-signing/ (the Developer ID
+# certificate, scripts/sign-release.sh), the notary login (scripts/notarize.sh) and the update
+# key in the login keychain, created by Sparkle's generate_keys (backup: sparkle-private-key.txt
+# in that folder).
 set -euo pipefail
 [ -f "${1:-}" ] || { echo "usage: scripts/release.sh notes.md   (what's new in this version)" >&2; exit 1; }
 notes="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
@@ -20,14 +21,20 @@ tools="$HOME/Library/Application Support/LongyanReader-signing/sparkle-2.10.1/bi
 git fetch -q origin main
 [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || { echo "HEAD isn't origin/main: push (or pull) first" >&2; exit 1; }
 next=$(sed -n 's/^version=//p' scripts/build-app.sh)
+team_id=$(sed -n 's/^team_id=//p' scripts/build-app.sh)
+[ -n "$team_id" ] || { echo "set team_id in scripts/build-app.sh (the Developer ID team)" >&2; exit 1; }
 ! git rev-parse -q --verify "refs/tags/v$next" >/dev/null && ! gh release view "v$next" >/dev/null 2>&1 \
   || { echo "v$next already exists: bump version in scripts/build-app.sh" >&2; exit 1; }
 
 scripts/build-app.sh --release
-# Every release must be signed with the project certificate: installed copies take any update
-# whose EdDSA signature is good, and an ad-hoc one would cost them the Accessibility grant.
-codesign -dr - "build/Longyan Reader.app" 2>&1 | grep -q 'certificate root = H"0c8ae0b42d467fa1412ed3e5b8f6cd5354b99c99"' \
-  || { echo "the app isn't signed with the Longyan Reader certificate; not releasing" >&2; exit 1; }
+# Every release must be signed with the project's Developer ID and notarized: installed copies
+# take any update whose EdDSA signature is good, and one signed by anyone else would cost them
+# the Accessibility grant.
+app="build/Longyan Reader.app"
+codesign -dr - "$app" 2>&1 | grep -Eq "anchor apple generic.*certificate leaf\[subject\.OU\] = \"?$team_id\"?([ )]|$)" \
+  || { echo "the app isn't signed with the project's Developer ID ($team_id); not releasing" >&2; exit 1; }
+spctl --assess --type execute -vv "$app" 2>&1 | grep -q "source=Notarized Developer ID" \
+  || { echo "the app isn't notarized; not releasing" >&2; exit 1; }
 version=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "build/Longyan Reader.app/Contents/Info.plist")
 build=$(/usr/libexec/PlistBuddy -c "Print CFBundleVersion" "build/Longyan Reader.app/Contents/Info.plist")
 out="build/release-$version"

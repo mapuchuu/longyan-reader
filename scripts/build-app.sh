@@ -6,7 +6,7 @@ cd "$(dirname "$0")/.."
 # llama.cpp with our patch: built again whenever the patch changes.
 [ "$(cat Vendor/llama.stamp 2>/dev/null)" = "$(shasum -a 256 patches/llama.cpp-output-tokens.patch scripts/build-llama.sh)" ] || scripts/build-llama.sh
 # --dev adds the debug notification (probe, usage simulation; see App.swift), never in releases.
-# --release makes the download: a plain ad-hoc signature and build/LongyanReader-<version>.zip.
+# --release makes the download: signed with Developer ID, notarized, and zipped as build/LongyanReader-<version>.zip.
 mode="${1:-}"
 flags=()
 [ "$mode" = "--dev" ] && flags=(-Xswiftc -DDEV_TOOLS)
@@ -19,6 +19,9 @@ build=$(git rev-list --count HEAD)
 # and each update must be signed with the private half of this key.
 feed="https://github.com/mapuchuu/longyan-reader/releases/latest/download/appcast.xml"
 update_key="PKOL1Dilin5y1JcMc78qN9FeLJboDyoMX44FSMKti50="
+# The Apple Developer team that signs releases: the app's designated requirement names it, so
+# it must never change (release.sh and check-release.sh check for it).
+team_id=MDFTVXSYMT
 swift build -c release "${flags[@]+"${flags[@]}"}"
 # Every note, example, cue and sense-order line must still match a dictionary sense.
 .build/release/LongyanReader --check-data
@@ -67,11 +70,13 @@ cat > "$app/Contents/Info.plist" <<PLIST
 </dict></plist>
 PLIST
 if [ "$mode" = "--release" ]; then
-  # Signed with the project's self-signed certificate (scripts/sign-release.sh): the app's
-  # designated requirement names that certificate, so every release is the same app to
-  # macOS and Accessibility stays granted across updates. Without the certificate (a fork,
-  # another Mac) it falls back to plain ad-hoc, where each version needs the grant again.
+  # Signed with the project's Developer ID (scripts/sign-release.sh): the app's designated
+  # requirement names the team, so every release is the same app to macOS and Accessibility
+  # stays granted across updates. Then notarized and stapled, so it opens without the
+  # Open Anyway step. A fork without the certificate can sign ad-hoc (LONGYAN_ALLOW_ADHOC=1),
+  # which can't be notarized and needs the grant again with each version.
   scripts/sign-release.sh "$app"
+  codesign -dv "$app" 2>&1 | grep -q "Signature=adhoc" || scripts/notarize.sh "$app"
   zip="build/LongyanReader-$version.zip"
   rm -f "$zip"
   # No extended attributes or resource forks: other unzip tools would leave them as ._ files

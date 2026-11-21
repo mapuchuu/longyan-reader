@@ -1,18 +1,22 @@
 #!/bin/bash
-# Signs a release build with the Longyan Reader self-signed certificate.
+# Signs a release build with the project's Developer ID certificate, with the hardened
+# runtime and a secure timestamp on every binary, as notarization needs.
 #   scripts/sign-release.sh "build/Longyan Reader.app"
 #
 # The certificate lives in its own keychain, ~/Library/Application Support/LongyanReader-signing/
 # longyan-signing.keychain-db, whose password is in the login keychain (service
-# "longyan-signing"). Back up longyan-codesign.p12 from that folder, with that password: a
-# release signed with any other certificate is a different app to macOS, and users would
-# have to grant Accessibility again. codesign only finds identities in the search list, so
-# the keychain is added for the signing and the list put back afterwards.
+# "longyan-signing"). Back up developer-id.p12 from that folder, with its password: the app's
+# designated requirement names the team, so a release signed with another team's certificate
+# is a different app to macOS, and users would have to grant Accessibility again.
+# Releases up to 0.1 used a self-signed certificate (longyan-codesign.p12, still in that
+# keychain); 1.0 moved to Developer ID, which cost 0.1 users the grant once.
+# codesign only finds identities in the search list, so the keychain is added for the
+# signing and the list put back afterwards.
 set -euo pipefail
 app="${1:?app path}"
 dir="$HOME/Library/Application Support/LongyanReader-signing"
 kc="$dir/longyan-signing.keychain-db"
-identity="Longyan Reader (self-signed)"
+identity="Developer ID Application"
 
 if [ ! -f "$kc" ]; then
   # Sparkle installs any update whose EdDSA signature is good, whatever its code signature,
@@ -39,17 +43,20 @@ done < <(security list-keychains -d user)
 restore() { security list-keychains -d user -s "${saved[@]}"; }
 trap restore EXIT
 security list-keychains -d user -s "${saved[@]}" "$kc"
+security find-identity -v -p codesigning "$kc" | grep -q "\"$identity: " \
+  || { echo "no $identity certificate in $kc (DEVELOPMENT.md, Releases)" >&2; exit 1; }
 
 # Inside out: Sparkle's helpers (as its documentation lists them), the frameworks, then the app.
 sparkle="$app/Contents/Frameworks/Sparkle.framework"
 if [ -d "$sparkle" ]; then
-  codesign --force --sign "$identity" -o runtime "$sparkle/Versions/B/XPCServices/Installer.xpc"
-  codesign --force --sign "$identity" -o runtime --preserve-metadata=entitlements "$sparkle/Versions/B/XPCServices/Downloader.xpc"
-  codesign --force --sign "$identity" -o runtime "$sparkle/Versions/B/Autoupdate"
-  codesign --force --sign "$identity" -o runtime "$sparkle/Versions/B/Updater.app"
-  codesign --force --sign "$identity" -o runtime "$sparkle"
+  codesign --force --timestamp --sign "$identity" -o runtime "$sparkle/Versions/B/XPCServices/Installer.xpc"
+  codesign --force --timestamp --sign "$identity" -o runtime --preserve-metadata=entitlements "$sparkle/Versions/B/XPCServices/Downloader.xpc"
+  codesign --force --timestamp --sign "$identity" -o runtime "$sparkle/Versions/B/Autoupdate"
+  codesign --force --timestamp --sign "$identity" -o runtime "$sparkle/Versions/B/Updater.app"
+  codesign --force --timestamp --sign "$identity" -o runtime "$sparkle"
 fi
-codesign --force --sign "$identity" "$app/Contents/Frameworks/llama.framework"
-codesign --force --sign "$identity" "$app"
+codesign --force --timestamp --sign "$identity" -o runtime "$app/Contents/Frameworks/llama.framework"
+# No entitlements: the app sends no Apple Events, and its frameworks share its team.
+codesign --force --timestamp --sign "$identity" -o runtime "$app"
 codesign --verify --deep --strict "$app"
 codesign -dr - "$app" 2>&1 | grep designated
