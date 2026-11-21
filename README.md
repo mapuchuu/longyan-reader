@@ -70,12 +70,11 @@ The 4B model was as accurate as one twice its size and four times faster. Measur
 ## Install
 
 1. [Download the zip](https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip), unzip it, and drag **Longyan Reader** to your Applications folder.
-2. Open it. macOS will say it can't verify the app. Click **Done**.
-3. Open System Settings > Privacy & Security, scroll down, and click **Open Anyway** next to Longyan Reader. Enter your password, then click **Open Anyway** again when macOS asks.
-4. When the app asks, turn on Longyan Reader under Privacy & Security > Accessibility. It needs this to read the text you highlight.
-5. Download the reading model when it's offered (2.7 GB), or click **Later** and get it from the menu bar any time.
+2. Open it. macOS asks if you're sure, since it came from the internet. Click **Open**.
+3. When the app asks, turn on Longyan Reader under Privacy & Security > Accessibility. It needs this to read the text you highlight.
+4. Download the reading model when it's offered (2.7 GB), or click **Later** and get it from the menu bar any time.
 
-The warning in step 2 is because the app isn't signed with a paid Apple Developer ID. You only have to do this once; updates install without it.
+Updating from 0.1? 1.0 is signed differently. If the app asks for Accessibility again after the update, turn it on again. If it already looks on, switch it off and on.
 
 You'll need a Mac with Apple silicon running macOS 15 or later, and about 4 GB of free space for the model download. The app itself is 34 MB.
 
