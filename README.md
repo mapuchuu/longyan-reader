@@ -9,7 +9,7 @@ Not every meaning the dictionary has: the one the writer meant, with pinyin, a t
 
 <p align="center">
   <a href="https://github.com/mapuchuu/longyan-reader/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/mapuchuu/longyan-reader?style=flat-square&label=release&color=0a84ff"></a>
-  <a href="https://github.com/mapuchuu/longyan-reader/releases"><img alt="Downloads" src="https://img.shields.io/endpoint?style=flat-square&url=https%3A%2F%2Fraw.githubusercontent.com%2Fmapuchuu%2Flongyan-reader%2Fstats%2Fdownloads.json"></a>
+  <a href="https://github.com/mapuchuu/longyan-reader/releases"><img alt="Downloads" src="https://img.shields.io/endpoint?style=flat-square&label=downloads&url=https%3A%2F%2Fraw.githubusercontent.com%2Fmapuchuu%2Flongyan-reader%2Fstats%2Fdownloads.json"></a>
   <a href="https://github.com/mapuchuu/longyan-reader/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/mapuchuu/longyan-reader?style=flat-square&color=ffd60a"></a>
   <img alt="macOS 15+" src="https://img.shields.io/badge/macOS-15%2B-bf5af2?style=flat-square&logo=apple&logoColor=white">
   <img alt="Apple silicon" src="https://img.shields.io/badge/Apple_silicon-native-5e5ce6?style=flat-square">
