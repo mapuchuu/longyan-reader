@@ -1,92 +1,71 @@
 <p align="center">
-  <img src="docs/media/icon-1.png" width="128" alt="">
+  <img src="docs/media/banner-1.jpg" alt="The Longyan eye, drawn in Chinese characters">
 </p>
 
 <h1 align="center">Longyan Reader</h1>
 
-<p align="center"><b>Highlight Chinese in any Mac app. See what each word means in that sentence.</b><br>
-Not every meaning the dictionary has: the one the writer meant, with pinyin, a translation and notes on slang and nuance.</p>
+<p align="center">A pop-up Chinese reader for the Mac that understands the sentence you're reading.</p>
 
 <p align="center">
-  <a href="https://github.com/mapuchuu/longyan-reader/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/mapuchuu/longyan-reader?style=flat-square&label=release&color=0a84ff"></a>
-  <a href="https://github.com/mapuchuu/longyan-reader/releases"><img alt="Downloads" src="https://img.shields.io/endpoint?style=flat-square&label=downloads&url=https%3A%2F%2Fraw.githubusercontent.com%2Fmapuchuu%2Flongyan-reader%2Fstats%2Fdownloads.json"></a>
-  <a href="https://github.com/mapuchuu/longyan-reader/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/mapuchuu/longyan-reader?style=flat-square&color=ffd60a"></a>
-  <img alt="macOS 15+" src="https://img.shields.io/badge/macOS-15%2B-bf5af2?style=flat-square&logo=apple&logoColor=white">
-  <img alt="Apple silicon" src="https://img.shields.io/badge/Apple_silicon-native-5e5ce6?style=flat-square">
-  <img alt="Runs offline" src="https://img.shields.io/badge/runs-offline-64d2ff?style=flat-square">
-  <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/github/license/mapuchuu/longyan-reader?style=flat-square&color=8e8e93"></a>
+  <a href="https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip"><b>Download for Mac</b></a>
+  &nbsp;·&nbsp;
+  <a href="https://longyan.app">Try it in your browser</a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip"><b>Download for Mac</b></a> · <a href="https://longyan.app">longyan.app</a> · Free · open source · macOS 15 or later · Apple silicon
+  <a href="https://github.com/mapuchuu/longyan-reader/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/mapuchuu/longyan-reader?style=flat-square&label=release&color=3d444d"></a>
+  <a href="https://github.com/mapuchuu/longyan-reader/releases"><img alt="Downloads" src="https://img.shields.io/endpoint?style=flat-square&label=downloads&color=3d444d&url=https%3A%2F%2Fraw.githubusercontent.com%2Fmapuchuu%2Flongyan-reader%2Fstats%2Fdownloads.json"></a>
+  <img alt="macOS 15 or later" src="https://img.shields.io/badge/macOS-15%2B-3d444d?style=flat-square">
+  <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/github/license/mapuchuu/longyan-reader?style=flat-square&color=3d444d"></a>
 </p>
+
+<br>
 
 <p align="center">
   <img src="docs/media/demo-1.gif" width="720" alt="A sentence highlighted in a BBC article in Chrome opens a phrase card with its translation and every word's meaning. Opening 根本 shows a note on how it's used and the dictionary's other meanings.">
-  <br><sub><a href="https://longyan.app">Watch the full demo, or try it in your browser, on longyan.app</a></sub>
 </p>
 
-A dictionary gives you every meaning a word has and leaves you to guess. Longyan Reader reads the sentence the word is in and shows the one that fits, in about a tenth of a second, in Safari, Chrome, Preview, Mail, Notes, Pages, PDFs and most other apps. Highlight a phrase and you get a translation and every word's meaning in context. Words that English can't carry, like 面子, 内卷 or 躺平, come with a short note on how they're really used.
+Highlight Chinese in Safari, Chrome, Preview, Mail or almost any other app, and a card opens with what each word means in that sentence. Instead of every definition the word has ever had, you see the one the writer meant, with pinyin, a translation of the whole phrase, and a note when the word carries more than its gloss can say.
 
-Everything runs on your Mac, with a language model chosen and tested for the job. No account, no API key, no subscription, and nothing you read leaves your computer.
+It takes about a tenth of a second, and it all happens on your Mac. The language model runs on your own GPU, so nothing you read leaves your computer. There's no account and nothing to pay for.
 
-## What a dictionary shows, and what Longyan shows
+## One sentence, two answers
 
-**最近工作太卷了，我想躺平。** *"Work has been so intense lately, I want to lie flat and take it easy."*
+最近工作太卷了，我想躺平. *Work has been so intense lately, I just want to lie flat.*
 
-| | 躺平 |
-|---|---|
-| A dictionary | 1. to lie stretched out<br>2. (neologism, attested by 2021) to opt out of the rat race |
-| Longyan Reader | **to opt out of the rat race**, with a note: *Online slang for opting out: a modest life instead of wearing oneself out for a promotion. Often set against 内卷.* |
+Look up 躺平 in a dictionary and you get "to lie stretched out" and "to opt out of the rat race", in that order. Longyan reads the sentence, picks the second, and tells you it's online slang usually set against 内卷.
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/media/word-card-1-dark.png">
-    <img src="docs/media/word-card-1-light.png" width="360" alt="Word card for 躺平: 'to opt out of the rat race', a cultural note, and the dictionary's two meanings with the second one picked">
-  </picture>
-  &nbsp;
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/media/phrase-card-1-dark.png">
-    <img src="docs/media/phrase-card-1-light.png" width="390" alt="Phrase card for 最近工作太卷了，我想躺平: a translation, then each word with its meaning in this sentence">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/media/cards-1-dark.png">
+    <img src="docs/media/cards-1-light.png" width="774" alt="Left, the word card for 躺平: 'to opt out of the rat race', a cultural note, and the dictionary's two meanings with the slang one checked. Right, the phrase card for the whole sentence: a translation, then each word with its meaning here.">
   </picture>
 </p>
 
-## Features
+## What it does
 
-- **The meaning that fits.** A model reads the whole sentence and picks from the dictionary's own meanings. It never makes up a definition.
-- **Phrases and whole sentences.** Highlight more than a word for a natural translation, then every word with its meaning. Click any word to see its other meanings or pick a different one.
-- **Notes where the gloss falls short.** 1,040 hand-checked notes on slang, tone and usage: who says it, when, and how it lands. 关系, 面子, 内卷, 摸鱼, 正能量.
-- **Works where you read.** Web pages, PDFs, ebooks, email, documents and chat apps. If an app won't share its selection, Longyan copies it and puts your clipboard back.
-- **Pinyin in tone colors**, so you start to hear a word as you read it. One click plays it aloud.
-- **A history of what you looked up**, with the sentence and the meaning each word had there. Search it, or export it to Anki or a spreadsheet.
-- **Fast.** Work starts the moment you highlight, so the card is often filled in when it opens. The model unloads after five minutes without a lookup.
-- **Made for the Mac.** A menu bar app with Liquid Glass on macOS 26, light and dark cards, cards you can drag, pin and zoom, and one shortcut: **⌃⌥L**.
+Select a single word and you get its meaning in context, pinyin colored by tone, and the dictionary's other senses underneath in case you want them. Select a phrase or a whole sentence and you get a natural translation first, then every word in it with its meaning there. Any word can be opened to see the rest of its senses or to pick a different one yourself.
 
-## By the numbers
+Meanings always come from CC-CEDICT, so the model chooses between real dictionary entries and never invents one. On top of that sit 1,040 notes, written ahead of time and checked by hand, on the words where a gloss falls short: 面子, 关系, 内卷, 摸鱼, 正能量 and a thousand more.
 
-| | |
-|---|---|
-| **96%** | of meanings picked right on 175 lookups from real reading |
-| **98%** | of notes shown where they belong (51 of 52 held-out cases) |
-| **0.12 s** | to pick a single word's meaning; a whole phrase takes about 0.3 s |
-| **125,274** | dictionary entries (CC-CEDICT) |
-| **1,040** | hand-checked notes on slang, tone and usage |
-| **0 bytes** | of what you read sent anywhere |
+Every lookup goes into a history with its sentence and the meaning the word had there. You can search it or export it to Anki or a spreadsheet.
 
-Measured 2026-11-19 on an M5 Pro with the built-in model. `scripts/evals.sh` runs every test, and `scripts/eval-baseline.tsv` has the full results.
+The app lives in the menu bar. Cards follow light and dark mode, use Liquid Glass on macOS 26, and can be dragged, pinned and zoomed. Everything runs from one shortcut, ⌃⌥L.
 
-### Why it ships its own model
+## How well it works
 
-Apple Intelligence can pick meanings too. A model chosen and tested for this one job does it much better, and faster:
+On 175 lookups taken from real reading, Longyan picked the right meaning 168 times. A single word takes about 0.12 seconds, a whole phrase about 0.3.
 
-| Sense picker | Notes right (of 52 held out) | Wrong notes shown | Per lookup |
+That's because it ships its own model rather than leaning on Apple Intelligence. We tested both, along with other sizes of Qwen, on 52 held-out sentences where the right meaning comes with a note:
+
+| Model | Right | Wrong notes | Per lookup |
 |---|---|---|---|
-| **Qwen 3.5 4B, built in (default)** | **51** | **1** | **~0.15 s** |
-| Qwen 3.5 9B | 51 | 0 | ~0.62 s |
-| Apple Intelligence (3B) with tie-break rules | 38 | 5 | ~0.55 s |
-| Qwen 3.5 2B | 35 | 2 | ~0.18 s |
+| **Qwen 3.5 4B, built in** | **51 of 52** | **1** | **0.15 s** |
+| Qwen 3.5 9B | 51 of 52 | 0 | 0.62 s |
+| Apple Intelligence 3B | 38 of 52 | 5 | 0.55 s |
+| Qwen 3.5 2B | 35 of 52 | 2 | 0.18 s |
 
-[DEVELOPMENT.md](DEVELOPMENT.md#the-model) has the method and what else was tried.
+The 4B model was as accurate as one twice its size and four times faster. Measured on 2026-11-19 on an M5 Pro. `scripts/evals.sh` runs every test, and [DEVELOPMENT.md](DEVELOPMENT.md#the-model) explains the method and what else was tried.
 
 ## Install
 
@@ -98,117 +77,72 @@ Apple Intelligence can pick meanings too. A model chosen and tested for this one
 
 The warning in step 2 is because the app isn't signed with a paid Apple Developer ID. You only have to do this once; updates install without it.
 
-### Requirements
-
-| | |
-|---|---|
-| **macOS** | 15 Sequoia or later. Liquid Glass cards on macOS 26. |
-| **Mac** | Apple silicon (M1 or later). There is no Intel build. |
-| **Permission** | Accessibility, to read the text you highlight. Nothing else. |
-| **Disk** | 34 MB for the app (a 13 MB download), plus 2.7 GB for the reading model, which needs about 4 GB free to download. |
-| **Network** | None to read. Only for the model download and update checks, both when you say so. |
+You'll need a Mac with Apple silicon running macOS 15 or later, and about 4 GB of free space for the model download. The app itself is 34 MB.
 
 ## Using it
 
-Highlight some Chinese. A small eye appears next to it: click it, or press **⌃⌥L**. With nothing highlighted, ⌃⌥L looks up the word under the pointer.
+Highlight some Chinese and a small eye appears beside it. Click the eye, or press **⌃⌥L**. With nothing highlighted, ⌃⌥L looks up the word under the pointer.
 
-| | |
-|---|---|
-| **One word** | A word card: the meaning in this sentence, pinyin, any note, and the other meanings below. |
-| **A phrase or sentence** | A phrase card: the translation, then every word with its meaning. Click a word to open it. |
-| **⌃⌥L** | Look up the selection, or the word under the pointer |
-| **Escape** | Close the card |
-| **Drag the corner** | Make the card's text bigger or smaller (double-click the corner to reset) |
-| **Pin** | Keep a card open while you read on |
-
-Your history is under **Lookup History** in the menu bar icon's menu.
+Press Escape to close a card. Drag its bottom-right corner to make the text bigger or smaller, and double-click the corner to reset it. Your lookups are under **Lookup History** in the menu bar icon's menu.
 
 ### The reading model
 
-Picking meanings and translating is done by Qwen 3.5 4B (Apache 2.0), running on your Mac through llama.cpp and Metal. It's offered when you first open the app and afterwards under **Download Reading Model** in the menu.
+Meanings and translations come from Qwen 3.5 4B (Apache 2.0), running through llama.cpp and Metal. The app offers to download it the first time you open it, and it stays under **Download Reading Model** in the menu after that. If you already have `qwen3.5:4b` in [Ollama](https://ollama.com), the app uses that copy instead.
 
-| | With the reading model | Without it |
-|---|---|---|
-| Dictionary, pinyin, notes | ✓ | ✓ |
-| The meaning that fits the sentence | ✓ | Dictionary order (Apple Intelligence picks on macOS 26, less accurately) |
-| Phrase and sentence translations | ✓ | Apple Intelligence on macOS 26, otherwise none |
-
-Already have `qwen3.5:4b` in [Ollama](https://ollama.com)? The app uses that copy and you don't need to download anything.
+Without the model you still get the dictionary, pinyin and notes, with meanings in dictionary order. On macOS 26 with Apple Intelligence turned on, Apple's model picks meanings and translates phrases instead, less accurately.
 
 ## Privacy
 
-Everything runs on your Mac. What you look up is never sent anywhere.
+Nothing you look up is ever sent anywhere. The app goes online for three things only: downloading the reading model when you ask (a plain file from Hugging Face, checked against its SHA-256), checking GitHub for updates once you've agreed to it (nothing about your Mac is sent), and Report a Problem, which opens a pre-filled GitHub issue in your browser and sends nothing until you submit it.
 
-| When it goes online | What's sent |
-|---|---|
-| Downloading the reading model, when you ask | A plain file download from Hugging Face or its mirror. The file is checked against its SHA-256. |
-| Checking for updates, once you've said yes | A request for the update feed on GitHub. Nothing about your Mac. |
-| Report a Problem | Opens a GitHub issue in your browser with the app and macOS versions, chip, memory and model filled in. Nothing is sent until you submit it. |
+Your history stays in `~/Library/Application Support/LongyanReader/History` unless you export it. Keep 30 days, turn it off, or clear it under **Keep History** in the menu. The [privacy page](https://longyan.app/privacy.html) has the details.
 
-History is on by default and stays in `~/Library/Application Support/LongyanReader/History` unless you export it. Keep 30 days, turn it off, or clear it under **Keep History** in the menu. Clearing moves it to the Trash. The [privacy page](https://longyan.app/privacy.html) has the details.
+## Under the hood
 
-## How it works
+When you click the eye, the app asks the frontmost app for the selection and the paragraph around it through the Accessibility API. That works in native apps, web views, Chrome and Electron; apps that won't share their selection get a copy-and-restore fallback that leaves your clipboard as it was.
 
-```mermaid
-flowchart LR
-  A["You highlight text<br>in any app"] --> B["Accessibility API<br>reads the selection<br>and its sentence"]
-  B --> C["Word split<br>system tokenizer +<br>dictionary rules"]
-  C --> D["CC-CEDICT<br>compiled, opens in 3 ms"]
-  D --> E["Qwen 3.5 4B<br>on llama.cpp + Metal<br>picks each meaning"]
-  E --> F["Word or phrase card"]
-  E --> G["Translation<br>streamed in"]
-  G --> F
-```
+The dictionary ships compiled into a sorted binary file that's searched in place, so it opens in about 3 ms instead of 1.4 seconds of parsing. The model sees the sentence and the dictionary's numbered meanings, and each pick is read straight from its probabilities for the next token, one pass per word instead of generated text. Translations stream in as they're written, limited to the 67,535 tokens found in the dictionary's English. Work starts the moment the eye appears, so the card is often ready before you've clicked.
 
-| Part | How |
-|---|---|
-| Reading the selection | The Accessibility API asks the app for the selected text and the paragraph around it, in native apps, web views, Chrome and Electron apps. Apps that won't share it get a copy-and-restore fallback. |
-| The dictionary | CC-CEDICT compiled to a sorted binary file and searched in place. It opens in about 3 ms instead of 1.4 s of parsing. |
-| Picking a meaning | The model reads the sentence and the dictionary's numbered meanings, and the answer is read straight from its probabilities for the next token: one pass per word instead of generating text. |
-| Translating | Streamed as it's written. The model can only write the 67,535 tokens found in the dictionary's English, which keeps it on topic and saves memory. |
-| Working ahead | Lookups start when the eye appears, while you move to click it, so the card is often ready when it opens. |
-| Updates | [Sparkle](https://sparkle-project.org), with every update signed. |
-
-[DEVELOPMENT.md](DEVELOPMENT.md) goes into all of it.
+[DEVELOPMENT.md](DEVELOPMENT.md) covers all of it, including how to build the app.
 
 ## The name
 
-*Longyan* is 龙眼, "dragon eye", the longan fruit. The eye in the logo is the one that appears next to your selection.
+*Longyan* is 龙眼, "dragon eye", the Chinese name for the longan fruit. The eye in the icon is the same one that appears beside your selection.
 
 ## FAQ
 
 <details>
 <summary><b>Does it work on Intel Macs, Windows or iPhone?</b></summary>
 
-No. It needs a Mac with Apple silicon and macOS 15 or later, to run the reading model fast enough.
+No. It needs a Mac with Apple silicon and macOS 15 or later, which is what lets the model run this fast.
 </details>
 
 <details>
 <summary><b>Does it need the internet?</b></summary>
 
-Only to download the reading model once, and for update checks if you turn them on. Looking things up works offline.
+Only to download the reading model once, and for update checks if you turn them on. Lookups work offline.
 </details>
 
 <details>
 <summary><b>Why does it need Accessibility?</b></summary>
 
-That's how a Mac app reads the text you've selected in another app, along with the sentence around it. Longyan only reads it when you click the eye or press ⌃⌥L.
+It's how a Mac app reads text selected in another app, along with the sentence around it. Longyan only reads it when you click the eye or press ⌃⌥L.
 </details>
 
 <details>
 <summary><b>Does it read traditional characters?</b></summary>
 
-Yes. Traditional and simplified text both work.
+Yes, traditional and simplified both work.
 </details>
 
 <details>
 <summary><b>A meaning was wrong. What should I do?</b></summary>
 
-Choose **Report a Problem** in the menu, or open a [wrong meaning issue](https://github.com/mapuchuu/longyan-reader/issues/new?template=wrong-meaning.yml). Paste the sentence and the word: most wrong meanings can only be fixed with the sentence.
+Choose **Report a Problem** in the menu, or open a [wrong meaning issue](https://github.com/mapuchuu/longyan-reader/issues/new?template=wrong-meaning.yml). Include the sentence and the word; most wrong meanings can only be fixed with the sentence.
 </details>
 
 <details>
-<summary><b>The app quit or something broke</b></summary>
+<summary><b>The app quit, or something else broke</b></summary>
 
 Choose **Report a Problem** from the menu bar icon. If the app quit on its own, macOS kept a crash report: open Console, choose Crash Reports, find LongyanReader and attach the newest one. The app keeps no other log, and your history is never part of a report unless you paste from it.
 </details>
@@ -228,7 +162,7 @@ Then remove it from System Settings > Privacy & Security > Accessibility, and fr
 
 ## Contributing
 
-Reports of wrong meanings help the most. Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md), and [DEVELOPMENT.md](DEVELOPMENT.md) to build it.
+Reports of wrong meanings help more than anything else. Issues and pull requests are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
