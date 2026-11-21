@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/media/banner-1.jpg" alt="The Longyan eye, drawn in Chinese characters">
+  <img src="docs/media/icon-2.png" width="128" alt="">
 </p>
 
 <h1 align="center">Longyan Reader</h1>
