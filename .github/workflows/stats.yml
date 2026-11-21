@@ -1,0 +1,37 @@
+# Counts app downloads for the README badge: every zip of every release (the website's
+# LongyanReader.zip and the versioned zips Sparkle updates fetch). The appcast and the
+# site-media videos aren't counted. Writes downloads.json to the stats branch, which
+# shields.io reads as an endpoint badge.
+name: Download stats
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: stats
+
+jobs:
+  count:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Count and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          total=$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
+            --jq '.[] | select(.prerelease | not) | .assets[] | select(.name | endswith(".zip")) | .download_count' \
+            | awk '{s += $1} END {print s + 0}')
+          echo "downloads: $total"
+          mkdir out && cd out
+          printf '{"schemaVersion":1,"label":"downloads","message":"%s","color":"30d158"}\n' "$total" > downloads.json
+          git init -q -b stats
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add downloads.json
+          git commit -q -m "Download count: $total"
+          git push -q --force "https://x-access-token:${GH_TOKEN}@github.com/$GITHUB_REPOSITORY.git" stats
