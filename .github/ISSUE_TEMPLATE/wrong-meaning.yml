@@ -1,0 +1,44 @@
+name: A meaning or translation was wrong
+description: The card picked the wrong meaning, or a translation or note was off.
+labels: [meaning]
+body:
+  - type: markdown
+    attributes:
+      value: Most wrong meanings can only be fixed with the sentence, so please paste it.
+  - type: input
+    id: sentence
+    attributes:
+      label: The sentence
+      placeholder: 最近工作太卷了，我想躺平。
+    validations:
+      required: true
+  - type: input
+    id: word
+    attributes:
+      label: The word or phrase you looked up
+      placeholder: 躺平
+    validations:
+      required: true
+  - type: textarea
+    id: shown
+    attributes:
+      label: What the card showed
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What it should be
+    validations:
+      required: true
+  - type: input
+    id: app
+    attributes:
+      label: Which app the text was in
+      placeholder: Safari, Preview, WeChat
+  - type: input
+    id: version
+    attributes:
+      label: Versions
+      description: Report a Problem in the app's menu fills these in for you.
+      placeholder: Longyan Reader 1.0, macOS 15.6, M1, 8 GB, reading model Qwen 3.5 4B

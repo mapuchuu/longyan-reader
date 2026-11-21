@@ -1,0 +1,9 @@
+# Blank issues stay on: the app's Report a Problem opens issues/new with the details filled in.
+blank_issues_enabled: true
+contact_links:
+  - name: Install help
+    url: https://longyan.app/#install
+    about: The install steps, with pictures.
+  - name: Privacy
+    url: https://longyan.app/privacy.html
+    about: What the app keeps and what it sends.

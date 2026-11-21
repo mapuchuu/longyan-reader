@@ -1,0 +1,37 @@
+name: Something broke
+description: The app crashed, a card didn't open, or something else didn't work.
+labels: [bug]
+body:
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+  - type: input
+    id: app
+    attributes:
+      label: Which app the text was in
+      placeholder: Safari, Preview, WeChat
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The sentence and the word you looked up help most.
+  - type: input
+    id: version
+    attributes:
+      label: Versions
+      description: Report a Problem in the app's menu fills these in for you.
+      placeholder: Longyan Reader 1.0, macOS 15.6, M1, 8 GB, reading model Qwen 3.5 4B
+    validations:
+      required: true
+  - type: textarea
+    id: crash
+    attributes:
+      label: Crash report
+      description: If the app quit on its own, open Console, choose Crash Reports, find LongyanReader and paste or attach the newest one.
