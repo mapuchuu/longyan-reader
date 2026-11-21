@@ -78,9 +78,10 @@ enum Segmenter {
             chosen = t
             // A lone character that begins a dictionary word usually belongs to it (长得, not 长),
             // but not when the rest is an aspect particle the tokenizer split off: 他得了感冒 is
-            // 得 "to catch" + 了, not 得了 "all right!".
+            // 得 "to catch" + 了, not 得了 "all right!". Traditional is compared once simplified:
+            // 看著 is 看 + 着, but 顯著 is one word.
             if t.count == 1, let word = covering.first(where: { $0.lowerBound == t.lowerBound && $0.count > 1 }),
-               !(word.count == 2 && "了着过".contains(passage[word.upperBound - 1])) {
+               !(word.count == 2 && "了着过".contains(dict.simplified(String(passage[word])).last!)) {
                 chosen = word
             }
             if let longer = covering.first, longer.count >= 4, longer.count > t.count,
@@ -317,7 +318,7 @@ extension Segmenter {
 
     /// Grammar characters a stretch never takes in: the tokenizer glues them onto neighbours
     /// (把门, 这时, 就是, 好的) where the reader meant the word beside them.
-    private static let stretchStops: Set<Character> = Set("把被就这那在是的了着过地得和跟给对向从也都还又才不吗呢吧啊")
+    private static let stretchStops: Set<Character> = Set("把被就这那在是的了着过地得和跟给对向从也都还又才不吗呢吧啊" + "這過給對從還嗎")
 
     /// The sentence a selection sits in, for its translation to read it by; nil when the
     /// selection is the whole sentence. (Adding the sentence before scored no better.)

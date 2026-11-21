@@ -25,7 +25,7 @@ enum IdiomHints {
             let entries = dict.entries(for: t.text).filter { !$0.isProperNoun }
             let defs = entries.flatMap(\.definitions).filter { !CEDict.isCrossReference($0) && !($0.contains("|") && $0.contains("[")) }
             guard !defs.isEmpty else { continue }
-            if t.text.allSatisfy({ "零一二三四五六七八九十百千万两".contains($0) }) { continue }
+            if t.text.allSatisfy({ "零一二三四五六七八九十百千万两萬兩".contains($0) }) { continue }
             let marked = defs.contains { d in d.hasPrefix("fig.") || markers.contains { d.contains($0) } }
             let special = marked || (!common.contains(dict.simplified(t.text)) && !compositional(t.text, defs, dict))
             if special, let g = gloss(defs) { out.append((t.text, g)) }

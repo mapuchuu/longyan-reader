@@ -29,7 +29,7 @@ enum GrammarWords {
             // 走得了 is liǎo, but after a subject 得 is the verb itself: 他得了感冒 is le. (A name
             // as subject, 小王得了奖, still reads liǎo.)
             let subject = passage.indices.contains(index - 2) ? passage[index - 2] : nil
-            return subject.map { isCJK($0) && !"我你他她它们".contains($0) } ?? false ? liao : le
+            return subject.map { isCJK($0) && !"我你他她它们們".contains($0) } ?? false ? liao : le
         default: return nil
         }
     }
