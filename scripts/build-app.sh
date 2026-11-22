@@ -10,7 +10,7 @@ cd "$(dirname "$0")/.."
 mode="${1:-}"
 flags=()
 [ "$mode" = "--dev" ] && flags=(-Xswiftc -DDEV_TOOLS)
-version=1.0
+version=1.1
 # The build number Sparkle compares to decide what's newer: the commit count, which only grows.
 build=$(git rev-list --count HEAD)
 # A shallow clone (CI's default) would count only a few commits and look older to Sparkle.
