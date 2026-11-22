@@ -485,14 +485,6 @@
       a._copied = setTimeout(() => { label.textContent = PHONE_LABEL; }, ok ? 2200 : 4000);
     });
   }
-  document.querySelectorAll("[data-copy]").forEach((b) => b.addEventListener("click", () => {
-    const note = b.querySelector(".brew-note");
-    copy(b.dataset.copy).then((ok) => {
-      clearTimeout(b._copied);
-      note.textContent = ok ? "Copied" : "Couldn’t copy";
-      b._copied = setTimeout(() => { note.textContent = ""; }, 1800);
-    });
-  }));
   document.querySelectorAll("[data-download]").forEach((a) => a.addEventListener("click", (e) => {
     if (phone.matches) {
       e.preventDefault();
