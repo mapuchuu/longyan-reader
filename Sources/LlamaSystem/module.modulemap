@@ -1,0 +1,6 @@
+// Windows and Linux only: llama.h from the build in Vendor/llama (see Package.swift).
+// Libraries are linked by LongyanCore's linker settings.
+module llama [system] {
+    header "../../Vendor/llama/include/llama.h"
+    export *
+}
