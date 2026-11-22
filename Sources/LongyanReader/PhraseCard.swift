@@ -397,11 +397,19 @@ private struct WordColumnKey: PreferenceKey {
 extension PhraseState {
     /// What Copy puts on the clipboard: the highlighted text.
     var copyText: String { selection.text }
+
+    /// What Add to Anki adds: the phrase and its translation, once the translation is whole.
+    var ankiNote: AnkiNote? {
+        guard !streaming, let translation, !translation.isEmpty else { return AnkiNote(chinese: selection.text, meaning: "") }
+        return AnkiNote(chinese: selection.text, meaning: translation)
+    }
 }
 
 struct PhraseView: View {
     @ObservedObject var state: PhraseState
     @Environment(\.cardScale) private var scale
+    /// Read so the card redraws when the tone colours change.
+    @Environment(\.toneRevision) private var toneRevision
     @State private var column: CGFloat = 0
     private let maxRows = 24
 

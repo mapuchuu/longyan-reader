@@ -24,6 +24,10 @@ final class CardLayout: ObservableObject {
     var copyText: (() -> String)?
     /// What Listen reads; nil hides the button (hints, or no Chinese voice installed).
     var speech: (() -> SpeechPlan)?
+    /// Add to Anki; nil hides the button (Anki isn't open with AnkiConnect, or a hint).
+    var anki: AnkiButtonModel?
+    /// How many buttons the first line keeps room for: Listen, Copy and Pin, and Anki.
+    var actionCount: Int { anki == nil ? 3 : 4 }
     var togglePin: () -> Void = {}
     var closeCard: () -> Void = {}
     /// While an edge is dragged or the card pinched, size changes follow the hand with no animation.
@@ -196,12 +200,6 @@ enum TextSize {
     static let headword: CGFloat = 34, headline: CGFloat = 19, translation: CGFloat = 16
     static let rowWord: CGFloat = 18, title3: CGFloat = 15, body: CGFloat = 13, callout: CGFloat = 12
     static let subheadline: CGFloat = 11, footnote: CGFloat = 10
-}
-
-/// Tone colours on characters and pinyin, from the Appearance menu; on by default. Off,
-/// characters use the primary label colour and pinyin the secondary.
-enum ToneColors {
-    static var enabled: Bool { UserDefaults.standard.object(forKey: "toneColors") as? Bool ?? true }
 }
 
 /// How much the card is zoomed; every card font and fixed size multiplies by it.
@@ -383,6 +381,8 @@ struct CardChrome<Content: View>: View {
     private var padded: some View {
         content
             .environment(\.cardScale, layout.scale)
+            .environment(\.toneRevision, ToneColors.revision)
+            .environment(\.cardActionCount, layout.actionCount)
             .padding(.horizontal, Space.l * layout.scale)
             .padding(.top, Space.l * layout.scale)
             .padding(.bottom, Space.m * layout.scale)
@@ -771,24 +771,37 @@ struct ReadingHeader: View {
 
 }
 
-/// The room a card's first line keeps at its trailing end for Listen, Copy and Pin, which the card
-/// draws there (fixed, so they stay put when the card scrolls). `centerAboveBaseline` puts
-/// the buttons' centre on the line's visual middle: about half the cap height of its text.
+/// The room a card's first line keeps at its trailing end for its buttons (Listen, Copy, Anki
+/// and Pin), which the card draws there (fixed, so they stay put when the card scrolls).
+/// `centerAboveBaseline` puts the buttons' centre on the line's visual middle: about half the
+/// cap height of its text.
 struct ActionSlot: View {
     static let space = "cardContent"
     static let height: CGFloat = 22
     /// Space between a button's edge and its symbol's.
     static let glyphInset: CGFloat = 6
-    static let width: CGFloat = 3 * 26 + 2 * 2 - glyphInset
     let centerAboveBaseline: CGFloat
+    @Environment(\.cardActionCount) private var count
+
+    /// Buttons 26 wide with 2 between them, the last symbol on the content's edge.
+    private var width: CGFloat { CGFloat(count) * 26 + CGFloat(count - 1) * 2 - Self.glyphInset }
 
     var body: some View {
         Color.clear
-            .frame(width: Self.width, height: Self.height)
+            .frame(width: width, height: Self.height)
             .background(GeometryReader { g in
                 Color.clear.preference(key: ActionSlotKey.self, value: g.frame(in: .named(Self.space)).midY)
             })
             .alignmentGuide(.firstTextBaseline) { d in d[VerticalAlignment.center] + centerAboveBaseline }
+    }
+}
+
+/// How many buttons the card's first line holds; set by `CardChrome` from its layout.
+private struct CardActionCountKey: EnvironmentKey { static let defaultValue = 3 }
+extension EnvironmentValues {
+    var cardActionCount: Int {
+        get { self[CardActionCountKey.self] }
+        set { self[CardActionCountKey.self] = newValue }
     }
 }
 
@@ -797,8 +810,8 @@ struct ActionSlotKey: PreferenceKey {
     static func reduce(value: inout CGFloat?, nextValue: () -> CGFloat?) { value = value ?? nextValue() }
 }
 
-/// Listen, Copy and Pin: plain symbols in the tertiary label colour, a step brighter while the
-/// pointer is on the card, with a soft rounded highlight under the one being pointed at.
+/// Listen, Copy, Anki and Pin: plain symbols in the tertiary label colour, a step brighter
+/// while the pointer is on the card, with a soft rounded highlight under the one pointed at.
 struct CardActions: View {
     @ObservedObject var layout: CardLayout
     let cardHovered: Bool
@@ -826,6 +839,9 @@ struct CardActions: View {
                         .contentTransition(.symbolEffect(.replace.downUp))
                 }
             }
+            if let anki = layout.anki {
+                AnkiButton(model: anki, word: copyWord, cardHovered: cardHovered)
+            }
             FooterButton(help: pin.isOn ? "Unpin: close when you click elsewhere" : "Pin: keep the card here for every lookup",
                          cardHovered: cardHovered, tint: pin.isOn ? Color.accentColor : nil,
                          action: { layout.togglePin() }) {
@@ -837,9 +853,12 @@ struct CardActions: View {
     }
 
     /// Copy “一直”, with a long selection shortened.
-    private var copyHelp: String {
+    private var copyHelp: String { "Copy “\(copyWord)”" }
+
+    /// The highlighted text, shortened when long, for the buttons' help.
+    private var copyWord: String {
         let text = layout.copyText?() ?? ""
-        return "Copy “\(text.count > 14 ? text.prefix(13) + "…" : text)”"
+        return text.count > 14 ? text.prefix(13) + "…" : text
     }
 
     private func copy() {
@@ -851,6 +870,44 @@ struct CardActions: View {
         let work = DispatchWorkItem { copied = false }
         resetCopied = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5, execute: work)
+    }
+}
+
+/// Adds the card to Anki. After that it says so in the accent colour, and a click shows the
+/// note in Anki; when Anki doesn't answer, a warning for a moment, with why in its help.
+private struct AnkiButton: View {
+    @ObservedObject var model: AnkiButtonModel
+    let word: String
+    let cardHovered: Bool
+
+    var body: some View {
+        FooterButton(help: help, cardHovered: cardHovered, tint: tint, action: model.click) {
+            Image(systemName: symbol)
+                .contentTransition(.symbolEffect(.replace.downUp))
+                .opacity(model.state == .adding ? 0.4 : 1)
+        }
+    }
+
+    private var symbol: String {
+        switch model.state {
+        case .ready, .adding: "rectangle.stack.badge.plus"
+        case .added: "checkmark.rectangle.stack"
+        case .failed: "exclamationmark.triangle"
+        }
+    }
+
+    private var tint: Color? {
+        if case .added = model.state { return .accentColor }
+        return nil
+    }
+
+    private var help: String {
+        switch model.state {
+        case .ready: "Add “\(word)” to Anki"
+        case .adding: "Adding to Anki…"
+        case .added: "In Anki · click to show it there"
+        case .failed(let why): why
+        }
     }
 }
 

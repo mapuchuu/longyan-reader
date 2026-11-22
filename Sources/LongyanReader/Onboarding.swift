@@ -312,7 +312,7 @@ enum About {
         add("\n\nNotes\n", font: bold)
         add("The notes were written by Claude and checked against the dictionary meanings they belong to. They can contain mistakes.")
         add("\n\nPrivacy\n", font: bold)
-        add("Lookups are processed on this Mac. Your history (Lookup History in the menu, which exports flashcards) is kept on this Mac in ~/Library/Application Support/LongyanReader/History, readable only by your account. Keep History in the menu turns it off or clears it.")
+        add("Lookups are processed on this Mac. Your history (Lookup History in the menu, which exports flashcards) is kept on this Mac in ~/Library/Application Support/LongyanReader/History, readable only by your account. Keep History in the menu turns it off or clears it. Add to Anki, shown when Anki is open with AnkiConnect, gives the card to Anki on this Mac and nowhere else.")
         NSApp.activate()
         var options: [NSApplication.AboutPanelOptionKey: Any] = [.applicationName: "Longyan Reader", .credits: credits]
         if let mark = Icons.mark(size: 64) {

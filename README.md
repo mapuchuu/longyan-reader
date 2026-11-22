@@ -48,9 +48,9 @@ Select a single word and you get its meaning in context, pinyin colored by tone,
 
 Meanings always come from CC-CEDICT, so the model chooses between real dictionary entries and never invents one. On top of that sit 1,040 notes, written ahead of time and checked by hand, on the words where a gloss falls short: 面子, 关系, 内卷, 摸鱼, 正能量 and a thousand more.
 
-Every lookup goes into a history with its sentence and the meaning the word had there. You can search it or export it to Anki or a spreadsheet.
+Every lookup goes into a history with its sentence and the meaning the word had there. You can search it or export it to Anki or a spreadsheet. If Anki is open with the [AnkiConnect](https://ankiweb.net/shared/info/2055492159) add-on, a button on the card adds the word to Anki straight away, with its pinyin, its sentence and the meaning it had there.
 
-The app lives in the menu bar. Cards follow light and dark mode, use Liquid Glass on macOS 26, and can be dragged, pinned and zoomed. Everything runs from one shortcut, ⌃⌥L.
+The app lives in the menu bar. Cards follow light and dark mode, use Liquid Glass on macOS 26, and can be dragged, pinned and zoomed. Tone colors follow Pleco's order or MDBG's, or colors you pick. Everything runs from one shortcut, ⌃⌥L.
 
 ## How well it works
 
@@ -100,7 +100,7 @@ Without the model you still get the dictionary, pinyin and notes, with meanings 
 
 ## Privacy
 
-Nothing you look up is ever sent anywhere. The app goes online for three things only: downloading the reading model when you ask (a plain file from hf-mirror.com, or huggingface.co if that fails, checked against its SHA-256), checking GitHub for updates once you've agreed to it (nothing about your Mac is sent), and Report a Problem, which opens a pre-filled GitHub issue in your browser and sends nothing until you submit it.
+Nothing you look up is ever sent anywhere. The app goes online for three things only: downloading the reading model when you ask (a plain file from hf-mirror.com, or huggingface.co if that fails, checked against its SHA-256), checking GitHub for updates once you've agreed to it (nothing about your Mac is sent), and Report a Problem, which opens a pre-filled GitHub issue in your browser and sends nothing until you submit it. Add to Anki talks only to Anki on your own Mac.
 
 Your history stays in `~/Library/Application Support/LongyanReader/History` unless you export it. Keep 30 days, turn it off, or clear it under **Keep History** in the menu. The [privacy page](https://longyan.app/privacy.html) has the details.
 
