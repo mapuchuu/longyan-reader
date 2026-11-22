@@ -25,7 +25,7 @@
   <img src="docs/media/demo-1.gif" width="720" alt="A sentence highlighted in a BBC article in Chrome opens a phrase card with its translation and every word's meaning. Opening 根本 shows a note on how it's used and the dictionary's other meanings.">
 </p>
 
-Highlight Chinese in Safari, Chrome, Preview, Mail or almost any other app, and a card opens with what each word means in that sentence. Instead of every definition the word has ever had, you see the one the writer meant, with pinyin, a translation of the whole phrase, and a note when the word carries more than its gloss can say.
+Highlight Chinese in Safari, Chrome, Preview, Mail or any other app, and a card opens with what each word means in that sentence. Instead of every definition the word has ever had, you see the one the writer meant, with pinyin, a translation of the whole phrase, and a note when the word carries more than its gloss can say.
 
 It takes about a tenth of a second, and it all happens on your Mac. The language model runs on your own GPU, so nothing you read leaves your computer. There's no account and nothing to pay for.
 
