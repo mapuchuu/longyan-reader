@@ -74,13 +74,21 @@ The 4B model was as accurate as one twice its size and four times faster. Measur
 3. When the app asks, turn on Longyan Reader under Privacy & Security > Accessibility. It needs this to read the text you highlight.
 4. Download the reading model when it's offered (2.7 GB), or click **Later** and get it from the menu bar any time.
 
+Or install it with [Homebrew](https://brew.sh):
+
+```sh
+brew install mapuchuu/tap/longyan-reader
+```
+
+Then open it and carry on from step 3. Either way the app is signed and notarized by Apple, and it keeps itself up to date.
+
 Updating from 0.1? 1.0 is signed differently. If the app asks for Accessibility again after the update, turn it on again. If it already looks on, switch it off and on.
 
 You'll need a Mac with Apple silicon running macOS 15 or later, and about 4 GB of free space for the model download. The app itself is 34 MB.
 
 ## Using it
 
-Highlight some Chinese and a small eye appears beside it. Click the eye, or press **⌃⌥L**. With nothing highlighted, ⌃⌥L looks up the word under the pointer.
+Highlight some Chinese, with a drag or a double-click, and a small eye appears beside it. Click the eye, or press **⌃⌥L**. With nothing highlighted, ⌃⌥L looks up the word under the pointer. Right-click the eye to hide it in that app or turn it off; ⌃⌥L keeps working either way.
 
 Press Escape to close a card. Drag its bottom-right corner to make the text bigger or smaller, and double-click the corner to reset it. Your lookups are under **Lookup History** in the menu bar icon's menu.
 
@@ -149,7 +157,7 @@ Choose **Report a Problem** from the menu bar icon. If the app quit on its own, 
 <details>
 <summary><b>How do I uninstall it?</b></summary>
 
-Quit the app, then move these to the Trash:
+If you installed it with Homebrew, `brew uninstall --zap longyan-reader` removes the app and everything below. Otherwise, quit the app, then move these to the Trash:
 
 - **Longyan Reader** in Applications
 - `~/Library/Application Support/LongyanReader` (the reading model and your history)

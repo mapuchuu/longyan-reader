@@ -932,9 +932,18 @@ figcaption b { color: var(--ink); font-weight: 600; }
 /* The small print under each download: where its second line has to wrap, evenly. */
 .hero-fine, .install-fine { text-wrap: balance; }
 .fine-line { display: block; }
+/* The Homebrew line under the install button. Clicking the command copies it. */
+.section-head .brew { margin: 14px auto 0; max-width: none; font-size: 14px; line-height: 1.5; color: rgba(245, 245, 247, .5); letter-spacing: -0.01em; }
+.brew-cmd { position: relative; font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: copy; }
+.brew-cmd code { font: 13px/1 ui-monospace, "SF Mono", Menlo, monospace; color: rgba(245, 245, 247, .82); background: rgba(255, 255, 255, .08); padding: 4px 7px; border-radius: 6px; overflow-wrap: anywhere; transition: background .15s; }
+.brew-cmd:hover code { background: rgba(255, 255, 255, .13); }
+.brew-cmd:focus-visible { outline: none; }
+.brew-cmd:focus-visible code { outline: 2px solid rgba(245, 245, 247, .6); outline-offset: 2px; }
+.brew-note { position: absolute; left: 100%; top: 50%; transform: translateY(-50%); margin-left: 10px; white-space: nowrap; color: rgba(245, 245, 247, .7); }
 @media (hover: none) and (pointer: coarse) {
   .for-mac { display: none !important; }
   .for-phone { display: inline; }
+  .for-mac-block { display: none; }
 }
 
 .mac { position: relative; }
