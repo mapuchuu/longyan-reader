@@ -44,7 +44,7 @@ jobs:
         id: llama
         with:
           path: Vendor/llama
-          key: llama-${{ env.LLAMA_TAG }}-windows-${{ env.LLAMA_CACHE }}-${{ hashFiles('patches/llama.cpp-output-tokens.patch') }}
+          key: llama-${{ env.LLAMA_TAG }}-windows-${{ env.LLAMA_CACHE }}-${{ hashFiles('patches/llama.cpp-output-tokens.patch', 'patches/llama.cpp-windows.patch') }}
       - name: Build llama.cpp (CPU, static)
         if: steps.llama.outputs.cache-hit != 'true'
         run: |
@@ -54,7 +54,8 @@ jobs:
           echo "$LLAMA_TAR_SHA  $T/src.tar.gz" | sha256sum -c
           # Relative paths: Windows tar reads "D:" as a remote host.
           (cd "$T" && tar -xzf src.tar.gz -C src --strip-components 1)
-          (cd "$T/src" && git apply -p1 "$GITHUB_WORKSPACE/patches/llama.cpp-output-tokens.patch")
+          (cd "$T/src" && git apply -p1 "$GITHUB_WORKSPACE/patches/llama.cpp-output-tokens.patch" \
+                       && git apply -p1 "$GITHUB_WORKSPACE/patches/llama.cpp-windows.patch")
           cmake -S "$T/src" -B "$T/build" -A x64 -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_LIBDIR=lib \
             -DLLAMA_BUILD_APP=OFF -DLLAMA_BUILD_COMMON=OFF -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TOOLS=OFF \
             -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_SERVER=OFF -DLLAMA_BUILD_MTMD=OFF -DLLAMA_OPENSSL=OFF -DLLAMA_CURL=OFF \

@@ -1,0 +1,21 @@
+Applied after llama.cpp-output-tokens.patch on Windows only (.github/workflows/core.yml):
+fences the page release there, which uses POSIX calls. The Mac's build doesn't use this.
+
+--- a/src/llama-model.cpp
++++ b/src/llama-model.cpp
+@@ -3806,6 +3806,7 @@
+     }
+     // the full table is read no more (only the input side looks up a few rows of it, when the
+     // weights are shared): its pages, mapped from the file, can go back to the system
++#if defined(__APPLE__) || defined(__unix__)
+     if (out->data != nullptr && ggml_backend_buffer_is_host(out->buffer)) {
+         const uintptr_t page  = (uintptr_t) sysconf(_SC_PAGESIZE);
+         const uintptr_t begin = ((uintptr_t) out->data + page - 1) & ~(page - 1);
+@@ -3815,6 +3816,7 @@
+             msync((void *) begin, end - begin, MS_INVALIDATE);
+         }
+     }
++#endif
+     model->output_keep     = t;
+     model->output_norm_keep = norm_keep;
+     model->output_keep_ids.assign(tokens, tokens + n_tokens);
