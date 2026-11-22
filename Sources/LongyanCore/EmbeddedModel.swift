@@ -1,5 +1,8 @@
 import Foundation
 import llama
+#if os(Windows)
+import WinSDK
+#endif
 
 /// The local model run inside the app with llama.cpp (Metal), in place of a separate Ollama
 /// server. Takes the same chat messages LocalModel sends Ollama and streams the reply text.
@@ -50,10 +53,18 @@ package final class EmbeddedModel: @unchecked Sendable {
         let count: Int
         let bytes: UnsafeMutableRawPointer
         init?(tokens: [llama_token], count: Int) {
+            #if os(Windows)
+            guard let p = VirtualAlloc(nil, SIZE_T(count), DWORD(MEM_COMMIT | MEM_RESERVE), DWORD(PAGE_READWRITE)) else { return nil }
+            #else
             guard let p = mmap(nil, count, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0), p != MAP_FAILED else { return nil }
+            #endif
             self.tokens = tokens; self.count = count; bytes = p
         }
+        #if os(Windows)
+        deinit { VirtualFree(bytes, 0, DWORD(MEM_RELEASE)) }
+        #else
         deinit { munmap(bytes, count) }
+        #endif
     }
     private var snapshots: [Snapshot] = []
     /// Each is 58–81 MB (Qwen 3.5 4B's recurrent state is ~53 MB, plus ~0.03 MB a prompt token).
