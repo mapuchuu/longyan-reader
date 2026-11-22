@@ -69,6 +69,10 @@ Some details:
 
 Rewording the prompt for Apple's model (meanings by name, examples in the prompt) didn't help: 33 to 38 out of 52 in every variant. The tie-break rules (matching against the translation, asking a two-option question both ways round) only run with Apple's model; with Qwen they overrode correct answers. With Apple's model, words whose meaning is settled without it skip the model call: grammar words by position, then a sense the translation agrees with, except for words that have notes.
 
+## Anki
+
+`Anki.swift` adds cards through [AnkiConnect](https://ankiweb.net/shared/info/2055492159), which answers on 127.0.0.1:8765 while Anki is open. The app checks for it at launch, when the eye appears and when the menu opens (at most every 10 s), and a card shows its Anki button only if the last check got an answer. The first card added creates a "Longyan Reader" note type (Chinese, Pinyin, Meaning, Sentence, Dictionary, Note) and the deck chosen under Anki Deck. A word already in that deck opens as added. To test without Anki, run `python3 scripts/fake-ankiconnect.py`. With Anki open, give it a port (`fake-ankiconnect.py 8766`) and start a `--dev` build with `open --env LONGYAN_ANKICONNECT_PORT=8766 "build/Longyan Reader.app"`; the usage simulation then checks Add to Anki too.
+
 ## The dictionary
 
 The dictionary ships compiled (`DictionaryFile.swift`): headwords sorted by their UTF-8 bytes and found by binary search in a file read straight from disk. It opens in about 3 ms with almost nothing copied into memory, where parsing the text took 1.4 s and 85 MB. `scripts/build-app.sh` writes it with `--compile-dict`, which reads every headword back and fails on any difference. Run from the repo, the CLI still parses `Resources/cedict_ts.u8`.
@@ -100,7 +104,7 @@ $B --render-onboarding offer out.png                # draw a state of the welcom
 
 ### Usage simulation
 
-A scripted simulation drives the real cards through the same code paths as clicks and checks the results: the tint and surface before and after picking another meaning in every style and mode, early picks not being overwritten by the model, hint timers not closing the next card, picking and switching in phrase rows, live style switching, and fast repeated lookups leaving one card. It needs a `--dev` build. Post the notification `simulate`; the report goes to `~/Library/Logs/LongyanReader/simulation.txt`, and your settings are restored afterwards.
+A scripted simulation drives the real cards through the same code paths as clicks and checks the results: the tint and surface before and after picking another meaning in every style and mode, early picks not being overwritten by the model, hint timers not closing the next card, picking and switching in phrase rows, live style switching, and fast repeated lookups leaving one card. It needs a `--dev` build opened with `open`, not run from a shell: started from a shell, macOS holds the shell's app responsible and the drag checks' mouse events don't arrive. Post the notification `simulate`; the report goes to `~/Library/Logs/LongyanReader/simulation.txt`, and your settings are restored afterwards.
 
 Each lookup appends a few hundred bytes to `~/Library/Application Support/LongyanReader/History/lookups.jsonl` (in `~/Library/Logs/LongyanReader/` before 1.0; the app moves it at launch). Misses record why the selection couldn't be read.
 
@@ -161,7 +165,7 @@ Releases up to 0.1 were signed with a self-signed certificate (`longyan-codesign
 
 Sparkle's tools (2.10.1) are in the same folder. `release.sh` signs the feed with `sparkle-private-key.txt` when it's there, so it doesn't wait on a keychain prompt.
 
-The binary's developer commands (`--notes-submit` and the other notes jobs) call the Anthropic API with a key from the environment or the `longyan-anthropic` keychain item. They only run from a terminal; the app itself never goes online except for the model download and update checks.
+The binary's developer commands (`--notes-submit` and the other notes jobs) call the Anthropic API with a key from the environment or the `longyan-anthropic` keychain item. They only run from a terminal; the app itself never goes online except for the model download and update checks. (It also talks to Ollama and AnkiConnect, but only on this Mac.)
 
 ## Website
 

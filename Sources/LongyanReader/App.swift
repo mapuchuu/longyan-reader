@@ -301,6 +301,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             // Downloading is choosing it, even after picking Apple's model earlier.
             if ModelDownloader.shared.state == .done { LocalModel.select(LocalModel.choices[0].id); self?.refresh() }
         }
+        AnkiLink.shared.check()
+        // A new tone colour scheme, or a custom colour picked, shows on the open card at once.
+        NotificationCenter.default.addObserver(forName: ToneColors.changed, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.popup.refreshStyle() }
+        }
         // Outside Applications it can't update; moving relaunches it, so onboarding waits.
         if AppMover.offerAtLaunch() { return }
         Onboarding.shared.showIfNeeded()
@@ -318,6 +323,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// model's line are current (the first lookup creates the history file, for one).
     func menuNeedsUpdate(_ menu: NSMenu) {
         guard menu === statusItem.menu else { return }
+        // Anki's answer arrives after the menu opens: if it changed (Anki just opened, a new
+        // deck), the open menu is filled again so Anki Deck is right.
+        AnkiLink.shared.check { [weak self, weak menu] in
+            guard let self, let menu, menu === self.statusItem.menu else { return }
+            self.refill(menu)
+        }
+        refill(menu)
+    }
+
+    private func refill(_ menu: NSMenu) {
         let fresh = makeMenu()
         menu.removeAllItems()
         for item in fresh.items { fresh.removeItem(item); menu.addItem(item) }
@@ -395,9 +410,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item.state = CardStyle.current.rawValue == id ? .on : .off
         }
         appearanceMenu.addItem(.separator())
-        let tones = appearanceMenu.addItem(withTitle: "Tone Colors", action: #selector(toggleToneColors), keyEquivalent: "")
-        tones.target = self
-        tones.state = ToneColors.enabled ? .on : .off
+        // Each scheme by name with its four colours beside it (Off: four empty rings). Picking
+        // a scheme and editing the custom colours are separate items, as in Finder's View menu.
+        let toneMenu = NSMenu()
+        for scheme in ToneScheme.allCases {
+            if scheme == .off { toneMenu.addItem(.separator()) }
+            let item = toneMenu.addItem(withTitle: scheme.label, action: #selector(selectToneScheme(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = scheme.rawValue
+            item.image = ToneColors.swatch(scheme)
+            item.toolTip = scheme.colorNames
+            item.state = ToneColors.scheme == scheme ? .on : .off
+        }
+        toneMenu.addItem(.separator())
+        let edit = toneMenu.addItem(withTitle: "Edit Custom Colors…", action: #selector(editToneColors), keyEquivalent: "")
+        edit.target = self
+        edit.image = NSImage(size: ToneColors.swatch(.off).size)   // blank, so the titles line up
+        appearanceMenu.setSubmenu(toneMenu, for: appearanceMenu.addItem(withTitle: "Tone Colors", action: nil, keyEquivalent: ""))
         appearanceMenu.addItem(.separator())
         for (title, key, steps) in [("Bigger Text", "+", 1), ("Smaller Text", "-", -1), ("Actual Size", "0", 0)] {
             let item = appearanceMenu.addItem(withTitle: title, action: #selector(changeTextSize(_:)), keyEquivalent: key)
@@ -420,6 +449,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         clear.target = self
         let historyItem = menu.addItem(withTitle: "Keep History", action: nil, keyEquivalent: "")
         menu.setSubmenu(historyMenu, for: historyItem)
+        // Where Add to Anki puts cards; only while Anki is open with AnkiConnect.
+        let anki = AnkiLink.shared
+        if anki.available {
+            let deckMenu = NSMenu()
+            let current = AnkiLink.deck
+            // The chosen deck stays listed (checked) even if it was renamed or deleted in Anki:
+            // the next card makes it again, so the menu says where cards go.
+            let others = Set(anki.decks + [current]).subtracting([AnkiLink.defaultDeck]).sorted()
+            for deck in [AnkiLink.defaultDeck] + others {
+                let item = deckMenu.addItem(withTitle: deck, action: #selector(selectAnkiDeck(_:)), keyEquivalent: "")
+                item.target = self; item.representedObject = deck; item.state = deck == current ? .on : .off
+                if deck == AnkiLink.defaultDeck { deckMenu.addItem(.separator()) }
+            }
+            if deckMenu.items.last?.isSeparatorItem == true { deckMenu.removeItem(at: deckMenu.items.count - 1) }
+            menu.setSubmenu(deckMenu, for: menu.addItem(withTitle: "Anki Deck", action: nil, keyEquivalent: ""))
+        }
         menu.addItem(withTitle: "Accessibility: " + (AXIsProcessTrusted() ? "on" : "off"), action: nil, keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Open Accessibility Settings…", action: #selector(openAccessibility), keyEquivalent: "").target = self
@@ -485,9 +530,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         LoginItem.set(!LoginItem.isEnabled)
     }
 
-    @objc private func toggleToneColors() {
-        UserDefaults.standard.set(!ToneColors.enabled, forKey: "toneColors")
-        popup.refreshStyle()
+    @objc private func selectAnkiDeck(_ sender: NSMenuItem) {
+        guard let deck = sender.representedObject as? String else { return }
+        AnkiLink.deck = deck
+    }
+
+    @objc private func selectToneScheme(_ sender: NSMenuItem) {
+        guard let scheme = (sender.representedObject as? String).flatMap(ToneScheme.init) else { return }
+        ToneColors.scheme = scheme
+    }
+
+    /// Opens the Tone Colors window, and uses the custom colours while it's open.
+    @objc private func editToneColors() {
+        ToneColors.scheme = .custom
+        ToneColorsWindow.shared.show()
     }
 
     @objc private func selectAppearance(_ sender: NSMenuItem) {
@@ -721,7 +777,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if let pick { cardTasks.append(pick) }
         popup.show(LookupView(state: state), kind: .word, near: anchor, holdFor: modelReady ? 0.4 : 0,
                    copyText: { [weak state] in state?.copyText ?? "" },
-                   speech: { [weak state] in state?.speech ?? SpeechPlan(text: "", help: "") })
+                   speech: { [weak state] in state?.speech ?? SpeechPlan(text: "", help: "") },
+                   anki: { [weak state] in state?.ankiNote })
         var record: [String: Any] = ["event": "word", "word": context.word, "sentence": context.sentence,
                                      "app": appName ?? "", "senses": senses.count]
         // A meaning picked on the card after its lookup was logged: History shows that one.
@@ -803,7 +860,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         state.resolving = !prep.done
         state.follow(prep)
         popup.show(PhraseView(state: state), kind: .phrase, near: anchor, copyText: { [weak state] in state?.copyText ?? "" },
-                   speech: { [weak state] in SpeechPlan(text: state?.selection.text ?? "", help: "Listen") })
+                   speech: { [weak state] in SpeechPlan(text: state?.selection.text ?? "", help: "Listen") },
+                   anki: { [weak state] in state?.ankiNote })
         let started = Date()
         let readyAtClick = prep.done
         lookupTask = Task {
@@ -824,6 +882,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     /// Starts a card's work for a fresh selection, before the reader clicks.
     func prepare(_ selection: Selection) {
+        AnkiLink.shared.check()   // so the card knows whether to offer Add to Anki
         guard let dict else { return }
         let selection = selection.wholeWords(dict: dict)
         if isSingleWord(selection, dict: dict) {

@@ -132,7 +132,7 @@ final class CEDict {
         let standalone = word.count == 1
         var out: [Sense] = []
         for entry in ordered {
-            for def in entry.definitions where !CEDict.isCrossReference(def) {
+            for def in entry.definitions where !CEDict.isCrossReference(def) && !CEDict.isDatingLabel(def) {
                 let sense = Sense(pinyin: entry.pinyin, gloss: def)
                 if !out.contains(sense) { out.append(sense) }
             }
@@ -178,6 +178,12 @@ final class CEDict {
     static let modelSenseLimit = 14
 
     private static let rareMarkers = ["(literary)", "(old)", "(archaic)", "(classical)", "(dialect)", "(Internet slang)", "(Tw)"]
+
+    /// A "definition" that only dates the word, "(neologism c. 2016)" after 吃瓜群众's real
+    /// meanings: not a meaning, so never offered or picked as one.
+    static func isDatingLabel(_ def: String) -> Bool {
+        def.range(of: #"^\((neologism|attested)[^()]*\)$"#, options: .regularExpression) != nil
+    }
 
     static func isCrossReference(_ def: String) -> Bool {
         let lower = def.lowercased()

@@ -397,11 +397,22 @@ private struct WordColumnKey: PreferenceKey {
 extension PhraseState {
     /// What Copy puts on the clipboard: the highlighted text.
     var copyText: String { selection.text }
+
+    /// What Add to Anki adds: the phrase and its translation, once the translation is whole.
+    /// The phrase and its translation; the meaning is empty while it's still coming, and
+    /// there's no note if the translation failed.
+    var ankiNote: AnkiNote? {
+        guard translationError == nil else { return nil }
+        guard !streaming, let translation, !translation.isEmpty else { return AnkiNote(chinese: selection.text, meaning: "") }
+        return AnkiNote(chinese: selection.text, meaning: translation)
+    }
 }
 
 struct PhraseView: View {
     @ObservedObject var state: PhraseState
     @Environment(\.cardScale) private var scale
+    /// Read so the card redraws when the tone colours change.
+    @Environment(\.toneRevision) private var toneRevision
     @State private var column: CGFloat = 0
     private let maxRows = 24
 
@@ -424,6 +435,8 @@ struct PhraseView: View {
                 }
                 translation
             }
+            // Nothing to list (a selection of only punctuation): no empty Words section.
+            if !state.tokens.isEmpty {
             VStack(alignment: .leading, spacing: Space.s * scale) {
                 CardDivider()
                 SectionLabel(text: "Words")
@@ -435,6 +448,7 @@ struct PhraseView: View {
                     }
                 }
                 .onPreferenceChange(WordColumnKey.self) { w in MainActor.assumeIsolated { column = w } }
+            }
             }
         }
         .animation(cardMotion, value: state.expanded)
@@ -551,7 +565,7 @@ struct PhraseView: View {
             let all = state.showingAll.contains(token.id)
             let preview = senses.preview(chosen: state.shownSense(token))
             let collapsed = Array(senses.enumerated()).filter { (listed?.contains($0.element) ?? preview.contains($0.offset)) || (listed != nil && state.grammar(token) == nil && $0.offset == state.shownSense(token)) }
-            let shown = all ? Array(senses.enumerated()) : collapsed
+            let shown = SenseLine.byReading(all ? Array(senses.enumerated()) : collapsed)
             let showReading = Set(shown.map(\.element.pinyin)).count > 1
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(shown.enumerated()), id: \.element.offset) { position, item in
@@ -573,6 +587,7 @@ struct PhraseView: View {
                     }
                     .buttonStyle(CardRowStyle(bleed: Space.s, vertical: 3))
                     .help("Use this meaning")
+                    .accessibilityAddTraits(chosen ? .isSelected : [])
                 }
                 if senses.count > collapsed.count {
                     Button {

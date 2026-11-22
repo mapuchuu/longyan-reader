@@ -719,6 +719,177 @@ extension AppDelegate {
         popup.togglePin()
         check(!CardPin.shared.isOn, "unpinning")
 
+        // 9. Add to Anki, against scripts/fake-ankiconnect.py on 127.0.0.1:8765 (never the
+        //    real Anki: the report says if the stand-in wasn't running). The button shows only
+        //    while AnkiConnect answers, adds once, opens as added next time, waits for a
+        //    phrase's translation, and says so when Anki stops answering.
+        let savedDeck = UserDefaults.standard.string(forKey: "ankiDeck")
+        let standIn = ProcessInfo.processInfo.environment["LONGYAN_ANKICONNECT_PORT"] != nil
+        AnkiLink.deck = "Simulation::Anki"
+        AnkiLink.shared.check(force: true)
+        await wait(1.0)
+        if standIn && AnkiLink.shared.available {
+            lines.append("— Anki (stand-in)")
+            func waitFor(_ model: AnkiButtonModel?, _ seconds: Double = 25, until done: (AnkiButtonModel.State) -> Bool) async {
+                var t = 0.0
+                while let model, !done(model.state), t < seconds { await wait(0.1); t += 0.1 }
+            }
+            func added(_ s: AnkiButtonModel.State) -> Bool { if case .added = s { return true }; return false }
+            func failed(_ s: AnkiButtonModel.State) -> Bool { if case .failed = s { return true }; return false }
+
+            show(word("我最近压力很大，想躺平一阵子。", 9, 2), near: anchor)
+            await waitForAnswer(lastLookupState)
+            await wait(0.6)
+            let first = popup.currentLayout?.anki
+            check(first != nil && popup.currentLayout?.actionCount == 4, "a word card has the Anki button while Anki answers")
+            check(popup.windowFitsCard, "the card fits with four buttons")
+            check(first?.state == .ready, "a word not in the deck opens ready to add (\(String(describing: first?.state)))")
+            first?.click()
+            await waitFor(first, until: added)
+            check(first.map { added($0.state) } ?? false, "clicking adds it (\(String(describing: first?.state)))")
+            first?.click()   // shows it in Anki's browser
+            await wait(0.3)
+            check(first.map { added($0.state) } ?? false, "clicking an added word shows it and stays added")
+
+            popup.close()
+            await wait(0.3)
+            show(word("年轻人都在说躺平。", 6, 2), near: anchor)
+            await waitForAnswer(lastLookupState)
+            let again = popup.currentLayout?.anki
+            await waitFor(again, 3, until: added)
+            check(again.map { added($0.state) } ?? false, "the same word in another sentence opens as already in Anki")
+
+            // The reader edits the note in Anki (a trailing <br>): the exact search misses it,
+            // Anki refuses a duplicate, and the button still finds it.
+            let firstID: Int? = { if case .added(let id) = first?.state { return id }; return nil }()
+            if let firstID, let port = ProcessInfo.processInfo.environment["LONGYAN_ANKICONNECT_PORT"],
+               let url = URL(string: "http://127.0.0.1:\(port)") {
+                var edit = URLRequest(url: url)
+                edit.httpMethod = "POST"
+                edit.httpBody = try? JSONSerialization.data(withJSONObject: ["action": "editChinese", "version": 6, "params": ["id": firstID, "value": "躺平<br>"]])
+                _ = try? await URLSession.shared.data(for: edit)
+                popup.close()
+                await wait(0.3)
+                show(word("他决定躺平了。", 3, 2), near: anchor)
+                await waitForAnswer(lastLookupState)
+                await wait(0.5)
+                let editedButton = popup.currentLayout?.anki
+                editedButton?.click()
+                await waitFor(editedButton, 6, until: { added($0) || failed($0) })
+                check(editedButton?.state == .added(firstID), "a note edited in Anki is still found, not reported as a duplicate (\(String(describing: editedButton?.state)))")
+            }
+
+            // A word the reader moved to another meaning goes in with that meaning.
+            show(word("他长得很高。", 1, 2), near: anchor)
+            await waitForAnswer(lastLookupState)
+            if let state = lastLookupState, state.senses.count > 1 {
+                let other = (state.chosenIndex ?? 0) == 0 ? 1 : 0
+                state.pick(other)
+                await wait(0.2)
+                check(state.ankiNote?.meaning == state.choice?.meaningHere && state.ankiNote?.meaning.isEmpty == false,
+                      "the note takes the meaning the reader picked (\(state.ankiNote?.meaning ?? "nil"))")
+            }
+
+            // A phrase card clicked while its translation is still coming in.
+            let fresh = word("他每天下班以后都去公园跑步，风雨无阻。", 0, 19)
+            show(fresh, near: anchor)
+            var t = 0.0
+            while (popup.kind != .phrase || lastPhraseState?.selection.text != fresh.text), t < 3 { await wait(0.02); t += 0.02 }
+            let phraseButton = popup.currentLayout?.anki
+            let streaming = lastPhraseState?.ankiNote?.meaning.isEmpty == true
+            lines.append("  translation still coming when clicked: \(streaming)")
+            phraseButton?.click()
+            check(phraseButton?.state == .adding, "a phrase clicked early shows that it's adding")
+            await waitFor(phraseButton, until: added)
+            check(phraseButton.map { added($0.state) } ?? false && lastPhraseState?.ankiNote?.meaning.isEmpty == false,
+                  "and adds it once the translation is in (\(String(describing: phraseButton?.state)))")
+
+            // A phrase whose translation failed says so at once instead of waiting.
+            let failing = word("今天的天气真不错啊。", 0, 10)
+            show(failing, near: anchor)
+            t = 0
+            while (popup.kind != .phrase || lastPhraseState?.selection.text != failing.text), t < 3 { await wait(0.02); t += 0.02 }
+            let failingButton = popup.currentLayout?.anki
+            lastPhraseState?.translationError = "simulated"
+            let clickedAt = Date()
+            failingButton?.click()
+            await waitFor(failingButton, 3, until: failed)
+            check(failingButton?.state == .failed("There's no translation to add") && Date().timeIntervalSince(clickedAt) < 1.5,
+                  "a phrase with no translation says so at once (\(String(describing: failingButton?.state)))")
+
+            // A phrase with characters the search treats specially.
+            let odd = word("“快*乐_吧”他说。", 0, 7)
+            show(odd, near: anchor)
+            t = 0
+            while (popup.kind != .phrase || lastPhraseState?.selection.text != odd.text), t < 3 { await wait(0.02); t += 0.02 }
+            let oddButton = popup.currentLayout?.anki
+            oddButton?.click()
+            await waitFor(oddButton, until: added)
+            let oddID: Int? = { if case .added(let id) = oddButton?.state { return id }; return nil }()
+            let oddFound = await AnkiLink.shared.existing(odd.text)
+            check(oddID != nil && oddFound == oddID, "quotes, * and _ in a phrase are found again exactly")
+
+            // Anki stops answering.
+            // Stopped by its port: matching its name would also stop any shell that mentions it.
+            let port = ProcessInfo.processInfo.environment["LONGYAN_ANKICONNECT_PORT"] ?? "8766"
+            let stop = Process()
+            stop.executableURL = URL(fileURLWithPath: "/bin/sh")
+            stop.arguments = ["-c", "kill $(/usr/sbin/lsof -tiTCP:\(port) -sTCP:LISTEN)"]
+            try? stop.run(); stop.waitUntilExit()
+            await wait(0.5)
+            show(word("这本书很有意思。", 2), near: anchor)
+            await waitForAnswer(lastLookupState)
+            let gone = popup.currentLayout?.anki
+            gone?.click()
+            await waitFor(gone, 6, until: failed)
+            check(gone?.state == .failed("Anki didn't answer. Is it open?"), "with Anki gone, the button says so (\(String(describing: gone?.state)))")
+            await wait(1.0)
+            gone?.click()   // again, while the first warning is up
+            await wait(1.0)
+            check(gone.map { failed($0.state) } ?? false, "a second warning stays up, not cleared by the first one's timer")
+            await wait(2.0)
+            check(gone?.state == .ready, "and goes back to ready")
+            AnkiLink.shared.check(force: true)
+            await wait(2.5)
+            popup.close()
+            await wait(0.3)
+            show(word("这本书很有意思。", 2), near: anchor)
+            await waitForAnswer(lastLookupState)
+            check(popup.currentLayout?.anki == nil && popup.currentLayout?.actionCount == 3 && popup.windowFitsCard,
+                  "once the check sees Anki gone, cards drop the button")
+        } else {
+            lines.append("  Anki checks skipped: run scripts/fake-ankiconnect.py 8766 and launch with LONGYAN_ANKICONNECT_PORT=8766")
+        }
+        if let savedDeck { AnkiLink.deck = savedDeck } else { UserDefaults.standard.removeObject(forKey: "ankiDeck") }
+
+        // 10. Tone colours: each scheme redraws the open card; Off leaves no tone colours;
+        //     custom picks stay readable on both cards.
+        lines.append("— Tone colors")
+        let savedScheme = UserDefaults.standard.object(forKey: "toneScheme"), savedCustom = UserDefaults.standard.object(forKey: "toneCustom")
+        show(word("他们的关系很好。", 3, 2), near: anchor)
+        await waitForAnswer(lastLookupState)
+        for scheme in ToneScheme.allCases {
+            let before = ToneColors.revision
+            ToneColors.scheme = scheme
+            await wait(0.3)
+            check(ToneColors.revision > before && popup.windowFitsCard, "switching to \(scheme.rawValue) redraws the open card")
+        }
+        check((1...4).allSatisfy { ToneColors.color($0, in: .off) == nil } && !ToneColors.enabled, "Off has no tone colours")
+        check(ToneColors.dummitt[1].light != ToneColors.dummitt[0].light && ToneColors.dummitt[2].light == ToneColors.standard[1].light,
+              "Dummitt's second tone is its own colour and its third is the green")
+        let extremes: [ToneColors.RGB] = [(1, 1, 1), (0, 0, 0), (1, 1, 0), (0, 0, 1), (0.5, 0.5, 0.5), (1, 0, 0)]
+        let worst = extremes.map { c -> (Double, Double) in
+            let r = ToneColors.readable(c)
+            return (Double(ToneColors.contrast(r.light, ToneColors.lightCard)), Double(ToneColors.contrast(r.dark, ToneColors.darkCard)))
+        }
+        check(worst.allSatisfy { $0.0 >= 4.15 && $0.1 >= 6.95 },
+              "white, black, yellow, blue, grey and red picks are all readable (" + worst.map { String(format: "%.1f/%.1f", $0.0, $0.1) }.joined(separator: " ") + ")")
+        ToneColors.custom = [(1, 1, 0), (0, 1, 1), (1, 0, 1), (0.2, 0.2, 0.2)]
+        check(ToneColors.custom.map(ToneColors.hex) == ["#FFFF00", "#00FFFF", "#FF00FF", "#333333"], "custom colours are kept as they were picked (\(ToneColors.custom.map(ToneColors.hex)))")
+        if let savedScheme { UserDefaults.standard.set(savedScheme, forKey: "toneScheme") } else { UserDefaults.standard.removeObject(forKey: "toneScheme") }
+        if let savedCustom { UserDefaults.standard.set(savedCustom, forKey: "toneCustom") } else { UserDefaults.standard.removeObject(forKey: "toneCustom") }
+        NotificationCenter.default.post(name: ToneColors.changed, object: nil)
+
         popup.close()
         await wait(0.3)
         check(PopupController.visibleCardWindows == 0, "closing leaves no card windows")

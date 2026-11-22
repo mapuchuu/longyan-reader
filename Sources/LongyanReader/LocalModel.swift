@@ -285,6 +285,24 @@ enum LocalModel {
     /// With `dict`, the built-in model can't use English words that only the sentence's other
     /// words mean (OutsideWords), and stops where its next word would be one once the
     /// selection is all said: 4B kept finishing the clause (卷了，我想 "…I want to lie flat").
+    /// The card shows the translation as plain text, so markdown the model adds (it puts
+    /// *…* round a 《》 title) would show as asterisks: they go, unless the Chinese had them
+    /// too. A sentence that ends in 。 doesn't end its English on a comma.
+    static func tidied(_ english: String, source: String, final: Bool) -> String {
+        var t = english
+        if !source.contains("*") {
+            t = t.replacingOccurrences(of: #"\*\*(?=\S)([^*\n]+?)(?<=\S)\*\*"#, with: "$1", options: .regularExpression)
+            t = t.replacingOccurrences(of: #"(?<![\w*])\*(?=\S)([^*\n]+?)(?<=\S)\*(?![\w*])"#, with: "$1", options: .regularExpression)
+        }
+        if !source.contains("_") {
+            t = t.replacingOccurrences(of: #"(?<![\w_])_(?=\S)([^_\n]+?)(?<=\S)_(?![\w_])"#, with: "$1", options: .regularExpression)
+        }
+        if final, source.range(of: #"[。！？!?.]["”’」』）)]*\s*$"#, options: .regularExpression) != nil {
+            t = t.replacingOccurrences(of: #",(["”’]?)\s*$"#, with: ".$1", options: .regularExpression)
+        }
+        return t
+    }
+
     static func translate(_ text: String, context: String? = nil, dict: CEDict? = nil,
                           partial: @MainActor (String) -> Void = { _ in }) async throws -> String {
         var messages = [["role": "system", "content": translationInstructions + (promptV2 ? " " + keepWords : "")]]
@@ -325,8 +343,8 @@ enum LocalModel {
             }
         }
         let banning = !(body["banned"] as? [String] ?? []).isEmpty
-        let out = try await stream(body) { partial(banning ? clipped($0, cut: false) : $0.trimmingCharacters(in: .whitespacesAndNewlines)) }
-        let t = banning ? clipped(out, cut: ended.isSet, outside: outsideWords) : out.trimmingCharacters(in: .whitespacesAndNewlines)
+        let out = try await stream(body) { partial(tidied(banning ? clipped($0, cut: false) : $0.trimmingCharacters(in: .whitespacesAndNewlines), source: text, final: false)) }
+        let t = tidied(banning ? clipped(out, cut: ended.isSet, outside: outsideWords) : out.trimmingCharacters(in: .whitespacesAndNewlines), source: text, final: true)
         guard !t.isEmpty else { throw NSError(domain: "LongyanReader", code: 6, userInfo: [NSLocalizedDescriptionKey: "empty translation"]) }
         // With context it now and then answers in Chinese (胜任或轻视这份工作); alone it doesn't.
         if context != nil, t.contains(where: isCJK) { return try await translate(text, partial: partial) }

@@ -94,37 +94,30 @@ final class LookupState: ObservableObject {
 extension LookupState {
     /// What Copy puts on the clipboard: the word that was looked up, as it appears in the text.
     var copyText: String { context.word }
+
+    /// What Add to Anki adds: the card as it stands, with the meaning the reader sees.
+    var ankiNote: AnkiNote? {
+        let sense = senses[safe: chosenIndex ?? 0]
+        guard let meaning = choice?.meaningHere ?? sense.map(headlineGloss) else { return nil }
+        let dictionary = sense.map { Gloss.readable($0.gloss) } ?? ""
+        return AnkiNote(chinese: context.word, pinyin: Pinyin.marked(headerPinyin), meaning: meaning,
+                        sentence: context.sentence == context.word ? "" : context.markedSentence,
+                        dictionary: dictionary.lowercased() == meaning.lowercased() ? "" : dictionary,
+                        note: choice.flatMap { NotesStore.note(context.word, senses[safe: $0.senseNumber - 1])?.shown } ?? "")
+    }
 }
 
 extension Array {
     subscript(safe i: Int) -> Element? { indices.contains(i) ? self[i] : nil }
 }
 
-/// Tone colours, muted so they sit quietly on the card: dusty brick, sage, slate and
-/// violet in light mode, soft pastels in dark mode. Neutral tone uses the secondary label.
-func tone(light: (CGFloat, CGFloat, CGFloat), dark: (CGFloat, CGFloat, CGFloat)) -> Color {
-    Color(nsColor: NSColor(name: nil) { appearance in
-        let c = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? dark : light
-        return NSColor(srgbRed: c.0, green: c.1, blue: c.2, alpha: 1)
-    })
-}
-let toneColors: [Int: Color] = [
-    1: tone(light: (0.66, 0.33, 0.30), dark: (0.89, 0.62, 0.58)),
-    2: tone(light: (0.29, 0.53, 0.38), dark: (0.62, 0.80, 0.66)),
-    3: tone(light: (0.29, 0.45, 0.65), dark: (0.63, 0.74, 0.89)),
-    4: tone(light: (0.50, 0.38, 0.64), dark: (0.76, 0.67, 0.88)),
-]
-func toneColor(_ t: Int) -> Color { toneColors[t] ?? Color.secondary }
-/// A character's colour: its tone's when tone colours are on, else the primary label.
-func hanziColor(_ t: Int) -> Color { ToneColors.enabled ? toneColor(t) : .primary }
-/// A pinyin syllable's colour: its tone's when tone colours are on, else the secondary label.
-func pinyinColor(_ t: Int) -> Color { ToneColors.enabled ? toneColor(t) : .secondary }
-
 struct LookupView: View {
     /// The dictionary-order reason for a word with no entry; shown on its own, without the prefix.
     static let notInDictionary = "not in dictionary"
     @ObservedObject var state: LookupState
     @Environment(\.cardScale) private var scale
+    /// Read so the card redraws when the tone colours change.
+    @Environment(\.toneRevision) private var toneRevision
 
     private var note: StoredNote? {
         state.choice.flatMap { NotesStore.note(state.context.word, state.senses[safe: $0.senseNumber - 1]) }
@@ -175,8 +168,13 @@ struct LookupView: View {
             }
             VStack(alignment: .leading, spacing: Space.xxs * scale) {
                 HStack(alignment: .firstTextBaseline, spacing: Space.s * scale) {
-                    headword.lineLimit(1).minimumScaleFactor(0.5)
-                    Spacer(minLength: Space.s * scale)
+                    // The buttons line up with a full-size character, and a word shrunk to fit
+                    // sits on its baseline: so they stay where every other card has them.
+                    Text("国").cardFont(TextSize.headword, .medium).hidden().accessibilityHidden(true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .overlay(alignment: Alignment(horizontal: .leading, vertical: .firstTextBaseline)) {
+                            headword.lineLimit(1).minimumScaleFactor(0.5)
+                        }
                     slot
                 }
                 pinyin.fixedSize(horizontal: false, vertical: true).contentTransition(.opacity)
@@ -254,7 +252,7 @@ struct LookupView: View {
         let listed = state.grammar?.listed(state.senses)
         let preview = state.senses.preview(chosen: state.chosenIndex)
         let collapsed = all.filter { listed?.contains($0.element) ?? preview.contains($0.offset) || $0.offset == state.chosenIndex }
-        let shown = state.showAllSenses ? all : collapsed
+        let shown = SenseLine.byReading(state.showAllSenses ? all : collapsed)
         let showReading = Set(state.senses.map(\.pinyin)).count > 1
         return VStack(alignment: .leading, spacing: Space.s * scale) {
             CardDivider()
@@ -282,6 +280,7 @@ struct LookupView: View {
                     }
                     .buttonStyle(CardRowStyle())
                     .help(hasNote ? "Use this meaning · has a note" : "Use this meaning")
+                    .accessibilityAddTraits(chosen ? .isSelected : [])
                 }
                 if state.senses.count > collapsed.count {
                     Button {
@@ -408,7 +407,8 @@ final class PopupController {
     /// The card fades and springs in once its content has been measured. With `holdFor`, it
     /// waits up to that long for `endHold`, so an answer on its way is there when it opens.
     func show<V: View>(_ view: V, kind: CardLayout.Kind, near anchor: NSRect, holdFor hold: TimeInterval = 0,
-                       copyText: (() -> String)? = nil, speech: (() -> SpeechPlan)? = nil) {
+                       copyText: (() -> String)? = nil, speech: (() -> SpeechPlan)? = nil,
+                       anki: (() -> AnkiNote?)? = nil) {
         // A new card silences the last one's reading; a hint beside it doesn't.
         if kind != .hint { Speaker.shared.stop() }
         // A pinned card is replaced in place: the old one stays up until the new one is ready.
@@ -455,6 +455,10 @@ final class PopupController {
         self.layout = layout
         layout.copyText = copyText
         layout.speech = Speaker.shared.available ? speech : nil
+        // A word with no dictionary entry has nothing to add, so no button.
+        layout.anki = AnkiLink.shared.available && anki?() != nil ? anki.map(AnkiButtonModel.init) : nil
+        layout.spoken = anki
+        AnkiLink.shared.check()   // for the next card, if Anki was opened or quit since
         layout.togglePin = { [weak self] in self?.togglePin() }
         layout.closeCard = { [weak self] in self?.close() }
         layout.onResize = { [weak self] edges, mouse in self?.resize(edges, to: mouse) }
@@ -541,6 +545,7 @@ final class PopupController {
                 ctx.duration = 0.12
                 panel.animator().alphaValue = 1
             }, completionHandler: { old.orderOut(nil) })
+            announce(layout)
             return
         }
         NSAnimationContext.runAnimationGroup { ctx in
@@ -548,6 +553,16 @@ final class PopupController {
             panel.animator().alphaValue = 1
         }
         withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) { layout.appeared = true }
+        announce(layout)
+    }
+
+    /// The card never takes focus (it would pull it from what you're reading), so VoiceOver
+    /// wouldn't notice it: say what it shows.
+    private func announce(_ layout: CardLayout) {
+        guard NSWorkspace.shared.isVoiceOverEnabled, let note = layout.spoken?() else { return }
+        let words = [note.chinese, note.pinyin, note.meaning].filter { !$0.isEmpty }.joined(separator: ", ")
+        NSAccessibility.post(element: NSApp as Any, notification: .announcementRequested,
+                             userInfo: [.announcement: words, .priority: NSAccessibilityPriorityLevel.high.rawValue])
     }
 
     /// The old card, kept on screen while a pinned card's next content gets ready.

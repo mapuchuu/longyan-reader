@@ -444,6 +444,8 @@ enum CLI {
         case "--render-onboarding" where args.count >= 4:
             // --render-onboarding <access|checking|offer|nospace|downloading|verifying|failed|done|ollama|file> out.png
             try await renderOnboarding(args[2], to: URL(fileURLWithPath: args[3]))
+        case "--render-tone-colors" where args.count >= 3:
+            try await writePNG(ToneColorsView().background(Color(nsColor: .windowBackgroundColor)), to: URL(fileURLWithPath: args[2]))
         case "--render-chip" where args.count >= 3:
             try await writePNG(ChipButtonView {}.frame(width: 30, height: 30), to: URL(fileURLWithPath: args[2]))
         case "--render" where args.count >= 5:
@@ -993,6 +995,8 @@ enum CLI {
         // The card's buttons as they appear in the app (nothing is copied or read aloud here).
         layout.copyText = { "" }
         layout.speech = { SpeechPlan(text: "", help: "") }
+        // LONGYAN_RENDER_ANKI=1 draws the Anki button too, as when Anki is open.
+        if ProcessInfo.processInfo.environment["LONGYAN_RENDER_ANKI"] == "1" { layout.anki = AnkiButtonModel(note: { nil }) }
         return layout
     }
 }
