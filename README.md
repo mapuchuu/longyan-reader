@@ -80,7 +80,7 @@ Or install it with [Homebrew](https://brew.sh):
 brew install mapuchuu/tap/longyan-reader
 ```
 
-Then open it and carry on from step 3. Either way the app is signed and notarized by Apple, and it keeps itself up to date.
+Then open it and carry on from step 2. Either way the app is signed and notarized by Apple, and it keeps itself up to date.
 
 Updating from 0.1? 1.0 is signed differently. If the app asks for Accessibility again after the update, turn it on again. If it already looks on, switch it off and on.
 
@@ -100,7 +100,7 @@ Without the model you still get the dictionary, pinyin and notes, with meanings 
 
 ## Privacy
 
-Nothing you look up is ever sent anywhere. The app goes online for three things only: downloading the reading model when you ask (a plain file from Hugging Face, checked against its SHA-256), checking GitHub for updates once you've agreed to it (nothing about your Mac is sent), and Report a Problem, which opens a pre-filled GitHub issue in your browser and sends nothing until you submit it.
+Nothing you look up is ever sent anywhere. The app goes online for three things only: downloading the reading model when you ask (a plain file from hf-mirror.com, or huggingface.co if that fails, checked against its SHA-256), checking GitHub for updates once you've agreed to it (nothing about your Mac is sent), and Report a Problem, which opens a pre-filled GitHub issue in your browser and sends nothing until you submit it.
 
 Your history stays in `~/Library/Application Support/LongyanReader/History` unless you export it. Keep 30 days, turn it off, or clear it under **Keep History** in the menu. The [privacy page](https://longyan.app/privacy.html) has the details.
 
