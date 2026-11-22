@@ -759,6 +759,26 @@ extension AppDelegate {
             await waitFor(again, 3, until: added)
             check(again.map { added($0.state) } ?? false, "the same word in another sentence opens as already in Anki")
 
+            // The reader edits the note in Anki (a trailing <br>): the exact search misses it,
+            // Anki refuses a duplicate, and the button still finds it.
+            let firstID: Int? = { if case .added(let id) = first?.state { return id }; return nil }()
+            if let firstID, let port = ProcessInfo.processInfo.environment["LONGYAN_ANKICONNECT_PORT"],
+               let url = URL(string: "http://127.0.0.1:\(port)") {
+                var edit = URLRequest(url: url)
+                edit.httpMethod = "POST"
+                edit.httpBody = try? JSONSerialization.data(withJSONObject: ["action": "editChinese", "version": 6, "params": ["id": firstID, "value": "躺平<br>"]])
+                _ = try? await URLSession.shared.data(for: edit)
+                popup.close()
+                await wait(0.3)
+                show(word("他决定躺平了。", 3, 2), near: anchor)
+                await waitForAnswer(lastLookupState)
+                await wait(0.5)
+                let editedButton = popup.currentLayout?.anki
+                editedButton?.click()
+                await waitFor(editedButton, 6, until: { added($0) || failed($0) })
+                check(editedButton?.state == .added(firstID), "a note edited in Anki is still found, not reported as a duplicate (\(String(describing: editedButton?.state)))")
+            }
+
             // A word the reader moved to another meaning goes in with that meaning.
             show(word("他长得很高。", 1, 2), near: anchor)
             await waitForAnswer(lastLookupState)
@@ -784,6 +804,19 @@ extension AppDelegate {
             check(phraseButton.map { added($0.state) } ?? false && lastPhraseState?.ankiNote?.meaning.isEmpty == false,
                   "and adds it once the translation is in (\(String(describing: phraseButton?.state)))")
 
+            // A phrase whose translation failed says so at once instead of waiting.
+            let failing = word("今天的天气真不错啊。", 0, 10)
+            show(failing, near: anchor)
+            t = 0
+            while (popup.kind != .phrase || lastPhraseState?.selection.text != failing.text), t < 3 { await wait(0.02); t += 0.02 }
+            let failingButton = popup.currentLayout?.anki
+            lastPhraseState?.translationError = "simulated"
+            let clickedAt = Date()
+            failingButton?.click()
+            await waitFor(failingButton, 3, until: failed)
+            check(failingButton?.state == .failed("There's no translation to add") && Date().timeIntervalSince(clickedAt) < 1.5,
+                  "a phrase with no translation says so at once (\(String(describing: failingButton?.state)))")
+
             // A phrase with characters the search treats specially.
             let odd = word("“快*乐_吧”他说。", 0, 7)
             show(odd, near: anchor)
@@ -797,9 +830,11 @@ extension AppDelegate {
             check(oddID != nil && oddFound == oddID, "quotes, * and _ in a phrase are found again exactly")
 
             // Anki stops answering.
+            // Stopped by its port: matching its name would also stop any shell that mentions it.
+            let port = ProcessInfo.processInfo.environment["LONGYAN_ANKICONNECT_PORT"] ?? "8766"
             let stop = Process()
-            stop.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
-            stop.arguments = ["-f", "fake-ankiconnect.py"]
+            stop.executableURL = URL(fileURLWithPath: "/bin/sh")
+            stop.arguments = ["-c", "kill $(/usr/sbin/lsof -tiTCP:\(port) -sTCP:LISTEN)"]
             try? stop.run(); stop.waitUntilExit()
             await wait(0.5)
             show(word("这本书很有意思。", 2), near: anchor)
@@ -808,7 +843,11 @@ extension AppDelegate {
             gone?.click()
             await waitFor(gone, 6, until: failed)
             check(gone?.state == .failed("Anki didn't answer. Is it open?"), "with Anki gone, the button says so (\(String(describing: gone?.state)))")
-            await wait(2.8)
+            await wait(1.0)
+            gone?.click()   // again, while the first warning is up
+            await wait(1.0)
+            check(gone.map { failed($0.state) } ?? false, "a second warning stays up, not cleared by the first one's timer")
+            await wait(2.0)
             check(gone?.state == .ready, "and goes back to ready")
             AnkiLink.shared.check(force: true)
             await wait(2.5)

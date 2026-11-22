@@ -3,6 +3,9 @@
 import json, sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
 decks={"Default":1}; models={"Basic":["Front","Back"]}; notes={}; nid=[1000]
+def plain(f):  # Anki checks duplicates on the field without its formatting
+    import re
+    return re.sub(r'<[^>]*>','',f).replace('&nbsp;',' ').strip()
 def search(q):
     import shlex
     parts=shlex.split(q)  # handles the quoting
@@ -13,7 +16,9 @@ def search(q):
             k,_,v=p.partition(':'); v=v.replace('\\*','*').replace('\\_','_')
             if k=='deck' and n['deckName']!=v: ok=False
             if k=='note' and n['modelName']!=v: ok=False
-            if k=='Chinese' and n['fields'].get('Chinese')!=v: ok=False
+            if k=='Chinese':
+                f=n['fields'].get('Chinese','')
+                if (v.startswith('*') and v.endswith('*') and len(v)>1 and v[1:-1] not in f) or (not v.startswith('*') and f!=v): ok=False
             if k=='nid' and str(i)!=v: ok=False
         if ok: out.append(i)
     return out
@@ -31,8 +36,10 @@ class H(BaseHTTPRequestHandler):
             n=p['note']
             if n['modelName'] not in models: err='model was not found: '+n['modelName']
             elif n['deckName'] not in decks: err='deck was not found: '+n['deckName']
-            elif any(x['fields']['Chinese']==n['fields']['Chinese'] and x['deckName']==n['deckName'] for x in notes.values()): err='cannot create note because it is a duplicate'
+            elif any(plain(x['fields']['Chinese'])==plain(n['fields']['Chinese']) and x['deckName']==n['deckName'] for x in notes.values()): err='cannot create note because it is a duplicate'
             else: nid[0]+=1; notes[nid[0]]=n; res=nid[0]; print('ADD', json.dumps(n, ensure_ascii=False))
+        elif a=='notesInfo': res=[{'noteId':i,'fields':{k:{'value':v} for k,v in notes[i]['fields'].items()}} for i in p['notes'] if i in notes]
+        elif a=='editChinese': notes[p['id']]['fields']['Chinese']=p['value']; res=None
         elif a=='guiBrowse': res=[]; print('BROWSE', p['query'])
         else: err='unsupported action'
         out=json.dumps({'result':res,'error':err}).encode()

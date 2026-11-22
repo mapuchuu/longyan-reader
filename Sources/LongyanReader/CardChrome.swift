@@ -26,6 +26,8 @@ final class CardLayout: ObservableObject {
     var speech: (() -> SpeechPlan)?
     /// Add to Anki; nil hides the button (Anki isn't open with AnkiConnect, or a hint).
     var anki: AnkiButtonModel?
+    /// What the card says (word, pinyin, meaning), read out by VoiceOver when it appears.
+    var spoken: (() -> AnkiNote?)?
     /// How many buttons the first line keeps room for: Listen, Copy and Pin, and Anki.
     var actionCount: Int { anki == nil ? 3 : 4 }
     var togglePin: () -> Void = {}
@@ -187,7 +189,11 @@ final class CardPin: ObservableObject {
 
 /// Every change inside a card uses this, so the content and the card's edge move together:
 /// a critically damped spring, the feel of system popovers and disclosure rows.
-let cardMotion = Animation.spring(response: 0.34, dampingFraction: 1)
+/// The cards' one motion, a short fade-like ease instead when Reduce Motion is on.
+var cardMotion: Animation {
+    NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        ? .easeInOut(duration: 0.15) : .spring(response: 0.34, dampingFraction: 1)
+}
 
 /// The cards' spacing scale (points at 1× zoom): every gap and inset is one of these.
 enum Space {
@@ -335,6 +341,7 @@ struct CardChrome<Content: View>: View {
     /// Transparent space around the card for its shadow.
     static var margin: CGFloat { 28 }
     static var sizeAnimation: Animation { cardMotion }
+    static var reduceMotion: Bool { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }
 
     init(layout: CardLayout, @ViewBuilder content: () -> Content) {
         self.layout = layout
@@ -370,8 +377,9 @@ struct CardChrome<Content: View>: View {
                     if layout.kind != .hint { CloseBadge(layout: layout, cardHovered: hovering) }
                 }
                 .background(CardShadow(radius: shapeRadius))
-                .scaleEffect(layout.appeared ? 1 : 0.96, anchor: layout.placedBelow ? .top : .bottom)
-                .offset(y: layout.appeared ? 0 : (layout.placedBelow ? -4 : 4))
+                // With Reduce Motion the card only fades in: no grow, no drift.
+                .scaleEffect(layout.appeared || Self.reduceMotion ? 1 : 0.96, anchor: layout.placedBelow ? .top : .bottom)
+                .offset(y: layout.appeared || Self.reduceMotion ? 0 : (layout.placedBelow ? -4 : 4))
                 .padding(Self.margin)
                 .frame(maxWidth: .infinity, maxHeight: .infinity,
                        alignment: layout.placedBelow ? .topLeading : .bottomLeading)
@@ -711,6 +719,8 @@ struct ChoiceMark: View {
             .opacity(chosen ? 1 : 0)
             .scaleEffect(chosen ? 1 : 0.6)
             .frame(width: 14 * scale, alignment: .trailing)
+            // The row says it's selected (isSelected); the mark itself is only decoration.
+            .accessibilityHidden(true)
     }
 }
 
@@ -729,12 +739,16 @@ struct SenseLine: View {
     @Environment(\.cardScale) private var scale
 
     var body: some View {
-        let column = (total >= 10 ? 15 : 9) * scale
+        // Wide enough for the longest number in the list, so 10 never breaks over two lines.
+        let digits = String(total).count
+        let column = CGFloat(digits == 1 ? 9 : 8 * digits + 1) * scale
         let gap = 6 * scale
         HStack(alignment: .firstTextBaseline, spacing: gap) {
             Text("\(number)")
                 .cardFont(size - 1, .medium, monospacedDigit: true)
                 .foregroundStyle(.tertiary)
+                .lineLimit(1)
+                .fixedSize()
                 .frame(width: column, alignment: .trailing)
             definition
                 .cardFont(size, chosen ? .semibold : .regular)
@@ -747,6 +761,15 @@ struct SenseLine: View {
         guard let partOfSpeech else { return Text(gloss) }
         return Text(partOfSpeech.label).italic().fontWeight(.regular).foregroundColor(.secondary)
             + Text(" ") + Text(gloss)
+    }
+
+    /// The shown meanings with each reading's together, readings in the order they first
+    /// appear: CC-CEDICT can list a reading again after another (好 hǎo, hào, then hǎo
+    /// "hello"), and a dictionary prints each reading once. Numbers stay the dictionary's.
+    static func byReading(_ shown: [(offset: Int, element: Sense)]) -> [(offset: Int, element: Sense)] {
+        var order: [String] = []
+        for item in shown where !order.contains(item.element.pinyin) { order.append(item.element.pinyin) }
+        return order.flatMap { reading in shown.filter { $0.element.pinyin == reading } }
     }
 
     /// Whether the meaning at `position` in a shown list starts a new reading (好 hǎo, then hào).

@@ -323,7 +323,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// model's line are current (the first lookup creates the history file, for one).
     func menuNeedsUpdate(_ menu: NSMenu) {
         guard menu === statusItem.menu else { return }
-        AnkiLink.shared.check()
+        // Anki's answer arrives after the menu opens: if it changed (Anki just opened, a new
+        // deck), the open menu is filled again so Anki Deck is right.
+        AnkiLink.shared.check { [weak self, weak menu] in
+            guard let self, let menu, menu === self.statusItem.menu else { return }
+            self.refill(menu)
+        }
+        refill(menu)
+    }
+
+    private func refill(_ menu: NSMenu) {
         let fresh = makeMenu()
         menu.removeAllItems()
         for item in fresh.items { fresh.removeItem(item); menu.addItem(item) }
@@ -445,7 +454,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if anki.available {
             let deckMenu = NSMenu()
             let current = AnkiLink.deck
-            for deck in [AnkiLink.defaultDeck] + anki.decks.filter({ $0 != AnkiLink.defaultDeck }) {
+            // The chosen deck stays listed (checked) even if it was renamed or deleted in Anki:
+            // the next card makes it again, so the menu says where cards go.
+            let others = Set(anki.decks + [current]).subtracting([AnkiLink.defaultDeck]).sorted()
+            for deck in [AnkiLink.defaultDeck] + others {
                 let item = deckMenu.addItem(withTitle: deck, action: #selector(selectAnkiDeck(_:)), keyEquivalent: "")
                 item.target = self; item.representedObject = deck; item.state = deck == current ? .on : .off
                 if deck == AnkiLink.defaultDeck { deckMenu.addItem(.separator()) }

@@ -124,7 +124,16 @@ enum Gloss {
         // close it after the ellipsis.
         if let open = unclosed(in: cut) {
             let before = cut[..<open].trimmingCharacters(in: CharacterSet(charactersIn: " ,:;"))
-            if before.count >= 12 { return before + "…" }
+            if before.count >= 12 {
+                // Nothing is lost if the bracket is all that was left out: 红楼梦's
+                // "A Dream of Red Mansions (first completed edition 1791) by Cao Xueqin".
+                let tail = String(text[text.index(text.startIndex, offsetBy: cut.distance(from: cut.startIndex, to: open))...])
+                if tail.hasPrefix("("), let close = matchingClose(in: tail) {
+                    let after = tail[tail.index(after: close)...]
+                    if after.isEmpty || after.hasPrefix(",") || after.hasPrefix(" by ") { return before }
+                }
+                return before + "…"
+            }
             return cut + "…" + (cut[open] == "(" ? ")" : "\"")
         }
         return cut + "…"

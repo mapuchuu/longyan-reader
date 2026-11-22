@@ -9,6 +9,10 @@ struct StoredNote: Codable {
     let gloss: String
     let tag: String          // "lost_in_translation" or "cultural_context"
     let note: String
+
+    /// The note as shown: a full-width mark (？ 。 ，) carries its own space, so the space
+    /// typed after it in English text would read as two.
+    var shown: String { note.replacingOccurrences(of: "([？！。，、；：]) ", with: "$1", options: .regularExpression) }
 }
 
 enum NotesStore {
@@ -73,6 +77,11 @@ enum NoteCues {
             guard first <= last else { continue }
             for start in first...last {
                 let window = Array(passage[start..<start + cue.count])
+                // A single character only takes a cue that holds the word it belongs to: 不行
+                // settles 行, but not the 行 of 不行动, which is part of 行动.
+                if word.count == 1, let dict = CEDict.current,
+                   let enclosing = Segmenter.enclosingWord(of: range, in: passage, dict: dict),
+                   enclosing.lowerBound < start || enclosing.upperBound > start + cue.count { continue }
                 if window == cue { return i + 1 }
                 if traditional, let dict = CEDict.current,
                    dict.simplified(String(window)) == c.cue || window.map({ dict.simplified(String($0)) }).joined() == c.cue { return i + 1 }
@@ -115,7 +124,7 @@ struct NuanceView: View {
                     .cardFont(TextSize.subheadline, .semibold)
                     .foregroundStyle(.secondary)
             }
-            Text(note.note)
+            Text(note.shown)
                 .cardFont(TextSize.body)
                 .lineSpacing(2 * scale)
                 .fixedSize(horizontal: false, vertical: true)
