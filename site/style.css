@@ -884,7 +884,7 @@ figcaption b { color: var(--ink); font-weight: 600; }
 @media (prefers-reduced-motion: reduce) { .glass-box * { animation: none !important; } }
 
 /* Install: its own thing, not a fifth tile. A Mac's screen on the night, a wallpaper of the
-   site's own colour drifting on it, playing the four steps as they happen, the step it's on
+   site's own colour drifting on it, playing the three steps as they happen, the step it's on
    lit beside it with a bar filling as it plays, as the opening's do. Click a step to see it. */
 .install { padding: 180px 0 150px; }
 .install-grid {
@@ -924,10 +924,6 @@ figcaption b { color: var(--ink); font-weight: 600; }
 .started a:hover { text-decoration: underline; }
 .install.downloading .install-get .button { visibility: hidden; }
 .install.downloading .section-head .started { display: block; }
-/* Under the steps, why step 2 and 3 are needed at all: one quiet paragraph. */
-.install-why { max-width: 40em; margin: 72px auto 0; text-align: center; text-wrap: pretty; font-size: 15px; line-height: 1.55; color: var(--graphite); letter-spacing: -0.01em; }
-.install-why b { font-weight: 600; color: rgba(245, 245, 247, .82); }
-.install-why a { color: rgba(245, 245, 247, .82); }
 .section-head .install-fine { margin: 18px auto 0; max-width: none; font-size: 14px; line-height: 1.5; color: rgba(245, 245, 247, .5); letter-spacing: -0.01em; }
 
 /* A phone can't run the app, so there each download button copies the page's link instead,
@@ -962,10 +958,10 @@ figcaption b { color: var(--ink); font-weight: 600; }
 .mb-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
 .mb-eye { display: grid; place-items: center; width: 22px; opacity: 0; transition: opacity .4s; }
 .mb-eye svg { width: 19px; height: auto; }
-.desk.s3 .mb-eye { opacity: 1; }
+.desk.s2 .mb-eye { opacity: 1; }
 .layer { position: absolute; inset: 0; }
 .scene { position: absolute; inset: 0; opacity: 0; visibility: hidden; transition: opacity .45s ease, visibility 0s .45s; }
-.s0 .sc0, .s1 .sc1, .s2 .sc2, .s3 .sc3 { opacity: 1; visibility: visible; transition: opacity .45s ease .1s, visibility 0s; }
+.s0 .sc0, .s1 .sc1, .s2 .sc2 { opacity: 1; visibility: visible; transition: opacity .45s ease .1s, visibility 0s; }
 .win {
   position: absolute; overflow: hidden; border-radius: 12px; background: rgba(251, 251, 253, .97);
   box-shadow: 0 0 0 .5px rgba(0, 0, 0, .3), inset 0 0 0 .5px rgba(255, 255, 255, .6), 0 22px 60px rgba(0, 0, 0, .5), 0 4px 14px rgba(0, 0, 0, .25);
@@ -1037,6 +1033,8 @@ figcaption b { color: var(--ink); font-weight: 600; }
   background: rgba(0, 0, 0, .07);
 }
 .alert-buttons .default, .ob-buttons .default { background: #0a84ff; color: #fff; }
+/* Shorter than the default, its buttons where they were, under the pointer. */
+.sc1 .alert { top: 124px; height: 228px; }
 .s1 .pointer { animation: cur1 5.2s cubic-bezier(.45, 0, .25, 1) both; }
 @keyframes cur1 { 0%, 10% { transform: translate(600px, 425px); } 46%, 56% { transform: translate(437px, 323px); } 100% { transform: translate(600px, 425px); } }
 .s1 .alert { animation: alert 5.2s cubic-bezier(.2, .8, .2, 1) both; }
@@ -1044,62 +1042,7 @@ figcaption b { color: var(--ink); font-weight: 600; }
 .s1 .alert .default { animation: press 5.2s steps(1) both; }
 @keyframes press { 0% { background: #0a84ff; } 50% { background: #0062cc; } 58%, 100% { background: #0a84ff; } }
 
-/* 3. System Settings. */
-.settings-win { left: 90px; top: 52px; width: 580px; height: 380px; }
-.settings-win .win-bar { left: 170px; padding-left: 20px; }
-.settings-win .lights { position: absolute; left: -156px; }
-.set-side { position: absolute; left: 0; top: 0; bottom: 0; width: 170px; padding: 44px 9px 0; box-sizing: border-box; background: rgba(234, 233, 240, .94); display: flex; flex-direction: column; }
-.set-side span { height: 24px; display: flex; align-items: center; gap: 7px; padding-left: 6px; border-radius: 6px; font-size: 12px; }
-.set-side span i { width: 17px; height: 17px; border-radius: 5px; background: var(--c); }
-.set-side .set-search { height: 24px; margin-bottom: 8px; padding-left: 10px; background: rgba(0, 0, 0, .06); color: #8e8e93; }
-.set-side .gap { margin-top: 10px; }
-.set-side .sel { background: #0a63e0; color: #fff; }
-.set-main { position: absolute; left: 170px; top: 38px; right: 0; bottom: 0; overflow: hidden; background: #f6f6f8; }
-.set-scroll { padding: 16px 20px; transform: translateY(-150px); }
-.set-group { background: #fff; border-radius: 10px; box-shadow: 0 0 0 .5px rgba(0, 0, 0, .08); }
-.set-group span { height: 32px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 12px; font-size: 12px; }
-.set-group span + span { border-top: .5px solid rgba(0, 0, 0, .1); }
-.set-group em { font-style: normal; color: #8e8e93; }
-.set-label { display: block; height: 18px; margin: 16px 0 6px 4px; font-size: 12px; font-weight: 700; }
-.set-group .blocked { height: 52px; }
-.blocked u { flex: none; width: 92px; height: 24px; display: grid; place-items: center; border-radius: 6px; text-decoration: none; font-weight: 500; background: rgba(0, 0, 0, .07); }
-/* 8.8 s: scroll, Open Anyway, the password, then Open Anyway once more. */
-.s2 .set-scroll { animation: scroll 8.8s cubic-bezier(.45, 0, .25, 1) both; }
-@keyframes scroll { 0%, 7.6% { transform: none; } 24%, 100% { transform: translateY(-150px); } }
-.s2 .pointer { animation: cur2 8.8s cubic-bezier(.45, 0, .25, 1) both; }
-@keyframes cur2 {
-  0% { transform: translate(600px, 425px); }
-  9%, 24% { transform: translate(470px, 250px); }
-  37%, 47% { transform: translate(590px, 217px); }
-  58%, 66% { transform: translate(439px, 323px); }
-  79%, 87% { transform: translate(321px, 323px); }
-  100% { transform: translate(600px, 425px); }
-}
-.s2 .blocked u { animation: open 8.8s steps(1) both; }
-@keyframes open { 0% { background: rgba(0, 0, 0, .07); color: inherit; } 39% { background: #0a84ff; color: #fff; } 43%, 100% { background: rgba(0, 0, 0, .07); color: inherit; } }
-.auth, .reopen { z-index: 3; opacity: 0; background: rgba(242, 241, 247, .985); }
-.auth { top: 160px; height: 192px; padding-top: 16px; }
-.auth-lock { width: 30px; height: 37px; margin: 0 0 2px; }
-.auth-field {
-  width: 100%; height: 24px; margin-top: 12px; box-sizing: border-box; padding: 0 9px; display: flex; align-items: center; gap: 5px;
-  border-radius: 6px; background: #fff; box-shadow: 0 0 0 .5px rgba(0, 0, 0, .2), 0 0 0 3px rgba(10, 132, 255, .45);
-}
-.auth-field i { width: 6px; height: 6px; border-radius: 50%; background: #1d1d1f; opacity: 0; }
-.s2 .auth { animation: auth 8.8s cubic-bezier(.2, .8, .2, 1) both; }
-@keyframes auth { 0%, 45% { opacity: 0; transform: scale(.94); } 48%, 66% { opacity: 1; transform: none; } 69%, 100% { opacity: 0; transform: scale(.97); } }
-/* The password, a dot at a time. */
-.s2 .auth-field i { animation: dot 8.8s steps(1) both; animation-delay: calc(var(--n) * 90ms); }
-.auth-field i:nth-child(1) { --n: 0; } .auth-field i:nth-child(2) { --n: 1; } .auth-field i:nth-child(3) { --n: 2; } .auth-field i:nth-child(4) { --n: 3; }
-.auth-field i:nth-child(5) { --n: 4; } .auth-field i:nth-child(6) { --n: 5; } .auth-field i:nth-child(7) { --n: 6; } .auth-field i:nth-child(8) { --n: 7; }
-@keyframes dot { 0%, 51% { opacity: 0; } 52%, 100% { opacity: 1; } }
-.s2 .auth .default { animation: press2 8.8s steps(1) both; }
-@keyframes press2 { 0% { background: #0a84ff; } 64% { background: #0062cc; } 67%, 100% { background: #0a84ff; } }
-.s2 .reopen { animation: reopen 8.8s cubic-bezier(.2, .8, .2, 1) both; }
-@keyframes reopen { 0%, 70% { opacity: 0; transform: scale(.94); } 73%, 88% { opacity: 1; transform: none; } 91%, 100% { opacity: 0; transform: scale(.97); } }
-.s2 .reopen .anyway { animation: press-any 8.8s steps(1) both; }
-@keyframes press-any { 0% { background: rgba(0, 0, 0, .07); color: inherit; } 85% { background: #0a84ff; color: #fff; } 88%, 100% { background: rgba(0, 0, 0, .07); color: inherit; } }
-
-/* 4. The app's own first window. */
+/* 3. The app's own first window. */
 .onboard { left: 200px; top: 98px; width: 340px; height: 258px; }
 .onboard .win-bar { height: 28px; }
 .ob-body { position: absolute; left: 16px; right: 16px; top: 36px; bottom: 16px; }
@@ -1118,6 +1061,9 @@ figcaption b { color: var(--ink); font-weight: 600; }
 .ob-buttons span { width: 64px; height: 24px; }
 .ob-a .ob-buttons .default { width: 150px; }
 .ob-a { opacity: 0; }
+/* A settings list, as in the Accessibility window. */
+.set-group { background: #fff; border-radius: 10px; box-shadow: 0 0 0 .5px rgba(0, 0, 0, .08); }
+.set-group span { height: 32px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 12px; font-size: 12px; }
 .ax { left: 470px; top: 150px; width: 250px; height: 116px; opacity: 0; }
 .ax .win-bar { height: 34px; font-size: 12.5px; }
 .ax p { margin: 34px 14px 0; height: 32px; font-size: 11px; line-height: 1.38; color: #86868b; }
@@ -1126,19 +1072,19 @@ figcaption b { color: var(--ink); font-weight: 600; }
 .ax .set-group img { width: 20px; height: 20px; }
 .toggle { margin-left: auto; width: 32px; height: 18px; border-radius: 9px; background: #0a84ff; position: relative; }
 .toggle::after { content: ""; position: absolute; top: 2px; left: 16px; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .3); }
-.s3 .pointer { animation: cur3 7.2s cubic-bezier(.45, 0, .25, 1) both; }
+.s2 .pointer { animation: cur3 7.2s cubic-bezier(.45, 0, .25, 1) both; }
 @keyframes cur3 { 0% { transform: translate(600px, 425px); } 20%, 26% { transform: translate(446px, 331px); } 44%, 50% { transform: translate(676px, 243px); } 72%, 100% { transform: translate(600px, 425px); } }
-.s3 .ob-a { animation: ob-a 7.2s ease both; }
+.s2 .ob-a { animation: ob-a 7.2s ease both; }
 @keyframes ob-a { 0%, 58% { opacity: 1; } 64%, 100% { opacity: 0; } }
-.s3 .ob-b { animation: ob-b 7.2s ease both; }
+.s2 .ob-b { animation: ob-b 7.2s ease both; }
 @keyframes ob-b { 0%, 60% { opacity: 0; } 66%, 100% { opacity: 1; } }
-.s3 .ax { animation: ax 7.2s cubic-bezier(.2, .8, .2, 1) both; }
+.s2 .ax { animation: ax 7.2s cubic-bezier(.2, .8, .2, 1) both; }
 @keyframes ax { 0%, 28% { opacity: 0; transform: translateY(12px) scale(.97); } 34%, 56% { opacity: 1; transform: none; } 62%, 100% { opacity: 0; transform: none; } }
-.s3 .toggle { animation: toggle-bg 7.2s steps(1) both; }
-.s3 .toggle::after { animation: toggle-knob 7.2s cubic-bezier(.3, .7, .2, 1) both; }
+.s2 .toggle { animation: toggle-bg 7.2s steps(1) both; }
+.s2 .toggle::after { animation: toggle-knob 7.2s cubic-bezier(.3, .7, .2, 1) both; }
 @keyframes toggle-bg { 0% { background: rgba(0, 0, 0, .14); } 48%, 100% { background: #0a84ff; } }
 @keyframes toggle-knob { 0%, 47% { left: 2px; } 52%, 100% { left: 16px; } }
-.s3 .ob-a .default { animation: press-ob 7.2s steps(1) both; }
+.s2 .ob-a .default { animation: press-ob 7.2s steps(1) both; }
 @keyframes press-ob { 0% { background: #0a84ff; } 23% { background: #0062cc; } 28%, 100% { background: #0a84ff; } }
 
 /* Stopped: off screen, or by a click on a step while motion is reduced. */
