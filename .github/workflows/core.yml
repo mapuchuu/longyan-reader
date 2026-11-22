@@ -52,7 +52,8 @@ jobs:
           T="$RUNNER_TEMP/llama"; mkdir -p "$T/src"
           curl -fsSL -o "$T/src.tar.gz" "https://github.com/ggml-org/llama.cpp/archive/refs/tags/$LLAMA_TAG.tar.gz"
           echo "$LLAMA_TAR_SHA  $T/src.tar.gz" | sha256sum -c
-          tar -xzf "$T/src.tar.gz" -C "$T/src" --strip-components 1
+          # Relative paths: Windows tar reads "D:" as a remote host.
+          (cd "$T" && tar -xzf src.tar.gz -C src --strip-components 1)
           (cd "$T/src" && git apply -p1 "$GITHUB_WORKSPACE/patches/llama.cpp-output-tokens.patch")
           cmake -S "$T/src" -B "$T/build" -A x64 -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_LIBDIR=lib \
             -DLLAMA_BUILD_APP=OFF -DLLAMA_BUILD_COMMON=OFF -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TOOLS=OFF \

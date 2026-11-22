@@ -200,7 +200,9 @@ package final class CEDict {
     static func referenceTarget(_ def: String) -> String? {
         let lower = def.lowercased()
         guard lower.contains("variant of ") || lower.hasPrefix("see ") || lower.hasPrefix("same as ") else { return nil }
-        guard let match = def.range(of: #"(\p{Han}+\|)?\p{Han}+"#, options: .regularExpression) else { return nil }
+        // scx: Apple's String.range(of:) reads \p{Han} as Han's script extensions, so 達·芬奇
+        // is one run there; other platforms read only the Han script unless asked.
+        guard let match = def.range(of: #"(\p{scx=Han}+\|)?\p{scx=Han}+"#, options: .regularExpression) else { return nil }
         return def[match].split(separator: "|").last.map(String.init)
     }
 

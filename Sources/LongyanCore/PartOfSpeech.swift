@@ -56,7 +56,8 @@ package enum PartOfSpeech: String {
         var text = raw.replacingOccurrences(of: #"\([^)]*\)"#, with: " ", options: .regularExpression)
         if let comma = text.firstIndex(of: ",") { text = String(text[..<comma]) }
         text = text.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression).trimmingCharacters(in: .whitespaces)
-        guard !text.isEmpty, text.range(of: #"[\p{Han}:]"#, options: .regularExpression) == nil else { return nil }
+        // scx as Apple's String.range(of:) reads \p{Han} (see CEDict.referenceTarget).
+        guard !text.isEmpty, text.range(of: #"[\p{scx=Han}:]"#, options: .regularExpression) == nil else { return nil }
         if text.hasPrefix("to ") && !text.hasPrefix("to and ") { return .verb }
         let count = text.split(separator: " ").count
         guard count <= 4 else { return nil }
