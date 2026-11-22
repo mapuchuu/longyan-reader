@@ -932,6 +932,10 @@ figcaption b { color: var(--ink); font-weight: 600; }
 /* The small print under each download: where its second line has to wrap, evenly. */
 .hero-fine, .install-fine { text-wrap: balance; }
 .fine-line { display: block; }
+/* "Free · Notarized by Apple · Apple silicon · macOS 15 or later": on a phone it splits
+   into its two halves rather than leaving a dot at the end of a line. */
+.fine-pair { white-space: nowrap; }
+@media (max-width: 600px) { .fine-pair { display: block; } .fine-sep { display: none; } }
 @media (hover: none) and (pointer: coarse) {
   .for-mac { display: none !important; }
   .for-phone { display: inline; }
