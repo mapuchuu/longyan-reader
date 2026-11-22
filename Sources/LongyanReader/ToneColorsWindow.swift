@@ -1,8 +1,9 @@
 import AppKit
 import SwiftUI
 
-/// Picks the custom tone colours, from Appearance ▸ Tone Colors ▸ Custom…. Every change
-/// shows on the open card at once.
+/// Picks the custom tone colours, from Appearance ▸ Tone Colors ▸ Edit Custom Colors….
+/// Like a settings window, every change applies at once, so there's nothing to confirm:
+/// it just closes.
 @MainActor
 final class ToneColorsWindow {
     static let shared = ToneColorsWindow()
@@ -10,7 +11,7 @@ final class ToneColorsWindow {
 
     func show() {
         if window == nil {
-            let w = NSWindow(contentViewController: NSHostingController(rootView: ToneColorsView { [weak self] in self?.window?.close() }))
+            let w = NSWindow(contentViewController: NSHostingController(rootView: ToneColorsView()))
             w.styleMask = [.titled, .closable]
             w.title = "Tone Colors"
             w.isReleasedWhenClosed = false
@@ -23,64 +24,57 @@ final class ToneColorsWindow {
 }
 
 struct ToneColorsView: View {
-    let done: () -> Void
     @State private var picked: [ToneColors.RGB] = ToneColors.custom
 
     private static let names = ["First tone", "Second tone", "Third tone", "Fourth tone"]
     private static let syllables = ["mā", "má", "mǎ", "mà"], characters = ["妈", "麻", "马", "骂"]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Pick a color for each tone. The same colors are used in light and dark mode.")
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            HStack(spacing: 10) {
-                preview(dark: false)
-                preview(dark: true)
-            }
-            VStack(spacing: 6) {
-                ForEach(0..<4, id: \.self) { i in
-                    HStack {
-                        Text(Self.syllables[i]).font(.body.weight(.medium)).foregroundStyle(shown(i))
-                            .frame(width: 30, alignment: .leading)
-                        Text(Self.names[i])
-                        Spacer()
-                        ColorPicker(Self.names[i], selection: binding(i), supportsOpacity: false).labelsHidden()
+        VStack(alignment: .trailing, spacing: 0) {
+            Form {
+                Section {
+                    preview
+                }
+                Section {
+                    ForEach(0..<4, id: \.self) { i in
+                        LabeledContent {
+                            ColorPicker(Self.names[i], selection: binding(i), supportsOpacity: false).labelsHidden()
+                        } label: {
+                            Text(Self.names[i])
+                            Text(Self.syllables[i])
+                        }
                     }
+                } footer: {
+                    Text("The same colors are used in light and dark mode.")
+                        .foregroundStyle(.secondary)
                 }
             }
-            HStack {
-                Button("Reset") { save(ToneColors.standard.map(\.light)) }
-                    .help("Use the red, green, blue and purple of the light card")
-                Spacer()
-                Button("Done", action: done).keyboardShortcut(.defaultAction)
-            }
+            .formStyle(.grouped)
+            .scrollDisabled(true)
+            .frame(height: 362)
+            Button("Restore Defaults") { save(ToneColors.standard.map(\.light)) }
+                .padding([.horizontal, .bottom], 20)
         }
-        .padding(20)
-        .frame(width: 360)
+        .frame(width: 420)
     }
 
-    /// 妈 麻 马 骂 with their pinyin, on the card's light or dark surface, in the colours the
-    /// card will use there.
-    private func preview(dark: Bool) -> some View {
-        let colors = picked.map { Self.color(dark ? ToneColors.readable($0).dark : ToneColors.readable($0).light) }
-        let card = dark ? ToneColors.darkCard : ToneColors.lightCard
-        return VStack(spacing: 2) {
-            HStack(spacing: 6) {
-                ForEach(0..<4, id: \.self) { Text(Self.characters[$0]).foregroundStyle(colors[$0]) }
+    /// The card's own header, 妈麻马骂 with its pinyin beside it, in the colours a card shows
+    /// in this appearance.
+    private var preview: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            HStack(spacing: 0) {
+                ForEach(0..<4, id: \.self) { Text(Self.characters[$0]).foregroundStyle(shown($0)) }
             }
-            .font(.system(size: 22, weight: .medium))
-            HStack(spacing: 6) {
-                ForEach(0..<4, id: \.self) { Text(Self.syllables[$0]).foregroundStyle(colors[$0]) }
+            .font(.system(size: TextSize.headword, weight: .medium))
+            HStack(spacing: 4) {
+                ForEach(0..<4, id: \.self) { Text(Self.syllables[$0]).foregroundStyle(shown($0)) }
             }
-            .font(.system(size: 12))
+            .font(.system(size: TextSize.title3))
         }
-        .padding(.vertical, 12)
         .frame(maxWidth: .infinity)
-        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Self.color(card)))
-        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Color.primary.opacity(0.1), lineWidth: 0.5))
+        .padding(.vertical, 10)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(dark ? "Preview on the dark card" : "Preview on the light card")
+        .accessibilityLabel("Preview: mā, má, mǎ, mà")
     }
 
     private func binding(_ i: Int) -> Binding<Color> {

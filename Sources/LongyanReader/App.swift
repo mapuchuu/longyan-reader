@@ -401,7 +401,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item.state = CardStyle.current.rawValue == id ? .on : .off
         }
         appearanceMenu.addItem(.separator())
-        // Each scheme with a strip of its colours; Custom… also opens the window to pick them.
+        // Each scheme by name with its four colours beside it (Off: four empty rings). Picking
+        // a scheme and editing the custom colours are separate items, as in Finder's View menu.
         let toneMenu = NSMenu()
         for scheme in ToneScheme.allCases {
             if scheme == .off { toneMenu.addItem(.separator()) }
@@ -409,8 +410,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item.target = self
             item.representedObject = scheme.rawValue
             item.image = ToneColors.swatch(scheme)
+            item.toolTip = scheme.colorNames
             item.state = ToneColors.scheme == scheme ? .on : .off
         }
+        toneMenu.addItem(.separator())
+        let edit = toneMenu.addItem(withTitle: "Edit Custom Colors…", action: #selector(editToneColors), keyEquivalent: "")
+        edit.target = self
+        edit.image = NSImage(size: ToneColors.swatch(.off).size)   // blank, so the titles line up
         appearanceMenu.setSubmenu(toneMenu, for: appearanceMenu.addItem(withTitle: "Tone Colors", action: nil, keyEquivalent: ""))
         appearanceMenu.addItem(.separator())
         for (title, key, steps) in [("Bigger Text", "+", 1), ("Smaller Text", "-", -1), ("Actual Size", "0", 0)] {
@@ -520,7 +526,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func selectToneScheme(_ sender: NSMenuItem) {
         guard let scheme = (sender.representedObject as? String).flatMap(ToneScheme.init) else { return }
         ToneColors.scheme = scheme
-        if scheme == .custom { ToneColorsWindow.shared.show() }
+    }
+
+    /// Opens the Tone Colors window, and uses the custom colours while it's open.
+    @objc private func editToneColors() {
+        ToneColors.scheme = .custom
+        ToneColorsWindow.shared.show()
     }
 
     @objc private func selectAppearance(_ sender: NSMenuItem) {

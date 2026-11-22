@@ -11,12 +11,22 @@ enum ToneScheme: String, CaseIterable {
     case custom
     case off
 
+    /// The menu's names: the swatch beside each shows its colours.
     var label: String {
         switch self {
-        case .standard: "Red, Green, Blue, Purple"
-        case .dummitt: "Red, Orange, Green, Blue"
-        case .custom: "Custom…"
+        case .standard: "Standard"
+        case .dummitt: "Dummitt"
+        case .custom: "Custom"
         case .off: "Off"
+        }
+    }
+
+    /// The colours in words, for the menu's help and VoiceOver.
+    var colorNames: String? {
+        switch self {
+        case .standard: "Red, green, blue, purple"
+        case .dummitt: "Red, orange, green, blue: Nathan Dummitt's colors, used by MDBG"
+        case .custom, .off: nil
         }
     }
 }
@@ -116,17 +126,23 @@ enum ToneColors {
 
     /// A strip of the scheme's four colours, for its menu item. It's drawn when shown, so it
     /// follows the menu's light or dark appearance.
+    /// Four dots in the scheme's colours for its menu item, each with a hairline edge so
+    /// pale colours hold their shape on the menu, the way Finder draws its tag dots.
     static func swatch(_ scheme: ToneScheme) -> NSImage {
-        let dot: CGFloat = 8, gap: CGFloat = 3
+        let dot: CGFloat = 10, gap: CGFloat = 2
         let image = NSImage(size: NSSize(width: 4 * dot + 3 * gap, height: dot), flipped: false) { _ in
             for tone in 1...4 {
                 let rect = NSRect(x: CGFloat(tone - 1) * (dot + gap), y: 0, width: dot, height: dot)
-                (color(tone, in: scheme).map { NSColor($0) } ?? NSColor.tertiaryLabelColor).setFill()
-                NSBezierPath(ovalIn: rect).fill()
+                let path = NSBezierPath(ovalIn: rect.insetBy(dx: 0.25, dy: 0.25))
+                (color(tone, in: scheme).map { NSColor($0) } ?? .clear).setFill()
+                path.fill()
+                NSColor.separatorColor.setStroke()
+                path.lineWidth = 0.5
+                path.stroke()
             }
             return true
         }
-        image.accessibilityDescription = scheme.label
+        image.accessibilityDescription = scheme.colorNames ?? scheme.label
         return image
     }
 

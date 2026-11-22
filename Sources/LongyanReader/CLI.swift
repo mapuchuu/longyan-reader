@@ -445,7 +445,7 @@ enum CLI {
             // --render-onboarding <access|checking|offer|nospace|downloading|verifying|failed|done|ollama|file> out.png
             try await renderOnboarding(args[2], to: URL(fileURLWithPath: args[3]))
         case "--render-tone-colors" where args.count >= 3:
-            try await writePNG(ToneColorsView {}.background(Color(nsColor: .windowBackgroundColor)), to: URL(fileURLWithPath: args[2]))
+            try await writePNG(ToneColorsView().background(Color(nsColor: .windowBackgroundColor)), to: URL(fileURLWithPath: args[2]))
         case "--render-chip" where args.count >= 3:
             try await writePNG(ChipButtonView {}.frame(width: 30, height: 30), to: URL(fileURLWithPath: args[2]))
         case "--render" where args.count >= 5:

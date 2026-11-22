@@ -43,23 +43,27 @@ Each of these can come later without changing anything above.
 
 ## Tone colors
 
-**Where.** Appearance ▸ Tone Colors turns from an on/off item into a submenu of four choices. Each choice is shown with a strip of its four colors:
-- **Red, Green, Blue, Purple:** today's colors and the default. It's the order Pleco uses.
-- **Red, Orange, Green, Blue:** Dummitt's order, used by MDBG.
-- **Custom…:** selects Custom and opens a small Tone Colors window to pick the colors.
-- **Off.**
+**Where.** Appearance ▸ Tone Colors is a submenu. Each scheme has a short name, with its four colors beside it as dots, the way Finder shows tags:
+- **Standard:** red, green, blue, purple, the order Pleco uses. The default.
+- **Dummitt:** red, orange, green, blue, Nathan Dummitt's order, used by MDBG.
+- **Custom:** the colors picked in the Tone Colors window.
+- **Off:** four empty rings.
+- **Edit Custom Colors…** comes after a separator. It opens the window and switches to Custom. Picking a scheme and editing colors are separate items, as in Finder's View menu.
+
+The dots are 10 pt with a hairline edge so pale colors keep their shape. Each item's colors in words are in its help and for VoiceOver.
 
 **Palettes.** Each palette has a light and a dark version, muted the way today's are:
 - The new orange is (0.60, 0.43, 0.10) in light mode and (0.92, 0.79, 0.48) in dark: amber, so it stays clear of the red.
 - On the card's background the orange has a contrast of 4.6 in light mode and 10.4 in dark. Today's green is 4.3 and 9.2.
 
-**Custom window.**
-- Four rows, one per tone. Each shows the tone's sample (mā, má, mǎ, mà) and a color well.
-- A preview line of 妈 麻 马 骂 with their pinyin, drawn on both the light and the dark card background.
+**Custom window.** A grouped form, like System Settings:
+- At the top, a preview drawn like a card's header: 妈麻马骂 with mā má mǎ mà beside it, in the current appearance only.
+- Then one row per tone: "First tone" with its syllable underneath, and a color well.
+- The footer says "The same colors are used in light and dark mode."
 - Each picked color is darkened toward black on the light card until its contrast is 4.2, and lightened toward white on the dark card until it's 7, only as far as needed. So one pick per tone stays readable in both modes. The built-in palettes already pass both.
-- A Reset button that copies today's colors back.
+- Restore Defaults, under the form on the right, copies today's colors back.
+- There's no Done button. Changes show on an open card straight away, so the window just closes.
 - Until colors are picked, Custom uses today's light colors.
-- Changes show on an open card straight away.
 
 **Settings.**
 - A new key, `toneScheme`, takes one of: standard, dummitt, custom or off.
