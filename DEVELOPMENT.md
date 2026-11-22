@@ -71,7 +71,7 @@ Rewording the prompt for Apple's model (meanings by name, examples in the prompt
 
 ## Anki
 
-`Anki.swift` adds cards through [AnkiConnect](https://ankiweb.net/shared/info/2055492159), which answers on 127.0.0.1:8765 while Anki is open. The app checks for it at launch, when the eye appears and when the menu opens (at most every 10 s), and a card shows its Anki button only if the last check got an answer. The first card added creates a "Longyan Reader" note type (Chinese, Pinyin, Meaning, Sentence, Dictionary, Note) and the deck chosen under Anki Deck. A word already in that deck opens as added. To test without Anki, run `python3 scripts/fake-ankiconnect.py`.
+`Anki.swift` adds cards through [AnkiConnect](https://ankiweb.net/shared/info/2055492159), which answers on 127.0.0.1:8765 while Anki is open. The app checks for it at launch, when the eye appears and when the menu opens (at most every 10 s), and a card shows its Anki button only if the last check got an answer. The first card added creates a "Longyan Reader" note type (Chinese, Pinyin, Meaning, Sentence, Dictionary, Note) and the deck chosen under Anki Deck. A word already in that deck opens as added. To test without Anki, run `python3 scripts/fake-ankiconnect.py`. With Anki open, give it a port (`fake-ankiconnect.py 8766`) and start a `--dev` build with `open --env LONGYAN_ANKICONNECT_PORT=8766 "build/Longyan Reader.app"`; the usage simulation then checks Add to Anki too.
 
 ## The dictionary
 
@@ -104,7 +104,7 @@ $B --render-onboarding offer out.png                # draw a state of the welcom
 
 ### Usage simulation
 
-A scripted simulation drives the real cards through the same code paths as clicks and checks the results: the tint and surface before and after picking another meaning in every style and mode, early picks not being overwritten by the model, hint timers not closing the next card, picking and switching in phrase rows, live style switching, and fast repeated lookups leaving one card. It needs a `--dev` build. Post the notification `simulate`; the report goes to `~/Library/Logs/LongyanReader/simulation.txt`, and your settings are restored afterwards.
+A scripted simulation drives the real cards through the same code paths as clicks and checks the results: the tint and surface before and after picking another meaning in every style and mode, early picks not being overwritten by the model, hint timers not closing the next card, picking and switching in phrase rows, live style switching, and fast repeated lookups leaving one card. It needs a `--dev` build opened with `open`, not run from a shell: started from a shell, macOS holds the shell's app responsible and the drag checks' mouse events don't arrive. Post the notification `simulate`; the report goes to `~/Library/Logs/LongyanReader/simulation.txt`, and your settings are restored afterwards.
 
 Each lookup appends a few hundred bytes to `~/Library/Application Support/LongyanReader/History/lookups.jsonl` (in `~/Library/Logs/LongyanReader/` before 1.0; the app moves it at launch). Misses record why the selection couldn't be read.
 

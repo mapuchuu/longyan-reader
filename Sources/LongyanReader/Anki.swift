@@ -38,8 +38,8 @@ final class AnkiLink {
 
     /// Asks AnkiConnect whether it's there: at launch, when the eye appears and when the menu
     /// opens, at most every 10 s. Without Anki the connection is refused at once.
-    func check() {
-        guard !checking, Date().timeIntervalSince(lastCheck) > 10 else { return }
+    func check(force: Bool = false) {
+        guard !checking, force || Date().timeIntervalSince(lastCheck) > 10 else { return }
         checking = true
         lastCheck = Date()
         Task {
@@ -113,7 +113,12 @@ final class AnkiLink {
 
     // MARK: AnkiConnect
 
+    #if DEV_TOOLS
+    /// Dev builds can talk to scripts/fake-ankiconnect.py on another port while Anki is open.
+    nonisolated private static let endpoint = URL(string: "http://127.0.0.1:\(ProcessInfo.processInfo.environment["LONGYAN_ANKICONNECT_PORT"] ?? "8765")")!
+    #else
     nonisolated private static let endpoint = URL(string: "http://127.0.0.1:8765")!
+    #endif
     /// No cookies, no cache: nothing about these requests is kept.
     nonisolated private static let session = URLSession(configuration: .ephemeral)
 

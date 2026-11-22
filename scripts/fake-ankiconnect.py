@@ -38,4 +38,5 @@ class H(BaseHTTPRequestHandler):
         out=json.dumps({'result':res,'error':err}).encode()
         self.send_response(200); self.send_header('Content-Type','application/json'); self.end_headers(); self.wfile.write(out)
         sys.stdout.flush()
-HTTPServer(('127.0.0.1',8765),H).serve_forever()
+# A port as the first argument runs it beside the real Anki (dev builds: LONGYAN_ANKICONNECT_PORT).
+HTTPServer(('127.0.0.1',int(sys.argv[1]) if len(sys.argv)>1 else 8765),H).serve_forever()

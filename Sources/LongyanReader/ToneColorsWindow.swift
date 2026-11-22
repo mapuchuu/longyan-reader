@@ -31,7 +31,7 @@ struct ToneColorsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Pick a color for each tone. Where needed, it's darkened on the light card or lightened on the dark one, so it stays easy to read.")
+            Text("Pick a color for each tone. The same colors are used in light and dark mode.")
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 10) {

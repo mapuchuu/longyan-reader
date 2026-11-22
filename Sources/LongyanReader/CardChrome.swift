@@ -848,6 +848,9 @@ struct CardActions: View {
                 Image(systemName: pin.isOn ? "pin.fill" : "pin")
                     .contentTransition(.symbolEffect(.replace.downUp))
                     .symbolEffect(.bounce.down, value: pin.isOn)
+                    // The pin's weight is in its head, so centred by its box it looks high
+                    // beside the others: lower it a point, between its box and its weight, so it sits level.
+                    .offset(y: 1)
             }
         }
     }
