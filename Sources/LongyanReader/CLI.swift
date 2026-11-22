@@ -1,7 +1,8 @@
 import AppKit
-import SwiftUI
 import Foundation
+import LongyanCore
 import PDFKit
+import SwiftUI
 
 /// Command-line modes for testing the pipeline without the hotkey or screen.
 ///   --status
@@ -217,6 +218,22 @@ enum CLI {
                 let senses = dict.senses(for: word)
                 print("\(word)\t\(senses.count)")
                 for (i, s) in senses.enumerated() { print("  \(i + 1). [\(s.pinyin)] \(s.gloss)\(s.rare ? "  (rare)" : "")") }
+            }
+        case "--gloss-table" where args.count >= 3:
+            // Every distinct definition in the dictionary text (and extra-words.u8 beside it), with
+            // what the card makes of it: readable, short, listed and the part of speech, tab
+            // separated. A reference for checking a change to Gloss or PartOfSpeech touches nothing else.
+            let url = URL(fileURLWithPath: args[2])
+            var seen = Set<String>(), lines: [String] = []
+            for file in [url, url.deletingLastPathComponent().appendingPathComponent("extra-words.u8")] {
+                guard let text = try? String(contentsOf: file, encoding: .utf8) else { continue }
+                text.enumerateLines { line, _ in
+                    guard let e = CEDict.parse(line) else { return }
+                    for d in e.definitions where seen.insert(d).inserted { lines.append(d) }
+                }
+            }
+            for d in lines {
+                print([d, Gloss.readable(d), Gloss.short(d), Gloss.listed(d), PartOfSpeech.guess(d)?.rawValue ?? "-"].joined(separator: "\t"))
             }
         case "--senses" where args.count >= 3:
             // A word's senses as the model sees them, numbered: --senses 等 [more words…]
@@ -743,7 +760,7 @@ enum CLI {
                 let s = Selection(passage: passage, range: a..<b, bounds: nil, source: .accessibility, appName: nil).trimmed()
                 guard s.hasChinese else { continue }
                 let w = s.wholeWords(dict: dict)
-                let single = w.text.count == 1 || (w.text.allSatisfy(isCJK) && dict.contains(w.text))
+                let single = w.isOneWord(dict: dict)
                 if single { wordRanges.insert(w.range) } else { phraseRanges.insert(w.range) }
                 selections["\(a)-\(b)"] = [w.range.lowerBound, w.range.upperBound, single ? 1 : 0]
             }

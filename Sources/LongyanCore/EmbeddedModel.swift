@@ -4,17 +4,17 @@ import llama
 /// The local model run inside the app with llama.cpp (Metal), in place of a separate Ollama
 /// server. Takes the same chat messages LocalModel sends Ollama and streams the reply text.
 /// One generation at a time, like Ollama: requests queue on one thread.
-final class EmbeddedModel: @unchecked Sendable {
-    static let shared = EmbeddedModel()
+package final class EmbeddedModel: @unchecked Sendable {
+    package static let shared = EmbeddedModel()
 
     /// Where the model file is: LONGYAN_GGUF, else the app's downloaded copy, else (on a
     /// machine that has it) Ollama's copy of the same Qwen 3.5 4B Q4_K_M file.
-    static let fileName = "qwen3.5-4b-q4_k_m.gguf"
-    static var modelsDirectory: URL {
+    package static let fileName = "qwen3.5-4b-q4_k_m.gguf"
+    package static var modelsDirectory: URL {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("LongyanReader/models")
     }
-    static var modelPath: String? {
+    package static var modelPath: String? {
         if let p = ProcessInfo.processInfo.environment["LONGYAN_GGUF"] { return p }
         let candidates = [
             modelsDirectory.appendingPathComponent(fileName).path,
@@ -35,11 +35,11 @@ final class EmbeddedModel: @unchecked Sendable {
     private var loadError: Error?
     /// The model file wouldn't load (damaged, or not a model). Lookups then fall back, the
     /// menu offers the download again, and a new download clears it.
-    static var fileUnloadable: Bool { brokenFlag.isSet }
+    package static var fileUnloadable: Bool { brokenFlag.isSet }
     private static let brokenFlag = StopFlag()
     private static let exiting = StopFlag()
     /// After a new download: try the file again.
-    func forgetLoadFailure() { Self.brokenFlag.clear(); queue.async { self.loadError = nil } }
+    package func forgetLoadFailure() { Self.brokenFlag.clear(); queue.async { self.loadError = nil } }
     /// The tokens now in the context, so a request that starts the same way (the system
     /// prompt, the worked examples) only reads what's new.
     private var cached: [llama_token] = []
@@ -73,7 +73,9 @@ final class EmbeddedModel: @unchecked Sendable {
     private var lastUse = Date()
     private var backendReady = false
     private var exitHandlerSet = false
+    #if canImport(Darwin)
     private var pressure: DispatchSourceMemoryPressure?
+    #endif
     private var contextFailedAt: Date?
 
     private init() {}
@@ -118,7 +120,7 @@ final class EmbeddedModel: @unchecked Sendable {
         // looks up are then read; the kept output rows get a GPU copy of their own.
         let trim = Self.outputTokens != nil
         let pattern = strdup("^(token_embd|output_norm)\\.weight$")
-        defer { Darwin.free(pattern) }
+        defer { releaseCString(pattern) }
         var overrides = [llama_model_tensor_buft_override(pattern: pattern, buft: ggml_backend_cpu_buffer_type()),
                          llama_model_tensor_buft_override(pattern: nil, buft: nil)]
         let loaded = overrides.withUnsafeMutableBufferPointer { o -> OpaquePointer? in
@@ -170,6 +172,8 @@ final class EmbeddedModel: @unchecked Sendable {
         // On an 8 GB Mac the model is most of what the app uses. When memory runs short the
         // saved states go first (up to ~230 MB); if it's critical the model goes too, and the
         // next lookup loads it again. The handler runs on the queue, so never mid-request.
+        // (Apple's systems only: other platforms' apps call `relieve` from their own signal.)
+        #if canImport(Darwin)
         if pressure == nil {
             let src = DispatchSource.makeMemoryPressureSource(eventMask: [.warning, .critical], queue: queue)
             src.setEventHandler { [unowned self, unowned src] in
@@ -178,6 +182,7 @@ final class EmbeddedModel: @unchecked Sendable {
             src.resume()
             pressure = src
         }
+        #endif
         noteUse()
     }
 
@@ -191,17 +196,17 @@ final class EmbeddedModel: @unchecked Sendable {
     }
 
     /// For --pressure: what the handler would do, run as if macOS had sent it.
-    func simulatePressure(critical: Bool) { queue.sync { relieve(critical: critical) } }
+    package func simulatePressure(critical: Bool) { queue.sync { relieve(critical: critical) } }
 
     /// For --pressure: whether the model is loaded, and the saved states it holds.
-    func memoryState() -> (loaded: Bool, states: Int, stateMB: Double) {
+    package func memoryState() -> (loaded: Bool, states: Int, stateMB: Double) {
         queue.sync { (ctx != nil, snapshots.count + prefixes.count, Double((snapshots + prefixes).reduce(0) { $0 + $1.count }) / 1e6) }
     }
 
     /// Quitting: waits out a load or request in progress (a request stops at its next token),
     /// then frees the model, before exit() starts tearing down ggml. The exit handler only
     /// exists once a load has finished, so a quit during the first load needs this.
-    func shutdown() {
+    package func shutdown() {
         Self.exiting.set()
         if DispatchQueue.getSpecific(key: Self.onQueue) != nil { free() } else { queue.sync { free() } }
     }
@@ -569,10 +574,19 @@ final class EmbeddedModel: @unchecked Sendable {
 }
 
 /// A thread-safe yes/no: stop a decode, or note that a reply was cut short.
-final class StopFlag: @unchecked Sendable {
+package final class StopFlag: @unchecked Sendable {
     private let lock = NSLock()
     private var value = false
     func set() { lock.withLock { value = true } }
     func clear() { lock.withLock { value = false } }
     var isSet: Bool { lock.withLock { value } }
+}
+
+/// The C library's free, for a string from strdup.
+private func releaseCString(_ p: UnsafeMutablePointer<CChar>?) {
+    #if canImport(Darwin)
+    Darwin.free(p)
+    #else
+    free(p)
+    #endif
 }

@@ -1,10 +1,14 @@
-import AppKit
+import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking   // URLSession, outside Apple's systems
+#endif
+import Observation
 
 /// What a card adds to Anki. Fields are plain text; `sentence` may mark the word with 【】.
-struct AnkiNote {
-    var chinese: String
-    var pinyin = ""
-    var meaning: String
+package struct AnkiNote {
+    package var chinese: String
+    package var pinyin = ""
+    package var meaning: String
     var sentence = ""
     var dictionary = ""
     var note = ""
@@ -15,22 +19,22 @@ struct AnkiNote {
 /// AnkiConnect answers, and the first card added creates the note type and the deck. Nothing
 /// leaves the Mac.
 @MainActor
-final class AnkiLink {
-    static let shared = AnkiLink()
+package final class AnkiLink {
+    package static let shared = AnkiLink()
 
     static let noteType = "Longyan Reader"
-    static let defaultDeck = "Longyan Reader"
+    package static let defaultDeck = "Longyan Reader"
     private static let deckKey = "ankiDeck"
-    static var deck: String {
+    package static var deck: String {
         get { UserDefaults.standard.string(forKey: deckKey) ?? defaultDeck }
         set { UserDefaults.standard.set(newValue, forKey: deckKey); shared.ready = false }   // the new deck may not exist yet
     }
 
     /// Whether AnkiConnect answered the last check. A card takes this when it opens, so its
     /// buttons never shift while it's up.
-    private(set) var available = false
+    package private(set) var available = false
     /// Anki's decks, from the last check, for the Anki Deck menu.
-    private(set) var decks: [String] = []
+    package private(set) var decks: [String] = []
     private var lastCheck = Date.distantPast
     private var checking = false
     /// Set once the note type and deck are known to exist this session.
@@ -39,7 +43,7 @@ final class AnkiLink {
     /// Asks AnkiConnect whether it's there: at launch, when the eye appears and when the menu
     /// opens, at most every 10 s. Without Anki the connection is refused at once.
     /// `changed` runs if the answer differs from the last one, so an open menu can catch up.
-    func check(force: Bool = false, changed: (() -> Void)? = nil) {
+    package func check(force: Bool = false, changed: (() -> Void)? = nil) {
         guard !checking, force || Date().timeIntervalSince(lastCheck) > 10 else { return }
         checking = true
         lastCheck = Date()
@@ -55,7 +59,7 @@ final class AnkiLink {
     }
 
     /// The note already in the deck for this Chinese, if there is one.
-    func existing(_ chinese: String) async -> Int? {
+    package func existing(_ chinese: String) async -> Int? {
         let ids = try? await Self.call("findNotes", ["query": Self.query(chinese)]) as? [Int]
         return ids?.first
     }
@@ -212,7 +216,7 @@ final class AnkiLink {
         """
 }
 
-enum AnkiError: Error {
+package enum AnkiError: Error {
     case badReply
     case notAdded
     case anki(String)
@@ -228,12 +232,13 @@ enum AnkiError: Error {
 
 /// One card's Anki button: whether its word is in Anki yet, and adding it.
 @MainActor
-final class AnkiButtonModel: ObservableObject {
-    enum State: Equatable { case ready, adding, added(Int), failed(String) }
-    @Published private(set) var state = State.ready
+@Observable
+package final class AnkiButtonModel {
+    package enum State: Equatable { case ready, adding, added(Int), failed(String) }
+    package private(set) var state = State.ready
     /// The note as the card stands at the click, so a meaning the reader picked goes in.
     let note: () -> AnkiNote?
-    private var reset: Task<Void, Never>?
+    @ObservationIgnored private var reset: Task<Void, Never>?
 
     /// Shows why for 2.5 s, then the button is ready again.
     private func fail(_ why: String) {
@@ -246,14 +251,14 @@ final class AnkiButtonModel: ObservableObject {
         }
     }
 
-    init(note: @escaping () -> AnkiNote?) {
+    package init(note: @escaping () -> AnkiNote?) {
         self.note = note
         // Already in the deck: the button opens as "In Anki".
         guard let chinese = note()?.chinese else { return }
         Task { if let id = await AnkiLink.shared.existing(chinese), state == .ready { state = .added(id) } }
     }
 
-    func click() {
+    package func click() {
         switch state {
         case .adding: return
         case .added(let id): AnkiLink.shared.show(id)

@@ -1,14 +1,13 @@
 import Foundation
-import NaturalLanguage
 
 /// A meaning's part of speech, read off its English definition: CC-CEDICT has no tags, but
-/// it writes verbs as "to …", measure words and particles say so, and Apple's tagger can
+/// it writes verbs as "to …", measure words and particles say so, and an English tagger can
 /// tell "big" from "volume" from "quite". When the wording doesn't make it clear, there's none.
-enum PartOfSpeech: String {
+package enum PartOfSpeech: String {
     case noun, verb, adjective, adverb, measureWord, particle
 
     /// Short, as dictionaries print it.
-    var label: String {
+    package var label: String {
         switch self {
         case .noun: "n."
         case .verb: "v."
@@ -21,14 +20,14 @@ enum PartOfSpeech: String {
 
     @MainActor private static var known: [String: PartOfSpeech?] = [:]
 
-    @MainActor static func of(_ gloss: String) -> PartOfSpeech? {
+    @MainActor package static func of(_ gloss: String) -> PartOfSpeech? {
         if let hit = known[gloss] { return hit }
         let found = guess(gloss)
         known[gloss] = found
         return found
     }
 
-    static func guess(_ gloss: String) -> PartOfSpeech? {
+    package static func guess(_ gloss: String) -> PartOfSpeech? {
         let raw = gloss.lowercased()
         if raw.contains("particle") || raw.contains("marker") { return .particle }
         if raw.hasPrefix("classifier") || raw.hasPrefix("measure word") || raw.hasPrefix("(classifier") { return .measureWord }
@@ -67,16 +66,8 @@ enum PartOfSpeech: String {
         // Tagged in a sentence, where a word alone is a guess: "It is pretty." is an adjective.
         let frame = "It is "
         let sentence = frame + text + "."
-        let tagger = NLTagger(tagSchemes: [.lexicalClass])
-        tagger.string = sentence
-        tagger.setLanguage(.english, range: sentence.startIndex..<sentence.endIndex)
-        var tags: [NLTag] = []
-        let from = sentence.index(sentence.startIndex, offsetBy: frame.count)
-        tagger.enumerateTags(in: from..<sentence.endIndex, unit: .word, scheme: .lexicalClass,
-                             options: [.omitWhitespace, .omitPunctuation]) { tag, _ in
-            if let tag { tags.append(tag) }
-            return true
-        }
+        guard let tagger = Platform.englishTagger else { return nil }
+        let tags = tagger.classes(in: sentence, from: sentence.index(sentence.startIndex, offsetBy: frame.count))
         guard let last = tags.last else { return nil }
         if describes, [.adjective, .adverb, .verb, .noun].contains(last), tags.count <= 2 { return .adjective }
         if tags.count == 1 {
@@ -89,7 +80,7 @@ enum PartOfSpeech: String {
         }
         // A phrase is what its last word is, when the words before it modify it:
         // "very good" (adjective), "express consignment" (noun).
-        let modifiers: Set<NLTag> = [.adjective, .adverb, .noun, .determiner, .number]
+        let modifiers: Set<LexicalClass> = [.adjective, .adverb, .noun, .determiner, .number]
         guard tags.dropLast().allSatisfy(modifiers.contains) else { return nil }
         switch last {
         case .noun: return .noun

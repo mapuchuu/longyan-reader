@@ -4,7 +4,7 @@ import Foundation
 /// sentence's words outside the fragment that no word or character in it shares. Kept out
 /// while decoding (EmbeddedModel.generate), they stop the 4B model finishing the clause
 /// with words from outside the selection (卷了，我想 "…I want to lie flat").
-enum OutsideWords {
+package enum OutsideWords {
     /// The kept-out words (`banned`), and every gloss word of the outside words (common ones too, stemmed): a
     /// reply cut short at a kept-out word drops these from its end, the "get" of 结婚's
     /// "get married" in 催我早点 "urged me to get".
@@ -52,7 +52,7 @@ enum OutsideWords {
     }
 }
 
-extension OutsideWords {
+package extension OutsideWords {
     /// Whether an English reply already says every word of two or more characters in the
     /// fragment (any word, when it has none), by their glosses: 他每天 "He" doesn't yet
     /// (每天 "every day" is still to come), 东西又便宜 "the items are both cheap and" does.

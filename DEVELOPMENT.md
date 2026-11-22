@@ -15,6 +15,25 @@ The first build also builds llama.cpp into `Vendor/` (`scripts/build-llama.sh`, 
 
 Local builds are ad-hoc signed with a designated requirement on the bundle ID only, so the Accessibility permission carries over between rebuilds. Release builds don't do this, because that requirement would let any app with the same bundle ID inherit the permission.
 
+## Code layout
+
+The package has two targets.
+
+- `Sources/LongyanCore` is everything that decides what a card says: the dictionary, the segmenter, glosses, notes and cues, the model prompts and their fallbacks, Anki, and the cards' state (`LookupState`, `PhraseState`, `PhrasePrep`). It's plain Swift and Foundation, so an app on another platform can build the same logic. Its declarations are `package`, visible to the app but not an API.
+- `Sources/LongyanReader` is the Mac app: reading the selection through Accessibility, the eye, the cards' SwiftUI views, the menu, windows, updates and the CLI.
+
+The few things the core needs from the system come through `Platform` (`Platform.swift`): a Chinese word splitter, an English part-of-speech tagger, a fallback sense picker and a translator. On the Mac, `AppleServices.swift` fills them with NLTokenizer, NLTagger, Apple's on-device model and the Translation framework, at the start of `Main`. The cards' state classes use Observation (`@Observable`), which SwiftUI reads directly.
+
+`scripts/parity.py` checks that a change to the core, or another platform's build, gives the same results. It runs about 940 sentences through the segmenter, every one-character click, every two to five character selection, every word's senses and every dictionary definition's card wording and part of speech, and writes them to a folder. Run it before and after, then compare the folders, or pass `--against` the earlier folder:
+
+```bash
+python3 scripts/parity.py .build/release/LongyanReader /tmp/before
+# …change something, swift build -c release…
+python3 scripts/parity.py .build/release/LongyanReader /tmp/after --against /tmp/before
+```
+
+It takes about four minutes and doesn't use the model. `scripts/evals.sh` covers the model's side.
+
 ## How a lookup works
 
 1. **Trigger.** When you finish a selection (a drag or a double-click) the eye button appears near the pointer. It goes away on the next click, key press or scroll, or after 6 seconds. ⌃⌥L does the same from the keyboard, and with nothing selected it looks up the word under the pointer.

@@ -1,4 +1,5 @@
 import AppKit
+import LongyanCore
 import SwiftUI
 
 /// Size and appearance state for one popup card. The window follows it.
@@ -902,7 +903,7 @@ struct CardActions: View {
 /// Adds the card to Anki. After that it says so in the accent colour, and a click shows the
 /// note in Anki; when Anki doesn't answer, a warning for a moment, with why in its help.
 private struct AnkiButton: View {
-    @ObservedObject var model: AnkiButtonModel
+    var model: AnkiButtonModel
     let word: String
     let cardHovered: Bool
 

@@ -6,7 +6,7 @@ import Foundation
 /// idiom, slang or figurative, or that is outside the commonest words and whose meaning shares nothing with its
 /// characters', this gives two short senses.
 /// The model is told to use a note only if it fits, since 开夜车 can be meant literally.
-enum IdiomHints {
+package enum IdiomHints {
     static let enabled = ProcessInfo.processInfo.environment["LONGYAN_HINTS"] == "1"
 
     private static let markers = ["(idiom)", "(fig.)", "(slang)", "(Internet slang)", "neologism", "(coll.)"]
@@ -19,7 +19,7 @@ enum IdiomHints {
     }()
 
     /// (word, gloss) for the selection's words worth a note, at most four.
-    static func hints(for range: Range<Int>, in passage: [Character], dict: CEDict) -> [(String, String)] {
+    package static func hints(for range: Range<Int>, in passage: [Character], dict: CEDict) -> [(String, String)] {
         var out: [(String, String)] = []
         for t in Segmenter.phrase(range, in: passage, dict: dict) where t.text.count >= 2 && out.count < 4 {
             let entries = dict.entries(for: t.text).filter { !$0.isProperNoun }
@@ -33,7 +33,7 @@ enum IdiomHints {
         return out
     }
 
-    static func hints(for text: String, dict: CEDict) -> [(String, String)] {
+    package static func hints(for text: String, dict: CEDict) -> [(String, String)] {
         let chars = Array(text); return hints(for: 0..<chars.count, in: chars, dict: dict)
     }
 

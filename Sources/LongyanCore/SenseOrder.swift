@@ -6,8 +6,8 @@ import Foundation
 /// senses it had when the line was written, the everyday senses in order, then after "|" the
 /// rare ones (classical, old units, divination…), which go last and aren't offered to the model.
 /// Numbers are 1-based positions in the list `CEDict.senses` builds before this is applied.
-struct SenseOrder {
-    let count: Int
+package struct SenseOrder {
+    package let count: Int
     let common: [Int]
     let rare: [Int]
 
@@ -38,12 +38,12 @@ struct SenseOrder {
     /// LONGYAN_NO_SENSE_ORDER=1 turns the file off, for before/after comparisons.
     static let enabled = ProcessInfo.processInfo.environment["LONGYAN_NO_SENSE_ORDER"] == nil
 
-    static let shared = load("sense-order")
+    package static let shared = load("sense-order")
 
     /// Resources/sense-everyday.tsv: the meaning to show first when no model picks one, in the
     /// same format. It's kept apart from sense-order.tsv because the order of the list the model
     /// reads nudges its pick: moving 追's "to chase" up for everyone made 4B slightly worse.
-    static let everyday = enabled ? load("sense-everyday") : [:]
+    package static let everyday = enabled ? load("sense-everyday") : [:]
 
     private static func load(_ name: String) -> [String: SenseOrder] {
         let url = Bundle.main.url(forResource: name, withExtension: "tsv")

@@ -1,14 +1,14 @@
 import Foundation
 
 /// A pinyin syllable with its tone mark applied. Tone 5 is neutral.
-struct Syllable {
-    let text: String
-    let tone: Int
+package struct Syllable {
+    package let text: String
+    package let tone: Int
 }
 
-enum Pinyin {
+package enum Pinyin {
     /// "xue2 sheng1" -> [xué(2), shēng(1)]; "lu:4" -> lǜ.
-    static func syllables(_ numbered: String) -> [Syllable] {
+    package static func syllables(_ numbered: String) -> [Syllable] {
         numbered.split(separator: " ").map { raw in
             var s = String(raw).replacingOccurrences(of: "u:", with: "ü")
                                .replacingOccurrences(of: "U:", with: "Ü")
@@ -21,7 +21,7 @@ enum Pinyin {
         }
     }
 
-    static func marked(_ numbered: String) -> String {
+    package static func marked(_ numbered: String) -> String {
         syllables(numbered).map(\.text).joined(separator: " ")
     }
 

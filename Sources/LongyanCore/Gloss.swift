@@ -3,7 +3,7 @@ import Foundation
 /// CC-CEDICT definitions are written for dictionary users: 幹活|干活[gan4 huo2], "sb", "sth",
 /// "(bound form)". These turn them into something to read on a card. `Sense.gloss` itself
 /// stays as the dictionary has it: notes and examples are keyed on it, and the model reads it.
-enum Gloss {
+package enum Gloss {
     private static let reference = try! NSRegularExpression(pattern: #"(?:\p{Han}+\|)?(\p{Han}+)(?:\[[A-Za-z0-9 :,·\-]+\])?"#)
     private static let alsoWritten = try! NSRegularExpression(pattern: #"also written (\p{Han}+)\|(\p{Han}+)(?:\[[A-Za-z0-9 :,·\-]+\])?"#)
     private static let stray = try! NSRegularExpression(pattern: #"\[[A-Za-z]+[1-5:]?[A-Za-z0-9 :,·\-]*\]"#)
@@ -34,7 +34,7 @@ enum Gloss {
     private static let readableMemo = Memo(), shortMemo = Memo()
 
     /// The whole definition, without dictionary markup. Used in the lists of meanings.
-    static func readable(_ raw: String) -> String { readableMemo.value(raw, makeReadable) }
+    package static func readable(_ raw: String) -> String { readableMemo.value(raw, makeReadable) }
 
     private static func makeReadable(_ raw: String) -> String {
         var text = raw
@@ -60,7 +60,7 @@ enum Gloss {
     }
 
     /// A definition for a list of meanings: whole unless it would run past two lines or so.
-    static func listed(_ raw: String) -> String {
+    package static func listed(_ raw: String) -> String {
         let text = readable(raw)
         return text.count > 80 ? short(raw) : text
     }
@@ -77,7 +77,7 @@ enum Gloss {
     }
 
     /// One short meaning, for a row or a headline. Never cut mid-word or mid-bracket.
-    static func short(_ raw: String) -> String { shortMemo.value(raw, makeShort) }
+    package static func short(_ raw: String) -> String { shortMemo.value(raw, makeShort) }
 
     private static func makeShort(_ raw: String) -> String {
         if let plain = plainWording[raw] { return plain }
@@ -335,3 +335,16 @@ enum Gloss {
             "\"one\" radical",
     ]
 }
+
+package extension Gloss {
+    /// What a card says for a word the dictionary lacks.
+    static let notInDictionary = "not in dictionary"
+}
+
+/// The first dictionary sense, as one short meaning for a row.
+package func shortGloss(_ senses: [Sense]?) -> String {
+    senses?.first.map { Gloss.short($0.gloss) } ?? Gloss.notInDictionary
+}
+
+/// A sense's first meaning, for the word card's headline.
+package func headlineGloss(_ sense: Sense) -> String { Gloss.short(sense.gloss) }

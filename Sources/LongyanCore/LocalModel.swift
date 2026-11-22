@@ -1,13 +1,16 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking   // URLSession, outside Apple's systems
+#endif
 
 /// A sense picker and translator backed by a local Qwen model: run inside the app with
 /// llama.cpp when the model file is present (EmbeddedModel), otherwise served by Ollama
 /// (http://127.0.0.1:11434) if that's running. Stronger than Apple's on-device 3B model at
 /// telling close senses apart; without either, the app falls back to Apple's.
-enum LocalModel {
-    enum Backend { case embedded, ollama }
+package enum LocalModel {
+    package enum Backend { case embedded, ollama }
     /// LONGYAN_BACKEND=ollama forces Ollama (for comparing the two).
-    static var backend: Backend {
+    package static var backend: Backend {
         if ProcessInfo.processInfo.environment["LONGYAN_BACKEND"] == "ollama" { return .ollama }
         return EmbeddedModel.modelPath != nil ? .embedded : .ollama
     }
@@ -15,20 +18,20 @@ enum LocalModel {
     /// Which model to use: LONGYAN_MODEL, else the "senseModel" default, else qwen3.5:4b.
     /// "apple" turns it off. On the tests the 4B matched the 9B (51/52) with one wrong note
     /// to the 9B's none, at ~0.4 s and 2.9 GB instead of ~0.6 s and 4.5 GB.
-    static var name: String {
+    package static var name: String {
         ProcessInfo.processInfo.environment["LONGYAN_MODEL"]
             ?? UserDefaults.standard.string(forKey: "senseModel") ?? "qwen3.5:4b"
     }
-    static let choices: [(id: String, label: String)] = [
+    package static let choices: [(id: String, label: String)] = [
         ("qwen3.5:4b", "Qwen 3.5 4B (2.7 GB)"),
         ("apple", "Apple's Model Only"),
     ]
 
-    static func select(_ id: String) {
+    package static func select(_ id: String) {
         UserDefaults.standard.set(id, forKey: "senseModel")
         lastCheck = nil
     }
-    static var enabled: Bool { name != "apple" }
+    package static var enabled: Bool { name != "apple" }
 
     private static let endpoint = URL(string: "http://127.0.0.1:11434/api/chat")!
 
@@ -40,7 +43,7 @@ enum LocalModel {
         get { lock.withLock { _lastCheck } }
         set { lock.withLock { _lastCheck = newValue } }
     }
-    static func isAvailable() async -> Bool {
+    package static func isAvailable() async -> Bool {
         guard enabled else { return false }
         if backend == .embedded {
             let ok = !EmbeddedModel.fileUnloadable
@@ -67,7 +70,7 @@ enum LocalModel {
     /// lookup that follows soon doesn't wait several seconds. Called when Chinese text is
     /// selected, while the reader moves to click.
     private static var _lastWarmUp: Date?
-    static func warmUp() {
+    package static func warmUp() {
         guard enabled else { return }
         if backend == .embedded { EmbeddedModel.shared.warmUp(); return }
         let due = lock.withLock {
@@ -101,7 +104,7 @@ enum LocalModel {
     /// picked (`onPick` gets the word's position in `words` and its 1-based sense number).
     /// A word's pick is nil when the model gave no usable number for it (missing, or outside
     /// the list): that word is left unsettled rather than forced onto a sense.
-    static func chooseAll(passage: String, selectionMarked: Bool = false, words: [(word: String, senses: [Sense])],
+    package static func chooseAll(passage: String, selectionMarked: Bool = false, words: [(word: String, senses: [Sense])],
                           onPick: @MainActor (Int, Int) -> Void = { _, _ in }) async throws -> [Int?] {
         guard !words.isEmpty else { return [] }
         // Answer time is nearly all output tokens (~14 ms each; reading the prompt is a few
@@ -254,7 +257,7 @@ enum LocalModel {
     /// lines. Only scoring picks have one.
     private static var confidences: [String: (number: Int, confidence: Double)] = [:]
     private static func record(_ word: String, _ n: Int, _ p: Double) { lock.withLock { confidences[word] = (n, p) } }
-    static func confidence(_ word: String, picked n: Int) -> Double? {
+    package static func confidence(_ word: String, picked n: Int) -> Double? {
         lock.withLock { confidences[word].flatMap { $0.number == n ? $0.confidence : nil } }
     }
 
@@ -303,7 +306,7 @@ enum LocalModel {
         return t
     }
 
-    static func translate(_ text: String, context: String? = nil, dict: CEDict? = nil,
+    package static func translate(_ text: String, context: String? = nil, dict: CEDict? = nil,
                           partial: @MainActor (String) -> Void = { _ in }) async throws -> String {
         var messages = [["role": "system", "content": translationInstructions + (promptV2 ? " " + keepWords : "")]]
         if let context {
@@ -386,6 +389,7 @@ enum LocalModel {
             }
             return text
         }
+        #if canImport(Darwin)
         var body = body
         body["stream"] = true
         body["banned"] = nil; body["endsAt"] = nil   // built-in model only
@@ -420,6 +424,10 @@ enum LocalModel {
             }
         }
         return text
+        #else
+        // Streaming a reply needs URLSession's byte stream, which only Apple's Foundation has.
+        throw NSError(domain: "LongyanReader", code: 5, userInfo: [NSLocalizedDescriptionKey: "Ollama isn't supported on this platform"])
+        #endif
     }
 
     /// One word's sense, asked the way a phrase card asks: on casual uses this picked better
@@ -438,6 +446,6 @@ enum LocalModel {
 
 /// The model answered, but with no sense from the list: the word is left in dictionary order
 /// rather than matched some other way.
-struct NoSenseFits: LocalizedError {
-    var errorDescription: String? { "none of the dictionary's meanings was picked" }
+package struct NoSenseFits: LocalizedError {
+    package var errorDescription: String? { "none of the dictionary's meanings was picked" }
 }

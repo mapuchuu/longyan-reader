@@ -12,7 +12,7 @@ import Foundation
 ///   entries  traditional, simplified and pinyin (offset, length each), first definition, count
 ///   defs     offset, length
 ///   text     UTF-8
-struct DictionaryFile {
+package struct DictionaryFile {
     static let magic: UInt32 = 0x3144594C   // "LYD1"
     static let version: UInt32 = 1
     private static let headerWords = 12

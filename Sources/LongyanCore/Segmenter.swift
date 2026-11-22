@@ -1,7 +1,6 @@
 import Foundation
-import NaturalLanguage
 
-func isCJK(_ c: Character) -> Bool {
+package func isCJK(_ c: Character) -> Bool {
     c.unicodeScalars.contains { s in
         (0x4E00...0x9FFF).contains(s.value) || (0x3400...0x4DBF).contains(s.value) ||
         (0x20000...0x2A6DF).contains(s.value) || (0xF900...0xFAFF).contains(s.value) ||
@@ -11,19 +10,18 @@ func isCJK(_ c: Character) -> Bool {
 }
 
 /// Simplified or traditional: the tokenizer splits 我們 and 覺得 when told it's simplified.
-func chineseScript(of text: String) -> NLLanguage {
-    let r = NLLanguageRecognizer()
-    r.languageConstraints = [.simplifiedChinese, .traditionalChinese]
-    r.processString(text)
-    return r.dominantLanguage ?? .simplifiedChinese
-}
+package func chineseScript(of text: String) -> ChineseScript { Platform.wordBreaker.script(of: text) }
 
 /// The word under the cursor and the passage around it.
-struct WordInContext {
-    let word: String
-    let passage: [Character]
-    let wordRange: Range<Int>      // character offsets into passage
-    let alternatives: [String]     // other dictionary words covering the same character
+package struct WordInContext {
+    package let word: String
+    package let passage: [Character]
+    package let wordRange: Range<Int>      // character offsets into passage
+    package let alternatives: [String]     // other dictionary words covering the same character
+
+    package init(word: String, passage: [Character], wordRange: Range<Int>, alternatives: [String]) {
+        self.word = word; self.passage = passage; self.wordRange = wordRange; self.alternatives = alternatives
+    }
 
     /// Where the sentence holding the word starts and ends in the passage.
     private var sentenceBounds: Range<Int> {
@@ -35,13 +33,13 @@ struct WordInContext {
         return lo..<hi
     }
 
-    var sentence: String {
+    package var sentence: String {
         String(passage[sentenceBounds]).trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     /// The sentence alone with the word bracketed; a fallback when the wider passage is rejected.
     /// Bracketed where it is, not where it first appears: in 行不行，这一行很难 the second 行 is the one.
-    var markedSentence: String {
+    package var markedSentence: String {
         let b = sentenceBounds
         return (String(passage[b.lowerBound..<wordRange.lowerBound]) + "【" + word + "】"
                 + String(passage[wordRange.upperBound..<b.upperBound])).trimmingCharacters(in: .whitespacesAndNewlines)
@@ -54,11 +52,11 @@ struct WordInContext {
     }
 }
 
-enum Segmenter {
+package enum Segmenter {
     /// Finds the dictionary word covering `index`.
     /// Prefers the system tokenizer's word (it reads context: 研究/生命 vs 研究生),
     /// unless a longer dictionary entry of 4+ characters (usually an idiom) contains it.
-    static func word(at index: Int, in passage: [Character], dict: CEDict) -> WordInContext? {
+    package static func word(at index: Int, in passage: [Character], dict: CEDict) -> WordInContext? {
         guard passage.indices.contains(index), isCJK(passage[index]) else { return nil }
 
         // Every dictionary word that covers index, longest first.
@@ -102,32 +100,27 @@ enum Segmenter {
     }
 
     private static func tokenizerWord(at index: Int, in passage: [Character]) -> Range<Int>? {
-        // Tokenise a window around the index; NLTokenizer works on String indices.
+        // Tokenise a window around the index; the word breaker works on String indices.
         let lo = max(0, index - 40), hi = min(passage.count, index + 40)
         let text = String(passage[lo..<hi])
-        let tokenizer = NLTokenizer(unit: .word)
-        tokenizer.setLanguage(chineseScript(of: text))
-        tokenizer.string = text
         let target = index - lo
         let starts = Array(text.indices)
-        var found: Range<Int>?
-        tokenizer.enumerateTokens(in: text.startIndex..<text.endIndex) { r, _ in
+        for r in Platform.wordBreaker.words(in: text, script: chineseScript(of: text)) {
             let o = offsets(r, starts: starts)
-            if o.lowerBound <= target, target < o.upperBound { found = (o.lowerBound + lo)..<(o.upperBound + lo); return false }
-            return true
+            if o.lowerBound <= target, target < o.upperBound { return (o.lowerBound + lo)..<(o.upperBound + lo) }
         }
-        return found
+        return nil
     }
 }
 
 /// One unit of a highlighted phrase.
-struct PhraseToken: Identifiable {
-    let id: Int
-    let text: String
-    let range: Range<Int>      // character offsets into the passage
+package struct PhraseToken: Identifiable, Sendable {
+    package let id: Int
+    package let text: String
+    package let range: Range<Int>      // character offsets into the passage
 }
 
-extension Segmenter {
+package extension Segmenter {
     /// Splits the selected range into dictionary words. Uses the system tokenizer for
     /// boundaries, splits tokens the dictionary doesn't know by longest match, then
     /// merges tokens that together form a longer dictionary word (有/意思 → 有意思, idioms).
@@ -214,9 +207,6 @@ extension Segmenter {
     /// split by longest match only if that gets no further.
     private static func tokenized(_ range: Range<Int>, in passage: [Character], dict: CEDict) -> [Range<Int>] {
         let text = String(passage[range])
-        let tokenizer = NLTokenizer(unit: .word)
-        tokenizer.setLanguage(chineseScript(of: text))
-        tokenizer.string = text
         var pieces: [Range<Int>] = []
         let starts = Array(text.indices)
         func add(_ piece: Range<Int>) {
@@ -236,14 +226,13 @@ extension Segmenter {
             }
         }
         var covered = range.lowerBound
-        tokenizer.enumerateTokens(in: text.startIndex..<text.endIndex) { r, _ in
+        for r in Platform.wordBreaker.words(in: text, script: chineseScript(of: text)) {
             let o = offsets(r, starts: starts)
             let a = max(o.lowerBound + range.lowerBound, covered), b = o.upperBound + range.lowerBound
-            guard a < b else { return true }
+            guard a < b else { continue }
             fill(covered..<a)
             add(a..<b)
             covered = b
-            return true
         }
         fill(covered..<range.upperBound)
         return pieces

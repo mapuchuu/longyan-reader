@@ -1,11 +1,13 @@
 import AppKit
 import ApplicationServices
 import Carbon.HIToolbox
+import LongyanCore
 import SwiftUI
 
 @main
 enum Main {
     static func main() {
+        AppleServices.install()
         let args = CommandLine.arguments
         if args.count > 1, args[1].hasPrefix("--") {
             CLI.run(args)
@@ -711,13 +713,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return
         }
         let selection = selection.wholeWords(dict: dict)
-        if isSingleWord(selection, dict: dict) {
+        if selection.isOneWord(dict: dict) {
             let context = Segmenter.context(for: selection.range, in: selection.passage)
-            // Copied text (the ⌘C fallback) is only the word itself: with no sentence the
-            // model's pick would be a guess shown as an answer, so dictionary order instead.
-            let p = selection.passage
-            let alone = !p.indices.contains { !selection.range.contains($0) && (isCJK(p[$0]) || p[$0].isLetter) }
-            showWord(context, appName: selection.appName, near: anchor, alone: alone)
+            showWord(context, appName: selection.appName, near: anchor, alone: selection.isAlone)
         } else {
             showPhrase(selection, dict: dict, near: anchor)
         }
@@ -734,33 +732,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func showWord(_ context: WordInContext, appName: String?, near anchor: NSRect, alone: Bool = false) {
         guard let dict else { return }
-        var senses = dict.senses(for: context.word)
-        let grammar = GrammarWords.entry(context.word, in: context.passage, at: context.wordRange.lowerBound)
-        let modelReady = SenseChooser.canChoose && !senses.isEmpty && grammar == nil && !(alone && senses.count > 1)
-        // No model will pick, so nothing reads this list but the card: the everyday meaning goes first.
-        if !modelReady, grammar == nil, case let i = dict.everydayIndex(for: context.word, in: senses), i > 0 {
-            senses.insert(senses.remove(at: i), at: 0)
-        }
-        let why = senses.isEmpty ? LookupView.notInDictionary
-            : alone && senses.count > 1 ? "this app doesn't share the sentence" : SenseChooser.noPickerReason
-        let state = LookupState(context: context, senses: senses, phase: modelReady ? .choosing : .dictionaryOnly(why))
+        let opening = LookupState.opening(context, dict: dict, alone: alone)
+        let state = opening.state, senses = state.senses, modelReady = opening.modelReady, partPick = opening.partPick
         state.onLayoutChange = { [weak self] in Task { await self?.relayout() } }
-        // A lone character inside a longer word (彻 in 彻底) also shows that word. A word with one
-        // meaning, or one a cue settles, shows it at once; otherwise the model picks it after the
-        // character's own answer, so the character is no slower (八卦 is gossip, not trigrams).
-        var partPick: (context: WordInContext, senses: [Sense])?
-        if let r = Segmenter.enclosingWord(of: context.wordRange, in: context.passage, dict: dict) {
-            let whole = Segmenter.context(for: r, in: context.passage)
-            let wordSenses = dict.senses(for: whole.word)
-            let settled = wordSenses.count == 1 ? 1 : NoteCues.senseNumber(whole.word, at: r, in: context.passage, senses: wordSenses)
-            if let first = wordSenses.first {
-                let sense = settled.flatMap { wordSenses[safe: $0 - 1] }
-                state.partOf = .init(word: whole.word, pinyin: (sense ?? first).pinyin, meaning: sense.map { Gloss.short($0.gloss) })
-                state.openPartOf = { [weak self] in
-                    self?.popup.nextOpensInPlace()
-                    self?.showWord(whole, appName: appName, near: anchor)
-                }
-                if sense == nil, SenseChooser.canChoose { partPick = (whole, wordSenses) }
+        if let whole = opening.whole {
+            state.openPartOf = { [weak self] in
+                self?.popup.nextOpensInPlace()
+                self?.showWord(whole, appName: appName, near: anchor)
             }
         }
         lastLookupState = state
@@ -819,8 +797,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 } catch is CancellationError {
                     finish(); return   // a newer card replaced this one
                 } catch {
-                    state.phase = error is NoSenseFits ? .dictionaryOnly("none of the listed meanings fit this sentence")
-                        : .failed(String(describing: error).prefix(80).description)
+                    state.pickFailed(error)
                     popup.endHold()
                     record["error"] = String(describing: error)
                 }
@@ -833,8 +810,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 wordPrep = (Self.wordKey(partPick.context), task)
                 cardTasks.append(task)
                 if let c = try? await task.value, !Task.isCancelled {
-                    state.partOf?.pinyin = partPick.senses[safe: c.senseNumber - 1]?.pinyin ?? state.partOf?.pinyin ?? ""
-                    state.partOf?.meaning = c.meaningHere
+                    state.receivePartOf(c, senses: partPick.senses)
                     record["partOf"] = partPick.context.word + "=" + c.meaningHere
                     await relayout()
                 }
@@ -885,7 +861,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         AnkiLink.shared.check()   // so the card knows whether to offer Add to Anki
         guard let dict else { return }
         let selection = selection.wholeWords(dict: dict)
-        if isSingleWord(selection, dict: dict) {
+        if selection.isOneWord(dict: dict) {
             let context = Segmenter.context(for: selection.range, in: selection.passage)
             let key = Self.wordKey(context)
             let senses = dict.senses(for: context.word)
@@ -899,11 +875,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if phrasePrep?.matches(selection) == true { return }
         phrasePrep?.cancel()
         phrasePrep = PhrasePrep(selection, dict: dict)
-    }
-
-    private func isSingleWord(_ selection: Selection, dict: CEDict) -> Bool {
-        let text = selection.text
-        return text.count == 1 || (text.allSatisfy(isCJK) && dict.contains(text))
     }
 
     /// Let SwiftUI lay out new content, then resize the popup around it.

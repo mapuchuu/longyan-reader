@@ -1,18 +1,18 @@
 import Foundation
 
 /// One CC-CEDICT line: a headword with one reading and its senses.
-struct DictEntry {
+package struct DictEntry {
     let traditional: String
     let simplified: String
     let pinyin: String          // numbered, e.g. "xue2 sheng5"
-    let definitions: [String]
+    package let definitions: [String]
 
     /// Proper nouns are written with capitalised pinyin in CC-CEDICT.
-    var isProperNoun: Bool { pinyin.first?.isUppercase ?? false }
+    package var isProperNoun: Bool { pinyin.first?.isUppercase ?? false }
 }
 
 /// A single meaning offered to the reader (and to the sense chooser).
-extension Array where Element == Sense {
+package extension Array where Element == Sense {
     /// Which meanings a list shows before "Show more": the chosen one, the first of each
     /// reading (干 is both "dry" and "to do"), then the rest in order. In dictionary order.
     func preview(chosen: Int?, limit: Int = 5) -> [Int] {
@@ -25,16 +25,20 @@ extension Array where Element == Sense {
     }
 }
 
-struct Sense: Equatable {
-    let pinyin: String          // numbered
-    let gloss: String
+package struct Sense: Equatable {
+    package let pinyin: String          // numbered
+    package let gloss: String
     /// Too rare in modern prose to offer the model (sense-order.tsv); still listed on the card.
-    var rare = false
+    package var rare = false
 
-    static func == (a: Sense, b: Sense) -> Bool { a.pinyin == b.pinyin && a.gloss == b.gloss }
+    package init(pinyin: String, gloss: String, rare: Bool = false) {
+        self.pinyin = pinyin; self.gloss = gloss; self.rare = rare
+    }
+
+    package static func == (a: Sense, b: Sense) -> Bool { a.pinyin == b.pinyin && a.gloss == b.gloss }
 }
 
-extension Array where Element == Sense {
+package extension Array where Element == Sense {
     /// The senses a model chooses between: the rare ones (always last) are left out, and the
     /// list is capped to keep the prompt short. Numbering matches the full list.
     var forModel: [Sense] {
@@ -43,13 +47,13 @@ extension Array where Element == Sense {
     }
 }
 
-final class CEDict {
+package final class CEDict {
     /// Parsed from the text (the CLI run from the repo, and --compile-dict), or the compiled
     /// file the app ships (DictionaryFile), which opens in ~1 ms instead of ~1.4 s.
     private var byWord: [String: [DictEntry]] = [:]
     private var file: DictionaryFile?
-    private(set) var maxWordLength = 1
-    private(set) var entryCount = 0
+    package private(set) var maxWordLength = 1
+    package private(set) var entryCount = 0
 
     init(compiled url: URL) throws {
         let f = try DictionaryFile(contentsOf: url)
@@ -57,7 +61,7 @@ final class CEDict {
     }
 
     /// Writes the compiled file, then reopens it and checks every headword reads back the same.
-    func compile(to url: URL) throws -> Int {
+    package func compile(to url: URL) throws -> Int {
         try DictionaryFile.write(byWord, entryCount: entryCount, maxWordLength: maxWordLength, to: url)
         let back = try CEDict(compiled: url)
         func same(_ a: [DictEntry], _ b: [DictEntry]) -> Bool {
@@ -98,7 +102,7 @@ final class CEDict {
     }
 
     // "傳統 传统 [chuan2 tong3] /tradition/traditional/"
-    static func parse(_ line: String) -> DictEntry? {
+    package static func parse(_ line: String) -> DictEntry? {
         guard !line.hasPrefix("#"),
               let firstSpace = line.firstIndex(of: " "),
               let open = line.firstIndex(of: "["),
@@ -115,8 +119,8 @@ final class CEDict {
         return DictEntry(traditional: trad, simplified: simp, pinyin: pinyin, definitions: defs)
     }
 
-    func entries(for word: String) -> [DictEntry] { file?.entries(for: word) ?? byWord[word] ?? [] }
-    func contains(_ word: String) -> Bool { file?.contains(word) ?? (byWord[word] != nil) }
+    package func entries(for word: String) -> [DictEntry] { file?.entries(for: word) ?? byWord[word] ?? [] }
+    package func contains(_ word: String) -> Bool { file?.contains(word) ?? (byWord[word] != nil) }
 
     /// Senses worth choosing between, common readings first. Cross-references
     /// ("variant of", "used in", classifiers, surnames) are dropped; proper
@@ -126,7 +130,7 @@ final class CEDict {
     /// 行不行), which still have to be on offer: words the dictionary lacks get split, and
     /// 薪 in 无薪 is "salary", a bound form, not the free-standing "firewood".
     /// `handOrdered: false` skips sense-order.tsv (to check its lines against the dictionary).
-    func senses(for word: String, limit: Int = .max, handOrdered: Bool = true) -> [Sense] {
+    package func senses(for word: String, limit: Int = .max, handOrdered: Bool = true) -> [Sense] {
         let entries = entries(for: word)
         let ordered = entries.filter { !$0.isProperNoun } + entries.filter { $0.isProperNoun }
         let standalone = word.count == 1
@@ -167,7 +171,7 @@ final class CEDict {
     /// Where in `list` (this word's `senses(for:)`) the everyday meaning is, to show first when
     /// no model picks: from sense-everyday.tsv, else 0. A traditional form uses its simplified
     /// form's line, matched by gloss.
-    func everydayIndex(for word: String, in list: [Sense]) -> Int {
+    package func everydayIndex(for word: String, in list: [Sense]) -> Int {
         let s = simplified(word)
         guard let (form, order) = SenseOrder.everyday[word].map({ (word, $0) }) ?? SenseOrder.everyday[s].map({ (s, $0) }),
               let first = order.apply(to: senses(for: form, handOrdered: false)).first else { return 0 }
@@ -175,7 +179,7 @@ final class CEDict {
     }
 
     /// How many senses a model chooses between, to keep its prompt short. Common senses sort first.
-    static let modelSenseLimit = 14
+    package static let modelSenseLimit = 14
 
     private static let rareMarkers = ["(literary)", "(old)", "(archaic)", "(classical)", "(dialect)", "(Internet slang)", "(Tw)"]
 
@@ -216,7 +220,7 @@ final class CEDict {
         entries(for: word).first { $0.traditional == word && $0.simplified != word }?.simplified ?? word
     }
 
-    static func load() throws -> CEDict {
+    package static func load() throws -> CEDict {
         let d = try loadDictionary()
         current = d
         return d

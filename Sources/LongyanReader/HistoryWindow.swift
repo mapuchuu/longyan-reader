@@ -1,4 +1,5 @@
 import AppKit
+import LongyanCore
 import SwiftUI
 import UniformTypeIdentifiers
 
