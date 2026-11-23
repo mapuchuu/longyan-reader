@@ -317,3 +317,115 @@ Side by sides: Mac, Windows, and an overlay, per case, after converting any Gene
 to sRGB. Band shifts: each row of text is found by its ink, and its vertical and horizontal
 offset is the best match of the two pictures' ink profiles. These are scratch scripts (Python
 with Pillow), not kept in the repo; the gallery pictures are.
+
+## Eye
+
+The small button beside a fresh selection (branch win/eye-parity). Mac: Sources/LongyanReader/Chip.swift (CS below).
+Windows: windows/LongyanReader/Chip.cs (C), InputWatch.cs (IW), SelectionReader.cs (SR),
+Motion.cs (M). CI evidence is the `ui-check` artifact of the `windows` workflow: UiCheck's
+eye checks (windows/UiCheck/EyeCheck.cs) log a `[name]` line per placement with the
+selection, the text's ink rows, the eye's window and the Mac rule's centre, and save
+`eye-sheet-<scaling>.png` (each case cropped, the Mac rule's circle in red, the text's centre
+in green).
+
+### Why it sat above the line (fixed)
+
+Notepad on Windows 11 is a RichEditD2DPT box. Its UI Automation box for the first line holds
+the page's top margin: at 200% (Parallels with Retina), the first line of the user's file
+reads 393 to 464 (71 px) while the second reads 464 to 503 (39 px). The text's ink on the
+first line is at rows 432 to 459, centre 445.5; the box's centre is 428.5. The eye was centred
+on the box, 17 px (8.5 points) above the text, and its spring and shadow made it look higher
+still. Read in the user's VM with a UI Automation probe and PrintWindow, no clicks. Windows
+Server's classic Notepad (CI) has no margin in its boxes, and the old check compared the eye
+with the box, not the text, so CI never saw it. Now SR.Bounds cuts a top line that is a
+quarter taller than the next line and 1.5 times its font (no cut when the app gives no font size) to a line's height from the bottom,
+and UiCheck compares the eye with the text's ink.
+
+Checked in the user's VM afterwards, read-only (the app's own Bounds code run on Notepad's
+ranges at 200%, against the ink in a PrintWindow capture): 感冒, 他得了感冒 and 吃不了饭 on the
+first line were 16 to 17.5 px above the text's centre and are now 0 to 1.5 px from it; 明朝 and
+闭关锁国 on the second line stay 1.5 to 2 px (their boxes had no margin).
+
+The Mac centres on the line's box too, but its boxes hold no margin: in TextKit the box's
+centre is within 0.4 pt of a CJK line's ink centre (Helvetica 12, system 13, PingFang 14).
+On Windows the box's centre is up to 2 px above the ink (classic Notepad draws CJK low in a
+Consolas line), so UiCheck allows 2 px.
+
+### Placement
+
+| Behaviour | Mac | Windows | Status | Evidence |
+|---|---|---|---|---|
+| Which rect | AXBoundsForRange of the whole selection, untrimmed (CS:59-66) | union of the range's GetBoundingRectangles, top-line margin cut (SR.Bounds) | same | eye-sheet-*: first line in Notepad and rich edit |
+| One line or not | bounds height > 0 and < 40 pt (CS:93) | beside when the rects share one line, any height, or the bounds are under 40 × scale (C.Place, SR.Bounds) | same in effect: a 32 px heading's line is under 40 pt in PingFang, 42-44 in Microsoft YaHei, which sent it to the pointer rule | `edge-h1-*` within 1 point; `two lines` beside, `three lines` by the pointer |
+| Beside: horizontal | button box left = maxX + 4 (CS:95); measured: mark centre 19.5 after the highlight | one line: from the highlight's drawn right edge (SR.Drawn), else the rect's right | same | UiCheck `exact`: mark 19.5 ± 0.5 points after the highlight |
+| Beside: vertical | box centred on bounds midY (CS:95); measured on the Mac the mark, highlight and ink share a centre (0.0) | one line: the mark on the middle of the text's ink as drawn, read from the screen in the selection's rect (SR.Drawn); else the box's midY | same | UiCheck `exact`: mark centre within 0.5 points of the ink centre |
+| Otherwise | box bottom-left 6 right of, 6 above the mouse-up point (CS:92) | same in device pixels (C.Place) | same | `three lines` cases |
+| Right-to-left drag | rect rule; mouse point only for the fallback | same | same | `rtl` cases |
+| Drag past the line's end | eye after the line's text | same; the probe can no longer fail on odd rects (SR.Bounds never throws, empty rects dropped) and the line break is left out | same | `past1/2/3` in each Notepad and rich edit, `edge-20px-past` |
+| White space at the end | the Mac's double-click takes no space after a word | Chromium's double-click on Windows does (about 4 points further right); left out of the rect (SR.WithoutTrailingSpace) | same | `eye-*-edge-16px-space` cases |
+| Far from the pointer | bounds more than 160 pt from mouse-up are dropped (CS:64) | same, 160 × scale (C.Consider) | same | code |
+| Empty or zero rect | dropped (SelectionReader.checked, width and height ≥ 1) | same (C.Consider) | same | code |
+| Screen edges | clamped to the visible frame of the screen with the pointer (CS:101-105) | clamped to that screen's working area (C.Place) | same | `edge` case at 100% |
+| Box | 44 window, 30 button, 24 circle (CS:79-81, 208) | same (C:184) | same | gallery eye.png |
+| Mark size | 13 frame, 12 wide on screen | 13 frame; was 12.6 (11.5 wide) | same | UiCheck `exact` |
+| Scalings | points | device pixels × monitor DPI (per-monitor v2) | same | eye-sheet-100/125/150/175 on CI (the runner offers no 200%); 200% read in the user's VM |
+
+### Reading the selection off the screen
+
+UI Automation's rects are up to a character off the highlight (classic Notepad at 175%: 9 px
+short; at 100%: 3 px long) and up to 2 px off the ink. For a one-line selection SR.Drawn reads
+the rect's pixels (a line wider): the highlight is the commonest colour, its edge the median
+row-end on its middle rows, the ink the rows inside each row's highlight run. Notepad's
+blinking caret (the highlight's inverse, a column) is skipped. White space left out of the rect
+is still highlighted, so the text then ends at the rect. CI (UiCheck `exact`, 128 cases at
+100-175%): the mark within 0.5 points plus half a device pixel of the ink's centre and of 19.5
+after the text's end. At 100% every case is 0 and 19.5; at 125-175% the mark sits on whole
+pixels, so up to 0.4 points under.
+
+### Edge's selection menu (open, the user's call)
+
+Edge shows its own small menu (Copilot, copy, search) when text is selected. It is a msedge
+popup about 56 by 168 points, starting about 7 points right of the selection's end and
+reaching above and below the line. The eye, placed by the Mac rule, sits on top of it. The
+Mac has nothing like it in Safari. Options, mocked up from CI shots at 150%: keep it (eye
+over the menu), past the menu on the line, before the selection on the line, under the
+selection's end, or no eye while Edge's menu shows. Not chosen yet.
+
+### When it appears
+
+| Behaviour | Mac | Windows | Status | Evidence |
+|---|---|---|---|---|
+| Trigger | left mouse-up after a drag > 4 pt (Euclidean) or a double-click (CS:51-52) | same; was SM_CXDRAG per axis (IW) | same | 3-eye, 3-eye-drag |
+| Delay | 0.12 s, then read (CS:54) | 0.12 s, then UI Automation within 0.5 s, then the highlight read off the screen (3-28 ms); the first eye after a start is warmed (C.Warm) | same | UiCheck: the app's own time, less the wait and the app's UI Automation answer, median under 100 ms |
+| Selection kept | trimmed non-empty, has Chinese, ≤ 400 (CS:62) | has Chinese, ≤ 400 trimmed (C.Consider) | same | 3-eye |
+| Unreadable apps | eye with copy on click, unless the focus isn't text (CS:67-71) | double-click only, not terminals, dialogs, Excel, full screen | platform | notes/windows-plan.md |
+| Hidden apps, off switch | hiddenApps, showChip (CS:48-49) | Settings.EyeHiddenIn, ShowEye | same | 4-settings |
+| Card work early | onShow on appear (CS:90) | 0.3 s after appearing, or on hover; cancelled if unclicked | platform (battery) | windows-plan.md |
+| Model warm-up | LocalModel.warmUp (CS:89) | ly_warm_up (C.Show) | same | code |
+
+### Look and motion
+
+| Behaviour | Mac | Windows | Status | Evidence |
+|---|---|---|---|---|
+| Drawing | surface, 0.5 hairline at 10%, 13 pt mark (CS:233-256) | same (C.Build) | same | gallery eye.png vs mac/eye.png: inside the circle mean 1.8, dark 0.9 of 255 |
+| Shadow | black 18%, radius 5, y 2 (CS:213) | DropShadow blur 16, opacity 0.24, depth 2; was 10 and 0.18 | same | rendered both at 2x over white: RMS 0.6 of 255 (was a far shorter tail) |
+| First appearance | where it settles from the first frame | the window doesn't move after it shows; its circle at about 30 ms is centred where it settles | same | `0-first-eye-30ms.png` and `-settled.png`, both first eyes after a start |
+| Appear | alpha 0 to 1 in 0.12 s linear; scale 0.6 to 1, spring 0.3 / 0.68 (CS:120-123, 228) | same, from the window's first frame (ContentRendered), on the Motion driver (Linear, Spring) | same | 3-eye-in frames |
+| Hover | 1.08, spring 0.25 / 0.7; mark secondary to primary in the same spring (CS:225, 236) | same; a hover or press cut short keeps its speed (Motion.Spring), as SwiftUI's do | same | 3-eye-hover |
+| Press | 0.92, spring 0.2 / 0.7 (CS:226) | same (M.EyePress) | same | code |
+| Spring maths | SwiftUI: mass 1, stiffness (2π/response)², damping ratio as given | the Motion driver (Spring.cs) | same | MotionFeel |
+| Hide | alpha to 0 in 0.1 s on any hide, click included (CS:166-175) | 0.1 s Motion.Linear, then the window closes | same | 3-eye-reveal frames |
+| Reduce Motion | not checked by the eye | Windows' animation effects off skips the springs | platform | |
+
+### Leaving and clicking
+
+| Behaviour | Mac | Windows | Status | Evidence |
+|---|---|---|---|---|
+| Hides on | left or right mouse-down elsewhere, key, scroll (CS:34-43) | same; the middle button no longer hides it | same | 3-eye middle click, key, wheel |
+| Auto-hide | 6 s after appearing, pointer on it or not; the menu stops it (CS:126-128, 142) | same; was held while hovered | same | 3-eye-again |
+| Click | DragGesture(minimumDistance 0): pressed on down, action on up (CS:217-219) | press on down with capture, action on up (C:229-238) | same | 3-eye-card |
+| First click | acceptsFirstMouse (CS:181) | the window never activates, so every click reaches it | same | 0-first-eye and 6-first-eye-again |
+| Focus | non-activating panel | WS_EX_NOACTIVATE | same | 3-eye: Notepad keeps the focus |
+| Menu | right-click or Control-click: NSMenu at the pointer: hide in this app, turn off, a disabled line about the shortcut (CS:141-155) | right-click: the system's popup menu at the pointer, same items; was a WPF ContextMenu under the button | same (Windows menu look) | 3-eye-menu.png |
+| Tooltip | "Look up (⌃⌥L). Right-click to hide the eye." (CS:220) | "Look up (Ctrl+Alt+L). Right-click to hide the eye." | same | code |
+| Screen readers | a "Look up" button with a press action (CS:221-224) | a "Look up" button with Invoke (C.EyeButton) | same | UiCheck finds it by class |

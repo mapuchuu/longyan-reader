@@ -21,10 +21,10 @@ static class Motion
     public static readonly SpringSpec Badge = new(0.25, 0.9);
 
     /// The eye (Chip.swift:212-228): in with response 0.3, damping 0.68; hover 0.25, 0.7; press
-    /// 0.2, 0.7. Still WPF easing (Chip.cs is the eye's own work), so they restart from rest.
-    public static readonly IEasingFunction EyeAppear = new SpringEase(0.3, 0.68, 0.6);
-    public static readonly IEasingFunction EyeHover = new SpringEase(0.25, 0.7, 0.5);
-    public static readonly IEasingFunction EyePress = new SpringEase(0.2, 0.7, 0.4);
+    /// 0.2, 0.7. On the spring driver, so a hover or press cut short carries on at its speed.
+    public static readonly SpringSpec EyeAppear = new(0.3, 0.68);
+    public static readonly SpringSpec EyeHover = new(0.25, 0.7);
+    public static readonly SpringSpec EyePress = new(0.2, 0.7);
 
     /// SwiftUI's .easeOut and .easeInOut are Core Animation's curves, cubic Béziers (0, 0, 0.58, 1)
     /// and (0.42, 0, 0.58, 1). WPF's CubicEase is far steeper at the start (0.875 of the way at
