@@ -167,6 +167,12 @@ static class Program
             var t = (long?)e["t"] ?? 0;
             switch ((string?)e["event"])
             {
+                case "shortcut":
+                    action = t; card = null;
+                    break;
+                case "selection":
+                    Console.WriteLine($"[latency] shortcut: warm-up {e["warm"]} ms, automation read {e["automation"]} ms, copy {e["copy"]} ms ({e["how"]})");
+                    break;
                 case "action":
                     action = t; card = null;
                     var k = (long?)e["k"] ?? 0;

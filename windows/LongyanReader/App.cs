@@ -69,8 +69,17 @@ static class Program
     static async void LookUp()
     {
         if (!Core.Shared.IsReady) { CardWindow.Hint("Dictionary still loading…"); return; }
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        Core.Log("{\"event\":\"shortcut\"}");
         Bridge.ly_warm_up();
-        var selected = SelectionReader.ReadAutomation() ?? await SelectionReader.ReadByCopying();
+        var warm = clock.Elapsed.TotalMilliseconds;
+        var selected = SelectionReader.ReadAutomation();
+        var read = clock.Elapsed.TotalMilliseconds;
+        var how = "automation";
+        if (selected == null) { how = "copy"; selected = await SelectionReader.ReadByCopying(); }
+        var done = clock.Elapsed.TotalMilliseconds;
+        // Timings only: the selected text never goes in the log.
+        Core.Log(FormattableString.Invariant($"{{\"event\":\"selection\",\"how\":\"{(selected == null ? "none" : how)}\",\"warm\":{warm:F1},\"automation\":{read - warm:F1},\"copy\":{done - read:F1}}}"));
         if (selected == null) { CardWindow.Hint("Highlight Chinese text, then press Ctrl+Alt+L"); return; }
         CardWindow.Present(selected);
     }
