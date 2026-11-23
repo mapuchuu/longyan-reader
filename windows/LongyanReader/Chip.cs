@@ -122,15 +122,29 @@ static class Chip
         var clock = System.Diagnostics.Stopwatch.StartNew();
         var probed = await SelectionReader.ProbeAsync();
         if (mine != generation) { Skip("a press, key or scroll came while reading"); return; }
+        // A position far from where the mouse let go isn't where the selection is.
+        // Nor is an empty one (the Mac's SelectionReader.checked).
+        bool Near(Selected s) => s.Bounds is Rect b && b.Width >= 1 && b.Height >= 1 && Inflate(b, 160 * ScaleAt(up)).Contains(new Point(up.X, up.Y));
+        // Chromium builds its accessibility tree when a reader first asks: the first read in a
+        // new Edge window had the text but no place near the pointer (the eye went by the
+        // pointer, 21 px above the line). Once more, 40 ms later.
+        if (probed is { Found: SelectionReader.Found.Selection, Selection: Selected first } && SelectionReader.HasChinese(first) && !Near(first))
+        {
+            var had = first.Bounds is Rect fb ? $"[{fb.X:0.#},{fb.Y:0.#},{fb.Width:0.#},{fb.Height:0.#}]" : "null";
+            await Precise.Until(System.Diagnostics.Stopwatch.GetTimestamp(), 40);
+            if (mine != generation) return;
+            var again = await SelectionReader.ProbeAsync();
+            if (mine != generation) { Skip("a press, key or scroll came while reading"); return; }
+            var near = again is { Found: SelectionReader.Found.Selection, Selection: Selected second } && Near(second);
+            Core.Log($"{{\"event\":\"eye-reread\",\"had\":{had},\"near\":{(near ? "true" : "false")}}}");
+            if (near) probed = again;
+        }
         if (Core.Logging) Core.Log($"{{\"event\":\"eye-probe\",\"found\":\"{probed.Found}\",\"why\":\"{probed.Why ?? probed.Role?.ProgrammaticName ?? ""}\",\"ms\":{clock.ElapsedMilliseconds},\"dragged\":{(dragged ? "true" : "false")},\"clicks\":{clicks}}}");
         switch (probed.Found)
         {
             case SelectionReader.Found.Selection when probed.Selection is Selected selection:
                 if (!SelectionReader.HasChinese(selection) || SelectionReader.Length(selection) > 400) { Skip($"not Chinese or too long ({SelectionReader.Length(selection)} characters)"); return; }
-                // A position far from where the mouse let go isn't where the selection is.
-                // Nor is an empty one (the Mac's SelectionReader.checked).
-                var near = selection.Bounds is Rect b && b.Width >= 1 && b.Height >= 1 && Inflate(b, 160 * ScaleAt(up)).Contains(new Point(up.X, up.Y));
-                Show(up, near ? selection : selection with { Bounds = null }, app, at, spare);
+                Show(up, Near(selection) ? selection : selection with { Bounds = null }, app, at, spare);
                 break;
             case SelectionReader.Found.Unreadable:
                 // The app won't say what's selected: offer the eye and copy on a click. Only for a
