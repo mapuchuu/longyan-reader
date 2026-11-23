@@ -245,6 +245,7 @@ sealed class SettingsPage
     IEnumerable<FrameworkElement> CardRows()
     {
         yield return HistorySettings.Card(f, preview);   // History
+        yield return new AnkiCard(f, preview).Root;   // Add to Anki (AnkiSettings.cs)
     }
 
     public void FocusShortcut()

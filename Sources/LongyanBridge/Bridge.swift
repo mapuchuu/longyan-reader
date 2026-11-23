@@ -28,7 +28,7 @@ public typealias LyCallback = @convention(c) (UnsafePointer<CChar>) -> Void
 @MainActor private var dict: CEDict?
 /// Why the dictionary didn't load, when it didn't.
 @MainActor private var startFailure: String?
-@MainActor private var cards: [Int64: Card] = [:]
+@MainActor var cards: [Int64: Card] = [:]   // also read by BridgeAnki.swift
 /// Each word card's sense picks. One can be shared with a card opened after it ("part of").
 @MainActor private var cardPicks: [Int64: [Task<SenseChoice, Error>]] = [:]
 /// Work started by `ly_prepare`, before the reader clicks. A word card's "part of" pick is
@@ -44,7 +44,7 @@ private func newID() -> Int64 { idLock.withLock { lastID += 1; return lastID } }
 /// queue, and the app does that from its own message loop.
 private func onMain(_ body: @escaping @MainActor () -> Void) { Task { @MainActor in body() } }
 
-@MainActor private enum Card {
+@MainActor enum Card {
     case word(LookupState, whole: WordInContext?, tasks: [Task<Void, Never>])
     case phrase(PhraseState, PhrasePrep, task: Task<Void, Never>)
 }
