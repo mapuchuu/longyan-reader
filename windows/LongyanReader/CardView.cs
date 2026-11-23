@@ -786,7 +786,7 @@ sealed class CardView
     }
 
     /// A pending word's pinyin as SwiftUI's placeholder redaction draws it: a bar per syllable,
-    /// 9 tall in the 13 line, in the tone's colour faintly (the neutral tone in grey).
+    /// 7 tall, 2 above the bottom of the 13 line, in the tone's colour faintly (the neutral tone in grey).
     static FrameworkElement PinyinBars(JsonArray syllables, Thickness margin)
     {
         var line = new StackPanel { Orientation = Orientation.Horizontal, Height = Math.Round(10.5 * Theme.LineFactor), Margin = margin, HorizontalAlignment = HorizontalAlignment.Left };
@@ -797,9 +797,9 @@ sealed class CardView
             var color = tone is >= 1 and <= 4 ? ((SolidColorBrush)Theme.PinyinColor(tone)).Color : ((SolidColorBrush)Theme.Ink(1)).Color;
             var bar = new Border
             {
-                Width = Math.Ceiling(TextWidth((string?)s?["text"] ?? "", Theme.Text, 10.5)), Height = 9, CornerRadius = new CornerRadius(2.5),
+                Width = Math.Ceiling(TextWidth((string?)s?["text"] ?? "", Theme.Text, 10.5)), Height = 7, CornerRadius = new CornerRadius(2),
                 Background = new SolidColorBrush(Color.FromArgb((byte)Math.Round((tone is >= 1 and <= 4 ? 0.19 : 0.08) * 255), color.R, color.G, color.B)),
-                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(i > 0 ? 2 : 0, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(i > 0 ? 2 : 0, 0, 0, 2),
             };
             line.Children.Add(bar);
         }
