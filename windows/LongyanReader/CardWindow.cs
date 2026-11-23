@@ -316,7 +316,22 @@ sealed class CardWindow : Window, ICardActions
         {
             var hwnd = new WindowInteropHelper(this).Handle;
             SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW);
+            HwndSource.FromHwnd(hwnd)?.AddHook(PointerHook);
         };
+        // A card that opens under a pointer at rest isn't hovered until the pointer moves, as on
+        // the Mac (a tracking area sends no mouseEntered until then): no row highlight, and no
+        // edge grabber, which read as a scroll bar. WPF would hover it at once.
+        GetCursorPos(out stillAt);
+        frame.IsHitTestVisible = false;
+        // The Mac shows no tooltips here: AppKit shows them only in the active app, and the card
+        // never makes its app active. (Each control keeps its help as its UI Automation name.)
+        // (ToolTipOpening goes to the element alone, so it's caught for every element, in cards only.)
+        if (!tipsOff)
+        {
+            tipsOff = true;
+            EventManager.RegisterClassHandler(typeof(FrameworkElement), FrameworkElement.ToolTipOpeningEvent,
+                new ToolTipEventHandler((sender, e) => { if (sender is DependencyObject d && GetWindow(d) is CardWindow) e.Handled = true; }));
+        }
         Closed += (_, _) =>
         {
             gone = true;
@@ -333,6 +348,20 @@ sealed class CardWindow : Window, ICardActions
         PreviewMouseLeftButtonUp += PressEnd;
         PreviewMouseWheel += Wheel;
         zoomScale.ScaleX = zoomScale.ScaleY = zoom;
+    }
+
+    POINT stillAt;
+    static bool tipsOff;
+
+    /// The first real move (or a press) lets the pointer in.
+    IntPtr PointerHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (frame.IsHitTestVisible || msg is not (0x200 or 0x201 or 0x204)) return IntPtr.Zero;   // WM_MOUSEMOVE, WM_LBUTTONDOWN, WM_RBUTTONDOWN
+        GetCursorPos(out var p);
+        if (msg == 0x200 && p.X == stillAt.X && p.Y == stillAt.Y) return IntPtr.Zero;   // Windows' own move as the window shows
+        frame.IsHitTestVisible = true;
+        Mouse.Synchronize();
+        return IntPtr.Zero;
     }
 
     static Border Shadow(double blur, double y, double alpha) => new()
@@ -539,15 +568,26 @@ sealed class CardWindow : Window, ICardActions
         // In place only when it replaces a card at the same spot (PU:429-441): a pinned card
         // opening at its corner with no card there springs in as any card does.
         var inPlace = swapping != null;
-        var fade = new DoubleAnimation(0, 1, new Duration(TimeSpan.FromSeconds(inPlace ? 0.12 : 0.14)));
-        // Once this card is in, the one it replaces goes, with no fade.
-        fade.Completed += (_, _) => DropSwap(fade: false);
-        BeginAnimation(OpacityProperty, fade);
-        if (Motion.Reduced || inPlace) return;
-        Motion.Animate(revealScale, ScaleTransform.ScaleXProperty, 0.96, 1, Motion.RevealDuration, Motion.Reveal);
-        Motion.Animate(revealScale, ScaleTransform.ScaleYProperty, 0.96, 1, Motion.RevealDuration, Motion.Reveal);
-        Motion.Animate(revealShift, TranslateTransform.YProperty, below ? -4 : 4, 0, Motion.RevealDuration, Motion.Reveal);
+        var springs = !Motion.Reduced && !inPlace;
+        // Held at the start until the window's first frame is drawn: a newly shown layered window
+        // takes tens of ms to reach the screen, and a clock started at Show() ran on unseen.
+        Opacity = 0;
+        if (springs) { revealScale.ScaleX = revealScale.ScaleY = 0.96; revealShift.Y = below ? -4 : 4; }
+        void Go()
+        {
+            if (closing) return;
+            // Once this card is in, the one it replaces goes, with no fade.
+            Motion.Linear(this, OpacityProperty, 0, 1, inPlace ? 0.12 : 0.14, () => DropSwap(fade: false), trace: "fade-in");
+            if (!springs) return;
+            Motion.Spring(revealScale, ScaleTransform.ScaleXProperty, 1, Motion.Reveal, from: 0.96, trace: "reveal-scale");
+            Motion.Spring(revealScale, ScaleTransform.ScaleYProperty, 1, Motion.Reveal, from: 0.96);
+            Motion.Spring(revealShift, TranslateTransform.YProperty, 0, Motion.Reveal, from: below ? -4 : 4);
+        }
+        if (firstFrame) Go();
+        else ContentRendered += (_, _) => { firstFrame = true; Go(); };
     }
+
+    bool firstFrame;
 
     /// Sets the card's height for its content: the window grows at once and the card animates
     /// inside it; when it shrinks, the window follows 0.32 s later.
@@ -560,19 +600,17 @@ sealed class CardWindow : Window, ICardActions
         shrink?.Stop();
         if (!animated || resizing)
         {
-            foreach (var l in layers) { l.BeginAnimation(HeightProperty, null); l.Height = target; }
+            foreach (var l in layers) { Motion.Stop(l, HeightProperty); l.BeginAnimation(HeightProperty, null); l.Height = target; }
             shownHeight = target;
             SetFrame(target);
             return;
         }
         var from = surface.ActualHeight > 0 ? surface.ActualHeight : shownHeight;
-        if (Math.Abs(target - from) < 0.5) { SetFrame(Math.Max(target, from)); return; }
+        if (Math.Abs(target - from) < 0.5 && !Motion.Running(surface, HeightProperty)) { SetFrame(Math.Max(target, from)); return; }
         if (target > held) SetFrame(target);
-        foreach (var l in layers)
-        {
-            var a = new DoubleAnimation(from, target, Motion.ContentDuration) { EasingFunction = Motion.ContentEase };
-            l.BeginAnimation(HeightProperty, a);
-        }
+        // A change while the height is still moving carries on from its speed (SwiftUI retargets).
+        if (Motion.Reduced) foreach (var l in layers) Motion.Content(l, HeightProperty, from, target);
+        else foreach (var l in layers) Motion.Spring(l, HeightProperty, target, Motion.Card, from, trace: l == surface ? "height" : null);
         shownHeight = target;
         // The window gives back spare room once the motion is over (resizing it costs a frame).
         if (target < from && held > target + 2 * Spare) shrink = After(0.6, () => SetFrame(target, giveBack: true));
@@ -641,9 +679,7 @@ sealed class CardWindow : Window, ICardActions
         Motion.To(grip, OpacityProperty, on || resizing ? 1 : 0, 0.15);
         Motion.To(grabber, OpacityProperty, on || resizing ? 1 : 0, 0.15);
         if (!pinned) return;
-        Motion.Animate(badge, OpacityProperty, badge.Opacity, on ? 1 : 0, Motion.BadgeDuration, Motion.Badge);
-        Motion.Animate(badgeScale, ScaleTransform.ScaleXProperty, badgeScale.ScaleX, on ? 1 : 0.7, Motion.BadgeDuration, Motion.Badge);
-        Motion.Animate(badgeScale, ScaleTransform.ScaleYProperty, badgeScale.ScaleY, on ? 1 : 0.7, Motion.BadgeDuration, Motion.Badge);
+        SpringBadge(on);
     }
 
     // MARK: Placement
@@ -784,15 +820,124 @@ sealed class CardWindow : Window, ICardActions
         if (isHint) return;
         if ((Keyboard.Modifiers & ModifierKeys.Control) != 0)
         {
+            Settle();
             SetZoom(zoom * (e.Delta > 0 ? 1.1 : 1 / 1.1));
             e.Handled = true;
             return;
         }
+        // Bounces only when there's something to scroll (.scrollBounceBehavior(.basedOnSize), CC:428).
         if (scroller.ScrollableHeight <= 0) return;
-        // 40 a notch (a touchpad's smaller steps in proportion), eased rather than jumped, as
-        // the Mac's scrolling glides.
-        Glide(-e.Delta / 120.0 * 40 * zoom);
         e.Handled = true;
+        var by = -e.Delta / 120.0 * Notch * zoom;
+        // A touchpad (and a free-spinning wheel) sends deltas that aren't whole notches, at the
+        // rate the fingers move, and Windows sends the momentum after a flick the same way: the
+        // card follows them 1:1, as the Mac's does, and stretches at the ends.
+        var now = Motion.Now;
+        if (e.Delta % 120 != 0) lastPrecise = now;
+        if (now - lastPrecise < 0.3) { glideTo = null; Pan(by); return; }
+        // A mouse notch: 40 eased over about 0.2 s, as Windows apps glide a notch. (A Mac mouse
+        // wheel jumps a line with no glide, and never bounces.)
+        Settle();
+        Glide(by);
+    }
+
+    const double Notch = 40;
+    double lastPrecise = double.NegativeInfinity;
+
+    // MARK: Rubber band
+
+    /// How far the content is pulled past an end (DIPs, + at the top, - at the bottom).
+    double stretch;
+    readonly TranslateTransform stretchShift = new();
+    double lastPan, releaseFrom, releaseAt;
+    bool releasing;
+
+    /// Scrolls by `by` (DIPs, + down) 1:1, pulling past the ends against AppKit's rubber band:
+    /// the stretch is a 20th of the push (NSScrollView, measured: 300 pushed gave 13 to 15, and
+    /// WebKit's copy of AppKit's constants says 20), and pushing back takes it in 1:1.
+    void Pan(double by)
+    {
+        lastPan = Motion.Now;
+        if (releasing) { releasing = false; }
+        if (stretch != 0 && Math.Sign(by) == Math.Sign(stretch))
+        {
+            // Back toward the content: the stretch gives way 1:1 first.
+            var take = Math.Min(Math.Abs(by), Math.Abs(stretch)) * Math.Sign(by);
+            stretch -= take;
+            by -= take;
+        }
+        if (by != 0)
+        {
+            var max = scroller.ScrollableHeight;
+            var to = scroller.VerticalOffset + by;
+            if (stretch != 0 || to < 0 || to > max)
+            {
+                var past = stretch != 0 ? by : to < 0 ? to : to - max;
+                stretch -= past / 20;
+                scroller.ScrollToVerticalOffset(Math.Clamp(to, 0, max));
+            }
+            else scroller.ScrollToVerticalOffset(to);
+        }
+        ShowStretch();
+        if (stretch != 0) Watch();
+    }
+
+    void ShowStretch()
+    {
+        if (view.Root.RenderTransform != stretchShift) view.Root.RenderTransform = stretchShift;
+        // The content is zoomed by its layout transform; the shift is in the card's own DIPs.
+        stretchShift.Y = stretch;
+    }
+
+    bool banding;
+
+    /// Once the touchpad has been still for a moment (the fingers are up; Windows says no more
+    /// than that), a stretch springs back as AppKit's does: e^(-12.5 t) (stiffness 20 over a
+    /// period of 1.6, WebKit's copy of AppKit's; the Mac's filmed back 235 to 57 in 0.11 s).
+    void Watch()
+    {
+        if (banding) return;
+        banding = true;
+        CompositionTarget.Rendering += BandStep;
+    }
+
+    void BandStep(object? sender, EventArgs e)
+    {
+        var now = Motion.Now;
+        if (!releasing)
+        {
+            if (stretch == 0) { Unwatch(); return; }
+            if (now - lastPan < 0.1) return;
+            releasing = true;
+            releaseFrom = stretch;
+            releaseAt = now;
+            if (Core.Logging) Core.Log(FormattableString.Invariant($"{{\"event\":\"band\",\"stretch\":{stretch:0.00},\"offset\":{scroller.VerticalOffset:0.0}}}"));
+        }
+        stretch = releaseFrom * Math.Exp(-12.5 * (now - releaseAt));
+        if (Math.Abs(stretch) < 0.2)
+        {
+            stretch = 0;
+            releasing = false;
+            Unwatch();
+            if (Core.Logging) Core.Log(FormattableString.Invariant($"{{\"event\":\"band-back\",\"ms\":{(now - releaseAt) * 1000:0}}}"));
+        }
+        ShowStretch();
+    }
+
+    void Unwatch()
+    {
+        banding = false;
+        CompositionTarget.Rendering -= BandStep;
+    }
+
+    /// Drops any stretch at once (a mouse notch, a new card size).
+    void Settle()
+    {
+        if (stretch == 0) return;
+        stretch = 0;
+        releasing = false;
+        ShowStretch();
+        Unwatch();
     }
 
     double? glideTo;
@@ -971,13 +1116,15 @@ sealed class CardWindow : Window, ICardActions
     }
 
     /// Springs the close badge away, then hides it (on unpinning).
-    void HideBadge()
+    void HideBadge() => SpringBadge(false, () => { if (!pinned) badge.Visibility = Visibility.Collapsed; });
+
+    /// The badge's opacity and scale (0.7 hidden) on its spring, carrying on from any spring
+    /// still under way, as a quick in and out on the Mac does.
+    void SpringBadge(bool on, Action? done = null)
     {
-        var fade = new DoubleAnimation(badge.Opacity, 0, Motion.BadgeDuration) { EasingFunction = Motion.Badge };
-        fade.Completed += (_, _) => { if (!pinned) badge.Visibility = Visibility.Collapsed; };
-        badge.BeginAnimation(OpacityProperty, fade);
-        Motion.Animate(badgeScale, ScaleTransform.ScaleXProperty, badgeScale.ScaleX, 0.7, Motion.BadgeDuration, Motion.Badge);
-        Motion.Animate(badgeScale, ScaleTransform.ScaleYProperty, badgeScale.ScaleY, 0.7, Motion.BadgeDuration, Motion.Badge);
+        Motion.Spring(badge, OpacityProperty, on ? 1 : 0, Motion.Badge, done: done);
+        Motion.Spring(badgeScale, ScaleTransform.ScaleXProperty, on ? 1 : 0.7, Motion.Badge);
+        Motion.Spring(badgeScale, ScaleTransform.ScaleYProperty, on ? 1 : 0.7, Motion.Badge);
     }
 
     public void Dismiss()
@@ -1001,9 +1148,9 @@ sealed class CardWindow : Window, ICardActions
     {
         if (gone) return;
         if (!IsVisible) { CloseNow(); return; }
-        var a = new DoubleAnimation(Opacity, 0, new Duration(TimeSpan.FromSeconds(0.12)));
-        a.Completed += (_, _) => CloseNow();
-        BeginAnimation(OpacityProperty, a);
+        // The whole 0.12 s, linear, from where it is; the window goes only after 0 is drawn.
+        var from = Opacity;
+        Motion.Linear(this, OpacityProperty, from, 0, 0.12, CloseNow, trace: "fade-out");
     }
 
     void CloseNow()
@@ -1213,10 +1360,15 @@ static class Speech
 
     public static bool Available { get { Find(); return found; } }
 
+    /// For the UI check, whose desktop has no Chinese voice: "says" each text for 2.5 s, silently.
+    static readonly bool fake = Environment.GetEnvironmentVariable("LONGYAN_FAKE_SPEECH") == "1";
+    static DispatcherTimer? fakeDone;
+
     static void Find()
     {
         if (looked) return;
         looked = true;
+        if (fake) { found = true; return; }
         try
         {
             synth = new System.Speech.Synthesis.SpeechSynthesizer();
@@ -1241,6 +1393,15 @@ static class Speech
     public static void Say(string text)
     {
         Find();
+        if (fake)
+        {
+            fakeDone?.Stop();
+            fakeDone = new DispatcherTimer(DispatcherPriority.Normal) { Interval = TimeSpan.FromSeconds(2.5) };
+            fakeDone.Tick += (_, _) => { fakeDone?.Stop(); Set(null); };
+            fakeDone.Start();
+            Set(text);
+            return;
+        }
         if (!found || synth == null) return;
         synth.SpeakAsyncCancelAll();
         prompt = synth.SpeakAsync(text);
@@ -1250,6 +1411,7 @@ static class Speech
     public static void Stop()
     {
         try { synth?.SpeakAsyncCancelAll(); } catch { }
+        fakeDone?.Stop();
         prompt = null;
         Set(null);
     }
