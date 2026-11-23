@@ -130,10 +130,15 @@ package final class EmbeddedModel: @unchecked Sendable {
     /// request's instructions is kept even when they're short, and made ahead of the first card
     /// (warmUp), and a prompt reuses the longest kept start it begins with. On the Mac's GPU those
     /// ~50 tokens take ~15 ms, so it keeps its own rule (only starts of 64 tokens or more).
-    /// Off by default for now: on the CPU, reading the instructions apart from the rest changes
-    /// the last digits of the numbers, and with them a near tie now and then (1 card in 4 in the
-    /// speed job). LONGYAN_PRIME=1 turns it on.
+    /// Reading the instructions apart from the rest changes the last digits of the numbers on
+    /// the CPU, and with them a near tie now and then, but toward the Mac's answers: in the speed
+    /// job 1 of 27 bridge cards and 2 of 184 eval picks differ from the Mac's with it, 3 and 3
+    /// without. LONGYAN_PRIME=0 turns it off.
+    #if os(Windows)
+    static let primesPrefixes = ProcessInfo.processInfo.environment["LONGYAN_PRIME"] != "0"
+    #else
     static let primesPrefixes = ProcessInfo.processInfo.environment["LONGYAN_PRIME"] == "1"
+    #endif
 
     /// Reads in one system turn and keeps its state as a prefix. False when a request is waiting.
     private func prime(_ system: String) -> Bool {
@@ -222,10 +227,13 @@ package final class EmbeddedModel: @unchecked Sendable {
         cp.n_threads = Int32(max(1, min(8, ProcessInfo.processInfo.activeProcessorCount - 2)))
         cp.n_threads_batch = cp.n_threads
         #if os(Windows)
-        // On the CPU every thread counts. All of the fast cores' threads, hyperthreads included
-        // (on CI's 2 cores, 4 threads write a reply 1.4x as fast as 2 and read a prompt as fast),
-        // and only the fast cores on a chip that also has slow ones. Same answers at any count.
-        if let n = Self.fastThreads() { cp.n_threads = Int32(min(n, 8)); cp.n_threads_batch = Int32(min(n, 16)) }
+        // On the CPU every thread counts: the fast cores' threads, hyperthreads included, less one
+        // for the app (with all of them, the card missed an Esc in the UI check), and only the
+        // fast cores on a chip that also has slow ones. On CI's 2 cores and 4 threads, 3 write a
+        // reply 1.3x as fast as 2; on a 4-core Arm, 3 make a word card 19 s -> 13 s.
+        if let n = Self.fastThreads() {
+            cp.n_threads = Int32(max(1, min(n - 1, 8))); cp.n_threads_batch = Int32(max(1, min(n - 1, 16)))
+        }
         #endif
         let env = ProcessInfo.processInfo.environment
         if let t = env["LONGYAN_THREADS"].flatMap(Int32.init) { cp.n_threads = t; cp.n_threads_batch = t }
