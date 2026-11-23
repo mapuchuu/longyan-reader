@@ -110,7 +110,7 @@ sealed class CardView
         senses.Children.Add(Section("Meanings"));
         var rows = new StackPanel { Margin = new Thickness(0, 8, 0, 0) };
         var all = c["senses"]?.AsArray() ?? new JsonArray();
-        var total = all.Count == 0 ? 1 : all.Max(r => (int?)r?["number"] ?? 1);
+        var total = Total(all, (string?)c["more"]);
         foreach (var node in all)
             if (node is JsonObject r) rows.Children.Add(SenseRow(r, 13, 5, total, "w", noteMarks: true, rows.Children.Count == 0, () => actions.Pick(-1, (int)r["index"]!)));
         if ((string?)c["more"] is string more) rows.Children.Add(More(more, 5, () => actions.ToggleAll(-1), "w"));
@@ -145,7 +145,7 @@ sealed class CardView
 
     FrameworkElement PartOf(JsonObject part)
     {
-        var line = new TextBlock { FontSize = 12, FontFamily = Theme.Text, TextWrapping = TextWrapping.NoWrap, TextTrimming = TextTrimming.CharacterEllipsis };
+        var line = Lines(new TextBlock { FontSize = 12, FontFamily = Theme.Text, TextWrapping = TextWrapping.NoWrap, TextTrimming = TextTrimming.CharacterEllipsis }, 13);
         line.Inlines.Add(new Run("Part of ") { Foreground = Theme.Secondary });
         line.Inlines.Add(new Run((string?)part["word"]) { FontWeight = FontWeights.Medium, FontSize = 13, Foreground = Theme.Primary, FontFamily = Theme.Chinese });
         line.Inlines.Add(new Run(" " + (string?)part["pinyin"]) { Foreground = Theme.Secondary });
@@ -248,6 +248,7 @@ sealed class CardView
         if ((bool?)r["hasNote"] == true)
         {
             var mark = NoteMark();
+            mark.VerticalAlignment = VerticalAlignment.Top;
             mark.Margin = new Thickness(12, gloss.Margin.Top + gloss.LineHeight / 2 - mark.Height / 2, 0, 0);
             Grid.SetColumn(mark, 3);
             grid.Children.Add(mark);
@@ -273,7 +274,7 @@ sealed class CardView
             Add(Keyed($"dstatus:{token}:{status}", status == "Reading the sentence…" ? Busy(status) : Label(status, status == "Not in the dictionary" ? 12 : 11, Theme.Secondary)));
         if ((string?)r["here"] is string here)
         {
-            var line = new TextBlock { FontSize = 12, FontFamily = Theme.Text, TextWrapping = TextWrapping.Wrap, Foreground = Theme.Primary };
+            var line = Lines(new TextBlock { FontSize = 12, FontFamily = Theme.Text, TextWrapping = TextWrapping.Wrap, Foreground = Theme.Primary }, 12);
             line.Inlines.Add(new Run("In this sentence: ") { Foreground = Theme.Secondary });
             line.Inlines.Add(new Run(here) { FontWeight = FontWeights.Medium });
             Add(Keyed("here:" + token, line));
@@ -284,7 +285,7 @@ sealed class CardView
         if (senses.Count > 0)
         {
             var list = new StackPanel();
-            var total = senses.Max(s => (int?)s?["number"] ?? 1);
+            var total = Total(senses, (string?)r["more"]);
             foreach (var node in senses)
                 if (node is JsonObject s) list.Children.Add(SenseRow(s, 12, 3, total, "p" + token, noteMarks: false, list.Children.Count == 0, () => actions.Pick(token, (int)s["index"]!)));
             if ((string?)r["more"] is string more) list.Children.Add(More(more, 3, () => actions.ToggleAll(token), "p" + token));
@@ -294,6 +295,15 @@ sealed class CardView
     }
 
     // MARK: Shared pieces
+
+    /// How many meanings there are in all: "Show All 15" says, when some are hidden. The
+    /// number column is as wide as the largest number's digits.
+    static int Total(JsonArray rows, string? more)
+    {
+        var shown = rows.Count == 0 ? 1 : rows.Max(r => (int?)r?["number"] ?? 1);
+        var digits = new string((more ?? "").Where(char.IsDigit).ToArray());
+        return int.TryParse(digits, out var all) ? Math.Max(all, shown) : shown;
+    }
 
     FrameworkElement SenseRow(JsonObject r, double size, double vertical, int total, string scope, bool noteMarks, bool first, Action pick)
     {
@@ -315,7 +325,7 @@ sealed class CardView
         number.Margin = new Thickness(0, Baseline(Theme.Text, size, FontWeights.Normal) - Baseline(Theme.Text, size - 1, FontWeights.Medium), 0, 0);
         Typography.SetNumeralAlignment(number, FontNumeralAlignment.Tabular);
         grid.Children.Add(number);
-        var line = new TextBlock { FontSize = size, FontFamily = Theme.Text, TextWrapping = TextWrapping.Wrap, Foreground = dim ? Theme.Secondary : Theme.Primary, ToolTip = (string?)r["tip"] };
+        var line = Lines(new TextBlock { FontSize = size, FontFamily = Theme.Text, TextWrapping = TextWrapping.Wrap, Foreground = dim ? Theme.Secondary : Theme.Primary, ToolTip = (string?)r["tip"] }, size);
         if ((string?)r["pos"] is string pos) line.Inlines.Add(new Run(pos + " ") { FontStyle = FontStyles.Italic, Foreground = Theme.Secondary });
         line.Inlines.Add(new Run((string?)r["gloss"]) { FontWeight = chosen ? FontWeights.SemiBold : FontWeights.Normal });
         Grid.SetColumn(line, 2);
