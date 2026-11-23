@@ -757,10 +757,14 @@ sealed class CardView
     }, size);
 
     /// San Francisco's line height (about 1.2 of the size; Segoe's is 1.33), plus `extra`.
+    /// San Francisco's line height at a size: 1.2 of it, rounded, except at 12, where the
+    /// Mac's lines measure 15 rather than 14.
+    static double LineHeight(double size) => size == 12 ? 15 : Math.Round(size * Theme.LineFactor);
+
     static TextBlock Lines(TextBlock t, double size, double extra = 0)
     {
         t.LineStackingStrategy = LineStackingStrategy.BlockLineHeight;
-        t.LineHeight = Math.Round(size * Theme.LineFactor) + extra;
+        t.LineHeight = LineHeight(size) + extra;
         return t;
     }
 
@@ -863,7 +867,7 @@ sealed class CardView
         var ft = new FormattedText(family == Theme.Chinese ? "国" : "Ag", CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
             new Typeface(family, FontStyles.Normal, weight, FontStretches.Normal), 100, Brushes.Black, 1.0);
         var ratio = ft.Baseline / ft.Height;
-        return baselines[key] = Math.Round(size * Theme.LineFactor) * ratio;
+        return baselines[key] = LineHeight(size) * ratio;
     }
 
     // MARK: Transitions
