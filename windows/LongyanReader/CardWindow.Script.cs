@@ -196,13 +196,19 @@ sealed partial class CardWindow
         trace = new System.IO.StreamWriter(path, append: false, new UTF8Encoding(false)) { AutoFlush = true };
         CompositionTarget.Rendering += (_, _) =>
         {
-            var w = current;
-            if (w == null || trace == null) return;
-            string line;
-            try { line = w.TraceLine(); } catch (Exception) { return; }
-            if (line == lastTrace) return;
-            lastTrace = line;
-            trace.WriteLine(FormattableString.Invariant($"{{\"mono\":{Mono * 1000:F3},") + line + "}");
+            // Read once every handler of this frame has run (Motion's ticks set the values in
+            // theirs, and may be subscribed after this one), before the frame is drawn.
+            var mono = Mono;
+            Application.Current?.Dispatcher.BeginInvoke(DispatcherPriority.Send, () =>
+            {
+                var w = current;
+                if (w == null || trace == null) return;
+                string line;
+                try { line = w.TraceLine(); } catch (Exception) { return; }
+                if (line == lastTrace) return;
+                lastTrace = line;
+                trace.WriteLine(FormattableString.Invariant($"{{\"mono\":{mono * 1000:F3},") + line + "}");
+            });
         };
     }
 
