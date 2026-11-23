@@ -84,6 +84,15 @@ Streaming from Ollama uses `URLSession.bytes`, which only Apple's Foundation has
 - Parts that leave fade out where they were, and changed text crossfades (the old element itself fades, since snapshots cost 30 ms a click). Rows rebuilt under the pointer keep their highlight.
 - The window keeps 160 spare height past the card. Resizing a transparent WPF window redraws its whole surface (40 to 57 ms on CI), so the card grows inside the spare room and the window gives it back after the motion. Click to drawn is now 13 to 19 ms on CI; the app logs the breakdown and WPF's frame times for the UI check.
 
+## Decisions for launch (2026-11-23)
+
+- Signed: a Windows code-signing certificate before the public release.
+- A private beta first. A Windows VM we can reach, for testing beyond CI.
+- Shortcut: Ctrl+Alt+L, unless it types a character on the keyboard layout (AltGr layouts such as Polish), then another default; anyone can pick their own.
+- The card stays like the Mac; the tray, menus, installer and welcome window follow Windows conventions.
+- A normal release that isn't marked latest (it counts in the download total).
+- 1.0 includes History, Anki and pointing at a word without selecting.
+
 ## Still to build for Windows
 
 - llama.cpp for the app: CI builds it CPU-only and static. Vulkan (and maybe CUDA) for speed, and DLL or static.

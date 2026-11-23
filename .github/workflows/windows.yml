@@ -7,7 +7,7 @@ name: windows
 
 on:
   push:
-    branches: [shared-core]
+    branches: [shared-core, 'win/**']
     paths:
       - Package.swift
       - Sources/LongyanCore/**
