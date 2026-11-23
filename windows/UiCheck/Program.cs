@@ -118,9 +118,13 @@ static partial class Program
             BandFilm();         // MotionFeel.cs
             CtrlWheel(-120, 7);
             Thread.Sleep(800);
+            // Found again: after the zoom the row needn't be where it was (it was a sense's row,
+            // so this "shut" picked a meaning instead).
+            if (FindText(app, "to implement") is System.Windows.Rect again) row = again;
             Click(row.Left + 10, row.Top + row.Height / 2);
             Burst("2-shut", 800);
             Thread.Sleep(1200);
+            if (FindText(app, "to implement") is System.Windows.Rect now) row = now;
             TwiceCheck(row.Left + 10, row.Top + row.Height / 2);   // MotionFeel.cs
         }
         else failures.Add("2-phrase: no \"to implement\" row to open");
