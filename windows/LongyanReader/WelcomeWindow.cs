@@ -100,6 +100,7 @@ sealed class WelcomePage
         footer.Children.Add(loginLabel);
         login = f.Switch("Open at login", "OpenAtLogin", preview || LoginItem.IsEnabled || LoginItem.Available);
         login.VerticalAlignment = VerticalAlignment.Center;
+        login.Tag = "bare";
         Grid.SetColumn(login, 1);
         footer.Children.Add(login);
         if (!preview && !LoginItem.Available) { loginLabel.Visibility = Visibility.Collapsed; login.Visibility = Visibility.Collapsed; }
@@ -152,17 +153,7 @@ sealed class WelcomePage
         tryStack.Children.Add(tryHow);
         sample.Margin = new Thickness(0, 12, 0, 2);
         tryStack.Children.Add(sample);
-        var tryGrid = new Grid();
-        tryGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        tryGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        tryGrid.Children.Add(new TextBlock
-        {
-            Text = "\uE8D2", FontFamily = Theme.Icons, FontSize = 16, Foreground = f.B(f.Text), Width = 20,
-            Margin = new Thickness(0, 2, 16, 0), VerticalAlignment = VerticalAlignment.Top,
-        });
-        Grid.SetColumn(tryStack, 1);
-        tryGrid.Children.Add(tryStack);
-        body.Children.Add(f.CardFrame(tryGrid, new Thickness(16, 14, 16, 14)));
+        body.Children.Add(f.CardFrame(tryStack, new Thickness(16, 14, 16, 14)));
         body.Children.Add(this.model.Root);
         Root.Children.Add(body);
         RefreshShortcut();

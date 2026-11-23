@@ -203,11 +203,15 @@ static class Program
         if (sample == null) failures.Add("0-welcome: no sample line");
         else
         {
-            try { sample.SetFocus(); } catch (Exception e) { Console.WriteLine("[0-welcome] couldn't focus the sample: " + e.Message); }
-            // 感冒, as in Notepad.
-            Keys(VK_CONTROL, VK_HOME);
-            for (var i = 0; i < 3; i++) Keys(VK_RIGHT);
-            for (var i = 0; i < 2; i++) Keys(VK_SHIFT, VK_RIGHT);
+            // 感冒, selected through the line's text pattern.
+            try
+            {
+                sample.SetFocus();
+                Thread.Sleep(300);
+                ((TextPattern)sample.GetCurrentPattern(TextPattern.Pattern)).DocumentRange.FindText("感冒", false, false)?.Select();
+            }
+            catch (Exception e) { Console.WriteLine("[0-welcome] couldn't select in the sample: " + e.Message); }
+            Thread.Sleep(300);
             var before = File.Exists(log) ? File.ReadAllLines(log).Length : 0;
             Keys(VK_CONTROL, VK_MENU, 0x4C);
             var started = DateTime.Now;
@@ -216,7 +220,7 @@ static class Program
             Thread.Sleep(1500);
             Shot("0-welcome-card");
             if (card == null) failures.Add("0-welcome: the shortcut on the sample line opened no card");
-            else if ((string?)card["word"] != "感冒") failures.Add($"0-welcome: the sample's card is for {(string?)card["word"]}, not 感冒");
+            else if ((string?)card["copy"] != "感冒") failures.Add($"0-welcome: the sample's card is for {(string?)card["copy"]}, not 感冒");
             Keys(VK_ESCAPE);
             Thread.Sleep(800);
         }

@@ -174,6 +174,7 @@ sealed class Fluent
                       <Setter TargetName="track" Property="Background" Value="{{{H(Fade(Accent, 0.9))}}}"/>
                       <Setter TargetName="knob" Property="Margin" Value="0,0,2,0"/>
                     </MultiTrigger>
+                    <Trigger Property="Tag" Value="bare"><Setter TargetName="label" Property="Visibility" Value="Collapsed"/></Trigger>
                     <Trigger Property="IsEnabled" Value="False">
                       <Setter TargetName="label" Property="Foreground" Value="{{{H(TextDisabled)}}}"/>
                       <Setter TargetName="track" Property="BorderBrush" Value="{{{H(TextDisabled)}}}"/>

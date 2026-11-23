@@ -28,7 +28,7 @@ sealed class ModelCard
     readonly bool welcome;
     readonly StackPanel words = new();
     readonly Button button;
-    readonly ProgressBar bar = new() { Minimum = 0, Maximum = 1, Margin = new Thickness(36, 10, 0, 4) };
+    readonly ProgressBar bar = new() { Minimum = 0, Maximum = 1, Margin = new Thickness(0, 10, 0, 4) };
     Action? act;
 
     public ModelCard(Fluent look, bool welcome, bool preview)
@@ -38,7 +38,8 @@ sealed class ModelCard
         button = f.PushButton("", () => { if (!preview) act?.Invoke(); }, automationId: "ModelButton");
         System.Windows.Automation.AutomationProperties.SetAutomationId(words, "ModelStatus");
         var stack = new StackPanel();
-        stack.Children.Add(f.Row("\uE8C1", "Reading model", words, button, minHeight: 48));
+        stack.Children.Add(f.Row(welcome ? null : "\uE8C1", "Reading model", words, button, minHeight: 48));
+        bar.Margin = new Thickness(welcome ? 0 : 36, 10, 0, 4);
         stack.Children.Add(bar);
         Root = f.CardFrame(stack);
     }
@@ -48,7 +49,6 @@ sealed class ModelCard
         var size = ModelDownload.Gigabytes(ModelDownload.Size);
         var lines = new List<string>();
         string? label = null;
-        var accent = false;
         act = null;
         if (m.Running && !m.Checking)
         {
@@ -66,7 +66,7 @@ sealed class ModelCard
             lines.Add($"Recommended. {What} It's a {size} download and runs on this PC.");
             if (m.Error is string e && e != "stopped") lines.Add($"The last download didn't finish: {e.TrimEnd('.')}.");
             else if (m.OnDisk > 0) lines.Add($"{ModelDownload.Gigabytes(m.OnDisk)} is downloaded so far.");
-            label = m.OnDisk > 0 ? "Resume" : "Download"; act = Program.GetModel; accent = welcome;
+            label = m.OnDisk > 0 ? "Resume" : "Download"; act = Program.GetModel;
         }
         else if (m.Status.Length == 0) lines.Add("Loading…");
         else
@@ -80,8 +80,6 @@ sealed class ModelCard
         foreach (var l in lines) words.Children.Add(f.Caption(l));
         button.Visibility = label == null ? Visibility.Collapsed : Visibility.Visible;
         button.Content = label ?? "";
-        if (accent) button.SetResourceReference(FrameworkElement.StyleProperty, "Accent");
-        else button.ClearValue(FrameworkElement.StyleProperty);
         bar.Visibility = m.Running && !m.Checking ? Visibility.Visible : Visibility.Collapsed;
         bar.Value = m.Progress;
     }
