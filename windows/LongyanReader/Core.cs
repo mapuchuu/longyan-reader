@@ -68,7 +68,7 @@ sealed class Core
     public static void Log(string json)
     {
         if (eventLog == null || json.Length < 2) return;
-        try { File.AppendAllText(eventLog, "{\"t\":" + clock.ElapsedMilliseconds + "," + json.Substring(1) + "\n"); } catch { }
+        try { File.AppendAllText(eventLog, "{\"t\":" + clock.ElapsedMilliseconds + ",\"k\":" + Environment.TickCount64 + "," + json.Substring(1) + "\n"); } catch { }
     }
     public static bool Logging => eventLog != null;
 

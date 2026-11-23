@@ -291,7 +291,29 @@ sealed class CardWindow : Window, ICardActions
         var drawing = System.Diagnostics.Stopwatch.StartNew();
         view.Show(json, animate: true);
         Resize(animated: true);
-        if (Core.Logging) Core.Log($"{{\"event\":\"drawn\",\"ms\":{drawing.Elapsed.TotalMilliseconds:0.0}}}");
+        if (Core.Logging) { Core.Log($"{{\"event\":\"drawn\",\"ms\":{drawing.Elapsed.TotalMilliseconds:0.0}}}"); Frames(); }
+    }
+
+    /// For the UI check: how soon WPF draws a frame after a change, and how evenly over the
+    /// next 0.6 s (the motion), from its own rendering clock.
+    static void Frames()
+    {
+        var start = System.Diagnostics.Stopwatch.StartNew();
+        double first = -1, last = 0, gap = 0; var count = 0;
+        TimeSpan? previous = null;
+        EventHandler? tick = null;
+        tick = (_, e) =>
+        {
+            var at = ((RenderingEventArgs)e).RenderingTime;
+            if (previous == at) return;   // the same frame, reported twice
+            var now = start.Elapsed.TotalMilliseconds;
+            if (first < 0) first = now; else gap = Math.Max(gap, now - last);
+            last = now; previous = at; count++;
+            if (now < 600) return;
+            CompositionTarget.Rendering -= tick;
+            Core.Log($"{{\"event\":\"frames\",\"first\":{first:0},\"count\":{count},\"gap\":{gap:0}}}");
+        };
+        CompositionTarget.Rendering += tick;
     }
 
     /// First content: measure, place, then reveal.

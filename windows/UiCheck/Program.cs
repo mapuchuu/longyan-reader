@@ -136,6 +136,9 @@ static class Program
     }
 
     /// For each click on the card: how long until the core's new card, and until it's drawn.
+    /// Clicks sent, by the system's tick count, to match against the app's log.
+    static readonly List<long> clicks = new();
+
     static void Latencies()
     {
         if (!File.Exists(log)) return;
@@ -146,10 +149,18 @@ static class Program
             var t = (long?)e["t"] ?? 0;
             switch ((string?)e["event"])
             {
-                case "action": action = t; card = null; break;
+                case "action":
+                    action = t; card = null;
+                    var k = (long?)e["k"] ?? 0;
+                    var sent = clicks.Where(c => c <= k).DefaultIfEmpty(-1).Max();
+                    if (sent >= 0) Console.WriteLine($"[latency] click sent to the app's handler {k - sent} ms");
+                    break;
                 case "card" when action != null && card == null: card = t; break;
                 case "drawn" when action != null && card != null:
                     Console.WriteLine($"[latency] click to card {card - action} ms, to drawn {t - action} ms (drawing {e["ms"]} ms)");
+                    break;
+                case "frames" when action != null:
+                    Console.WriteLine($"[latency] first frame {e["first"]} ms after drawn; {e["count"]} frames in 0.6 s, longest gap {e["gap"]} ms");
                     action = null; break;
             }
         }
@@ -248,6 +259,7 @@ static class Program
         MoveTo(x, y);
         Thread.Sleep(60);
         var click = new[] { Mouse(MOUSEEVENTF_LEFTDOWN), Mouse(MOUSEEVENTF_LEFTUP) };
+        clicks.Add(Environment.TickCount64);
         SendInput(2, click, Marshal.SizeOf<INPUT>());
     }
 
@@ -295,6 +307,7 @@ static class Program
         GetWindowRect(hwnd, out var r);
         SetCursorPos((r.Left + r.Right) / 2, (r.Top + r.Bottom) / 2);
         var click = new[] { Mouse(MOUSEEVENTF_LEFTDOWN), Mouse(MOUSEEVENTF_LEFTUP) };
+        clicks.Add(Environment.TickCount64);
         SendInput(2, click, Marshal.SizeOf<INPUT>());
         Thread.Sleep(500);
     }
