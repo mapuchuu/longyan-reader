@@ -625,9 +625,6 @@ jobs:
   ui-arm64:
     needs: app-arm64
     runs-on: windows-11-arm
-    # The pointing and shortcut checks fail on this desktop for the x64 build too
-    # (ui-x64-on-arm64), so they say nothing about ARM64 yet. Doesn't fail the workflow.
-    continue-on-error: true
     defaults:
       run:
         shell: bash
@@ -738,11 +735,10 @@ jobs:
 
   # The x64 app on the same Windows 11 ARM runner, under emulation (the model counts as too
   # slow there, so cards come in dictionary order): tells failures of this desktop (Windows 11,
-  # not Server) apart from failures of the ARM64 build. Doesn't fail the workflow.
+  # not Server) apart from failures of the ARM64 build.
   ui-x64-on-arm64:
     needs: app
     runs-on: windows-11-arm
-    continue-on-error: true
     defaults:
       run:
         shell: bash
