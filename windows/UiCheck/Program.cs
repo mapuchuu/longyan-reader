@@ -92,6 +92,12 @@ static class Program
             Burst("2-open", 800);
             Thread.Sleep(1500);
             Shot("2-opened");
+            // The opened card scrolls: two notches down glide, then back up.
+            MoveTo(row.Left + 10, row.Top + row.Height / 2);
+            Wheel(-240);
+            Burst("2-scroll", 600);
+            Wheel(240);
+            Thread.Sleep(600);
             Click(row.Left + 10, row.Top + row.Height / 2);
             Burst("2-shut", 800);
         }
@@ -326,10 +332,12 @@ static class Program
         u = new InputUnion { ki = new KEYBDINPUT { wVk = (ushort)vk, dwFlags = (up ? 2u : 0u) | (Extended(vk) ? 1u : 0u) } },
     };
     static bool Extended(int vk) => vk is VK_HOME or VK_END or VK_RIGHT or VK_DOWN;
-    static INPUT Mouse(uint flags) => new() { type = 0, u = new InputUnion { mi = new MOUSEINPUT { dwFlags = flags } } };
+    static INPUT Mouse(uint flags, int data = 0) => new() { type = 0, u = new InputUnion { mi = new MOUSEINPUT { dwFlags = flags, mouseData = unchecked((uint)data) } } };
+
+    static void Wheel(int delta) => SendInput(1, new[] { Mouse(MOUSEEVENTF_WHEEL, delta) }, Marshal.SizeOf<INPUT>());
 
     const int VK_SHIFT = 0x10, VK_CONTROL = 0x11, VK_MENU = 0x12, VK_ESCAPE = 0x1B, VK_END = 0x23, VK_HOME = 0x24, VK_RIGHT = 0x27, VK_DOWN = 0x28;
-    const uint MOUSEEVENTF_LEFTDOWN = 2, MOUSEEVENTF_LEFTUP = 4;
+    const uint MOUSEEVENTF_LEFTDOWN = 2, MOUSEEVENTF_LEFTUP = 4, MOUSEEVENTF_WHEEL = 0x0800;
 
     [StructLayout(LayoutKind.Sequential)] struct INPUT { public uint type; public InputUnion u; }
     [StructLayout(LayoutKind.Explicit)] struct InputUnion { [FieldOffset(0)] public MOUSEINPUT mi; [FieldOffset(0)] public KEYBDINPUT ki; }

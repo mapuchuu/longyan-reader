@@ -635,9 +635,42 @@ sealed class CardWindow : Window, ICardActions
     /// Ctrl and the wheel change the text size, as a pinch does on the Mac.
     void Wheel(object sender, MouseWheelEventArgs e)
     {
-        if ((Keyboard.Modifiers & ModifierKeys.Control) == 0 || isHint) return;
-        SetZoom(zoom * (e.Delta > 0 ? 1.1 : 1 / 1.1));
+        if (isHint) return;
+        if ((Keyboard.Modifiers & ModifierKeys.Control) != 0)
+        {
+            SetZoom(zoom * (e.Delta > 0 ? 1.1 : 1 / 1.1));
+            e.Handled = true;
+            return;
+        }
+        if (scroller.ScrollableHeight <= 0) return;
+        // 40 a notch (a touchpad's smaller steps in proportion), eased rather than jumped, as
+        // the Mac's scrolling glides.
+        Glide(-e.Delta / 120.0 * 40 * zoom);
         e.Handled = true;
+    }
+
+    double? glideTo;
+    long glideLast;
+
+    void Glide(double by)
+    {
+        var to = Math.Clamp((glideTo ?? scroller.VerticalOffset) + by, 0, scroller.ScrollableHeight);
+        if (Motion.Reduced) { glideTo = null; scroller.ScrollToVerticalOffset(to); return; }
+        if (glideTo == null) { glideLast = System.Diagnostics.Stopwatch.GetTimestamp(); CompositionTarget.Rendering += GlideStep; }
+        glideTo = to;
+    }
+
+    void GlideStep(object? sender, EventArgs e)
+    {
+        if (glideTo is not double to) { CompositionTarget.Rendering -= GlideStep; return; }
+        var now = System.Diagnostics.Stopwatch.GetTimestamp();
+        var dt = (now - glideLast) / (double)System.Diagnostics.Stopwatch.Frequency;
+        glideLast = now;
+        to = Math.Min(to, scroller.ScrollableHeight);
+        var at = scroller.VerticalOffset;
+        var next = at + (to - at) * (1 - Math.Exp(-Math.Min(dt, 0.05) / 0.06));   // about 0.2 s to settle
+        if (Math.Abs(to - next) < 0.5) { next = to; glideTo = null; CompositionTarget.Rendering -= GlideStep; }
+        scroller.ScrollToVerticalOffset(next);
     }
 
     /// A new text size: saved widths scale with it, so cards keep their shape.
