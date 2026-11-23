@@ -189,7 +189,8 @@ static partial class Program
             }
             if (modern != IntPtr.Zero)
             {
-                SetWindowPos(modern, IntPtr.Zero, (int)(620 * s), (int)(30 * s), (int)(560 * s), (int)(300 * s), 0x4);
+                // Above Edge, which covers its left part at 175% (a click meant for it went to Edge).
+                SetWindowPos(modern, IntPtr.Zero /* HWND_TOP */, (int)(620 * s), (int)(30 * s), (int)(560 * s), (int)(300 * s), 0);
                 Thread.Sleep(800);
                 Focus(modern);
                 Cases($"eye-{percent}-notepad11", modern, s, cases, edge: false);
