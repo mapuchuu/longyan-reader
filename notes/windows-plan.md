@@ -102,7 +102,7 @@ Streaming from Ollama uses `URLSession.bytes`, which only Apple's Foundation has
 - Reading the selection: UI Automation (text pattern and selection bounds) instead of Accessibility. Coverage will vary by app.
 - The card: still missing Add to Anki, History, pointing at a word without selecting. Listen uses a Windows Chinese voice when one is installed.
 - The eye (Chip.cs) is in: Raw Input watches the mouse (no hook), UI Automation reads the selection off the app's thread with a 0.5 s limit, and ly_prepare starts the card's work 0.3 s after the eye appears (cancelled if it goes unclicked). Apps that don't say what's selected get it on a double-click only, in elements that may hold text, never in terminals, dialogs, Excel or full screen. It matches the Mac's drawing (gallery eye.png). CI checks it in Notepad. Needs a real PC: mixed-DPI screens, Chrome and Electron on first use, WeChat, touch and pen.
-- Updates: WinSparkle reads the same appcast format.
+- Updates: WinSparkle 0.9.4, with its own feed (appcast-windows.xml on the windows-feed pre-release) and ed25519 signatures. Built and checked in CI (windows.yml's updates job); still needs the real key (scripts/windows-update-key.sh) and the installer. DEVELOPMENT.md has the details.
 - Signing: a Windows code-signing certificate, or SmartScreen warns on every download.
 
 ## Checked on Windows and Linux

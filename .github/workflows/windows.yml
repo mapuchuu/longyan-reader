@@ -18,6 +18,9 @@ on:
       - windows/**
       - scripts/bridge-check*
       - scripts/stage-windows-resources.sh
+      - scripts/fetch-winsparkle.sh
+      - scripts/windows-feed.py
+      - scripts/windows-release-feed.sh
       - .github/workflows/windows.yml
   workflow_dispatch:
 
@@ -40,6 +43,9 @@ jobs:
     steps:
       - run: git config --global core.autocrlf false
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The build number updates compare is the commit count, which needs the whole history.
+          fetch-depth: 0
       - uses: compnerd/gha-setup-swift@9ff1ee4c44888c5817fc14d1b257ac8cabb4935f # v0.5.1
         with:
           swift-version: swift-6.3.3-release
@@ -100,6 +106,7 @@ jobs:
           cp LICENSE "$out/LICENSE.txt"
           mkdir -p "$out/Licenses"
           cp Resources/licenses/llama.cpp-LICENSE.txt "$out/Licenses/llama.cpp.txt"
+          cp Resources/licenses/WinSparkle-LICENSE.txt "$out/Licenses/WinSparkle.txt"
           { sed -n '/^#/p;/^[^#]/q' Resources/cedict_ts.u8; } > "$out/Licenses/CC-CEDICT.txt"
           du -sh "$out"
       - name: CPU kernels shipped
@@ -118,8 +125,11 @@ jobs:
       - name: Build the app
         run: |
           set -euo pipefail
-          dotnet publish windows/LongyanReader -c Release -o publish
+          # WinSparkle.dll, the updater (Updates.cs).
+          scripts/fetch-winsparkle.sh
+          dotnet publish windows/LongyanReader -c Release -o publish -p:BuildNumber=$(git rev-list --count HEAD)
           cp -r publish/* dist/LongyanReader/
+          ls dist/LongyanReader/WinSparkle.dll
           ls dist/LongyanReader | head -50
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -232,3 +242,77 @@ jobs:
           grep -q "ggml-cpu-sse42.dll" sse42-log.txt
           grep -q "Paris" sse42.txt
 
+  # An update from a local feed: the release step (scripts/windows-release-feed.sh) writes the
+  # feed with a test installer, signed with a key made for this run only, and the app built
+  # with that key finds the update, downloads it, refuses a tampered copy and runs the real one.
+  updates:
+    needs: app
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    env:
+      PYTHON: python
+    steps:
+      - run: git config --global core.autocrlf false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: LongyanReader-windows
+          path: dist
+      - name: The app with a test key, and a test installer
+        run: |
+          set -euo pipefail
+          scripts/fetch-winsparkle.sh
+          # A throwaway key, never stored: the real one is the WINDOWS_UPDATE_KEY secret.
+          key=$(python -c "import base64, secrets; print(base64.b64encode(secrets.token_bytes(32)).decode())")
+          echo "::add-mask::$key"
+          echo "WINDOWS_UPDATE_KEY=$key" >> "$GITHUB_ENV"
+          pub=$(WINDOWS_UPDATE_KEY=$key python scripts/windows-feed.py public-key)
+          echo "UPDATE_PUBLIC_KEY=$pub" >> "$GITHUB_ENV"
+          build=$(git rev-list --count HEAD)
+          echo "BUILD=$build" >> "$GITHUB_ENV"
+          dotnet publish windows/LongyanReader -c Release -o publish -p:UpdateKey=$pub -p:BuildNumber=$build -p:Version=1.0.0
+          cp -r publish/* dist/LongyanReader/
+          # The test installer: UpdateCheck itself, which only notes that it ran. Not code-signed.
+          dotnet publish windows/UpdateCheck -c Release -o updatecheck
+          mkdir feed
+          cp updatecheck/UpdateCheck.exe feed/LongyanReader-Setup-9.9-x64.exe
+          cp updatecheck/UpdateCheck.exe feed/LongyanReader-Setup-9.9-arm64.exe
+          cp updatecheck/UpdateCheck.exe feed/LongyanReader-Setup-9.10-arm64.exe
+      - name: The release step, on a local feed
+        run: |
+          set -euo pipefail
+          printf 'A test update.\n\n**New**\n\n- Updates install from the tray menu.\n' > notes.md
+          # 9.9 for both arches, then a newer 9.10 for arm64 only, which the x64 app must pass over.
+          INSTALLER_ARGS=/test scripts/windows-release-feed.sh feed/appcast-windows.xml 9.9 $((BUILD + 1)) notes.md http://127.0.0.1:8743/ feed
+          scripts/windows-release-feed.sh feed/appcast-windows.xml 9.10 $((BUILD + 2)) notes.md http://127.0.0.1:8743/ feed
+          cat feed/appcast-windows.xml
+          [ "$(grep -c 'sparkle:edSignature=' feed/appcast-windows.xml)" = 3 ]
+          # Without the key the step still writes the feed, unsigned, and fails when a signature is required.
+          WINDOWS_UPDATE_KEY= scripts/windows-release-feed.sh unsigned.xml 9.9 $((BUILD + 1)) notes.md http://127.0.0.1:8743/ feed
+          ! grep -q edSignature unsigned.xml
+          ! WINDOWS_UPDATE_KEY= REQUIRE_SIGNATURE=1 scripts/windows-release-feed.sh unsigned2.xml 9.9 $((BUILD + 1)) notes.md http://127.0.0.1:8743/ feed
+      - name: Update the app
+        run: |
+          set -euo pipefail
+          settings="$(cygpath -u "$LOCALAPPDATA")/LongyanReader"
+          mkdir -p "$settings"
+          printf '{"welcomeShown": true, "updateFeed": "http://127.0.0.1:8743/appcast-windows.xml"}' > "$settings/settings.json"
+          python -u -m http.server 8743 --bind 127.0.0.1 --directory feed 2> server.log &
+          server=$!
+          trap 'kill $server || true' EXIT
+          sleep 2
+          updatecheck/UpdateCheck.exe "$(cygpath -w "$PWD/dist/LongyanReader/LongyanReader.exe")" "$(cygpath -w "$PWD/feed")" \
+            "$(cygpath -w "$PWD/server.log")" update-out 9.9
+          echo "== requests"; cat server.log
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: update-check
+          path: |
+            update-out
+            server.log
+            feed/appcast-windows.xml

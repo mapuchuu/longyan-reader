@@ -178,6 +178,7 @@ sealed class SettingsPage
     readonly ContentControl hiddenSlot = new() { Focusable = false };
     readonly ModelCard model;
     readonly ToggleButton eye;
+    ToggleButton? updates;
     ShortcutPicker? picker;
     string shownEye = "";
 
@@ -231,6 +232,7 @@ sealed class SettingsPage
         }
         Root.Children.Add(f.CardFrame(f.Row("\uE7E8", "Open at login",
             available ? "Starts Longyan Reader when you sign in to Windows." : "Extract the zip to a folder first, then open Longyan Reader from there.", login)));
+        if (preview || Updates.Available) Root.Children.Add(UpdatesCard());
 
         Root.Children.Add(f.Heading("About"));
         Root.Children.Add(About());
@@ -258,6 +260,25 @@ sealed class SettingsPage
     {
         RefreshEye();
         RefreshModel();
+        // WinSparkle's own question (on the second launch) also turns checking on or off.
+        if (updates != null && !preview && updates.IsChecked != Updates.Automatic) updates.IsChecked = Updates.Automatic;
+    }
+
+    /// Updates: automatic checks (once a day, as on the Mac) and Check now.
+    Border UpdatesCard()
+    {
+        updates = f.Switch("Check for updates automatically", "AutoUpdates", preview || Updates.Automatic);
+        if (!preview)
+        {
+            updates.Checked += (_, _) => { if (!Updates.Automatic) Updates.Automatic = true; };
+            updates.Unchecked += (_, _) => { if (Updates.Automatic) Updates.Automatic = false; };
+        }
+        var stack = new StackPanel();
+        stack.Children.Add(Padded(f.Row("\uE895", "Check for updates automatically", "Looks for a new version once a day.", updates)));
+        stack.Children.Add(f.Line());
+        var now = f.PushButton("Check now", preview ? () => { } : Updates.CheckNow, automationId: "CheckForUpdates");
+        stack.Children.Add(Padded(f.Row(null, "Check for updates", null, now, minHeight: 32), indent: true, tight: true));
+        return f.CardFrame(stack, new Thickness(0));
     }
 
     public void RefreshModel() => model.Show(fixedModel ?? ModelView.Now());

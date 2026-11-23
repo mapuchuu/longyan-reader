@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Tries an update from a local feed (.github/workflows/windows.yml, the updates job). A copy
+       named LongyanReader-Setup-*.exe is the test installer. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <!-- UI Automation's client comes with the WPF framework. -->
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Longyan</RootNamespace>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+  </PropertyGroup>
+</Project>

@@ -151,6 +151,7 @@ static class Program
         MakeTray();
         MenuChanged();
         LoginItem.Refresh();
+        Updates.Start();
         Shortcut.Start(LookUp, (text, pick) => { Balloon(text, pick ? ShortcutWindow.Open : null); if (pick) ShortcutWindow.Open(); });
         Chip.Clicked = EyeClicked;
         Chip.Start();
@@ -205,7 +206,7 @@ static class Program
     }
 
     /// The icon's menu, kept short as Windows tray menus are: how to look up, the reading
-    /// model when it needs something, then Settings, Report a problem and Exit. A double-click
+    /// model when it needs something, then Settings, Check for Updates, Report a problem and Exit. A double-click
     /// on the icon opens Settings.
     static void MakeTray()
     {
@@ -223,6 +224,7 @@ static class Program
         var settings = new Forms.ToolStripMenuItem("Settings…", null, (_, _) => SettingsWindow.Open());
         settings.Font = new System.Drawing.Font(settings.Font, System.Drawing.FontStyle.Bold);
         menu.Items.Add(settings);
+        if (Updates.Available) menu.Items.Add("Check for updates…", null, (_, _) => Updates.CheckNow());
         menu.Items.Add("Report a problem", null, (_, _) => Report());
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add("Exit", null, (_, _) => Exit("menu", TimeSpan.FromSeconds(4)));
@@ -249,6 +251,7 @@ static class Program
         Try(Core.Shared.Stop);
         Try(ModelDownload.Stop);
         Try(Speech.Stop);
+        Try(Updates.Stop);
         // The cards' windows, and with them their mouse and keyboard hooks.
         foreach (var w in Application.Current.Windows.Cast<Window>().ToList()) Try(w.Close);
         var stopped = clock.Elapsed.TotalMilliseconds;
@@ -260,6 +263,9 @@ static class Program
         if (!freed) System.Diagnostics.Process.GetCurrentProcess().Kill();
         Application.Current.Shutdown();
     }
+
+    /// WinSparkle has started the new version's installer, which replaces this copy's files.
+    public static void ExitForUpdate() => Exit("update", TimeSpan.FromSeconds(4));
 
     static void Try(Action step)
     {

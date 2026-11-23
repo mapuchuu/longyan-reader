@@ -186,6 +186,29 @@ Sparkle's tools (2.10.1) are in the same folder. `release.sh` signs the feed wit
 
 The binary's developer commands (`--notes-submit` and the other notes jobs) call the Anthropic API with a key from the environment or the `longyan-anthropic` keychain item. They only run from a terminal; the app itself never goes online except for the model download and update checks. (It also talks to Ollama and AnkiConnect, but only on this Mac.)
 
+### Windows updates
+
+The Windows app updates through [WinSparkle](https://winsparkle.org) 0.9.4 (MIT), which reads the same appcast format as Sparkle. `scripts/fetch-winsparkle.sh` puts its `WinSparkle.dll` for x64 and ARM64 in `Vendor/winsparkle/`, and the csproj copies the one for the build's arch. `windows/LongyanReader/Updates.cs` starts it. As on the Mac, it does nothing on the first launch, asks on the second whether to check automatically, then checks once a day. The tray has Check for updates…, and Settings has the switch and Check now.
+
+Windows has its own feed: `appcast-windows.xml` on the `windows-feed` pre-release (`https://github.com/mapuchuu/longyan-reader/releases/download/windows-feed/appcast-windows.xml`). It can't be the Mac's feed: Windows releases aren't marked latest, `generate_appcast` rewrites the Mac's feed from scratch at every release, and WinSparkle would offer the Mac's zip, since an item without `sparkle:os` counts as any OS. Each Windows item has one enclosure per arch (`sparkle:os` `windows-x64` and `windows-arm64`), and WinSparkle takes the one for its own arch. The Mac's Sparkle never reads this feed (and it skips items whose `sparkle:os` isn't macOS anyway).
+
+Every installer is signed with ed25519, as the Mac's zips are, and the app runs only one whose signature matches the public key in `windows/update-key.txt`. Without that file (or a build number, which `windows.yml` passes as `-p:BuildNumber=$(git rev-list --count HEAD)`), the build has no updates: WinSparkle would run unsigned installers. To make the key, once, on the Mac with the signing folder:
+
+```bash
+scripts/windows-update-key.sh
+```
+
+It writes the private half to `~/Library/Application Support/LongyanReader-signing/windows-update-key.txt`, sets the repo's `WINDOWS_UPDATE_KEY` secret and writes the public half to `windows/update-key.txt`. Commit that file and back up the private one with the others: if it's lost, installed copies can never be updated.
+
+To release:
+
+1. Build both installers at one commit with the build number, and attach `LongyanReader-Setup-<version>-x64.exe` and `LongyanReader-Setup-<version>-arm64.exe` to a draft release tagged `windows-v<version>`, with what's new as its notes (shown in the update window).
+2. Run the `windows-release` workflow with the version. It signs the installers, adds the version to the top of the live feed and attaches the result to the draft. Look at it.
+3. Publish the release, not as latest: `gh release edit windows-v<version> --draft=false --latest=false`. The Mac's feed is the latest release's.
+4. Run `windows-release` again with publish_feed. It replaces the live feed, which is what ships the update, and checks the live copy.
+
+`windows.yml`'s updates job runs the same step on a local feed with a test installer and a key made for that run, then drives the app: the automatic check offers the x64 build and passes over a newer arm64-only one, a tampered installer is refused, and Install update runs the real one and the app exits for it. To try one by hand, serve a feed from `127.0.0.1` and put `"updateFeed": "http://127.0.0.1:8743/appcast-windows.xml"` in `%LOCALAPPDATA%\LongyanReader\settings.json` (the Windows `SUFeedURL`); remove it afterwards. WinSparkle keeps its own settings in `HKCU\Software\LongyanReader\Updates`.
+
 ## Website
 
 [longyan.app](https://longyan.app) is the static page in `site/`, deployed to GitHub Pages by `.github/workflows/pages.yml` on every push to `main` that changes it. The domain's DNS is on Cloudflare, set to DNS only (not proxied) so GitHub can renew the HTTPS certificate. `notes/site-design.md` has the design decisions; it lives outside `site/` so it isn't published.

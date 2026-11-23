@@ -24,6 +24,24 @@
     <TieredPGO>true</TieredPGO>
     <ApplicationIcon>LongyanReader.ico</ApplicationIcon>
   </PropertyGroup>
+  <!-- Updates (Updates.cs): the feed, the public half of the update key and the build number
+       WinSparkle compares, the commit count (windows.yml passes -p:BuildNumber). Without a key
+       or a build number the app has no updates. scripts/windows-update-key.sh writes the key. -->
+  <PropertyGroup>
+    <UpdateFeed Condition="'$(UpdateFeed)' == ''">https://github.com/mapuchuu/longyan-reader/releases/download/windows-feed/appcast-windows.xml</UpdateFeed>
+    <UpdateKey Condition="'$(UpdateKey)' == '' And Exists('..\update-key.txt')">$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)..\update-key.txt').Trim())</UpdateKey>
+    <BuildNumber Condition="'$(BuildNumber)' == ''">0</BuildNumber>
+    <!-- WinSparkle.dll for this build's arch, from scripts/fetch-winsparkle.sh. -->
+    <WinSparkleArch Condition="'$(RuntimeIdentifier)' == 'win-arm64'">ARM64</WinSparkleArch>
+    <WinSparkleArch Condition="'$(WinSparkleArch)' == ''">x64</WinSparkleArch>
+    <WinSparkleDll>$(MSBuildThisFileDirectory)..\..\Vendor\winsparkle\$(WinSparkleArch)\WinSparkle.dll</WinSparkleDll>
+  </PropertyGroup>
+  <ItemGroup>
+    <AssemblyMetadata Include="UpdateFeed" Value="$(UpdateFeed)" />
+    <AssemblyMetadata Include="UpdateKey" Value="$(UpdateKey)" />
+    <AssemblyMetadata Include="BuildNumber" Value="$(BuildNumber)" />
+    <None Include="$(WinSparkleDll)" Link="WinSparkle.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Condition="Exists('$(WinSparkleDll)')" />
+  </ItemGroup>
   <ItemGroup>
     <None Include="LongyanReader.ico" CopyToOutputDirectory="PreserveNewest" />
     <EmbeddedResource Include="..\..\Resources\longyan-mark.png" LogicalName="longyan-mark.png" />
