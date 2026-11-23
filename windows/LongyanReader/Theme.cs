@@ -91,7 +91,10 @@ static class Theme
     }
 
     /// Whether Windows is set to dark for apps now (CardWindow re-reads it when that changes).
-    public static bool SystemDark() => IsDark();
+    /// Dev only: --show --appearance light|dark holds the cards in one, whatever Windows is set to.
+    public static bool? Forced;
+
+    public static bool SystemDark() => Forced ?? IsDark();
 
     static bool IsDark()
     {

@@ -31,6 +31,8 @@ static class Bridge
     [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)]
     public static extern long ly_open_part_of(long id);
     [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)]
+    public static extern long ly_fixture(byte[] json);
+    [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)]
     public static extern void ly_close(long id);
     [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)]
     public static extern void ly_warm_up();

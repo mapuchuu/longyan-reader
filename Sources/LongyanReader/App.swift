@@ -9,6 +9,11 @@ enum Main {
     static func main() {
         AppleServices.install()
         let args = CommandLine.arguments
+        // Dev only: a live card from a saved card JSON, for filming (CardShow.swift).
+        if args.count > 1, args[1] == "--show" {
+            MainActor.assumeIsolated { CardShow.run(args) }
+            return
+        }
         if args.count > 1, args[1].hasPrefix("--") {
             CLI.run(args)
             return

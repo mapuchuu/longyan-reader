@@ -24,7 +24,8 @@ struct LookupView: View {
             }
             if let note {
                 NuanceView(note: note)
-                    .transition(.opacity.combined(with: .offset(y: -4 * scale)))
+                    .scriptTarget("note") {}
+                    .transition(.opacity.combined(with: .offset(y: -4 * scale)).traced("note-box", slide: -4 * scale))
                     .id(note.note)
             }
             senses
@@ -91,7 +92,8 @@ struct LookupView: View {
 
     @ViewBuilder private var partOf: some View {
         if let part = state.partOf {
-            Button { state.openPartOf() } label: {
+            let open = { state.openPartOf() }
+            Button(action: open) {
                 HStack(alignment: .firstTextBaseline, spacing: Space.xs * scale) {
                     Text("Part of").foregroundStyle(.secondary)
                     Text(part.word).cardFont(TextSize.body, .medium)
@@ -104,6 +106,7 @@ struct LookupView: View {
                 .cardFont(TextSize.callout)
             }
             .buttonStyle(CardRowStyle(bleed: Space.xs, vertical: Space.xxs))
+            .scriptTarget("partof", action: open)
             .fixedSize()
             .help("Look up \(part.word)")
         }
@@ -111,14 +114,16 @@ struct LookupView: View {
 
     @ViewBuilder private var status: some View {
         if state.userPicked, let suggested = state.suggested, suggested.senseNumber != state.choice?.senseNumber {
-            Button { withAnimation(cardMotion) { state.useSuggested() } } label: {
+            let back = { withAnimation(cardMotion) { state.useSuggested() } }
+            Button(action: back) {
                 Label("Back to “\(suggested.meaningHere)”", systemImage: "arrow.uturn.backward")
                     .cardFont(TextSize.callout)
                     .lineLimit(1)
             }
             .buttonStyle(.plain)
+            .scriptTarget("back", action: back)
             .foregroundStyle(Color.accentColor)
-            .transition(.opacity)
+            .transition(AnyTransition.opacity.traced("back-to"))
         }
         switch state.phase {
         case .choosing:
@@ -157,7 +162,8 @@ struct LookupView: View {
                     if headed && SenseLine.startsReading(shown, at: position) {
                         ReadingHeader(pinyin: sense.pinyin, first: position == 0)
                     }
-                    Button { withAnimation(cardMotion) { state.pick(i) } } label: {
+                    let pick = { withAnimation(cardMotion) { state.pick(i) } }
+                    Button(action: pick) {
                         HStack(alignment: .center, spacing: Space.s * scale) {
                             SenseLine(number: i + 1, total: state.senses.count,
                                       gloss: listed?.contains(sense) == true ? Gloss.short(sense.gloss) : Gloss.listed(sense.gloss),
@@ -170,22 +176,26 @@ struct LookupView: View {
                         }
                     }
                     .buttonStyle(CardRowStyle())
+                    .scriptTarget("row\(position + 1)", action: pick)
                     .help(hasNote ? "Use this meaning · has a note" : "Use this meaning")
                     .accessibilityAddTraits(chosen ? .isSelected : [])
                 }
                 if state.senses.count > collapsed.count {
-                    Button {
+                    let toggle = {
                         withAnimation(cardMotion) { state.showAllSenses.toggle() }
                         state.onLayoutChange()
-                    } label: {
+                    }
+                    Button(action: toggle) {
                         HStack(spacing: Space.xs * scale) {
                             Text(state.showAllSenses ? "Show Fewer" : "Show All \(state.senses.count)")
                             Image(systemName: "chevron.down").cardFont(TextSize.footnote, .semibold)
                                 .rotationEffect(.degrees(state.showAllSenses ? 180 : 0))
+                                .traceProbe("showall-chevron", "rotation", state.showAllSenses ? 180 : 0)
                         }
                         .cardFont(TextSize.callout, .medium).foregroundStyle(Color.accentColor)
                     }
                     .buttonStyle(CardRowStyle())
+                    .scriptTarget("showall", action: toggle)
                 }
             }
             if !state.context.alternatives.isEmpty {
@@ -263,6 +273,8 @@ final class FirstMouseHostingView<Content: View>: NSHostingView<Content> {
 @MainActor
 final class PopupController {
     private var panel: PopupPanel?
+    /// The card's window, for --show --trace (CardTrace).
+    var window: NSWindow? { panel }
     private var hosting: NSView?
     private var layout: CardLayout?
     private var anchor: NSRect = .zero        // AppKit coordinates
@@ -379,12 +391,10 @@ final class PopupController {
         // for other apps, so clicks and drags inside the card are unaffected.
         if let m = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .scrollWheel],
                                                      handler: { [weak self] e in
-            guard let self, !self.ignoresOutsideInput, !self.pinned else { return }
-            if e.type == .scrollWheel { self.scrolledOutside() } else { self.close() }
+            if e.type == .scrollWheel { self?.outside(scroll: true) } else { self?.outside() }
         }) { monitors.append(m) }
         if let m = NSEvent.addGlobalMonitorForEvents(matching: [.keyDown], handler: { [weak self] e in
-            guard let self, !self.ignoresOutsideInput, !self.pinned else { return }
-            if e.keyCode == 53 { self.close() }
+            if e.keyCode == 53 { self?.outside() }
         }) { monitors.append(m) }
         if let m = NSEvent.addLocalMonitorForEvents(matching: [.keyDown], handler: { [weak self] e in
             // Only Esc meant for the card: in History, a save panel or onboarding it's theirs.
@@ -392,6 +402,16 @@ final class PopupController {
             self.close(); return nil
         }) { monitors.append(m) }
     }
+
+    /// A click, scroll or Esc in another app (or one a script makes, CardScript): closes the
+    /// card unless it's pinned.
+    func outside(scroll: Bool = false) {
+        guard !ignoresOutsideInput, !pinned else { return }
+        if scroll { scrolledOutside() } else { close() }
+    }
+
+    /// Called as each card starts to appear (for --script, CardShow.swift).
+    var onReveal: (() -> Void)?
 
     /// The first measurement: the side can be settled now that the height is known, and
     /// the card shows a frame later, once that has been drawn.
@@ -437,6 +457,7 @@ final class PopupController {
                 panel.animator().alphaValue = 1
             }, completionHandler: { old.orderOut(nil) })
             announce(layout)
+            onReveal?()
             return
         }
         NSAnimationContext.runAnimationGroup { ctx in
@@ -445,6 +466,7 @@ final class PopupController {
         }
         withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) { layout.appeared = true }
         announce(layout)
+        onReveal?()
     }
 
     /// The card never takes focus (it would pull it from what you're reading), so VoiceOver
