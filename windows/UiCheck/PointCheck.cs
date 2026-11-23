@@ -62,8 +62,8 @@ static class PointCheck
         var pointed = Last(log, before, "point");
         var found = (string?)pointed?["found"];
         var index = (int?)pointed?["at"];
-        var word = (string?)card?["word"];
-        Console.WriteLine($"[{name}] pointer on {at}: point {found ?? "not tried"} at {index}, read by {how ?? "nothing logged"}, card for {word ?? "nothing"} ({(string?)card?["kind"] ?? "no card"})");
+        var word = (string?)card?["card"]?["word"];
+        Console.WriteLine($"[{name}] pointer on {at}: point {found ?? "not tried"} at {index}, read by {how ?? "nothing logged"}, card for {word ?? "nothing"} ({(string?)card?["card"]?["kind"] ?? "no card"})");
         if (index != offset) failures.Add($"{name}: the character under the pointer is at {index}, not {offset}");
         if (how != "point") failures.Add($"{name}: read by {how ?? "nothing logged"}, not by pointing");
         if (word != expect) failures.Add($"{name}: the card is for {word ?? "nothing"}, not {expect}");
