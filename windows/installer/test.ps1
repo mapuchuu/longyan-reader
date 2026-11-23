@@ -15,7 +15,11 @@ $entry = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{E0CE80DD-FD
 $runKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
 $appLog = "$env:LOCALAPPDATA\LongyanReader\logs\longyan.log"
 
-function Fail([string] $why) { Write-Host "FAIL: $why"; exit 1 }
+function Fail([string] $why) {
+    Write-Host "FAIL: $why"
+    Copy-Item $appLog $Logs -ErrorAction SilentlyContinue
+    exit 1
+}
 function Ok([string] $what) { Write-Host "ok: $what" }
 function Running { @(Get-Process LongyanReader -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$app\*" }) }
 function Wait([scriptblock] $done, [int] $seconds, [string] $what) {
@@ -32,7 +36,9 @@ function Run([string] $file, [string] $log) {
     $null = $p.Handle
     $clock = [Diagnostics.Stopwatch]::StartNew()
     $p.WaitForExit()
-    if ($p.ExitCode -ne 0) { Fail "$file exited with $($p.ExitCode)" }
+    $code = $p.ExitCode
+    $p.Dispose()
+    if ($code -ne 0) { Fail "$file exited with $code" }
     Ok ("{0} in {1:0.0} s" -f (Split-Path $file -Leaf), $clock.Elapsed.TotalSeconds)
 }
 function AppLog { if (Test-Path $appLog) { Get-Content $appLog -Raw } else { '' } }
@@ -78,7 +84,14 @@ if (-not (Running)) { Fail 'the app exited after the upgrade' }
 Set-ItemProperty $runKey -Name 'Longyan Reader' -Value "`"$exe`""
 $uninstaller = ((Get-ItemProperty $entry).UninstallString).Trim('"')
 Run $uninstaller uninstall.log
-Wait { -not (Test-Path $app) } 60 'the app folder is gone'
+$until = (Get-Date).AddSeconds(60)
+while ((Test-Path $app) -and (Get-Date) -lt $until) { Start-Sleep -Milliseconds 500 }
+if (Test-Path $app) {
+    Get-ChildItem $app -Recurse -Force | ForEach-Object FullName
+    Get-Process | Where-Object { $_.Path -like "$app\*" -or $_.Path -like '*_unins*' } | Format-Table Id, Path
+    Fail 'the app folder is still there'
+}
+Ok 'the app folder is gone'
 Wait { -not (Test-Path $entry) } 30 'the Settings > Apps entry is gone'
 if (Running) { Fail 'the app is still running' }
 if (Test-Path $lnk) { Fail 'the Start menu shortcut is still there' }
