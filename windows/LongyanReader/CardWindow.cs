@@ -419,7 +419,7 @@ sealed class CardWindow : Window, ICardActions
         }
         var from = surface.ActualHeight > 0 ? surface.ActualHeight : shownHeight;
         if (Math.Abs(target - from) < 0.5) { SetFrame(Math.Max(target, from)); return; }
-        if (target > from) SetFrame(target);
+        if (target > held) SetFrame(target);
         foreach (var l in layers)
         {
             var a = new DoubleAnimation(from, target, Motion.Reduced ? new Duration(TimeSpan.FromSeconds(0.15)) : Motion.CardDuration)
@@ -429,12 +429,21 @@ sealed class CardWindow : Window, ICardActions
             l.BeginAnimation(HeightProperty, a);
         }
         shownHeight = target;
-        if (target < from) shrink = After(0.32, () => SetFrame(target));
+        // The window gives back spare room once the motion is over (resizing it costs a frame).
+        if (target < from && held > target + 2 * Spare) shrink = After(0.6, () => SetFrame(target, giveBack: true));
     }
 
+    /// The height the window holds for the card, which can be more than the card: transparent
+    /// pixels let clicks through, and growing within it needs no resize of the window (WPF
+    /// redraws a transparent window's whole surface when its size changes, 40 ms or more).
+    double held;
+    const double Spare = 160;
+
     /// Sizes the window for a card `height` tall and places it by the selection, in one move.
-    void SetFrame(double height)
+    void SetFrame(double height, bool giveBack = false)
     {
+        if (height > held) held = Math.Min(height + Spare, Math.Max(height, MaxHeight()));
+        else if (giveBack) held = height + Spare;
         Place(height);
         card.VerticalAlignment = below ? VerticalAlignment.Top : VerticalAlignment.Bottom;
         foreach (var l in layers) l.VerticalAlignment = card.VerticalAlignment;
@@ -528,8 +537,11 @@ sealed class CardWindow : Window, ICardActions
         var top = below ? edge : edge - h;
         top = Math.Max(area.Top + Inset * s, Math.Min(top, area.Bottom - Inset * s - h));
         var m = Frame * s;
-        SetWindowPos(hwnd, IntPtr.Zero, (int)Math.Round(left - m), (int)Math.Round(top - m),
-            (int)Math.Round(w + 2 * m), (int)Math.Round(h + 2 * m), SWP_NOACTIVATE | SWP_NOZORDER);
+        // The card at the window's top when it hangs down, at its bottom when it sits above.
+        var hold = Math.Max(h, held * s);
+        var windowTop = below ? top - m : top + h - hold - m;
+        SetWindowPos(hwnd, IntPtr.Zero, (int)Math.Round(left - m), (int)Math.Round(windowTop),
+            (int)Math.Round(w + 2 * m), (int)Math.Round(hold + 2 * m), SWP_NOACTIVATE | SWP_NOZORDER);
     }
 
     /// The card's corners on screen, in device pixels.
