@@ -37,6 +37,7 @@ public func ly_anki_start(_ cb: LyCallback, _ deck: UnsafePointer<CChar>?) {
         if AnkiLink.deck != wanted { AnkiLink.deck = wanted }
         AnkiLink.shared.check(force: true, changed: ankiStatus)
         ankiStatus()
+        ankiProbe("start")
     }
 }
 
@@ -45,7 +46,7 @@ public func ly_anki_start(_ cb: LyCallback, _ deck: UnsafePointer<CChar>?) {
 /// follows if the answer changed.
 @_cdecl("ly_anki_check")
 public func ly_anki_check(_ force: Int32) {
-    onAnkiMain { AnkiLink.shared.check(force: force != 0, changed: ankiStatus) }
+    onAnkiMain { AnkiLink.shared.check(force: force != 0, changed: ankiStatus); ankiProbe("check") }
 }
 
 /// The deck cards go into from now on (the Mac's Anki Deck menu); empty for the default.
@@ -122,3 +123,27 @@ public func ly_anki_close(_ id: Int64) {
 }
 
 private func onAnkiMain(_ body: @escaping @MainActor () -> Void) { Task { @MainActor in body() } }
+
+// DEBUG: times a request to AnkiConnect outside the core, to see what URLSession does here.
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
+@MainActor func ankiProbe(_ label: String) {
+    let start = Date()
+    Task.detached {
+        var request = URLRequest(url: URL(string: "http://127.0.0.1:8765")!, timeoutInterval: 2)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = Data(#"{"action":"deckNames","version":6,"params":{}}"#.utf8)
+        var result = ""
+        do {
+            let (data, _) = try await URLSession(configuration: .ephemeral).data(for: request)
+            result = String(decoding: data, as: UTF8.self)
+            let any = try? JSONSerialization.jsonObject(with: data)
+            let dict = any as? [String: Any]
+            result += " | cast [String]: \(String(describing: dict?["result"] as? [String]))"
+        } catch { result = "error: \(error)" }
+        let ms = Int(Date().timeIntervalSince(start) * 1000)
+        await MainActor.run { ankiSend(["event": "anki-probe", "label": label, "ms": ms, "result": result, "available": AnkiLink.shared.available]) }
+    }
+}
