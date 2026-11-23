@@ -458,7 +458,7 @@ sealed class CardView
         title.Children.Add(icon);
         title.Children.Add(Label((string?)note["title"] ?? "", 11, Theme.Secondary, FontWeights.SemiBold));
         stack.Children.Add(title);
-        var body = Label((string?)note["text"] ?? "", 13, Theme.Primary, top: 4);
+        var body = Label((string?)note["text"] ?? "", 13, Theme.Primary, top: 2.5);   // the spec's 4, less what Segoe adds
         Lines(body, 13, 2);
         stack.Children.Add(body);
         box.Child = stack;
