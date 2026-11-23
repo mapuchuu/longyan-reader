@@ -210,8 +210,12 @@ sealed class FakeAnkiConnect : IDisposable
         {
             TcpClient client;
             try { client = l.AcceptTcpClient(); } catch { return; }
-            try { using (client) Answer(client.GetStream()); }
-            catch (Exception e) { Console.WriteLine("[4-anki] stand-in: " + e.Message); }
+            // Each connection on its own thread, as a client may open one and wait before sending.
+            ThreadPool.QueueUserWorkItem(_ =>
+            {
+                try { using (client) Answer(client.GetStream()); }
+                catch (Exception e) { Console.WriteLine("[4-anki] stand-in: " + e.Message); }
+            });
         }
     }
 
