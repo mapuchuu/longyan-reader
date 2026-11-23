@@ -142,7 +142,7 @@ sealed class CardView
         var senses = new StackPanel { Margin = new Thickness(0, 12, 0, 0) };
         senses.Children.Add(Divider());
         senses.Children.Add(Section("Meanings"));
-        var rows = new StackPanel { Margin = new Thickness(0, 8, 0, 0) };
+        var rows = new StackPanel { Margin = new Thickness(0, 9, 0, 0) };   // the spec's 8, plus 1 to line up with the Mac
         var all = c["senses"]?.AsArray() ?? new JsonArray();
         var total = Total(all, (string?)c["more"]);
         foreach (var node in all)
@@ -228,7 +228,13 @@ sealed class CardView
             top.Children.Add(Keyed("translation", tb));
         }
         else if ((string?)c["translationError"] is string e) top.Children.Add(Keyed("translationError", Label(e, 11, Theme.Secondary, top: 4)));
-        else top.Children.Add(Keyed("translating", Busy("Translating…", top: 4)));
+        else
+        {
+            // Lower than a status line elsewhere: the Mac centres it where the translation will be.
+            var busy = Busy("Translating…", top: 7);
+            busy.Margin = new Thickness(0, 7, 0, -1);
+            top.Children.Add(Keyed("translating", busy));
+        }
         content.Children.Add(Track("phraseTop", top));
 
         var rows = c["rows"]?.AsArray() ?? new JsonArray();
