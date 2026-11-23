@@ -16,6 +16,39 @@ which draws a layered window about every 40 to 80 ms, so they show curves and en
 smoothness. The `6-feel` check (UC CardFeelCheck.cs) asserts placement, focus, Esc, click away
 and live dark mode on every push.
 
+### The numbers, side by side
+
+| Step | Mac | Windows |
+|---|---|---|
+| Hold for the pick | 0.4 s from the lookup (APP:756) | 0.4 s from the lookup (CW Update), Normal-priority timer |
+| Reveal: window fade | 0 to 1, 0.14 s, linear (PU:442) | 0 to 1, 0.14 s, linear (CW Reveal) |
+| Reveal: card | scale 0.96 to 1, y −4 (below) / +4 (above) to 0, spring 0.32 / 0.82, anchor top or bottom (PU:446, CC:382) | same values, MO Reveal over 0.45 s (left over at the end: 0.07%) |
+| Swap in place (pinned, Part of) | fade 0.12 s, no spring (PU:435) | fade 0.12 s, no spring |
+| Every change inside (cardMotion) | spring 0.34 / 1.0; Reduce Motion easeInOut 0.15 s (CC:191) | same, MO Card over 0.5 s (left over: 0.1%); Reduce Motion Bézier (0.42, 0, 0.58, 1) 0.15 s |
+| Card height | cardMotion, not on the first frame (CC:365) | same |
+| Row open: detail | opacity + y from −6 × zoom, cardMotion; leaves the same way (PC:126) | same (CV Keyed, FadeOut) |
+| Note box | opacity + y from −4 × zoom (PU:27) | same |
+| Parts leaving, text crossfades | opacity on cardMotion | same (was ease-out 0.3 s, **fixed**) |
+| Chevrons | Show All 0° to 180°, phrase row 0° to 90°, cardMotion | same |
+| Pick: checkmark | opacity 0 to 1, scale 0.6 to 1, cardMotion (CC:720) | same |
+| Dismiss | fade to 0, 0.12 s, linear; no motion (PU:727) | same |
+| Pin: close badge | opacity 0 to 1, scale 0.7 to 1, spring 0.25 / 0.9 (CC:1006) | same, over 0.35 s |
+| Pin and Copy symbols | SF Symbols replace transition | grow 0.5 to 1 on cardMotion, fade in 0.2 s ease-out (**fixed**, was instant) |
+| Copy checkmark | 1.5 s (CC:893) | 1.5 s |
+| Resize, pinch / Ctrl+wheel | no animation while the hand moves (CC:36, CC:365) | no animation |
+| Zoom step | × 1.1 (CC:120) | × 1.1 a wheel notch |
+| Row hover | 0.05, ease-out 0.08 s on, 0.2 s off (CC:688) | same values |
+| Row pressed | 0.09, ease-out 0.08 s (CC:689) | same |
+| Button hover | 0.07, ease-out 0.15 s; symbol to primary (CC:963) | same |
+| Symbols when the card is hovered | tertiary to secondary, ease-out 0.2 s (CC:964) | same |
+| Button pressed | opacity 0.55, ease-out 0.08 s (CC:974) | same |
+| Grip, edge grabber | ease-out 0.15 s (CC:503) | same |
+| Scroll-edge fades | ease-out 0.2 s, 36 × zoom bottom, 14 × zoom under the buttons (CC:439-454) | same |
+| The ease-out curve itself | Core Animation easeOut, Bézier (0, 0, 0.58, 1): 38%, 69%, 91% at a quarter, half, three quarters | **fixed**: was WPF CubicEase (58%, 88%, 98%); now the same Bézier |
+| Drag threshold | 4 pt (PU:232) | 4 × scale px |
+| Gap to the selection | 8 pt (PU:620) | 8 × scale px (6-feel: 8 px at 100%) |
+| Focus | never taken (PU:208) | never taken (6-feel) |
+
 ### Placement
 
 | Behaviour | Mac | Windows | Status | Evidence |
@@ -55,7 +88,7 @@ and live dark mode on every push.
 | Spring maths: SwiftUI mass 1, stiffness (2π/response)², damping 4πζ/response, from rest | | MO Spring | same | |
 | Spring interrupted mid-way keeps its velocity | SwiftUI retargets | WPF restarts from the current value at rest | differs: only seen when a row is toggled twice within 0.3 s; a velocity-keeping spring needs a custom animation clock | |
 | Card height animates with cardMotion; window resized instantly around it | CC:365, PU:591-612 | CW Resize | same | 2-open |
-| Rows around inserted or removed parts slide; new parts fade (note box from y −4, phrase detail from y −6); text changes crossfade | PU:27, PC:126, PU:56, PU:82, PC:112 | CV Slide, Keyed, FadeOut | same | 2-open, 2-shut films |
+| Rows around inserted or removed parts slide; new parts fade (note box from y −4, phrase detail from y −6); text changes crossfade | PU:27, PC:126, PU:56, PU:82, PC:112 | CV Slide, Keyed, FadeOut | **fixed**: leaving parts faded on ease-out 0.3 s and didn't slide back up; now cardMotion and the slide | 2-open, 2-shut films |
 | Show All chevron 0° to 180°, phrase row chevron 0° to 90°, cardMotion | PU:184, PC:118 | CV Rotate | same | |
 | Choice mark: opacity 0 to 1, scale 0.6 to 1, cardMotion | CC:720-721 | CV Choice | same | 1-pick |
 | "Reading the sentence…" spinner | PU:127 (ProgressView mini) | CV Spinner: 8 spokes stepping every 0.1 s | same in kind | |
@@ -68,7 +101,7 @@ and live dark mode on every push.
 
 | Behaviour | Mac | Windows | Status | Evidence |
 |---|---|---|---|---|
-| Row highlight: hover 0.05 on in 0.08 s, off in 0.2 s; pressed 0.09 in 0.08 s; radius 6 | CC:682-689 | CV RowButton | same | 1-hover.png |
+| Row highlight: hover 0.05 on in 0.08 s, off in 0.2 s; pressed 0.09 in 0.08 s; radius 6 | CC:682-689 | CV RowButton | same (curve **fixed**, see the ease-out row above) | 1-hover.png |
 | A row rebuilt under the pointer is hovered at once | (SwiftUI keeps hover) | CV JustBuilt | same | 1-picked.png |
 | Action buttons: highlight 0.07 in 0.15 s; symbols tertiary, secondary while on the card (0.2 s), primary on the button; pressed 0.55 in 0.08 s | CC:953-976 | CV ActionButton, Recolor | same | |
 | Copy: checkmark in the accent for 1.5 s, symbol replace transition | CC:886-895, CC:854 | CV CopyButton, Symbol.Pop | **fixed**: the symbol swapped in one frame; now grows and fades in with cardMotion | |
