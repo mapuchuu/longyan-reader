@@ -252,14 +252,15 @@ static class Shortcut
     /// and the default these layouts get (windows/UiCheck reads it).
     public static int Check()
     {
-        Console.OutputEncoding = new UTF8Encoding(false);
+        // UTF-8 straight to the output: a windowed app has no console to set an encoding on.
+        using var output = new System.IO.StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false));
         var hkls = Layouts();
         foreach (var hkl in hkls)
         {
             var typed = Types(Usual, hkl);
-            Console.WriteLine($"layout {(long)hkl & 0xFFFFFFFF:X8} {LayoutName(hkl)}: {Usual.Name} {(typed == null ? "types nothing" : $"types {typed} (U+{(int)typed[0]:X4})")}");
+            output.WriteLine($"layout {(long)hkl & 0xFFFFFFFF:X8} {LayoutName(hkl)}: {Usual.Name} {(typed == null ? "types nothing" : $"types {typed} (U+{(int)typed[0]:X4})")}");
         }
-        Console.WriteLine($"default {DefaultFor(hkls).Name}");
+        output.WriteLine($"default {DefaultFor(hkls).Name}");
         return 0;
     }
 
