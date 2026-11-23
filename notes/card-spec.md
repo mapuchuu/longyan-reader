@@ -43,9 +43,6 @@ to match the Mac exactly.
 |---|---|---|---|
 | Card surface over the material (classic) | #FFFFFF at alpha 0.80 | #1F1F21 (0.12, 0.12, 0.13) at alpha 0.78 | CC:273-279 |
 | Card surface, opaque (snapshots, no blur) | #FFFFFF | #1F1F21 | CC:276-277 |
-
-The Mac card on screen reads darker in dark mode than #1F1F21: its 0.78 surface over the material comes out near #171719 (sampled from the renders). Windows has no material, so it uses #171719 opaque.
-
 | Glass tint (Liquid Glass style only) | #FFFFFF at alpha 0.55 | #141417 (0.08, 0.08, 0.09) at alpha 0.38 | CC:549-553 |
 | Tone 1, brick | #A8544C | #E39E94 | TC:62 |
 | Tone 2, sage | #4A8761 | #9ECCA8 | TC:63 |
@@ -54,6 +51,8 @@ The Mac card on screen reads darker in dark mode than #1F1F21: its 0.78 surface 
 | Dummitt tone 2, amber | #996E1A | #EBC97A | TC:69 |
 | Note icon, "Lost in translation" | #B05C80 | #E6A3C2 | NV:38 |
 | Note icon, "Cultural context" | #458280 | #94C7C2 | NV:39 |
+
+The Mac card on screen reads darker in dark mode than #1F1F21: its 0.78 surface over the material comes out near #171719 (sampled from the renders). Windows has no material, so it uses #171719 opaque.
 
 Tone schemes (TC:5-12, TC:61-72):
 - **Standard** (default): tones 1-4 = brick, sage, slate, violet.
