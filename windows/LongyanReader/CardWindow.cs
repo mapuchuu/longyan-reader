@@ -290,8 +290,9 @@ sealed class CardWindow : Window, ICardActions
         }
         var drawing = System.Diagnostics.Stopwatch.StartNew();
         view.Show(json, animate: true);
+        var shown = drawing.Elapsed.TotalMilliseconds;
         Resize(animated: true);
-        if (Core.Logging) { Core.Log($"{{\"event\":\"drawn\",\"ms\":{drawing.Elapsed.TotalMilliseconds:0.0}}}"); Frames(); }
+        if (Core.Logging) { Core.Log($"{{\"event\":\"drawn\",\"ms\":{drawing.Elapsed.TotalMilliseconds:0.0},{view.Timing},\"resize\":{drawing.Elapsed.TotalMilliseconds - shown:0.0}}}"); Frames(); }
     }
 
     /// For the UI check: how soon WPF draws a frame after a change, and how evenly over the

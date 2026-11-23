@@ -78,11 +78,18 @@ sealed class CardView
         builtAt = Environment.TickCount64;
         content.Children.Clear();
         buttons.Children.Clear();
+        var clock = System.Diagnostics.Stopwatch.StartNew();
         if ((string?)card["kind"] == "phrase") { Width = WidthFor?.Invoke(true) ?? PhraseWidth; Phrase(card); }
         else { Width = WidthFor?.Invoke(false) ?? WordWidth; Word(card); }
+        var built = clock.Elapsed.TotalMilliseconds;
         if (was != null) Slide(was);
+        var slid = clock.Elapsed.TotalMilliseconds;
         if (old != null) FadeOut(old);
+        Timing = $"\"build\":{built:0.0},\"layout\":{slid - built:0.0},\"fade\":{clock.Elapsed.TotalMilliseconds - slid:0.0}";
     }
+
+    /// How long the last Show took, in parts, for the UI check's log.
+    public string Timing = "";
 
     /// When the content was last rebuilt: the part under the pointer then is already hovered,
     /// so it takes its highlight at once rather than fading in again.

@@ -157,7 +157,7 @@ static class Program
                     break;
                 case "card" when action != null && card == null: card = t; break;
                 case "drawn" when action != null && card != null:
-                    Console.WriteLine($"[latency] click to card {card - action} ms, to drawn {t - action} ms (drawing {e["ms"]} ms)");
+                    Console.WriteLine($"[latency] click to card {card - action} ms, to drawn {t - action} ms (drawing {e["ms"]} ms: build {e["build"]}, layout {e["layout"]}, fade {e["fade"]}, resize {e["resize"]})");
                     break;
                 case "frames" when action != null:
                     Console.WriteLine($"[latency] first frame {e["first"]} ms after drawn; {e["count"]} frames in 0.6 s, longest gap {e["gap"]} ms");
