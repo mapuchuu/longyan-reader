@@ -31,6 +31,12 @@ static class Program
         log = Path.Combine(outDir, "events.jsonl");
         Console.OutputEncoding = new UTF8Encoding(false);
 
+        // Windows Server ships with "animate controls inside windows" off, which the app takes as
+        // Reduce Motion. Turn it on so the films show the usual motion.
+        SystemParametersInfo(SPI_SETCLIENTAREAANIMATION, 0, (IntPtr)1, SPIF_SENDCHANGE);
+        SystemParametersInfo(SPI_GETCLIENTAREAANIMATION, 0, out var animates, 0);
+        Console.WriteLine($"animations {(animates != 0 ? "on" : "off")}");
+
         var start = new ProcessStartInfo(exe) { WorkingDirectory = Path.GetDirectoryName(exe)! };
         start.Environment["LONGYAN_CARD_LOG"] = log;
         var app = Process.Start(start)!;
@@ -363,6 +369,9 @@ static class Program
     [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr h);
     [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int cx, int cy, uint flags);
     [DllImport("user32.dll")] static extern bool SetCursorPos(int x, int y);
+    [DllImport("user32.dll")] static extern bool SystemParametersInfo(uint action, uint param, IntPtr value, uint flags);
+    [DllImport("user32.dll")] static extern bool SystemParametersInfo(uint action, uint param, out int value, uint flags);
+    const uint SPI_GETCLIENTAREAANIMATION = 0x1042, SPI_SETCLIENTAREAANIMATION = 0x1043, SPIF_SENDCHANGE = 2;
     [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr h, out RECT r);
     [DllImport("user32.dll")] static extern bool EnumWindows(EnumProc f, IntPtr p);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetWindowText(IntPtr h, StringBuilder sb, int n);
