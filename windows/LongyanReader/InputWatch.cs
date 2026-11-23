@@ -24,31 +24,51 @@ static class InputWatch
     public static event Action? Wheel;
     public static event Action? Key;
 
-    static Dispatcher? app;
+    static Dispatcher? app, watch;
     static Thread? thread;
+    static IntPtr target;
+    static bool on;
 
-    public static void Start()
+    /// Starts watching, or stops: nothing at all reaches the app (no wakeups on mouse moves)
+    /// while it is off.
+    public static void Enable(bool enable)
     {
-        if (thread != null) return;
-        app = Dispatcher.CurrentDispatcher;
-        thread = new Thread(Run) { IsBackground = true, Name = "Longyan input watch" };
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
+        if (thread == null)
+        {
+            if (!enable) return;
+            app = Dispatcher.CurrentDispatcher;
+            using var ready = new ManualResetEventSlim();
+            thread = new Thread(() => Run(ready)) { IsBackground = true, Name = "Longyan input watch" };
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            ready.Wait();
+        }
+        watch?.BeginInvoke(() => Register(enable));
     }
 
-    static void Run()
+    static void Run(ManualResetEventSlim ready)
     {
         // A message-only window (parent HWND_MESSAGE) receives WM_INPUT for the whole desktop.
         var source = new HwndSource(new HwndSourceParameters("LongyanInputWatch") { ParentWindow = new IntPtr(-3), Width = 0, Height = 0, WindowStyle = 0 });
         source.AddHook(Hook);
+        target = source.Handle;
+        watch = Dispatcher.CurrentDispatcher;
+        ready.Set();
+        Dispatcher.Run();
+    }
+
+    static void Register(bool enable)
+    {
+        if (enable == on) return;
+        var flags = enable ? RIDEV_INPUTSINK : RIDEV_REMOVE;
+        var hwnd = enable ? target : IntPtr.Zero;
         var devices = new[]
         {
-            new RAWINPUTDEVICE { usUsagePage = 1, usUsage = 2, dwFlags = RIDEV_INPUTSINK, hwndTarget = source.Handle },   // mouse
-            new RAWINPUTDEVICE { usUsagePage = 1, usUsage = 6, dwFlags = RIDEV_INPUTSINK, hwndTarget = source.Handle },   // keyboard
+            new RAWINPUTDEVICE { usUsagePage = 1, usUsage = 2, dwFlags = flags, hwndTarget = hwnd },   // mouse
+            new RAWINPUTDEVICE { usUsagePage = 1, usUsage = 6, dwFlags = flags, hwndTarget = hwnd },   // keyboard
         };
-        if (!RegisterRawInputDevices(devices, (uint)devices.Length, (uint)Marshal.SizeOf<RAWINPUTDEVICE>()))
-            Core.Log($"{{\"event\":\"input-watch\",\"error\":{Marshal.GetLastWin32Error()}}}");
-        Dispatcher.Run();
+        if (RegisterRawInputDevices(devices, (uint)devices.Length, (uint)Marshal.SizeOf<RAWINPUTDEVICE>())) on = enable;
+        else Core.Log($"{{\"event\":\"input-watch\",\"error\":{Marshal.GetLastWin32Error()}}}");
     }
 
     // Click counting and drags, kept on the watch thread.
@@ -60,23 +80,18 @@ static class InputWatch
     static IntPtr Hook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
         if (msg != WM_INPUT) return IntPtr.Zero;
-        var size = 0u;
+        // One buffer for every event (a mouse moving sends hundreds a second): a RAWINPUT for a
+        // mouse or keyboard is 48 bytes on x64.
+        var size = (uint)Buffer.Length;
         var header = (uint)Marshal.SizeOf<RAWINPUTHEADER>();
-        GetRawInputData(lParam, RID_INPUT, IntPtr.Zero, ref size, header);
-        if (size == 0 || size > 256) return IntPtr.Zero;
-        var buffer = Marshal.AllocHGlobal((int)size);
-        try
+        if (GetRawInputData(lParam, RID_INPUT, Buffer.Pointer, ref size, header) is 0 or uint.MaxValue) return IntPtr.Zero;
+        var type = Marshal.ReadInt32(Buffer.Pointer);
+        if (type == RIM_TYPEMOUSE) Mouse((ushort)Marshal.ReadInt16(Buffer.Pointer, (int)header + 4));
+        else if (type == RIM_TYPEKEYBOARD)
         {
-            if (GetRawInputData(lParam, RID_INPUT, buffer, ref size, header) != size) return IntPtr.Zero;
-            var type = Marshal.ReadInt32(buffer);
-            if (type == RIM_TYPEMOUSE) Mouse((ushort)Marshal.ReadInt16(buffer, (int)header + 4));
-            else if (type == RIM_TYPEKEYBOARD)
-            {
-                var flags = (ushort)Marshal.ReadInt16(buffer, (int)header + 2);
-                if ((flags & RI_KEY_BREAK) == 0) Post(() => Key?.Invoke());
-            }
+            var flags = (ushort)Marshal.ReadInt16(Buffer.Pointer, (int)header + 2);
+            if ((flags & RI_KEY_BREAK) == 0) Post(() => Key?.Invoke());
         }
-        finally { Marshal.FreeHGlobal(buffer); }
         return IntPtr.Zero;
     }
 
@@ -120,12 +135,19 @@ static class InputWatch
 
     static void Post(Action a) => app?.BeginInvoke(a, DispatcherPriority.Input);
 
+    /// Unmanaged memory kept for the watch thread's whole life.
+    static class Buffer
+    {
+        public const int Length = 128;
+        public static readonly IntPtr Pointer = Marshal.AllocHGlobal(Length);
+    }
+
     [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X, Y; }
     [StructLayout(LayoutKind.Sequential)] struct RAWINPUTDEVICE { public ushort usUsagePage, usUsage; public uint dwFlags; public IntPtr hwndTarget; }
     [StructLayout(LayoutKind.Sequential)] struct RAWINPUTHEADER { public uint dwType, dwSize; public IntPtr hDevice, wParam; }
 
     const int WM_INPUT = 0x00FF, RIM_TYPEMOUSE = 0, RIM_TYPEKEYBOARD = 1, GA_ROOT = 2;
-    const uint RID_INPUT = 0x10000003, RIDEV_INPUTSINK = 0x100;
+    const uint RID_INPUT = 0x10000003, RIDEV_INPUTSINK = 0x100, RIDEV_REMOVE = 0x1;
     const ushort RI_LEFT_DOWN = 0x1, RI_LEFT_UP = 0x2, RI_RIGHT_DOWN = 0x4, RI_RIGHT_UP = 0x8, RI_MIDDLE_DOWN = 0x10, RI_WHEEL = 0x400, RI_HWHEEL = 0x800, RI_KEY_BREAK = 1;
     const int SM_CXDOUBLECLK = 36, SM_CYDOUBLECLK = 37, SM_CXDRAG = 68, SM_CYDRAG = 69, SM_SWAPBUTTON = 23;
 

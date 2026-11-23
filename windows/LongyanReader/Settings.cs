@@ -16,7 +16,7 @@ static class Settings
     /// The eye by a fresh selection (the Mac's "showChip"), on unless turned off.
     public static bool ShowEye
     {
-        get => (bool?)data["showEye"] ?? true;
+        get => data["showEye"] is JsonValue v && v.TryGetValue<bool>(out var on) ? on : true;
         set { data["showEye"] = value; Save(); }
     }
 
@@ -24,25 +24,26 @@ static class Settings
     public static IReadOnlyList<(string Process, string Name)> EyeHiddenApps =>
         (data["eyeHiddenApps"] as JsonArray ?? new JsonArray())
             .OfType<JsonObject>()
-            .Select(o => ((string?)o["process"] ?? "", (string?)o["name"] ?? ""))
+            .Select(o => (Text(o["process"]), Text(o["name"])))
             .Where(a => a.Item1.Length > 0)
             .ToList();
+
+    static string Text(JsonNode? n) => n is JsonValue v && v.TryGetValue<string>(out var t) ? t : "";
 
     public static bool EyeHiddenIn(string process) => EyeHiddenApps.Any(a => a.Process == process);
 
     public static void HideEyeIn(string process, string name)
     {
         if (EyeHiddenIn(process)) return;
-        var list = data["eyeHiddenApps"] as JsonArray ?? new JsonArray();
+        if (data["eyeHiddenApps"] is not JsonArray list) data["eyeHiddenApps"] = list = new JsonArray();
         list.Add(new JsonObject { ["process"] = process, ["name"] = name });
-        data["eyeHiddenApps"] = list;
         Save();
     }
 
     public static void ShowEyeIn(string process)
     {
         if (data["eyeHiddenApps"] is not JsonArray list) return;
-        foreach (var o in list.OfType<JsonObject>().Where(o => (string?)o["process"] == process).ToList()) list.Remove(o);
+        foreach (var o in list.OfType<JsonObject>().Where(o => Text(o["process"]) == process).ToList()) list.Remove(o);
         Save();
     }
 

@@ -23,74 +23,111 @@ namespace Longyan;
 static class Chip
 {
     /// Called with the selection when it could be read, or null when the app doesn't say
-    /// (then the click falls back to copying), and the eye's rectangle in device pixels.
+    /// (then the click falls back to copying).
     public static Func<Selected?, Task>? Clicked;
 
     static ChipWindow? shown;
-    static int generation;    // a newer mouse press makes an older read stale
+    static int generation;    // any press, key or scroll makes a read still under way stale
 
     public static void Start()
     {
-        // Its own right-click menu closes it when it closes, after an item has done its work.
         InputWatch.Down += (button, p, ours) =>
         {
             generation++;
-            if (shown == null || shown.MenuOpen || (ours && shown.Contains(p))) return;
+            if (shown == null) return;
+            // Its own menu: a click elsewhere closes it (WPF can't see that click, as the app is
+            // never in front), and the eye with it.
+            if (shown.MenuOpen) { if (!ours) shown.CloseMenu(); return; }
+            if (ours && shown.Contains(p)) return;
             Hide();
         };
-        InputWatch.Wheel += () => { if (shown?.MenuOpen != true) Hide(); };
-        InputWatch.Key += () => { if (shown?.MenuOpen != true) Hide(); };
+        InputWatch.Wheel += () => { generation++; if (shown?.MenuOpen != true) Hide(); };
+        InputWatch.Key += () =>
+        {
+            generation++;
+            if (shown?.MenuOpen == true) shown.CloseMenu(); else Hide();
+        };
         InputWatch.Up += MouseUp;
-        InputWatch.Start();
+        Enable();
+    }
+
+    /// Watches the mouse only while the eye is on.
+    public static void Enable()
+    {
+        InputWatch.Enable(Settings.ShowEye);
+        if (!Settings.ShowEye) Hide();
     }
 
     static async void MouseUp(InputWatch.POINT up, int clicks, bool dragged, bool ours)
     {
+        try { await Consider(up, clicks, dragged, ours); }
+        catch (Exception e) { Core.Log($"{{\"event\":\"eye-error\",\"type\":\"{e.GetType().Name}\"}}"); }
+    }
+
+    static async Task Consider(InputWatch.POINT up, int clicks, bool dragged, bool ours)
+    {
         // A plain click never selects text; nor does anything inside our own windows.
         if (ours || !Settings.ShowEye || !(dragged || clicks >= 2)) return;
-        var app = Foreground();
-        if (app.Process.Length == 0 || Settings.EyeHiddenIn(app.Process)) return;
+        // Not over a full-screen game, video or presentation.
+        if (SHQueryUserNotificationState(out var state) == 0 && state is QUNS_BUSY or QUNS_RUNNING_D3D_FULL_SCREEN or QUNS_PRESENTATION_MODE) return;
+        if (Foreground() is not AppInfo app || Settings.EyeHiddenIn(app.Process)) return;
         var mine = ++generation;
         // Give the app a moment to update its selection.
         await Task.Delay(120);
         if (mine != generation) return;
-        var (found, selection) = await SelectionReader.ProbeAsync();
+        var probed = await SelectionReader.ProbeAsync();
         if (mine != generation) return;
-        switch (found)
+        switch (probed.Found)
         {
-            case SelectionReader.Found.Selection when selection != null:
+            case SelectionReader.Found.Selection when probed.Selection is Selected selection:
                 if (!SelectionReader.HasChinese(selection) || SelectionReader.Length(selection) > 400) return;
                 // A position far from where the mouse let go isn't where the selection is.
                 var near = selection.Bounds is Rect b && Inflate(b, 160 * ScaleAt(up)).Contains(new Point(up.X, up.Y));
-                if (!near) selection = selection with { Bounds = null };
-                Show(up, selection, app);
+                Show(up, near ? selection : selection with { Bounds = null }, app);
                 break;
             case SelectionReader.Found.Unreadable:
                 // The app won't say what's selected: offer the eye and copy on a click. Only for a
-                // double-click there, since a drag in such apps often moves windows or files; and
-                // not where copying can't be undone or reaches nothing (desktop, Explorer,
-                // terminals, apps run as administrator).
-                if (clicks >= 2 && app.MayBeText) Show(up, null, app);
+                // double-click there (a drag in such apps often moves windows or files), only in a
+                // focused element that may hold text and that the mouse is over (not the title
+                // bar), and never where Ctrl+C isn't copy (terminals) or can't reach (apps run as
+                // administrator), as the Mac skips lists, rows, buttons and windows.
+                if (clicks < 2 || !app.MayBeText || !MayBeText(probed.Role)) return;
+                if (probed.Area is Rect area && !area.Contains(new Point(up.X, up.Y))) return;
+                Show(up, null, app);
                 break;
         }
     }
 
-    static void Show(InputWatch.POINT up, Selected? selection, (string Process, string Name, bool MayBeText) app)
+    static void Show(InputWatch.POINT up, Selected? selection, AppInfo app)
     {
         Hide();
         Bridge.ly_warm_up();
-        if (selection != null) Core.Shared.Prepare(selection.Passage, selection.Start, selection.End);
-        var w = new ChipWindow(selection, app.Process, app.Name);
+        var w = new ChipWindow(selection, app.Process, app.Path);
         w.Place(up, selection?.Bounds);
         shown = w;
         Core.Log($"{{\"event\":\"eye\",\"readable\":{(selection != null ? "true" : "false")}}}");
+        // The card's work starts once the eye has stayed a moment (or on hover): most selections
+        // are made to copy, and the model's work costs battery.
+        DispatcherTimer? soon = null;
+        soon = new DispatcherTimer(TimeSpan.FromSeconds(0.3), DispatcherPriority.Normal, (_, _) => { soon!.Stop(); Prepare(w); }, Dispatcher.CurrentDispatcher);
     }
 
+    /// Starts the card's work for the eye's selection, once.
+    internal static void Prepare(ChipWindow w)
+    {
+        if (shown != w || w.Prepared || w.Selection is not Selected s) return;
+        w.Prepared = true;
+        Core.Shared.Prepare(s.Passage, s.Start, s.End);
+    }
+
+    /// Gone without a click: the work started for it stops too.
     public static void Hide()
     {
         var w = shown;
         shown = null;
-        w?.Leave();
+        if (w == null) return;
+        if (w.Prepared) Core.Shared.CancelPrepare();
+        w.Leave();
     }
 
     internal static void Click(ChipWindow w)
@@ -106,38 +143,85 @@ static class Chip
 
     static Rect Inflate(Rect r, double by) { r.Inflate(by, by); return r; }
 
-    /// The foreground app: its process name, a name to show, and whether a selection there may
-    /// be text worth copying when UI Automation doesn't say.
-    static (string Process, string Name, bool MayBeText) Foreground()
+    /// Kinds of element that hold things other than text (files, rows, controls): the Mac's
+    /// notTextRoles. Unknown counts as text.
+    static bool MayBeText(ControlType? role) => role == null || !(
+        role == ControlType.List || role == ControlType.ListItem || role == ControlType.Tree || role == ControlType.TreeItem
+        || role == ControlType.DataGrid || role == ControlType.DataItem || role == ControlType.Table || role == ControlType.Header
+        || role == ControlType.HeaderItem || role == ControlType.Image || role == ControlType.Button || role == ControlType.SplitButton
+        || role == ControlType.CheckBox || role == ControlType.RadioButton || role == ControlType.Slider || role == ControlType.ScrollBar
+        || role == ControlType.Thumb || role == ControlType.ToolBar || role == ControlType.Menu || role == ControlType.MenuBar
+        || role == ControlType.MenuItem || role == ControlType.ComboBox || role == ControlType.Tab || role == ControlType.TabItem
+        || role == ControlType.Window || role == ControlType.TitleBar);
+
+    internal sealed record AppInfo(string Process, string Path, bool MayBeText);
+
+    // Windows where an unreadable double-click isn't a text selection, or Ctrl+C isn't copy.
+    static readonly System.Collections.Generic.HashSet<string> notTextClasses = new()
+    {
+        "Progman", "WorkerW", "Shell_TrayWnd", "Shell_SecondaryTrayWnd", "CabinetWClass", "ExploreWClass", "#32770",
+        "ConsoleWindowClass", "CASCADIA_HOSTING_WINDOW_CLASS", "PuTTY", "mintty", "VirtualConsoleClass", "Emacs", "Vim",
+    };
+    static readonly System.Collections.Generic.HashSet<string> notTextProcesses = new()
+    {
+        "explorer", "windowsterminal", "putty", "kitty", "mintty", "conemu", "conemu64", "alacritty", "wezterm-gui",
+        "emacs", "gvim", "excel", "totalcmd", "totalcmd64", "dopus",
+    };
+
+    /// The foreground app: its process name (a UWP app's own, not its frame host's), its
+    /// program's path, and whether an unreadable selection there may be text worth copying.
+    static AppInfo? Foreground()
     {
         var hwnd = GetForegroundWindow();
-        if (hwnd == IntPtr.Zero) return ("", "", false);
+        if (hwnd == IntPtr.Zero) return null;
+        var cls = ClassOf(hwnd);
+        GetWindowThreadProcessId(hwnd, out var pid);
+        if (cls == "ApplicationFrameWindow")
+        {
+            var core = FindWindowEx(hwnd, IntPtr.Zero, "Windows.UI.Core.CoreWindow", null);
+            if (core != IntPtr.Zero) GetWindowThreadProcessId(core, out pid);
+        }
+        if (pid == (uint)Environment.ProcessId) return null;
+        var path = ImagePath(pid);
+        if (path == null) return null;
+        var process = System.IO.Path.GetFileNameWithoutExtension(path).ToLowerInvariant();
+        // An app run as administrator can be named but not read or sent keys from here.
+        var lower = OpenProcess(PROCESS_QUERY_INFORMATION, false, pid);
+        var reachable = lower != IntPtr.Zero;
+        if (reachable) CloseHandle(lower);
+        return new AppInfo(process, path, reachable && !notTextClasses.Contains(cls) && !notTextProcesses.Contains(process));
+    }
+
+    static string ClassOf(IntPtr hwnd)
+    {
         var cls = new StringBuilder(256);
         GetClassName(hwnd, cls, cls.Capacity);
-        var notText = cls.ToString() is "Progman" or "WorkerW" or "Shell_TrayWnd" or "Shell_SecondaryTrayWnd"
-            or "CabinetWClass" or "ExploreWClass" or "ConsoleWindowClass" or "CASCADIA_HOSTING_WINDOW_CLASS";
-        GetWindowThreadProcessId(hwnd, out var pid);
-        if (pid == (uint)Environment.ProcessId) return ("", "", false);
+        return cls.ToString();
+    }
+
+    static string? ImagePath(uint pid)
+    {
+        var h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
+        if (h == IntPtr.Zero) return null;
         try
         {
-            using var p = Process.GetProcessById((int)pid);
-            var process = p.ProcessName.ToLowerInvariant();
-            string name;
-            bool readable = true;
-            try
-            {
-                var description = p.MainModule?.FileVersionInfo.FileDescription;
-                name = string.IsNullOrWhiteSpace(description) ? p.ProcessName : description.Trim();
-            }
-            catch
-            {
-                // An app run as administrator: it can't be read or sent keys from here.
-                name = p.ProcessName;
-                readable = false;
-            }
-            return (process, name, readable && !notText && process != "explorer");
+            var sb = new StringBuilder(1024);
+            var size = sb.Capacity;
+            return QueryFullProcessImageName(h, 0, sb, ref size) ? sb.ToString() : null;
         }
-        catch { return ("", "", false); }
+        finally { CloseHandle(h); }
+    }
+
+    /// The name to show for an app: its program's description ("Microsoft Edge"), else its file name.
+    internal static string NameOf(string path)
+    {
+        try
+        {
+            var d = System.Diagnostics.FileVersionInfo.GetVersionInfo(path).FileDescription;
+            if (!string.IsNullOrWhiteSpace(d)) return d.Trim();
+        }
+        catch { }
+        return System.IO.Path.GetFileNameWithoutExtension(path);
     }
 
     internal static double ScaleAt(InputWatch.POINT p)
@@ -146,11 +230,18 @@ static class Chip
         return monitor != IntPtr.Zero && GetDpiForMonitor(monitor, 0, out var x, out _) == 0 && x > 0 ? x / 96.0 : 1;
     }
 
+    const int QUNS_BUSY = 2, QUNS_RUNNING_D3D_FULL_SCREEN = 3, QUNS_PRESENTATION_MODE = 4;
+    const uint PROCESS_QUERY_INFORMATION = 0x400, PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
     [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetClassName(IntPtr hwnd, StringBuilder name, int max);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern IntPtr FindWindowEx(IntPtr parent, IntPtr after, string? cls, string? title);
     [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr hwnd, out uint pid);
     [DllImport("user32.dll")] static extern IntPtr MonitorFromPoint(InputWatch.POINT p, uint flags);
     [DllImport("shcore.dll")] static extern int GetDpiForMonitor(IntPtr monitor, int type, out uint x, out uint y);
+    [DllImport("shell32.dll")] static extern int SHQueryUserNotificationState(out int state);
+    [DllImport("kernel32.dll")] static extern IntPtr OpenProcess(uint access, bool inherit, uint pid);
+    [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr h);
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] static extern bool QueryFullProcessImageName(IntPtr h, int flags, StringBuilder name, ref int size);
 }
 
 /// The eye's window: 44 across so the hover growth and shadow fit, around a 30 hit area and a
@@ -163,7 +254,10 @@ sealed class ChipWindow : Window
     const double Mark = 12.6;
 
     public readonly Selected? Selection;
-    readonly string process, appName;
+    readonly string process, path;
+    ContextMenu? menu;
+    /// Whether the card's work was started for this eye (see Chip.Prepare).
+    public bool Prepared;
     readonly ScaleTransform scale = new(0.6, 0.6, Target / 2, Target / 2);
     readonly Rectangle mark;
     readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(6) };
@@ -175,11 +269,11 @@ sealed class ChipWindow : Window
 
     static readonly ImageBrush markBrush = MakeMark();
 
-    public ChipWindow(Selected? selection, string process, string appName)
+    public ChipWindow(Selected? selection, string process, string path)
     {
         Selection = selection;
         this.process = process;
-        this.appName = appName;
+        this.path = path;
         Title = "Longyan eye";
         WindowStyle = WindowStyle.None;
         AllowsTransparency = true;
@@ -195,9 +289,10 @@ sealed class ChipWindow : Window
         var (button, hit, markShape) = Build(snapshot: false);
         mark = markShape;
         button.RenderTransform = scale;
+        button.Invoked = () => Chip.Click(this);
         Content = new Grid { Children = { button } };
 
-        hit.MouseEnter += (_, _) => Hover(true);
+        hit.MouseEnter += (_, _) => { Hover(true); Chip.Prepare(this); };
         hit.MouseLeave += (_, _) => Hover(false);
         hit.MouseLeftButtonDown += (_, e) => { pressed = true; hit.CaptureMouse(); Bounce(); e.Handled = true; };
         hit.MouseLeftButtonUp += (_, e) =>
@@ -227,7 +322,7 @@ sealed class ChipWindow : Window
 
     /// The button: the hit area, and in it the circle (surface, hairline, shadow) and the mark.
     /// A snapshot (the gallery) leaves out the shadow, as the Mac's --render-chip does.
-    static (Grid Button, Ellipse Hit, Rectangle Mark) Build(bool snapshot)
+    static (EyeButton Button, Ellipse Hit, Rectangle Mark) Build(bool snapshot)
     {
         var surface = new Ellipse { Width = Diameter, Height = Diameter, Fill = Theme.Surface };
         if (!snapshot) surface.Effect = new DropShadowEffect { BlurRadius = 10, ShadowDepth = 2, Direction = 270, Opacity = 0.18, Color = Colors.Black, RenderingBias = RenderingBias.Quality };
@@ -236,8 +331,9 @@ sealed class ChipWindow : Window
         // SwiftUI puts the image on whole points: half a point right and down of centre.
         var mark = new Rectangle { Width = Mark, Height = Mark, Fill = Theme.Ink(1), OpacityMask = markBrush, Opacity = InkAlpha(false), RenderTransform = new TranslateTransform(0.5, 0.5) };
         RenderOptions.SetBitmapScalingMode(mark, BitmapScalingMode.HighQuality);
-        var hit = new Ellipse { Width = Target, Height = Target, Fill = Brushes.Transparent };
-        var button = new Grid
+        // Not quite transparent: a layered window lets clicks through where it has no alpha.
+        var hit = new Ellipse { Width = Target, Height = Target, Fill = new SolidColorBrush(Color.FromArgb(1, 0, 0, 0)) };
+        var button = new EyeButton
         {
             Width = Target, Height = Target,
             HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
@@ -247,7 +343,6 @@ sealed class ChipWindow : Window
         button.Children.Add(hairline);
         button.Children.Add(mark);
         button.Children.Add(hit);
-        AutomationProperties.SetName(button, "Look up");
         button.ToolTip = "Look up (Ctrl+Alt+L). Right-click for options.";
         ToolTipService.SetInitialShowDelay(button, 700);
         return (button, hit, mark);
@@ -353,11 +448,12 @@ sealed class ChipWindow : Window
     {
         timer.Stop();
         menuOpen = true;
-        var menu = new ContextMenu { PlacementTarget = at, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom };
+        menu = new ContextMenu { PlacementTarget = at, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom };
         if (process.Length > 0)
         {
-            var here = new MenuItem { Header = $"Hide the eye in {appName}" };
-            here.Click += (_, _) => { Settings.HideEyeIn(process, appName); Program.MenuChanged(); };
+            var name = Chip.NameOf(path);
+            var here = new MenuItem { Header = $"Hide the eye in {name}" };
+            here.Click += (_, _) => { Settings.HideEyeIn(process, name); Program.MenuChanged(); };
             menu.Items.Add(here);
         }
         var off = new MenuItem { Header = "Turn off the eye" };
@@ -368,6 +464,8 @@ sealed class ChipWindow : Window
         menu.Closed += (_, _) => { menuOpen = false; Chip.Hide(); };
         menu.IsOpen = true;
     }
+
+    public void CloseMenu() { if (menu != null) menu.IsOpen = false; }
 
     static ImageBrush MakeMark()
     {
@@ -389,4 +487,23 @@ sealed class ChipWindow : Window
     [DllImport("user32.dll")] static extern int GetWindowLong(IntPtr hwnd, int index);
     [DllImport("user32.dll")] static extern int SetWindowLong(IntPtr hwnd, int index, int value);
     [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr hwnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
+}
+
+/// The eye's button, which screen readers see as a "Look up" button they can press.
+sealed class EyeButton : Grid
+{
+    public Action? Invoked;
+    protected override System.Windows.Automation.Peers.AutomationPeer OnCreateAutomationPeer() => new Peer(this);
+
+    sealed class Peer : System.Windows.Automation.Peers.FrameworkElementAutomationPeer, System.Windows.Automation.Provider.IInvokeProvider
+    {
+        public Peer(EyeButton owner) : base(owner) { }
+        protected override System.Windows.Automation.Peers.AutomationControlType GetAutomationControlTypeCore() => System.Windows.Automation.Peers.AutomationControlType.Button;
+        protected override string GetClassNameCore() => "LongyanEye";
+        protected override string GetNameCore() => "Look up";
+        protected override bool IsControlElementCore() => true;
+        public override object? GetPattern(System.Windows.Automation.Peers.PatternInterface pattern) =>
+            pattern == System.Windows.Automation.Peers.PatternInterface.Invoke ? this : base.GetPattern(pattern);
+        public void Invoke() => ((EyeButton)Owner).Invoked?.Invoke();
+    }
 }

@@ -113,6 +113,7 @@ sealed class Core
 
     /// Starts a card's work before the reader clicks: call it when the selection button appears.
     public void Prepare(string passage, int start, int end) => Bridge.ly_prepare(Bridge.Utf8(passage), start, end);
+    public void CancelPrepare() => Bridge.ly_cancel_prepare();
 
     public long OpenPartOf(long id, Action<JsonObject> onCard, Action<string> onHint)
     {

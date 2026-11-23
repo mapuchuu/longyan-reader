@@ -165,20 +165,33 @@ static class Program
         Click(x, y);
         Thread.Sleep(800);
         if (Eye() != IntPtr.Zero) failures.Add("3-eye: a plain click showed the eye");
+        var logBefore = File.Exists(log) ? File.ReadAllLines(log).Length : 0;
         DoubleClick(x, y);
         Burst("3-eye-in", 700);
-        var eye = Eye();
+        var eye = WaitForEye(true, 2500);
         Shot("3-eye");
         if (eye == IntPtr.Zero) { failures.Add("3-eye: no eye after a double-click on Chinese text"); return; }
+        // Read through UI Automation, not the copy fallback.
+        if (!LogHas(logBefore, "eye", "readable", "true")) failures.Add("3-eye: the eye didn't read the selection through UI Automation");
         GetWindowRect(eye, out var r);
         double cx = (r.Left + r.Right) / 2.0, cy = (r.Top + r.Bottom) / 2.0;
-        Console.WriteLine($"[3-eye] at {r.Left},{r.Top} to {r.Right},{r.Bottom}; the word at {word}");
+        var sel = SelectionIn(notepad);
+        Console.WriteLine($"[3-eye] at {r.Left},{r.Top} to {r.Right},{r.Bottom}; the word at {word}; the selection at {sel}");
+        // Just past the end of the selection (4 after it, in a 44 window around a 30 button), on its line.
+        if (sel is System.Windows.Rect sr)
+        {
+            var buttonLeft = r.Left + (r.Right - r.Left) * 7 / 44.0;
+            if (buttonLeft < sr.Right || buttonLeft > sr.Right + 12) failures.Add($"3-eye: not just past the selection (button at {buttonLeft:0}, selection ends at {sr.Right:0})");
+            if (Math.Abs(cy - (sr.Top + sr.Height / 2)) > 3) failures.Add($"3-eye: not on the selection's line (centre {cy:0}, line centre {sr.Top + sr.Height / 2:0})");
+        }
         MoveTo(cx, cy);
         Thread.Sleep(600);
         Shot("3-eye-hover");
         var before = File.Exists(log) ? File.ReadAllLines(log).Length : 0;
         Click(cx, cy);
         Burst("3-eye-reveal", 1500);
+        // The eye never takes the focus: Notepad keeps it, and its selection.
+        if (GetForegroundWindow() != notepad) failures.Add("3-eye: clicking the eye took the focus from Notepad");
         var started = DateTime.Now;
         JsonObject? card = null;
         while ((DateTime.Now - started).TotalSeconds < 60 && (card = LastCard(before)) == null) Thread.Sleep(300);
@@ -189,12 +202,48 @@ static class Program
         Thread.Sleep(800);
 
         Drag(word.Left - word.Width, y, (int)(word.Width * 2), 0);
-        Thread.Sleep(700);
+        var dragged = WaitForEye(true, 2500);
         Shot("3-eye-drag");
-        if (Eye() == IntPtr.Zero) failures.Add("3-eye: no eye after dragging over Chinese text");
+        if (dragged == IntPtr.Zero) failures.Add("3-eye: no eye after dragging over Chinese text");
         Keys(VK_RIGHT);
-        Thread.Sleep(500);
-        if (Eye() != IntPtr.Zero) failures.Add("3-eye: a key press didn't hide the eye");
+        if (WaitForEye(false, 1500) != IntPtr.Zero) failures.Add("3-eye: a key press didn't hide the eye");
+    }
+
+    /// Waits up to `ms` for the eye to be showing (or gone): its window, or zero.
+    static IntPtr WaitForEye(bool showing, int ms)
+    {
+        var end = DateTime.Now.AddMilliseconds(ms);
+        IntPtr eye;
+        while ((eye = Eye()) != IntPtr.Zero != showing && DateTime.Now < end) Thread.Sleep(50);
+        return eye;
+    }
+
+    /// Whether an event after line `skip` of the log has `key` equal to `value`.
+    static bool LogHas(int skip, string name, string key, string value)
+    {
+        if (!File.Exists(log)) return false;
+        foreach (var line in File.ReadAllLines(log).Skip(skip))
+            if (JsonNode.Parse(line) is JsonObject e && (string?)e["event"] == name && e[key]?.ToJsonString() == value) return true;
+        return false;
+    }
+
+    /// Where the selection is in a window's document.
+    static System.Windows.Rect? SelectionIn(IntPtr hwnd)
+    {
+        try
+        {
+            foreach (AutomationElement e in AutomationElement.FromHandle(hwnd).FindAll(TreeScope.Subtree, Condition.TrueCondition))
+            {
+                if (!e.TryGetCurrentPattern(TextPattern.Pattern, out var p) || p is not TextPattern t) continue;
+                var rects = t.GetSelection().FirstOrDefault()?.GetBoundingRectangles();
+                if (rects is not { Length: > 0 }) continue;
+                var u = rects[0];
+                foreach (var x in rects.Skip(1)) u.Union(x);
+                return u;
+            }
+        }
+        catch { }
+        return null;
     }
 
     /// The eye's window, when one is showing.
@@ -472,6 +521,7 @@ static class Program
     [DllImport("user32.dll")] static extern bool SystemParametersInfo(uint action, uint param, out int value, uint flags);
     const uint SPI_GETCLIENTAREAANIMATION = 0x1042, SPI_SETCLIENTAREAANIMATION = 0x1043, SPIF_SENDCHANGE = 2;
     [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr h, out RECT r);
+    [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll")] static extern bool EnumWindows(EnumProc f, IntPtr p);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetWindowText(IntPtr h, StringBuilder sb, int n);
     [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr h);

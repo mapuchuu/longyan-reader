@@ -82,7 +82,7 @@ static class Program
     {
         if (!Core.Shared.IsReady) { CardWindow.Hint("Dictionary still loading…"); return; }
         selected ??= await SelectionReader.ReadByCopying();
-        if (selected == null) { CardWindow.Hint("Couldn't read that selection. Try Ctrl+Alt+L"); return; }
+        if (selected == null) { CardWindow.Hint("No Chinese text in the selection"); return; }
         Present(selected);
     }
 
@@ -115,12 +115,12 @@ static class Program
     {
         var menu = new Forms.ContextMenuStrip();
         // Clicking here would take the focus from the app with the selection, so the menu only says how.
-        menu.Items.Add(new Forms.ToolStripMenuItem("Select Chinese text, then press Ctrl+Alt+L") { Enabled = false });
+        menu.Items.Add(new Forms.ToolStripMenuItem("Select Chinese text, then click the eye or press Ctrl+Alt+L") { Enabled = false });
         modelItem = new Forms.ToolStripMenuItem("Reading model: checking…", null, (_, _) => ModelClicked());
         menu.Items.Add(modelItem);
         eyeItem = new Forms.ToolStripMenuItem("Show the eye when you select text", null, (_, _) => { Settings.ShowEye = !Settings.ShowEye; MenuChanged(); });
         menu.Items.Add(eyeItem);
-        eyeAppsItem = new Forms.ToolStripMenuItem("Show the eye in");
+        eyeAppsItem = new Forms.ToolStripMenuItem("Hide the eye in");
         menu.Items.Add(eyeAppsItem);
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add("Quit Longyan Reader", null, (_, _) => { tray!.Visible = false; Application.Current.Shutdown(); });
@@ -134,12 +134,12 @@ static class Program
     public static void MenuChanged()
     {
         if (eyeItem == null || eyeAppsItem == null) return;
-        if (!Settings.ShowEye) Chip.Hide();
+        Chip.Enable();
         eyeItem.Checked = Settings.ShowEye;
-        // Apps the eye was hidden in, each a click to bring it back.
+        // Apps the eye is hidden in, ticked (as the Mac's "Hide Eye In"): a click brings it back.
         eyeAppsItem.DropDownItems.Clear();
         foreach (var (process, name) in Settings.EyeHiddenApps)
-            eyeAppsItem.DropDownItems.Add(name, null, (_, _) => { Settings.ShowEyeIn(process); MenuChanged(); });
+            eyeAppsItem.DropDownItems.Add(new Forms.ToolStripMenuItem(name, null, (_, _) => { Settings.ShowEyeIn(process); MenuChanged(); }) { Checked = true });
         eyeAppsItem.Visible = Settings.ShowEye && eyeAppsItem.DropDownItems.Count > 0;
     }
 

@@ -147,12 +147,28 @@ public func ly_prepare(_ passage: UnsafePointer<CChar>, _ start: Int32, _ end: I
             guard wordPrep?.key != key, SenseChooser.canChoose, !senses.isEmpty,
                   GrammarWords.entry(context.word, in: context.passage, at: context.wordRange.lowerBound) == nil else { return }
             release(wordPrep?.task)
+            phrasePrep?.cancel()
+            phrasePrep = nil
             wordPrep = (key, Task { try await SenseChooser.choose(for: context, senses: senses) })
             return
         }
         if phrasePrep?.matches(selection) == true { return }
+        release(wordPrep?.task)
+        wordPrep = nil
         phrasePrep?.cancel()
         phrasePrep = PhrasePrep(selection, dict: dict)
+    }
+}
+
+/// Stops the work ly_prepare started, when the selection button went away without a click.
+/// Work an open card is using carries on.
+@_cdecl("ly_cancel_prepare")
+public func ly_cancel_prepare() {
+    onMain {
+        release(wordPrep?.task)
+        wordPrep = nil
+        phrasePrep?.cancel()
+        phrasePrep = nil
     }
 }
 

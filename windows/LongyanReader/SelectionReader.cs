@@ -20,29 +20,40 @@ static class SelectionReader
 
     public enum Found { Selection, NothingSelected, Unreadable }
 
+    /// What a probe found, the focused element's kind and where it is on screen (device pixels).
+    public sealed record Probed(Found Found, Selected? Selection, ControlType? Role = null, Rect? Area = null);
+
     public static Selected? ReadAutomation() => Probe().Selection;
+
+    static Task<Probed>? pending;
 
     /// UI Automation on a thread of its own, given up after `timeout`: an app that doesn't
     /// answer must not freeze ours (the Mac caps its Accessibility calls at 0.5 s the same way).
-    public static async Task<(Found Found, Selected? Selection)> ProbeAsync(int timeout = 500)
+    /// While an earlier probe is still stuck in a hung app, a new one doesn't pile up behind it.
+    public static async Task<Probed> ProbeAsync(int timeout = 500)
     {
-        var work = Task.Run(Probe);
-        return await Task.WhenAny(work, Task.Delay(timeout)) == work ? work.Result : (Found.Unreadable, null);
+        if (pending is { IsCompleted: false }) return new Probed(Found.Unreadable, null);
+        var work = pending = Task.Run(Probe);
+        return await Task.WhenAny(work, Task.Delay(timeout)) == work ? work.Result : new Probed(Found.Unreadable, null);
     }
 
     /// The focused element's selection; or that it has a text pattern and nothing is selected;
-    /// or that the app doesn't say (no text pattern, or no answer).
-    public static (Found Found, Selected? Selection) Probe()
+    /// or that the app doesn't say (no text pattern, or no answer). Never a password field's.
+    public static Probed Probe()
     {
         try
         {
             var element = AutomationElement.FocusedElement;
-            if (element == null) return (Found.Unreadable, null);
-            if (!element.TryGetCurrentPattern(TextPattern.Pattern, out var p) || p is not TextPattern text) return (Found.Unreadable, null);
+            if (element == null) return new Probed(Found.Unreadable, null);
+            var info = element.Current;
+            var role = info.ControlType;
+            Rect? area = info.BoundingRectangle is { IsEmpty: false } r0 ? r0 : null;
+            if (info.IsPassword) return new Probed(Found.NothingSelected, null, role, area);
+            if (!element.TryGetCurrentPattern(TextPattern.Pattern, out var p) || p is not TextPattern text) return new Probed(Found.Unreadable, null, role, area);
             var selection = text.GetSelection().FirstOrDefault();
-            if (selection == null) return (Found.NothingSelected, null);
+            if (selection == null) return new Probed(Found.NothingSelected, null, role, area);
             var selected = selection.GetText(-1);
-            if (string.IsNullOrEmpty(selected)) return (Found.NothingSelected, null);
+            if (string.IsNullOrEmpty(selected)) return new Probed(Found.NothingSelected, null, role, area);
 
             var wide = selection.Clone();
             wide.MoveEndpointByUnit(TextPatternRangeEndpoint.Start, TextUnit.Character, -Around);
@@ -64,11 +75,11 @@ static class SelectionReader
                 foreach (var x in rects.Skip(1)) r.Union(x);
                 bounds = r;
             }
-            return (Found.Selection, new Selected(passage, start, start + selected.Length, bounds));
+            return new Probed(Found.Selection, new Selected(passage, start, start + selected.Length, bounds), role, area);
         }
         catch (Exception)
         {
-            return (Found.Unreadable, null);   // the app went away or doesn't answer
+            return new Probed(Found.Unreadable, null);   // the app went away or doesn't answer
         }
     }
 
@@ -80,7 +91,7 @@ static class SelectionReader
         {
             var c = text[i];
             if (c is >= '\u3400' and <= '\u9FFF' or >= '\uF900' and <= '\uFAFF') return true;
-            if (char.IsHighSurrogate(c) && i + 1 < text.Length && char.ConvertToUtf32(c, text[i + 1]) is >= 0x20000 and <= 0x3134F) return true;
+            if (i + 1 < text.Length && char.IsSurrogatePair(c, text[i + 1]) && char.ConvertToUtf32(c, text[i + 1]) is >= 0x20000 and <= 0x3134F) return true;
         }
         return false;
     }
@@ -96,7 +107,7 @@ static class SelectionReader
         IDataObject? saved = null;
         try { saved = Clipboard.GetDataObject(); } catch { }
         var marker = "longyan-" + Guid.NewGuid();
-        try { Clipboard.SetText(marker); } catch { return null; }
+        try { Clipboard.SetDataObject(Private(marker), false); } catch { return null; }
         SendCopy();
         string? text = null;
         for (var i = 0; i < 20; i++)
@@ -105,9 +116,30 @@ static class SelectionReader
             try { text = Clipboard.ContainsText() ? Clipboard.GetText() : null; } catch { }
             if (text != null && text != marker) break;
         }
-        try { if (saved != null) Clipboard.SetDataObject(saved, true); else Clipboard.Clear(); } catch { }
+        try { if (saved != null) Clipboard.SetDataObject(Private(saved), true); else Clipboard.Clear(); } catch { }
         if (string.IsNullOrWhiteSpace(text) || text == marker) return null;
         return new Selected(text, 0, text.Length, null);
+    }
+
+    /// Clipboard contents marked to stay out of Win+V history and cloud clipboard sync, so the
+    /// marker and the put-back don't show up there. (The app's own copy of the selection can't
+    /// be marked: that one is the copied app's.)
+    static DataObject Private(object content)
+    {
+        var data = new DataObject();
+        if (content is string text) data.SetText(text);
+        else if (content is IDataObject saved)
+        {
+            foreach (var format in saved.GetFormats(false))
+            {
+                try { if (saved.GetData(format, false) is object value) data.SetData(format, value, false); } catch { }
+            }
+        }
+        var no = new System.IO.MemoryStream(BitConverter.GetBytes(0));
+        data.SetData("ExcludeClipboardContentFromMonitorProcessing", new System.IO.MemoryStream(new byte[] { 0 }), false);
+        data.SetData("CanIncludeInClipboardHistory", no, false);
+        data.SetData("CanUploadToCloudClipboard", new System.IO.MemoryStream(BitConverter.GetBytes(0)), false);
+        return data;
     }
 
     static bool Down(int vk) => (GetAsyncKeyState(vk) & 0x8000) != 0;
