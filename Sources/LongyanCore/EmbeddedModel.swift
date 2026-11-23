@@ -130,11 +130,10 @@ package final class EmbeddedModel: @unchecked Sendable {
     /// request's instructions is kept even when they're short, and made ahead of the first card
     /// (warmUp), and a prompt reuses the longest kept start it begins with. On the Mac's GPU those
     /// ~50 tokens take ~15 ms, so it keeps its own rule (only starts of 64 tokens or more).
-    #if os(Windows)
-    static let primesPrefixes = ProcessInfo.processInfo.environment["LONGYAN_PRIME"] != "0"
-    #else
+    /// Off by default for now: on the CPU, reading the instructions apart from the rest changes
+    /// the last digits of the numbers, and with them a near tie now and then (1 card in 4 in the
+    /// speed job). LONGYAN_PRIME=1 turns it on.
     static let primesPrefixes = ProcessInfo.processInfo.environment["LONGYAN_PRIME"] == "1"
-    #endif
 
     /// Reads in one system turn and keeps its state as a prefix. False when a request is waiting.
     private func prime(_ system: String) -> Bool {
@@ -187,7 +186,10 @@ package final class EmbeddedModel: @unchecked Sendable {
         // CPU side, outside the GPU's mapped range, which Metal keeps wired. Only the rows the input
         // looks up are then read; the kept output rows get a GPU copy of their own.
         let trim = Self.outputTokens != nil
-        let pattern = strdup("^(token_embd|output_norm)\\.weight$")
+        // With repacking on (LONGYAN_REPACK=1), the output table stays plain too: its kept rows are
+        // copied out of it, which a repacked buffer can't give back.
+        let repack = ProcessInfo.processInfo.environment["LONGYAN_REPACK"] == "1"
+        let pattern = strdup(repack ? "^(token_embd|output_norm|output)\\.weight$" : "^(token_embd|output_norm)\\.weight$")
         defer { releaseCString(pattern) }
         var overrides = [llama_model_tensor_buft_override(pattern: pattern, buft: ggml_backend_cpu_buffer_type()),
                          llama_model_tensor_buft_override(pattern: nil, buft: nil)]
@@ -220,9 +222,10 @@ package final class EmbeddedModel: @unchecked Sendable {
         cp.n_threads = Int32(max(1, min(8, ProcessInfo.processInfo.activeProcessorCount - 2)))
         cp.n_threads_batch = cp.n_threads
         #if os(Windows)
-        // On the CPU every thread counts: one per core (a second thread on a core's other
-        // hyperthread only waits for the first), the fast cores only on a chip that also has slow ones.
-        if let cores = Self.fastCores() { cp.n_threads = Int32(min(cores, 8)); cp.n_threads_batch = Int32(min(cores, 16)) }
+        // On the CPU every thread counts. All of the fast cores' threads, hyperthreads included
+        // (on CI's 2 cores, 4 threads write a reply 1.4x as fast as 2 and read a prompt as fast),
+        // and only the fast cores on a chip that also has slow ones. Same answers at any count.
+        if let n = Self.fastThreads() { cp.n_threads = Int32(min(n, 8)); cp.n_threads_batch = Int32(min(n, 16)) }
         #endif
         let env = ProcessInfo.processInfo.environment
         if let t = env["LONGYAN_THREADS"].flatMap(Int32.init) { cp.n_threads = t; cp.n_threads_batch = t }
@@ -237,7 +240,7 @@ package final class EmbeddedModel: @unchecked Sendable {
                 Date().timeIntervalSince(loadStarted) * 1000, modelMs, cp.n_threads, cp.n_threads_batch, cp.n_ubatch,
                 mp.use_extra_bufts ? "on" : "off", cp.flash_attn_type.rawValue, ProcessInfo.processInfo.activeProcessorCount).utf8))
             #if os(Windows)
-            FileHandle.standardError.write(Data("timing: \(Self.fastCores().map(String.init) ?? "?") fast cores\n".utf8))
+            FileHandle.standardError.write(Data("timing: \(Self.fastThreads().map(String.init) ?? "?") fast threads\n".utf8))
             #endif
         }
         model = m; ctx = c; vocab = llama_model_get_vocab(m)
@@ -694,24 +697,25 @@ private func releaseCString(_ p: UnsafeMutablePointer<CChar>?) {
 extension EmbeddedModel {
     nonisolated(unsafe) private static var backendLog = ""
 
-    /// The CPU's cores (not hyperthreads); on a chip with performance and efficiency cores,
-    /// the performance ones.
-    fileprivate static func fastCores() -> Int? {
+    /// The logical processors of the CPU's cores; on a chip with performance and efficiency
+    /// cores, of the performance ones.
+    fileprivate static func fastThreads() -> Int? {
         var length: DWORD = 0
         _ = GetLogicalProcessorInformationEx(RelationProcessorCore, nil, &length)
         guard length > 0 else { return nil }
         let buffer = UnsafeMutableRawPointer.allocate(byteCount: Int(length), alignment: 8)
         defer { buffer.deallocate() }
         guard GetLogicalProcessorInformationEx(RelationProcessorCore, buffer.assumingMemoryBound(to: SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX.self), &length) else { return nil }
-        var classes: [UInt8] = []
+        var cores: [(efficiency: UInt8, threads: Int)] = []
         var offset = 0
         while offset < Int(length) {
             let info = (buffer + offset).assumingMemoryBound(to: SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX.self)
-            classes.append(info.pointee.Processor.EfficiencyClass)
+            let mask = UInt64(info.pointee.Processor.GroupMask.Mask)
+            cores.append((info.pointee.Processor.EfficiencyClass, max(1, mask.nonzeroBitCount)))
             offset += Int(info.pointee.Size)
         }
-        guard let top = classes.max() else { return nil }
-        let n = classes.filter { $0 == top }.count
+        guard let top = cores.map(\.efficiency).max() else { return nil }
+        let n = cores.filter { $0.efficiency == top }.reduce(0) { $0 + $1.threads }
         return n > 0 ? n : nil
     }
 

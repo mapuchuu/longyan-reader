@@ -45,7 +45,12 @@ static class Icons
     /// A meaning with a note (text.bubble).
     public static readonly Icon Bubble = new(14.62, 12.62, U(S("M 3.88,1.25 H 10.75 A 2,2 0 0 1 12.75,3.25 V 6.9 A 2,2 0 0 1 10.75,8.9 H 6.2 L 3.9,11.3 V 8.9 H 3.88 A 2,2 0 0 1 1.88,6.9 V 3.25 A 2,2 0 0 1 3.88,1.25 Z", 1.0, PenLineCap.Round), S("M 4.4,3.6 H 10.2 M 4.4,5.1 H 10.2 M 4.4,6.6 H 8.4", 0.85, PenLineCap.Round)));
     /// Listen (speaker.wave.2).
-    public static readonly Icon Speaker = new(17.25, 12.62, U(S("M 2.4,4.3 H 4.4 L 7.2,1.65 V 10.97 L 4.4,8.3 H 2.4 Z", 1.15, PenLineCap.Round), S("M 9.8,4.3 A 2.37,2.37 0 0 1 9.8,8.3 M 12.9,2.3 A 5.16,5.16 0 0 1 12.9,10.3", 1.15, PenLineCap.Round)));
+    public static readonly Icon Speaker = new(17.25, 12.62, U(SpeakerBody, SpeakerWave1, SpeakerWave2));
+    /// Its parts, so the waves can light in turn while it speaks: the speaker, the inner wave, the outer wave.
+    public static Geometry SpeakerBody => speakerBody ??= S("M 2.4,4.3 H 4.4 L 7.2,1.65 V 10.97 L 4.4,8.3 H 2.4 Z", 1.15, PenLineCap.Round);
+    public static Geometry SpeakerWave1 => speakerWave1 ??= S("M 9.8,4.3 A 2.37,2.37 0 0 1 9.8,8.3", 1.15, PenLineCap.Round);
+    public static Geometry SpeakerWave2 => speakerWave2 ??= S("M 12.9,2.3 A 5.16,5.16 0 0 1 12.9,10.3", 1.15, PenLineCap.Round);
+    static Geometry? speakerBody, speakerWave1, speakerWave2;
     /// Copy (doc.on.doc): two pages with a folded corner.
     public static readonly Icon Copy = new(15.19, 17.06, S("M 3.25,5.0 H 7.3 L 10.0,7.7 V 14.25 A 1.2,1.2 0 0 1 8.8,15.45 H 3.25 A 1.2,1.2 0 0 1 2.05,14.25 V 6.2 A 1.2,1.2 0 0 1 3.25,5.0 Z M 7.3,5.15 V 7.7 H 9.85 M 5.2,4.6 V 2.8 A 1.2,1.2 0 0 1 6.4,1.6 H 10.4 L 13.14,4.35 V 10.3 A 1.2,1.2 0 0 1 11.94,11.5 H 10.6 M 10.4,1.75 V 4.35 H 13.0", 1.1, PenLineCap.Round));
     /// Pin (pin).
