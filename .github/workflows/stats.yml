@@ -1,7 +1,9 @@
-# Counts app downloads for the README badge: every zip of every release (the website's
-# LongyanReader.zip and the versioned zips Sparkle updates fetch). The appcast and the
-# site-media videos aren't counted. Writes downloads.json to the stats branch, which
-# shields.io reads as an endpoint badge. Runs hourly.
+# Counts app downloads for the README badge: every Mac zip of every release (the website's
+# LongyanReader.zip and the versioned zips Sparkle updates fetch) and every Windows installer
+# (LongyanReader-Setup-<version>-<arch>.exe, from the site and from WinSparkle updates),
+# betas included. The appcasts and the site-media videos aren't counted, and neither are
+# drafts. Writes downloads.json to the stats branch, which shields.io reads as an endpoint
+# badge. Runs hourly.
 name: Download stats
 
 on:
@@ -24,7 +26,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           total=$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
-            --jq '.[] | select(.prerelease | not) | .assets[] | select(.name | endswith(".zip")) | .download_count' \
+            --jq '.[] | select(.draft | not) | .prerelease as $pre | .assets[]
+              | select(((.name | endswith(".zip")) and ($pre | not)) or (.name | test("^LongyanReader-Setup-.+\\.exe$")))
+              | .download_count' \
             | awk '{s += $1} END {print s + 0}')
           echo "downloads: $total"
           mkdir out && cd out

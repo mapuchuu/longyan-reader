@@ -9,6 +9,8 @@
 <p align="center">
   <a href="https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip"><b>Download for Mac</b></a>
   &nbsp;·&nbsp;
+  <a href="#windows"><b>Windows</b></a>
+  &nbsp;·&nbsp;
   <a href="https://longyan.app">Try it in your browser</a>
 </p>
 
@@ -98,6 +100,56 @@ Meanings and translations come from Qwen 3.5 4B (Apache 2.0), running through ll
 
 Without the model you still get the dictionary, pinyin and notes, with meanings in dictionary order. On macOS 26 with Apple Intelligence turned on, Apple's model picks meanings and translates phrases instead, less accurately.
 
+## Windows
+
+<!-- DRAFT (win/launch-docs). Before merging: pick variant A or B under step 2 and delete the
+     other, fill in every [bracketed] value from the release build, and set the version in the
+     download links. Nothing here is live yet. -->
+
+Longyan Reader for Windows has the same cards, dictionary, notes and reading model as the Mac app. It sits in the notification area, and **Ctrl+Alt+L** does what ⌃⌥L does on a Mac.
+
+### What you need
+
+- Windows 10 or 11, 64-bit, on an x64 PC or an ARM64 one (Snapdragon X and other Windows on Arm PCs). Each has its own installer.
+- On x64, a processor with AVX2, which most Intel Core and AMD Ryzen processors have; many Celeron and Pentium chips don't. Without it the app still works, with meanings in dictionary order and no translations.
+- 8 GB of memory.
+- About 3 GB of free space: 2.7 GB for the reading model and [installed size] for the app.
+
+The model runs on the processor, not the graphics card, so cards take longer than on a Mac: [typical time for a word card and a phrase, from the beta].
+
+### Install
+
+1. Download the installer for your PC: [x64](https://github.com/mapuchuu/longyan-reader/releases/download/windows-v1.0.0/LongyanReader-Setup-1.0.0-x64.exe) or [ARM64](https://github.com/mapuchuu/longyan-reader/releases/download/windows-v1.0.0/LongyanReader-Setup-1.0.0-arm64.exe). Not sure which? Settings > System > About shows it under System type.
+2. Open it. It installs for your account only, so it doesn't ask for an administrator.
+
+   **[Variant A: the installer is signed. Use this one once the certificate is in place.]**
+
+   The installer and the app are signed by [publisher name on the certificate]. If Windows shows "Windows protected your PC", which can happen for a while after a new release, check that the publisher says [publisher name], then click **More info** and **Run anyway**.
+
+   **[Variant B: the installer isn't signed. Use this one only for a build without the certificate.]**
+
+   The installer isn't signed yet, so Windows shows "Windows protected your PC" with an unknown publisher. Click **More info**, then **Run anyway**. Your browser may also say the file isn't commonly downloaded; choose **Keep**. If Smart App Control is on (Windows 11), it blocks unsigned apps and has no way past it, so wait for a signed release.
+
+3. The welcome window offers the reading model (2.7 GB). Download it, or get it later from the Longyan Reader icon in the notification area.
+4. Select some Chinese in any app and click the eye, or press Ctrl+Alt+L.
+
+Windows doesn't ask for any permission to read the selection. The app opens when you sign in unless you turn that off in the welcome window or in Settings. It checks for updates once a day after you agree to it, and installs them when you say so.
+
+### Using it on Windows
+
+It works as on the Mac. Right-click the icon in the notification area for Lookup history, Settings, Report a problem and Exit; double-click it for Settings. You can change the shortcut in Settings. Ctrl and the mouse wheel make a card's text bigger or smaller.
+
+Some things differ:
+
+- Without the reading model, cards list meanings in dictionary order. There's no Apple Intelligence to fall back on, and the app doesn't use Ollama.
+- Words are split by a splitter of the app's own, trained to split as the Mac does. Cards come out the same on about 99 sentences in 100.
+- Listen needs a Chinese voice. If there isn't one, the card says how to add it (Settings > Time & language > Speech).
+- In apps that don't share the selection, the app copies it with Ctrl+C and puts your clipboard back.
+
+Your history, settings and the model are in `%LOCALAPPDATA%\LongyanReader`. The app keeps a log in its `logs` folder with timings and errors, never the text you look up. It goes online for the same three things as on the Mac: the model download, update checks, and Report a problem, which opens a pre-filled GitHub issue in your browser and sends nothing until you submit it.
+
+To uninstall, go to Settings > Apps > Installed apps, find Longyan Reader and choose **Uninstall**. It asks whether to delete your history, settings and the model too; by default they stay.
+
 ## Privacy
 
 Nothing you look up is ever sent anywhere. The app goes online for three things only: downloading the reading model when you ask (a plain file from hf-mirror.com, or huggingface.co if that fails, checked against its SHA-256), checking GitHub for updates once you've agreed to it (nothing about your Mac is sent), and Report a Problem, which opens a pre-filled GitHub issue in your browser and sends nothing until you submit it. Add to Anki talks only to Anki on your own Mac.
@@ -121,7 +173,7 @@ The dictionary ships compiled into a sorted binary file that's searched in place
 <details>
 <summary><b>Does it work on Intel Macs, Windows or iPhone?</b></summary>
 
-No. It needs a Mac with Apple silicon and macOS 15 or later, which is what lets the model run this fast.
+Not on Intel Macs or iPhone. The Mac app needs Apple silicon and macOS 15 or later, which is what lets the model run this fast. There is a [Windows version](#windows) for Windows 10 and 11.
 </details>
 
 <details>
