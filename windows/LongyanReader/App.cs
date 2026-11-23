@@ -55,6 +55,7 @@ static class Program
         {
             modelStatus = status;
             UpdateMenu();
+            Application.Current.Dispatcher.BeginInvoke(CardWindow.Warm, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
             if (status != "ready" && !ModelDownload.IsDownloaded) Balloon("Longyan Reader is ready. Download the reading model from this icon's menu to pick meanings and translate.");
             else Balloon("Longyan Reader is ready. Select Chinese text in any app and press Ctrl+Alt+L.");
         };

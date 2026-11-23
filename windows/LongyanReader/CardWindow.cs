@@ -84,6 +84,24 @@ sealed class CardWindow : Window, ICardActions
         old?.Dismiss();
     }
 
+    /// Draws one card out of sight at launch, so the first real card doesn't pay for WPF's first
+    /// window, the fonts and the first compile: 0.9 s to the first card on the CI desktop,
+    /// against 0.2 s for later ones.
+    public static void Warm()
+    {
+        const string sample = """
+            {"kind":"word","word":"中华","copy":"中华","meaning":"China","contextual":false,"note":null,
+             "pinyin":[{"text":"Zhōng","tone":1},{"text":"huá","tone":2}],
+             "senses":[{"chosen":true,"dimmed":false,"gloss":"China","hasNote":false,"index":0,"number":1,"tip":"China"}]}
+            """;
+        if (JsonNode.Parse(sample) is not JsonObject json) return;
+        var w = new CardWindow(null, false) { Left = -30000, Top = -30000, Width = 400, Height = 300 };
+        w.view.Show(json, animate: false);
+        w.Show();
+        w.UpdateLayout();
+        w.Dispatcher.BeginInvoke(() => w.Close(), DispatcherPriority.ApplicationIdle);
+    }
+
     public static void Hint(string message)
     {
         if (pinned && current != null && !current.isHint)
