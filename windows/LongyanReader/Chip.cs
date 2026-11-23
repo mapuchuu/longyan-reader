@@ -69,7 +69,7 @@ static class Chip
         {
             try
             {
-                var w = new ChipWindow(null, "", "") { Left = -32000, Top = -32000, ShowInTaskbar = false };
+                var w = new ChipWindow("", "") { Left = -32000, Top = -32000, ShowInTaskbar = false };
                 w.Show();
                 w.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () => w.Close());
             }
@@ -102,9 +102,23 @@ static class Chip
         var sinceUp = System.Diagnostics.Stopwatch.StartNew();
         lag = (long)System.Diagnostics.Stopwatch.GetElapsedTime(InputWatch.LastUp).TotalMilliseconds;
         var mine = ++generation;
-        // Give the app a moment to update its selection.
-        await Task.Delay(120);
-        if (mine != generation) return;
+        // Give the app a moment to update its selection, and build the eye's window meanwhile:
+        // its handle cost 30 to 60 ms after the read, on top of the Mac's 0.12 s.
+        var settle = Task.Delay(120);
+        var spare = new ChipWindow(app.Process, app.Path);
+        try
+        {
+            spare.Ready();
+            await settle;
+            if (mine != generation) return;
+            await Read(up, clicks, dragged, app, mine, sinceUp, spare);
+        }
+        finally { if (!spare.Used) spare.Close(); }
+    }
+
+    static async Task Read(InputWatch.POINT up, int clicks, bool dragged, ForegroundApp app, int mine, System.Diagnostics.Stopwatch sinceUp, ChipWindow spare)
+    {
+        static void Skip(string why) => Core.Log($"{{\"event\":\"eye-skip\",\"why\":\"{why}\"}}");
         var clock = System.Diagnostics.Stopwatch.StartNew();
         var probed = await SelectionReader.ProbeAsync();
         if (mine != generation) { Skip("a press, key or scroll came while reading"); return; }
@@ -116,7 +130,7 @@ static class Chip
                 // A position far from where the mouse let go isn't where the selection is.
                 // Nor is an empty one (the Mac's SelectionReader.checked).
                 var near = selection.Bounds is Rect b && b.Width >= 1 && b.Height >= 1 && Inflate(b, 160 * ScaleAt(up)).Contains(new Point(up.X, up.Y));
-                Show(up, near ? selection : selection with { Bounds = null }, app, sinceUp);
+                Show(up, near ? selection : selection with { Bounds = null }, app, sinceUp, spare);
                 break;
             case SelectionReader.Found.Unreadable:
                 // The app won't say what's selected: offer the eye and copy on a click. Only for a
@@ -126,18 +140,20 @@ static class Chip
                 // administrator), as the Mac skips lists, rows, buttons and windows.
                 if (clicks < 2 || !app.MayBeText || !MayBeText(probed.Role)) return;
                 if (probed.Area is Rect area && !area.Contains(new Point(up.X, up.Y))) return;
-                Show(up, null, app, sinceUp);
+                Show(up, null, app, sinceUp, spare);
                 break;
         }
     }
 
-    static void Show(InputWatch.POINT up, Selected? selection, ForegroundApp app, System.Diagnostics.Stopwatch? sinceUp = null)
+    static void Show(InputWatch.POINT up, Selected? selection, ForegroundApp app, System.Diagnostics.Stopwatch? sinceUp = null, ChipWindow? spare = null)
     {
         var steps = System.Diagnostics.Stopwatch.StartNew();
         Hide();
         Bridge.ly_warm_up();
         var warmMs = steps.ElapsedMilliseconds;
-        var w = new ChipWindow(selection, app.Process, app.Path);
+        var w = spare ?? new ChipWindow(app.Process, app.Path);
+        w.Selection = selection;
+        w.Used = true;
         var buildMs = steps.ElapsedMilliseconds - warmMs;
         // One line: where its highlight ends and its text's ink is, as drawn (see Drawn).
         var drawnClock = System.Diagnostics.Stopwatch.StartNew();
@@ -226,7 +242,9 @@ sealed class ChipWindow : Window
     /// The mark's frame is 13 on the Mac, its eye 12 wide on screen; 12.6 here drew it 11.5.
     const double Mark = 13;
 
-    public readonly Selected? Selection;
+    public Selected? Selection;
+    /// Shown (or about to be): a window built ahead that wasn't is closed unseen.
+    public bool Used;
     readonly string process, path;
     /// Whether the card's work was started for this eye (see Chip.Prepare).
     public bool Prepared;
@@ -241,9 +259,8 @@ sealed class ChipWindow : Window
 
     static readonly ImageBrush markBrush = MakeMark();
 
-    public ChipWindow(Selected? selection, string process, string path)
+    public ChipWindow(string process, string path)
     {
-        Selection = selection;
         this.process = process;
         this.path = path;
         Title = "Longyan eye";
@@ -386,6 +403,9 @@ sealed class ChipWindow : Window
         // Windows moves a window that changes screens; this one stays where it was put.
         if (hwnd != IntPtr.Zero) SetWindowPos(hwnd, HWND_TOPMOST, left, top, (int)Math.Round(Box * newDpi.DpiScaleX), (int)Math.Round(Box * newDpi.DpiScaleY), SWP_NOACTIVATE);
     }
+
+    /// Its handle made now, off screen and unseen, so showing it later costs less.
+    public void Ready() => hwnd = new WindowInteropHelper(this).EnsureHandle();
 
     /// True when `p` (device pixels) is on the eye's window.
     public bool Contains(InputWatch.POINT p) => !leaving && p.X >= left && p.Y >= top && p.X < left + Box * s && p.Y < top + Box * s;
