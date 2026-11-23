@@ -17,6 +17,20 @@ struct Check {
         // rules run the same everywhere. The apps use the system's word splitter (see Platform).
         Platform.wordBreaker = OneCharacterBreaker()
 
+        // --parts-of-speech TABLE: TABLE is the Mac app's --gloss-table output; prints the
+        // definitions whose part of speech differs without an English tagger, with the Mac's
+        // ("-" for none), for Resources/parts-of-speech.tsv (scripts/parts-of-speech.sh).
+        if let i = args.firstIndex(of: "--parts-of-speech"), args.indices.contains(i + 1) {
+            let text = (try? String(contentsOfFile: args[i + 1], encoding: .utf8)) ?? ""
+            for line in text.split(whereSeparator: \.isNewline) {
+                let p = line.split(separator: "\t", omittingEmptySubsequences: false)
+                guard p.count == 5 else { continue }
+                let mac = String(p[4])
+                if (PartOfSpeech.guess(String(p[0]))?.rawValue ?? "-") != mac { print("\(p[0])\t\(mac)") }
+            }
+            return
+        }
+
         // llama links: the backend starts and the patch's function is there.
         llama_backend_init()
         let patched: @convention(c) (OpaquePointer?, UnsafePointer<llama_token>?, Int32) -> Bool = llama_model_set_output_tokens

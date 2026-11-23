@@ -7,7 +7,7 @@ import Foundation
 package enum Translator {
     package static func translate(_ text: String) async throws -> String {
         guard let translator = Platform.translator else {
-            throw NSError(domain: "LongyanReader", code: 8, userInfo: [NSLocalizedDescriptionKey: "no translator on this system"])
+            throw NSError(domain: "LongyanReader", code: 8, userInfo: [NSLocalizedDescriptionKey: "download the reading model to translate"])
         }
         return try await translator.translate(text)
     }

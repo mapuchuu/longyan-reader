@@ -1,0 +1,113 @@
+# Builds the Windows app: the shared core as LongyanBridge.dll, the C# app around it, and a
+# folder with everything it needs (the Swift and C++ runtimes, Resources), uploaded as the
+# LongyanReader-windows artifact to try on a Windows PC or VM. Before that, the bridge check
+# runs the lookups in scripts/bridge-check.txt from C# and compares the cards with the Mac's
+# (scripts/bridge-check-expected.txt, from scripts/bridge-check.sh --update).
+name: windows
+
+on:
+  push:
+    branches: [shared-core]
+    paths:
+      - Package.swift
+      - Sources/LongyanCore/**
+      - Sources/LongyanBridge/**
+      - Sources/LlamaSystem/**
+      - Resources/**
+      - patches/**
+      - windows/**
+      - scripts/bridge-check*
+      - scripts/stage-windows-resources.sh
+      - .github/workflows/windows.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  LLAMA_TAG: b11588
+  LLAMA_TAR_SHA: 37588f85e252f1b8753dcb200fba7198dc93e4f1b1615f459abffbe5662ac85d
+  # The same key as core.yml's, so the two share the built llama.cpp.
+  LLAMA_CACHE: v1
+  PYTHONIOENCODING: utf-8
+
+jobs:
+  app:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - run: git config --global core.autocrlf false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: compnerd/gha-setup-swift@9ff1ee4c44888c5817fc14d1b257ac8cabb4935f # v0.5.1
+        with:
+          swift-version: swift-6.3.3-release
+          swift-build: 6.3.3-RELEASE
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: llama
+        with:
+          path: Vendor/llama
+          key: llama-${{ env.LLAMA_TAG }}-windows-${{ env.LLAMA_CACHE }}-${{ hashFiles('patches/llama.cpp-output-tokens.patch', 'patches/llama.cpp-windows.patch') }}
+      - name: Build llama.cpp (CPU, static)
+        if: steps.llama.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          T="$RUNNER_TEMP/llama"; mkdir -p "$T/src"
+          curl -fsSL -o "$T/src.tar.gz" "https://github.com/ggml-org/llama.cpp/archive/refs/tags/$LLAMA_TAG.tar.gz"
+          echo "$LLAMA_TAR_SHA  $T/src.tar.gz" | sha256sum -c
+          (cd "$T" && tar -xzf src.tar.gz -C src --strip-components 1)
+          (cd "$T/src" && git apply -p1 "$GITHUB_WORKSPACE/patches/llama.cpp-output-tokens.patch" \
+                       && git apply -p1 "$GITHUB_WORKSPACE/patches/llama.cpp-windows.patch")
+          cmake -S "$T/src" -B "$T/build" -A x64 -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_LIBDIR=lib \
+            -DLLAMA_BUILD_APP=OFF -DLLAMA_BUILD_COMMON=OFF -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TOOLS=OFF \
+            -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_SERVER=OFF -DLLAMA_BUILD_MTMD=OFF -DLLAMA_OPENSSL=OFF -DLLAMA_CURL=OFF \
+            -DGGML_NATIVE=OFF -DGGML_OPENMP=OFF
+          cmake --build "$T/build" --config Release -j 4
+          cmake --install "$T/build" --config Release --prefix Vendor/llama
+      - run: swift build -c release --product LongyanBridge
+      - name: Stage the app folder
+        run: |
+          set -euo pipefail
+          out=dist/LongyanReader
+          mkdir -p "$out"
+          ls .build/release/*.dll
+          cp .build/release/LongyanBridge.dll "$out/"
+          # The Swift runtime: the folder that holds swiftCore.dll on this runner.
+          rt=$(cygpath -u "$(where.exe swiftCore.dll | head -1 | tr -d '\r')")
+          echo "Swift runtime: $(dirname "$rt")"
+          cp "$(dirname "$rt")"/*.dll "$out/"
+          # The C++ runtime, which a fresh Windows may not have yet.
+          for f in vcruntime140.dll vcruntime140_1.dll msvcp140.dll; do cp "/c/Windows/System32/$f" "$out/"; done
+          scripts/stage-windows-resources.sh "$out/Resources"
+          cp LICENSE "$out/LICENSE.txt"
+          mkdir -p "$out/Licenses"
+          cp Resources/licenses/llama.cpp-LICENSE.txt "$out/Licenses/llama.cpp.txt"
+          { sed -n '/^#/p;/^[^#]/q' Resources/cedict_ts.u8; } > "$out/Licenses/CC-CEDICT.txt"
+          du -sh "$out"
+      - name: Bridge check
+        run: |
+          set -euo pipefail
+          dotnet --list-sdks
+          dotnet build windows/BridgeCheck -c Release -o check-bin
+          cp dist/LongyanReader/*.dll check-bin/
+          check-bin/BridgeCheck.exe dist/LongyanReader/Resources scripts/bridge-check.txt > bridge-raw.txt
+          python scripts/bridge-normalize.py < bridge-raw.txt > bridge-windows.txt
+          diff -u --strip-trailing-cr scripts/bridge-check-expected.txt bridge-windows.txt
+      - name: Build the app
+        run: |
+          set -euo pipefail
+          dotnet publish windows/LongyanReader -c Release -o publish
+          cp -r publish/* dist/LongyanReader/
+          ls dist/LongyanReader | head -50
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bridge-check-windows
+          path: |
+            bridge-raw.txt
+            bridge-windows.txt
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: LongyanReader-windows
+          path: dist

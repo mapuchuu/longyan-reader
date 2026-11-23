@@ -90,7 +90,7 @@ package extension Selection {
     }
 
     /// Whether the selection is all there is (copied text, the ⌘C fallback): no sentence around it.
-    var isAlone: Bool {
+    package var isAlone: Bool {
         !passage.indices.contains { !range.contains($0) && (isCJK(passage[$0]) || passage[$0].isLetter) }
     }
 }

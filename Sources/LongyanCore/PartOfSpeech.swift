@@ -20,9 +20,25 @@ package enum PartOfSpeech: String {
 
     @MainActor private static var known: [String: PartOfSpeech?] = [:]
 
+    /// Without an English tagger: the Mac's answers for the definitions where they differ from
+    /// `guess` without one (scripts/parts-of-speech.sh), so both apps label every meaning alike.
+    nonisolated(unsafe) package static var table: [String: PartOfSpeech?] = [:]
+
+    /// Reads a table written by scripts/parts-of-speech.sh: definition, tab, part of speech or "-".
+    package static func loadTable(_ url: URL) {
+        guard let text = try? String(contentsOf: url, encoding: .utf8) else { return }
+        var t: [String: PartOfSpeech?] = [:]
+        for line in text.split(whereSeparator: \.isNewline) {
+            let p = line.split(separator: "\t", omittingEmptySubsequences: false)
+            guard p.count == 2 else { continue }
+            t[String(p[0])] = PartOfSpeech(rawValue: String(p[1]))
+        }
+        table = t
+    }
+
     @MainActor package static func of(_ gloss: String) -> PartOfSpeech? {
         if let hit = known[gloss] { return hit }
-        let found = guess(gloss)
+        let found = Platform.englishTagger == nil ? (table[gloss] ?? guess(gloss)) : guess(gloss)
         known[gloss] = found
         return found
     }

@@ -43,8 +43,12 @@ package enum LocalModel {
         get { lock.withLock { _lastCheck } }
         set { lock.withLock { _lastCheck = newValue } }
     }
+    /// False where the app runs only its own copy of the model (Windows): no Ollama.
+    nonisolated(unsafe) package static var ollamaAllowed = true
+
     package static func isAvailable() async -> Bool {
         guard enabled else { return false }
+        if backend == .ollama && !ollamaAllowed { lastCheck = (Date(), false); return false }
         if backend == .embedded {
             let ok = !EmbeddedModel.fileUnloadable
             lastCheck = (Date(), ok); return ok
@@ -73,6 +77,7 @@ package enum LocalModel {
     package static func warmUp() {
         guard enabled else { return }
         if backend == .embedded { EmbeddedModel.shared.warmUp(); return }
+        guard ollamaAllowed else { return }
         let due = lock.withLock {
             if let last = _lastWarmUp, Date().timeIntervalSince(last) < 60 { return false }
             _lastWarmUp = Date()

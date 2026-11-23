@@ -17,8 +17,11 @@ package final class EmbeddedModel: @unchecked Sendable {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("LongyanReader/models")
     }
+    /// Set by an app that keeps the model somewhere of its own (the Windows app).
+    nonisolated(unsafe) package static var pathOverride: String?
     package static var modelPath: String? {
         if let p = ProcessInfo.processInfo.environment["LONGYAN_GGUF"] { return p }
+        if let p = pathOverride { return FileManager.default.fileExists(atPath: p) ? p : nil }
         let candidates = [
             modelsDirectory.appendingPathComponent(fileName).path,
             NSHomeDirectory() + "/.ollama/models/blobs/sha256-00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4",

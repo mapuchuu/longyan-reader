@@ -10,10 +10,25 @@ let coreCheck: Target = .executableTarget(
     swiftSettings: [.swiftLanguageMode(.v5)]
 )
 
+// A C interface over the core, as a DLL, for the Windows app (windows/LongyanReader). Builds on
+// the Mac too, to test it against the same model.
+let bridge: Target = .target(
+    name: "LongyanBridge",
+    dependencies: ["LongyanCore"],
+    path: "Sources/LongyanBridge",
+    swiftSettings: [.swiftLanguageMode(.v5)]
+)
+let bridgeProduct: Product = .library(name: "LongyanBridge", type: .dynamic, targets: ["LongyanBridge"])
+
 #if os(macOS)
 let package = Package(
     name: "LongyanReader",
     platforms: [.macOS(.v15)],
+    products: [
+        .executable(name: "LongyanReader", targets: ["LongyanReader"]),
+        .executable(name: "longyan-core-check", targets: ["longyan-core-check"]),
+        bridgeProduct,
+    ],
     targets: [
         // Everything that decides what a card says: the dictionary, segmenter, notes, model
         // prompts and their fallbacks. Plain Swift and Foundation, so every platform's app
@@ -33,6 +48,7 @@ let package = Package(
             linkerSettings: [.unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"])]
         ),
         coreCheck,
+        bridge,
         // llama.cpp (MIT): release b11588 with patches/llama.cpp-output-tokens.patch, built by
         // scripts/build-llama.sh.
         .binaryTarget(name: "llama", path: "Vendor/llama.xcframework"),
@@ -49,6 +65,10 @@ let package = Package(
 // CPU only) is built as static libraries into Vendor/llama/{include,lib}, as the workflow does.
 let package = Package(
     name: "LongyanReader",
+    products: [
+        .executable(name: "longyan-core-check", targets: ["longyan-core-check"]),
+        bridgeProduct,
+    ],
     targets: [
         .target(
             name: "LongyanCore",
@@ -62,6 +82,7 @@ let package = Package(
             ]
         ),
         coreCheck,
+        bridge,
         // llama.h as the module `llama`, which the Mac gets from its framework.
         .systemLibrary(name: "llama", path: "Sources/LlamaSystem"),
     ]
