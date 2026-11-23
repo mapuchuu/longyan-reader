@@ -132,6 +132,10 @@ package final class EmbeddedModel: @unchecked Sendable {
         }
         var mp = llama_model_default_params()
         mp.n_gpu_layers = 99
+        #if os(Windows)
+        // Exit (shutdown()) during a first load stops it instead of waiting for the whole file.
+        mp.progress_callback = { _, _ in !EmbeddedModel.exiting.isSet }
+        #endif
         // Trimmed, the full word table (and the small norm just before it in the file) loads on the
         // CPU side, outside the GPU's mapped range, which Metal keeps wired. Only the rows the input
         // looks up are then read; the kept output rows get a GPU copy of their own.
@@ -148,6 +152,7 @@ package final class EmbeddedModel: @unchecked Sendable {
             return llama_model_load_from_file(path, mp)
         }
         guard let m = loaded else {
+            if Self.exiting.isSet { throw CancellationError() }
             Self.brokenFlag.set()
             loadError = Self.error("couldn't load \(path)"); throw loadError!
         }

@@ -24,7 +24,7 @@ env:
   # GitHub's archive of the tag (the Mac's build-llama.sh fetches the same file).
   LLAMA_TAR_SHA: 37588f85e252f1b8753dcb200fba7198dc93e4f1b1615f459abffbe5662ac85d
   # Bump to rebuild llama.cpp when the build flags change.
-  LLAMA_CACHE: v2
+  LLAMA_CACHE: v3
 
 jobs:
   windows:
@@ -66,6 +66,17 @@ jobs:
             -DGGML_NATIVE=OFF -DGGML_OPENMP=OFF
           cmake --build "$T/build" --config Release -j 4
           cmake --install "$T/build" --config Release --prefix Vendor/llama
+          # llama.cpp's simplest example, to run the model without the app (windows.yml's sse42 job).
+          L=$(cygpath -m "$PWD/Vendor/llama"); S=$(cygpath -m "$T/src")
+          mkdir -p "$T/simple"
+          printf '%s\n' 'cmake_minimum_required(VERSION 3.20)' 'project(simple CXX)' \
+            "add_executable(llama-simple $S/examples/simple/simple.cpp)" \
+            "target_include_directories(llama-simple PRIVATE $L/include)" \
+            "target_link_libraries(llama-simple PRIVATE $L/lib/llama.lib $L/lib/ggml.lib $L/lib/ggml-base.lib)" \
+            'target_compile_features(llama-simple PRIVATE cxx_std_17)' > "$T/simple/CMakeLists.txt"
+          cmake -S "$T/simple" -B "$T/simple/build" -A x64
+          cmake --build "$T/simple/build" --config Release
+          mkdir -p Vendor/llama/tools; cp "$T/simple/build/Release/llama-simple.exe" Vendor/llama/tools/
           ls Vendor/llama/include Vendor/llama/lib Vendor/llama/bin || true
       - run: swift build -c release --product longyan-core-check
       - name: Run the check

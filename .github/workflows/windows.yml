@@ -28,7 +28,7 @@ env:
   LLAMA_TAG: b11588
   LLAMA_TAR_SHA: 37588f85e252f1b8753dcb200fba7198dc93e4f1b1615f459abffbe5662ac85d
   # The same key as core.yml's, so the two share the built llama.cpp.
-  LLAMA_CACHE: v2
+  LLAMA_CACHE: v3
   PYTHONIOENCODING: utf-8
 
 jobs:
@@ -69,6 +69,17 @@ jobs:
             -DGGML_NATIVE=OFF -DGGML_OPENMP=OFF
           cmake --build "$T/build" --config Release -j 4
           cmake --install "$T/build" --config Release --prefix Vendor/llama
+          # llama.cpp's simplest example, to run the model without the app (windows.yml's sse42 job).
+          L=$(cygpath -m "$PWD/Vendor/llama"); S=$(cygpath -m "$T/src")
+          mkdir -p "$T/simple"
+          printf '%s\n' 'cmake_minimum_required(VERSION 3.20)' 'project(simple CXX)' \
+            "add_executable(llama-simple $S/examples/simple/simple.cpp)" \
+            "target_include_directories(llama-simple PRIVATE $L/include)" \
+            "target_link_libraries(llama-simple PRIVATE $L/lib/llama.lib $L/lib/ggml.lib $L/lib/ggml-base.lib)" \
+            'target_compile_features(llama-simple PRIVATE cxx_std_17)' > "$T/simple/CMakeLists.txt"
+          cmake -S "$T/simple" -B "$T/simple/build" -A x64
+          cmake --build "$T/simple/build" --config Release
+          mkdir -p Vendor/llama/tools; cp "$T/simple/build/Release/llama-simple.exe" Vendor/llama/tools/
       - run: swift build -c release --product LongyanBridge
       - name: Stage the app folder
         run: |
@@ -121,18 +132,16 @@ jobs:
         with:
           name: LongyanReader-windows
           path: dist
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: llama-simple
+          path: Vendor/llama/tools/llama-simple.exe
 
   # The app on a real desktop, with the reading model: Notepad, a selection, Ctrl+Alt+L, then
-  # screenshots and the card's text as UI Automation reads it. Twice: with the CPU kernels ggml
-  # picks for this runner, and with the SSE 4.2 ones (LONGYAN_CPU=sse42), which CPUs without AVX
-  # use (Celeron, Pentium Silver, Atom).
+  # screenshots and the card's text as UI Automation reads it.
   ui:
     needs: app
     runs-on: windows-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        cpu: [best, sse42]
     defaults:
       run:
         shell: bash
@@ -159,20 +168,56 @@ jobs:
           echo "00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4  $MODELS/qwen3.5-4b-q4_k_m.gguf" | sha256sum -c
       - run: dotnet build windows/UiCheck -c Release -o uicheck
       - name: Use the app
-        env:
-          LONGYAN_CPU: ${{ matrix.cpu != 'best' && matrix.cpu || '' }}
         run: |
+          # The app adds a line there saying which CPU kernels ggml loaded.
           export LONGYAN_BACKEND_LOG="$(cygpath -w "$PWD/backend.txt")"
           uicheck/UiCheck.exe "$(cygpath -w "$PWD/dist/LongyanReader/LongyanReader.exe")" ui-out
       - name: CPU kernels used
         if: always()
-        run: |
-          cat backend.txt || echo "no backend line: the model didn't load"
-          cp backend.txt ui-out/ 2>/dev/null || true
-          if [ -n "${{ matrix.cpu != 'best' && matrix.cpu || '' }}" ]; then grep -q "ggml-cpu-${{ matrix.cpu }}.dll" backend.txt; fi
+        run: cat backend.txt || echo "no backend line, so the model didn't load"
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: ui-check${{ matrix.cpu != 'best' && format('-{0}', matrix.cpu) || '' }}
+          name: ui-check
           path: ui-out
+
+  # The kernels a CPU without AVX gets (Celeron, Pentium Silver, Atom): the model on
+  # ggml-cpu-sse42.dll alone, then on the ones ggml picks here, for the speed. llama.cpp has no
+  # SSE code for the model's Q4_K and Q6_K weights, so this is slow: too slow for the UI check's
+  # three minutes a card, so llama-simple writes a few tokens instead.
+  sse42:
+    needs: app
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: LongyanReader-windows
+          path: dist
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: llama-simple
+          path: tool
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/AppData/Local/LongyanReader/models
+          key: model-qwen3.5-4b-q4_k_m-00fe7986
+          fail-on-cache-miss: true
+      - name: SSE 4.2 kernels only
+        run: |
+          set -euo pipefail
+          m="$(cygpath -w "$LOCALAPPDATA/LongyanReader/models/qwen3.5-4b-q4_k_m.gguf")"
+          for v in sse42 all; do
+            d=run-$v; mkdir -p $d
+            cp tool/llama-simple.exe dist/LongyanReader/{llama,ggml,ggml-base,vcruntime140,vcruntime140_1,msvcp140}.dll $d/
+            if [ $v = sse42 ]; then cp dist/LongyanReader/ggml-cpu-sse42.dll $d/; else cp dist/LongyanReader/ggml-cpu-*.dll $d/; fi
+            echo "== $v: $(ls $d | grep ggml-cpu | tr '\n' ' ')"
+            (cd $d && ./llama-simple.exe -m "$m" -n 12 "The capital of France is") > $v.txt 2> $v-log.txt || { cat $v-log.txt; exit 1; }
+            grep -E "loaded CPU backend|decoded|prompt eval time|eval time" $v-log.txt || true
+            echo "text: $(cat $v.txt)"
+          done
+          grep -q "ggml-cpu-sse42.dll" sse42-log.txt
+          grep -q "Paris" sse42.txt
 
