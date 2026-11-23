@@ -266,7 +266,11 @@ extension View {
 
 /// The light/dark choice from the menu: nil follows the system.
 enum CardAppearance {
+    /// Set by --show --appearance for the run: the card in light or dark, whatever else says.
+    nonisolated(unsafe) static var forced: NSAppearance?
+
     static var current: NSAppearance? {
+        if let forced { return forced }
         switch UserDefaults.standard.string(forKey: "appearance") {
         case "light": return NSAppearance(named: .aqua)
         case "dark": return NSAppearance(named: .darkAqua)
@@ -339,7 +343,10 @@ struct CardChrome<Content: View>: View {
     @ObservedObject var layout: CardLayout
     @Environment(\.renderingSnapshot) private var snapshot
     @Environment(\.colorScheme) private var colorScheme
-    @State private var hovering = false
+    @State private var realHover = false
+    @ObservedObject private var script = CardScript.shared
+    /// The pointer is on the card (or a script says so, CardScript).
+    private var hovering: Bool { realHover || script.cardHovered }
     /// Where the content's first line keeps room for Copy and Pin (its centre, from the top
     /// of the content), so they line up with that line however the card is zoomed.
     @State private var actionsY: CGFloat?
@@ -367,9 +374,10 @@ struct CardChrome<Content: View>: View {
         } else {
             card(scrolling)
                 .frame(width: layout.width, height: max(layout.height, 1), alignment: .top)
+                .traceProbe("card", "height", Double(max(layout.height, 1)))
                 // Not until it's shown, or the card would grow from nothing as it appears.
                 .animation(layout.appeared && !layout.isResizing ? Self.sizeAnimation : nil, value: layout.height)
-                .onHover { hovering = $0 }
+                .onHover { realHover = $0 }
                 // Pinch to zoom the text, as in Safari and Preview.
                 .simultaneousGesture(
                     MagnifyGesture()
@@ -386,7 +394,9 @@ struct CardChrome<Content: View>: View {
                 .background(CardShadow(radius: shapeRadius))
                 // With Reduce Motion the card only fades in: no grow, no drift.
                 .scaleEffect(layout.appeared || Self.reduceMotion ? 1 : 0.96, anchor: layout.placedBelow ? .top : .bottom)
+                .traceProbe("card", "scale", layout.appeared || Self.reduceMotion ? 1 : 0.96)
                 .offset(y: layout.appeared || Self.reduceMotion ? 0 : (layout.placedBelow ? -4 : 4))
+                .traceProbe("card", "dy", layout.appeared || Self.reduceMotion ? 0 : (layout.placedBelow ? -4 : 4))
                 .padding(Self.margin)
                 .frame(maxWidth: .infinity, maxHeight: .infinity,
                        alignment: layout.placedBelow ? .topLeading : .bottomLeading)
@@ -677,8 +687,12 @@ struct CardRowStyle: ButtonStyle {
         let configuration: ButtonStyleConfiguration
         let bleed: CGFloat
         let vertical: CGFloat
-        @State private var hovering = false
+        @State private var realHover = false
         @Environment(\.cardScale) private var scale
+        @Environment(\.scriptTarget) private var target
+        @ObservedObject private var script = CardScript.shared
+        private var hovering: Bool { realHover || target != nil && script.hovered == target }
+        private var isPressed: Bool { configuration.isPressed || target != nil && script.pressed == target }
 
         var body: some View {
             configuration.label
@@ -686,13 +700,14 @@ struct CardRowStyle: ButtonStyle {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
                     RoundedRectangle(cornerRadius: 6 * scale, style: .continuous)
-                        .fill(Color.primary.opacity(configuration.isPressed ? 0.09 : hovering ? 0.05 : 0))
+                        .fill(Color.primary.opacity(isPressed ? 0.09 : hovering ? 0.05 : 0))
+                        .traceProbe(target.map { $0 + "-hover" }, "opacity", isPressed ? 0.09 : hovering ? 0.05 : 0)
                 )
                 .contentShape(Rectangle())
                 .padding(.horizontal, -bleed * scale)
-                .onHover { hovering = $0 }
+                .onHover { realHover = $0 }
                 .animation(.easeOut(duration: hovering ? 0.08 : 0.2), value: hovering)
-                .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
+                .animation(.easeOut(duration: 0.08), value: isPressed)
         }
     }
 }
@@ -719,12 +734,15 @@ struct CardDivider: View {
 struct ChoiceMark: View {
     let chosen: Bool
     @Environment(\.cardScale) private var scale
+    @Environment(\.scriptTarget) private var target
     var body: some View {
         Image(systemName: "checkmark")
             .cardFont(TextSize.callout, .semibold)
             .foregroundStyle(Color.accentColor)
             .opacity(chosen ? 1 : 0)
+            .traceProbe(target.map { $0 + "-checkmark" }, "opacity", chosen ? 1 : 0)
             .scaleEffect(chosen ? 1 : 0.6)
+            .traceProbe(target.map { $0 + "-checkmark" }, "scale", chosen ? 1 : 0.6)
             .frame(width: 14 * scale, alignment: .trailing)
             // The row says it's selected (isSelected); the mark itself is only decoration.
             .accessibilityHidden(true)
@@ -856,7 +874,7 @@ struct CardActions: View {
                 let plan = speech()
                 let playing = speaker.speaking != nil && speaker.speaking == plan.text
                 FooterButton(help: playing ? "Stop" : plan.help, cardHovered: cardHovered,
-                             tint: playing ? Color.accentColor : nil,
+                             tint: playing ? Color.accentColor : nil, target: "listen",
                              action: { let now = speech(); if !now.text.isEmpty { speaker.toggle(now.text) } }) {
                     Image(systemName: "speaker.wave.2")
                         .symbolEffect(.variableColor.iterative.dimInactiveLayers.nonReversing, isActive: playing)
@@ -864,7 +882,7 @@ struct CardActions: View {
             }
             if layout.copyText != nil {
                 FooterButton(help: copied ? "Copied" : copyHelp, cardHovered: cardHovered,
-                             tint: copied ? Color.accentColor : nil, action: copy) {
+                             tint: copied ? Color.accentColor : nil, target: "copy", action: copy) {
                     Image(systemName: copied ? "checkmark" : "doc.on.doc")
                         .contentTransition(.symbolEffect(.replace.downUp))
                 }
@@ -873,7 +891,7 @@ struct CardActions: View {
                 AnkiButton(model: anki, word: copyWord, cardHovered: cardHovered)
             }
             FooterButton(help: pin.isOn ? "Unpin: close when you click elsewhere" : "Pin: keep the card here for every lookup",
-                         cardHovered: cardHovered, tint: pin.isOn ? Color.accentColor : nil,
+                         cardHovered: cardHovered, tint: pin.isOn ? Color.accentColor : nil, target: "pin",
                          action: { layout.togglePin() }) {
                 Image(systemName: pin.isOn ? "pin.fill" : "pin")
                     .contentTransition(.symbolEffect(.replace.downUp))
@@ -914,7 +932,7 @@ private struct AnkiButton: View {
     let cardHovered: Bool
 
     var body: some View {
-        FooterButton(help: help, cardHovered: cardHovered, tint: tint, action: model.click) {
+        FooterButton(help: help, cardHovered: cardHovered, tint: tint, target: "anki", action: model.click) {
             Image(systemName: symbol)
                 .contentTransition(.symbolEffect(.replace.downUp))
                 .opacity(model.state == .adding ? 0.4 : 1)
@@ -949,9 +967,13 @@ private struct FooterButton<Label: View>: View {
     let help: String
     let cardHovered: Bool
     var tint: Color?
+    /// Its name for a script (CardScript).
+    var target: String?
     let action: () -> Void
     @ViewBuilder let label: () -> Label
-    @State private var hovering = false
+    @State private var realHover = false
+    @ObservedObject private var script = CardScript.shared
+    private var hovering: Bool { realHover || target != nil && script.hovered == target }
 
     var body: some View {
         Button(action: action) {
@@ -961,11 +983,13 @@ private struct FooterButton<Label: View>: View {
                                  ?? AnyShapeStyle(hovering ? .primary : (cardHovered ? .secondary : .tertiary)))
                 .frame(width: 26, height: 22)
                 .background(RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .fill(Color.primary.opacity(hovering ? 0.07 : 0)))
+                    .fill(Color.primary.opacity(hovering ? 0.07 : 0))
+                    .traceProbe(target.map { $0 + "-hover" }, "opacity", hovering ? 0.07 : 0))
                 .contentShape(Rectangle())
         }
         .buttonStyle(FooterButtonStyle())
-        .onHover { hovering = $0 }
+        .scriptTarget(target ?? "", action: action)
+        .onHover { realHover = $0 }
         .animation(.easeOut(duration: 0.15), value: hovering)
         .animation(.easeOut(duration: 0.2), value: cardHovered)
         .help(help)
@@ -974,10 +998,19 @@ private struct FooterButton<Label: View>: View {
 }
 
 private struct FooterButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .opacity(configuration.isPressed ? 0.55 : 1)
-            .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
+    func makeBody(configuration: Configuration) -> some View { Face(configuration: configuration) }
+
+    private struct Face: View {
+        let configuration: ButtonStyleConfiguration
+        @Environment(\.scriptTarget) private var target
+        @ObservedObject private var script = CardScript.shared
+        private var isPressed: Bool { configuration.isPressed || target != nil && script.pressed == target }
+        var body: some View {
+            configuration.label
+                .opacity(isPressed ? 0.55 : 1)
+                .traceProbe(target.map { $0 + "-press" }, "opacity", isPressed ? 0.55 : 1)
+                .animation(.easeOut(duration: 0.08), value: isPressed)
+        }
     }
 }
 
@@ -987,11 +1020,14 @@ struct CloseBadge: View {
     @ObservedObject var layout: CardLayout
     let cardHovered: Bool
     @ObservedObject private var pin = CardPin.shared
-    @State private var hovering = false
+    @State private var realHover = false
+    @ObservedObject private var script = CardScript.shared
+    private var hovering: Bool { realHover || script.hovered == "badge" }
 
     var body: some View {
         let shown = pin.isOn && (cardHovered || hovering)
-        Button { layout.closeCard() } label: {
+        let close = { layout.closeCard() }
+        Button(action: close) {
             Image(systemName: "xmark")
                 .font(.system(size: 8, weight: .bold))
                 .foregroundStyle(hovering ? .primary : .secondary)
@@ -1002,12 +1038,15 @@ struct CloseBadge: View {
                 .contentShape(Circle())
         }
         .buttonStyle(FooterButtonStyle())
-        .onHover { hovering = $0 }
+        .scriptTarget("badge", action: close)
+        .onHover { realHover = $0 }
         .help("Close")
         .accessibilityLabel("Close")
         .accessibilityHidden(!shown)
         .opacity(shown ? 1 : 0)
+        .traceProbe("pin-badge", "opacity", shown ? 1 : 0)
         .scaleEffect(shown ? 1 : 0.7)
+        .traceProbe("pin-badge", "scale", shown ? 1 : 0.7)
         .allowsHitTesting(shown)
         .animation(.spring(response: 0.25, dampingFraction: 0.9), value: shown)
         .offset(x: -7, y: -7)

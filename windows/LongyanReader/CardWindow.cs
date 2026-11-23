@@ -19,7 +19,7 @@ namespace Longyan;
 
 /// The card's window: a transparent frame 28 larger than the card on every side, to hold its
 /// shadow, over the other app and never taking the focus from it (notes/card-spec.md, 1 and 6).
-sealed class CardWindow : Window, ICardActions
+sealed partial class CardWindow : Window, ICardActions
 {
     static CardWindow? current;
     // Kept in settings.json as the Mac keeps them in UserDefaults (card.zoom, card.width.word,
@@ -183,6 +183,7 @@ sealed class CardWindow : Window, ICardActions
     public static void Show(string json, double x, double y)
     {
         showing = json;
+        showX = x; showY = y;
         pinned = false; zoom = 1; wordWidth = phraseWidth = null; pinnedAt = null;
         ShowAgain(x, y);
         var away = false;
@@ -576,6 +577,7 @@ sealed class CardWindow : Window, ICardActions
 
     void Reveal()
     {
+        ScriptRevealed();   // dev only: --show --script (CardWindow.Script.cs)
         card.RenderTransformOrigin = new Point(0.5, below ? 0 : 1);
         // In place only when it replaces a card at the same spot (PU:429-441): a pinned card
         // opening at its corner with no card there springs in as any card does.

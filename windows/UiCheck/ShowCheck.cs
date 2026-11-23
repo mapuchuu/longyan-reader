@@ -62,6 +62,66 @@ static partial class Program
         }
     }
 
+    /// `--show --script --appearance --trace`: word-mianzi.json worked from inside the app (no
+    /// mouse): row 1 hovered then picked, Copy clicked, Esc, and the plan again when it reopens;
+    /// each step logged, the trace writing frames with the parts' names, in dark.
+    static void ScriptCheck(string exe)
+    {
+        var json = Path.GetFullPath(Path.Combine("windows", "gallery", "word-mianzi.json"));
+        if (!File.Exists(json)) { failures.Add("7-script: windows/gallery/word-mianzi.json is missing"); return; }
+        var events = Path.Combine(outDir, "script-events.jsonl");
+        var tracePath = Path.Combine(outDir, "script-trace.jsonl");
+        var errPath = Path.Combine(outDir, "script-stderr.txt");
+        const string plan = "0.3,hover,row1;0.9,click,row1;2.0,click,copy;3.0,unhover;3.3,esc";
+        var start = new ProcessStartInfo(exe) { WorkingDirectory = Path.GetDirectoryName(exe)!, RedirectStandardError = true, UseShellExecute = false };
+        foreach (var a in new[] { "--show", json, "200", "150", "--script", plan, "--appearance", "dark", "--trace", tracePath }) start.ArgumentList.Add(a);
+        start.Environment["LONGYAN_CARD_LOG"] = events;
+        var show = Process.Start(start)!;
+        var err = new System.Text.StringBuilder();
+        show.ErrorDataReceived += (_, e) => { if (e.Data != null) lock (err) err.AppendLine(e.Data); };
+        show.BeginErrorReadLine();
+        try
+        {
+            var waited = Stopwatch.StartNew();
+            bool Revealed() { try { return File.Exists(events) && File.ReadAllText(events).Contains("\"event\":\"revealed\""); } catch (IOException) { return false; } }
+            while (waited.Elapsed.TotalSeconds < 40 && !show.HasExited && !Revealed()) Thread.Sleep(100);
+            if (show.HasExited || !Revealed()) { failures.Add("7-script: no card in 40 s" + (show.HasExited ? $" (exited {show.ExitCode})" : "")); return; }
+            Thread.Sleep(1200);
+            Shot("7-script-hover");
+            Thread.Sleep(2900);   // past the Esc, 3.8 s after the reveal
+            Thread.Sleep(2500);   // the card again a second on, and its first step
+            Shot("7-script-again");
+        }
+        finally
+        {
+            try { show.Kill(); } catch { }
+        }
+        Thread.Sleep(300);
+        string log;
+        lock (err) log = err.ToString();
+        File.WriteAllText(errPath, log);
+        var lines = File.Exists(events) ? File.ReadLines(events).Select(l => { try { return JsonNode.Parse(l) as JsonObject; } catch { return null; } }).Where(e => e != null).ToList() : new();
+        var steps = lines.Where(e => (string?)e!["event"] == "script").Select(e => (string?)e!["step"] ?? "").ToList();
+        Console.WriteLine($"[7-script] steps: {string.Join(" | ", steps)}");
+        foreach (var want in new[] { "reveal", "t=0 (reveal done)", "t=0.3 hover row1", "t=0.9 click row1", "t=0.97 release", "t=2 click copy", "t=3.3 esc" })
+            if (!steps.Contains(want)) failures.Add($"7-script: no \"{want}\" step logged");
+        if (!log.Contains("script mono=")) failures.Add("7-script: nothing on stderr");
+        if (!lines.Any(e => (string?)e!["event"] == "action" && (string?)e!["what"] == "pick")) failures.Add("7-script: the click on row1 didn't pick it");
+        if (lines.Count(e => (string?)e!["event"] == "revealed") < 2) failures.Add("7-script: the card didn't open again after the scripted Esc");
+        if (steps.Count(s => s == "t=0.3 hover row1") < 2) failures.Add("7-script: the plan didn't run again on the reopened card");
+        var frames = File.Exists(tracePath) ? File.ReadLines(tracePath).Select(l => { try { return JsonNode.Parse(l) as JsonObject; } catch { return null; } }).ToList() : new();
+        Console.WriteLine($"[7-script] trace: {frames.Count} frames");
+        if (frames.Count < 20 || frames.Any(f => f == null)) { failures.Add($"7-script: the trace has {frames.Count} frames, or a line that isn't JSON"); return; }
+        double Max(string name, string key) => frames.Max(f => (double?)f!["elements"]?[name]?[key] ?? 0);
+        if (Max("row1-hover", "opacity") < 0.04) failures.Add("7-script: the trace never shows row1-hover");
+        if (Max("row1-checkmark", "opacity") < 0.99) failures.Add("7-script: the trace never shows row1's checkmark");
+        var alphas = frames.Select(f => (double?)f!["alpha"] ?? -1).ToList();
+        if (!alphas.Any(a => a > 0.05 && a < 0.95)) failures.Add("7-script: the trace has no frame mid-fade");
+        if (!frames.Any(f => (double?)f!["scale"] is double sc && sc > 0.961 && sc < 0.999)) failures.Add("7-script: the trace has no frame mid-reveal");
+        var mono = frames.Select(f => (double?)f!["mono"] ?? 0).ToList();
+        for (var i = 1; i < mono.Count; i++) if (mono[i] < mono[i - 1]) { failures.Add("7-script: the trace's times go back"); break; }
+    }
+
     static System.Windows.Rect? FindExact(Process app, string text)
     {
         var cond = new PropertyCondition(AutomationElement.ProcessIdProperty, app.Id);

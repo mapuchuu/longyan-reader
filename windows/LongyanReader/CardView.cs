@@ -65,6 +65,19 @@ sealed class CardView
     /// Copies of parts that left or changed, fading out where they were.
     readonly Canvas ghosts = new() { IsHitTestVisible = false, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
 
+    /// Dev only (--script, CardWindow.Script): the parts a script can point at, by name: row1…
+    /// (meanings, in the order shown; in a phrase card, the open row's), phrase-row1…, listen,
+    /// copy, anki, pin, note, back, showall, partof. Each is the element whose own mouse
+    /// handlers make it hover, press and click.
+    public readonly Dictionary<string, UIElement> Targets = new();
+    /// Dev only (--trace, CardWindow.Script): the parts that animate on their own, by the names
+    /// the Mac's trace gives them (row1-checkmark, phrase-row1-chevron, showall-chevron,
+    /// back-to, note-box, detail…), for their opacity and transforms each frame.
+    public readonly Dictionary<string, UIElement> Animated = new();
+    int senseRows, phraseRows;
+    /// The content was built again (the script points at the new parts).
+    public event Action? Rebuilt;
+
     /// The pointer came onto the card or left it: the buttons brighten or dim.
     public void SetHovered(bool on) { hovered = on; Recolor(); }
 
@@ -77,6 +90,7 @@ sealed class CardView
         tracked.Clear();
         before = now; now = new();
         builtAt = Environment.TickCount64;
+        Targets.Clear(); Animated.Clear(); senseRows = phraseRows = 0;
         content.Children.Clear();
         buttons.Children.Clear();
         var clock = System.Diagnostics.Stopwatch.StartNew();
@@ -87,6 +101,7 @@ sealed class CardView
         var slid = clock.Elapsed.TotalMilliseconds;
         if (old != null) FadeOut(old);
         Timing = $"\"build\":{built:0.0},\"layout\":{slid - built:0.0},\"fade\":{clock.Elapsed.TotalMilliseconds - slid:0.0}";
+        Rebuilt?.Invoke();
     }
 
     /// How long the last Show took, in parts, for the UI check's log.
@@ -100,6 +115,7 @@ sealed class CardView
     public void Hint(string message)
     {
         Width = HintWidth;
+        Targets.Clear(); Animated.Clear();
         content.Children.Clear();
         buttons.Children.Clear();
         ghosts.Children.Clear();
@@ -207,6 +223,7 @@ sealed class CardView
         chevron.Margin = new Thickness(4, 0, 0, 0);
         line.Inlines.Add(new InlineUIContainer(chevron) { BaselineAlignment = BaselineAlignment.Baseline });
         var row = RowButton(line, bleed: 4, vertical: 2, () => actions.OpenPartOf(), hug: true);
+        Targets["partof"] = row;
         row.ToolTip = $"Look up {part["word"]}";
         row.Margin = new Thickness(0, 4, 0, 0);
         return row;
@@ -324,10 +341,12 @@ sealed class CardView
         chevron.Margin = new Thickness(12, gloss.Margin.Top + Baseline(Theme.Text, 13, FontWeights.Normal) - ChevronBaseline, 1, 0);   // the symbol's side bearing
         chevron.Opacity = opens || open ? 1 : 0;
         Rotate(chevron, "chevron:" + token, open ? 90 : 0);
+        Animated[$"phrase-row{phraseRows + 1}-chevron"] = chevron;
         Grid.SetColumn(chevron, 4);
         grid.Children.Add(chevron);
 
         var row = RowButton(grid, bleed: 8, vertical: 5, opens || open ? () => actions.ToggleRow(token) : null);
+        Targets["phrase-row" + ++phraseRows] = row;
         return row;
     }
 
@@ -409,9 +428,11 @@ sealed class CardView
         check.HorizontalAlignment = HorizontalAlignment.Right;
         var box = new Border { Width = 14, Margin = new Thickness(8, 0, 0, 0), Child = check, VerticalAlignment = VerticalAlignment.Center };
         Choice(check, $"check:{scope}:{r["index"]}", chosen);
+        Animated[$"row{senseRows + 1}-checkmark"] = check;
         Grid.SetColumn(box, 4);
         grid.Children.Add(box);
         var row = RowButton(grid, bleed: 8, vertical: vertical, pick);
+        Targets["row" + ++senseRows] = row;
         row.ToolTip = noteMarks && (bool?)r["hasNote"] == true ? "Use this meaning · has a note" : "Use this meaning";
         panel.Children.Add(row);
         return panel;
@@ -425,8 +446,11 @@ sealed class CardView
         chevron.Margin = new Thickness(4, 0, 0, 0);
         chevron.VerticalAlignment = VerticalAlignment.Center;
         Rotate(chevron, "more:" + scope, text == "Show Fewer" ? 180 : 0);
+        Animated["showall-chevron"] = chevron;
         line.Children.Add(chevron);
-        return RowButton(line, bleed: 8, vertical: vertical, toggle);
+        var row = RowButton(line, bleed: 8, vertical: vertical, toggle);
+        Targets["showall"] = row;
+        return row;
     }
 
     FrameworkElement Back(string meaning, int token, double top)
@@ -441,6 +465,7 @@ sealed class CardView
         label.TextTrimming = TextTrimming.CharacterEllipsis;
         line.Children.Add(label);
         Pressable(line, () => actions.UseSuggested(token));
+        Targets["back"] = line;
         return line;
     }
 
@@ -476,6 +501,7 @@ sealed class CardView
         Lines(body, 13, 2);
         stack.Children.Add(body);
         box.Child = stack;
+        Targets["note"] = box;
         return box;
     }
 
@@ -627,7 +653,7 @@ sealed class CardView
         var pin = actions.Pinned ? new Symbol(Icons.PinFill, ((SolidColorBrush)Theme.Accent).Color, true, dy: 1) : new Symbol(Icons.Pin, Rest, false, dy: 1);
         if (animate && wasPinned != actions.Pinned) pin.Pop();   // [card feel]
         wasPinned = actions.Pinned;
-        buttons.Children.Add(ActionButton(pin, actions.Pinned ? "Unpin: close when you click elsewhere" : "Pin: keep the card here for every lookup", _ => actions.TogglePin())); n++;
+        buttons.Children.Add(ActionButton("pin", pin, actions.Pinned ? "Unpin: close when you click elsewhere" : "Pin: keep the card here for every lookup", _ => actions.TogglePin())); n++;
         buttons.Margin = new Thickness(0, 0, Pad * Zoom - 6 - ButtonGap / 2, 0);
         // The slot they take on the first line, in the content's own (unzoomed) units. The Mac
         // keeps room for Listen, Copy and Pin even when there's no voice to listen with, and
@@ -660,7 +686,7 @@ sealed class CardView
         {
             // No Chinese voice: the help says how to get one, and a click shows it and opens
             // Windows' speech settings, where one is added.
-            var none = ActionButton(symbol, NoVoice, b =>
+            var none = ActionButton("listen", symbol, NoVoice, b =>
             {
                 if (b.ToolTip is not ToolTip tip) b.ToolTip = tip = new ToolTip { Content = NoVoice };
                 tip.PlacementTarget = b;
@@ -670,7 +696,7 @@ sealed class CardView
             return none;
         }
         var help = $"Listen to “{speech}”";
-        var button = ActionButton(symbol, help, _ => actions.Listen(speech));
+        var button = ActionButton("listen", symbol, help, _ => actions.Listen(speech));
         void Update()
         {
             if (!buttons.Children.Contains(button)) { Speech.Changed -= Update; return; }   // rebuilt since
@@ -714,7 +740,7 @@ sealed class CardView
             t.Start();
         }
         Border? button = null;
-        button = ActionButton(symbol, help, b =>
+        button = ActionButton("copy", symbol, help, b =>
         {
             var showing = copied == text && DateTime.UtcNow < copiedUntil;
             actions.Copy(text);
@@ -726,7 +752,7 @@ sealed class CardView
         return button;
     }
 
-    Border ActionButton(Symbol symbol, string help, Action<Border> act)
+    Border ActionButton(string name, Symbol symbol, string help, Action<Border> act)
     {
         if (!symbol.Tinted) symbols.Add(symbol);
         var fill = new SolidColorBrush(((SolidColorBrush)Theme.Primary).Color) { Opacity = 0 };
@@ -761,6 +787,7 @@ sealed class CardView
             act(b);
         };
         b.Invoked = () => act(b);
+        Targets[name] = b;
         return b;
     }
 
@@ -800,7 +827,7 @@ sealed class CardView
         ankiWord = text.Length > 14 ? text[..13] + "…" : text;
         var symbol = new Symbol(Icons.AnkiAdd, Rest, false);
         ankiSymbol = symbol;
-        ankiButton = ActionButton(symbol, "", _ => actions.AddToAnki());
+        ankiButton = ActionButton("anki", symbol, "", _ => actions.AddToAnki());
         ShowAnki();
         return ankiButton;
     }
@@ -1103,11 +1130,24 @@ sealed class CardView
         if (crossfade) crossfades.Add(key);
         if (slide != 0) slides[key] = slide;
         if (e is FrameworkElement fe) tracked[key] = fe;
+        if (TraceName(key) is string name) Animated[name] = e;
         if (!animate) return e;
         if (!before.TryGetValue(key, out var old)) Motion.FadeIn(e, slide);
         else if (crossfade && old != value) Motion.FadeIn(e);
         return e;
     }
+
+    /// A keyed part's name in a trace, for the parts the Mac's trace names too.
+    static string? TraceName(string key) => key switch
+    {
+        "back" => "back-to",
+        "note" => "note-box",
+        "meaning" or "header" or "partOf" or "translation" => key.ToLowerInvariant(),
+        _ when key.StartsWith("back:") => "back-to",
+        _ when key.StartsWith("dnote:") => "note-box",
+        _ when key.StartsWith("detail:") => "detail",
+        _ => null,
+    };
 
     /// A chevron at `angle`, turning from its last angle with cardMotion.
     void Rotate(UIElement e, string key, double angle)
