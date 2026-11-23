@@ -282,8 +282,9 @@ sealed class ChipWindow : Window
     const double Box = 44, Target = 30, Diameter = 24;
     /// The mark's frame is 13 on the Mac, its eye 12 wide on screen; 12.6 here drew it 11.5.
     const double Mark = 13;
-    /// Where the image's ink centre sits from its frame's centre, in points.
-    const double MarkInkX = 0.061, MarkInkY = -0.012;
+    /// Where the image's ink centre sits from its frame's centre, in points: 0.06 right and 0.01
+    /// up in the image, and drawn 0.11 higher again on screen (measured live at 200%).
+    const double MarkInkX = 0.061, MarkInkY = -0.12;
 
     public Selected? Selection;
     /// What it was built with (see Look).
