@@ -387,19 +387,14 @@ jobs:
           old="LONGYAN_PRIME=0 LONGYAN_REPACK=0 LONGYAN_THREADS=2"
           run base $old
           run base-again $old
-          run t3 $old LONGYAN_THREADS=3
           run t4 $old LONGYAN_THREADS=4
-          run repack $old LONGYAN_REPACK=1
-          run repack-t3 $old LONGYAN_REPACK=1 LONGYAN_THREADS=3
           run repack-t4 $old LONGYAN_REPACK=1 LONGYAN_THREADS=4
-          run repack-t2b4 $old LONGYAN_REPACK=1 LONGYAN_THREADS=2 LONGYAN_THREADS_BATCH=4
-          run repack-t4-fa0 $old LONGYAN_REPACK=1 LONGYAN_THREADS=4 LONGYAN_FA=0
           run repack-t4-fa1 $old LONGYAN_REPACK=1 LONGYAN_THREADS=4 LONGYAN_FA=1
-          run repack-t4-u256 $old LONGYAN_REPACK=1 LONGYAN_THREADS=4 LONGYAN_UBATCH=256
-          run repack-t4-prime $old LONGYAN_REPACK=1 LONGYAN_THREADS=4 LONGYAN_PRIME=1
-          # The defaults now, with a warm-up 20 s before the first card (the eye, or an earlier card).
+          # The defaults now (threads by CPU), then with the instructions primed, warmed up 20 s
+          # before the first card (the eye, or an earlier card).
           run now X=1
-          run now-warm LONGYAN_CHECK_WARM=20
+          run now-prime LONGYAN_PRIME=1
+          run now-prime-warm LONGYAN_PRIME=1 LONGYAN_CHECK_WARM=20
           # ggml-vulkan.dll beside the bridge, with no Vulkan device here: the same as on the CPU.
           if [ -f vulkan/ggml-vulkan.dll ]; then
             cp vulkan/ggml-vulkan.dll check-bin/
@@ -415,20 +410,20 @@ jobs:
           m="$(cygpath -w "$MODELS/qwen3.5-4b-q4_k_m.gguf")"
           res=dist/LongyanReader/Resources
           python scripts/eval-lookups.py notes/note-pick-eval.tsv notes/phrase-eval.tsv > speed/evals.txt
-          for cfg in "base LONGYAN_PRIME=0 LONGYAN_REPACK=0 LONGYAN_THREADS=2" "fast LONGYAN_REPACK=1 LONGYAN_THREADS=4"; do
+          for cfg in "base LONGYAN_PRIME=0 LONGYAN_REPACK=0 LONGYAN_THREADS=2" "now X=1" "prime LONGYAN_PRIME=1"; do
             set -- $cfg; name=$1; shift
             start=$(date +%s)
             env "$@" LONGYAN_TIMING=1 check-bin/BridgeCheck.exe $res speed/evals.txt "$m" > speed/evals-$name.txt 2> speed/evals-$name-log.txt
             echo "$name: $(( $(date +%s) - start )) s for $(wc -l < speed/evals.txt) lookups"
             python scripts/pick-parity.py picks speed/evals.txt speed/evals-$name.txt > speed/picks-$name.txt
           done
-          diff speed/picks-base.txt speed/picks-fast.txt && echo "same picks" || echo "picks differ: $(diff speed/picks-base.txt speed/picks-fast.txt | grep -c '^<') lines"
-          for cfg in "base LONGYAN_PRIME=0 LONGYAN_REPACK=0 LONGYAN_THREADS=2" "fast LONGYAN_REPACK=1 LONGYAN_THREADS=4"; do
+          for n in now prime; do diff speed/picks-base.txt speed/picks-$n.txt && echo "$n: same picks" || echo "$n: picks differ: $(diff speed/picks-base.txt speed/picks-$n.txt | grep -c '^<') lines"; done
+          for cfg in "base LONGYAN_PRIME=0 LONGYAN_REPACK=0 LONGYAN_THREADS=2" "now X=1" "prime LONGYAN_PRIME=1"; do
             set -- $cfg; name=$1; shift
             env "$@" LONGYAN_TIMING=1 check-bin/BridgeCheck.exe $res scripts/bridge-check.txt "$m" > speed/bridge-$name.txt 2> speed/bridge-$name-log.txt
             python scripts/bridge-normalize.py < speed/bridge-$name.txt > speed/bridge-$name.norm
           done
-          diff speed/bridge-base.norm speed/bridge-fast.norm && echo "same cards" || true
+          for n in now prime; do diff speed/bridge-base.norm speed/bridge-$n.norm > /dev/null && echo "$n: same cards" || echo "$n: cards differ"; done
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
