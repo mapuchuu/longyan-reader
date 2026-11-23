@@ -89,6 +89,7 @@ sealed class CardWindow : Window, ICardActions
     /// Saves the text size, the widths and the pin, as the Mac saves them after every change.
     static void SaveCard()
     {
+        if (showing != null) return;   // --show keeps them for the run only
         Settings.SetCard(new()
         {
             ["cardZoom"] = zoom, ["cardWidthWord"] = wordWidth, ["cardWidthPhrase"] = phraseWidth,
@@ -153,10 +154,12 @@ sealed class CardWindow : Window, ICardActions
 
     // MARK: Opening
 
-    public static void Present(Selected selected)
+    public static void Present(Selected selected) => Present(selected.Bounds, w => w.Open(selected));
+
+    static void Present(Rect? bounds, Action<CardWindow> open)
     {
         var old = current;
-        current = new CardWindow(selected.Bounds, false);
+        current = new CardWindow(bounds, false);
         // A pinned card opens at its corner for every lookup.
         if (pinned && old != null && !old.isHint && old.IsVisible && !old.closing)
         {
@@ -165,8 +168,46 @@ sealed class CardWindow : Window, ICardActions
             old = null;
         }
         else if (pinned && pinnedAt is Point at) current.HangFrom(at);
-        current.Open(selected);
+        open(current);
         old?.Dismiss();
+    }
+
+    /// The saved card JSON --show is showing, if it is.
+    static string? showing;
+
+    /// Dev only: `--show CARD.json X Y` (App.cs). Opens the live card for a saved card JSON, as
+    /// a lookup of a selection at (X, Y, 60, 20) DIPs on the primary screen would, so it can be
+    /// filmed beside the Mac's (`LongyanReader --show` there, same JSON, same numbers). When it
+    /// closes it opens again a second later in the same place. The card starts at the usual
+    /// size, unpinned; nothing is saved, and nothing goes in the history.
+    public static void Show(string json, double x, double y)
+    {
+        showing = json;
+        pinned = false; zoom = 1; wordWidth = phraseWidth = null; pinnedAt = null;
+        ShowAgain(x, y);
+        var away = false;
+        var watch = new DispatcherTimer(DispatcherPriority.Normal) { Interval = TimeSpan.FromMilliseconds(50) };
+        watch.Tick += (_, _) =>
+        {
+            // Closed (Esc, a click away, the close button): open again a second later, as the Mac does.
+            if (away || current is { closing: false }) return;
+            away = true;
+            var again = new DispatcherTimer(DispatcherPriority.Normal) { Interval = TimeSpan.FromSeconds(1) };
+            again.Tick += (_, _) => { again.Stop(); away = false; ShowAgain(x, y); };
+            again.Start();
+        };
+        watch.Start();
+    }
+
+    static void ShowAgain(double x, double y)
+    {
+        Present(null, w =>
+        {
+            // Points from the primary screen's top-left, in that screen's device pixels.
+            var s = w.DpiFor(new Rect(0, 0, 1, 1));
+            w.anchor = new Rect(x * s, y * s, 60 * s, 20 * s);
+            w.cardID = Core.Shared.Fixture(showing!, w.Update, w.ShowHint);
+        });
     }
 
     /// Draws one card out of sight at launch, so the first real card doesn't pay for WPF's first
@@ -393,7 +434,7 @@ sealed class CardWindow : Window, ICardActions
 
     void Update(JsonObject json)
     {
-        History.Saw(cardID, json);   // History: what the card says, for the lookup history
+        if (showing == null) History.Saw(cardID, json);   // History: what the card says, for the lookup history
         if (closing) return;
         last = json;
         if (!ankiDecided) OpenAnki(json);

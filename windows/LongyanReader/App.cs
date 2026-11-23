@@ -32,6 +32,9 @@ static class Program
         if (args.Length == 1 && args[0] == "--check-shortcut") return Shortcut.Check();
         // History: --render-history OUT (UiCheck), --history (the running copy's window).
         if (History.Command(args) is int history) return history;
+        // Dev only: --show CARD.json X Y, a live card from a saved card JSON, for filming beside
+        // the Mac's (CardWindow.Show). Runs beside the usual copy; quit from its icon's menu.
+        if (args.Length == 4 && args[0] == "--show") return ShowCard(args[1], args[2], args[3]);
 
         using var single = new Mutex(true, "LongyanReader.Windows", out var first);
         if (!first)
@@ -100,6 +103,31 @@ static class Program
         }
         Console.WriteLine("eye");
         RenderWindows(output);
+        return 0;
+    }
+
+    static int ShowCard(string file, string xText, string yText)
+    {
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        if (!double.TryParse(xText, System.Globalization.NumberStyles.Float, inv, out var x) ||
+            !double.TryParse(yText, System.Globalization.NumberStyles.Float, inv, out var y) || !System.IO.File.Exists(file))
+        {
+            MessageBox.Show("LongyanReader --show CARD.json X Y\n\nX and Y in DIPs from the primary screen's top-left.", "Longyan Reader");
+            return 2;
+        }
+        var json = System.IO.File.ReadAllText(file);
+        var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+        app.Startup += (_, _) =>
+        {
+            var menu = new Forms.ContextMenuStrip();
+            menu.Items.Add("Quit card show", null, (_, _) => { tray!.Visible = false; Core.Shared.Stop(); app.Shutdown(); });
+            tray = new Forms.NotifyIcon { Icon = LoadIcon(), Text = "Longyan Reader --show", Visible = true, ContextMenuStrip = menu };
+            Core.Shared.Ready += _ => CardWindow.Show(json, x, y);
+            Core.Shared.Failed += message => MessageBox.Show("The dictionary didn't load: " + message, "Longyan Reader");
+            Core.Shared.Start(withModel: false);
+            Anki.Start();   // as the app does, so the card offers Add to Anki when Anki is open
+        };
+        app.Run();
         return 0;
     }
 

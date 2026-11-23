@@ -54,10 +54,10 @@ final class CardLayout: ObservableObject {
     init(kind: Kind) {
         self.kind = kind
         let base = Self.defaultWidth[kind] ?? 360
-        let saved = UserDefaults.standard.double(forKey: Self.zoomKey)
+        let saved = CardDefaults.store.double(forKey: Self.zoomKey)
         let z = kind != .hint && saved > 0 ? min(max(saved, Self.scaleRange.lowerBound), Self.scaleRange.upperBound) : 1
         zoom = z
-        let defaults = UserDefaults.standard
+        let defaults = CardDefaults.store
         let savedWidth = kind == .hint ? 0 : defaults.double(forKey: "card.width.\(kind.rawValue)")
         width = savedWidth > 0 ? savedWidth : base * z
     }
@@ -150,7 +150,7 @@ final class CardLayout: ObservableObject {
 
     private func save() {
         guard kind != .hint else { return }
-        let d = UserDefaults.standard
+        let d = CardDefaults.store
         // The zoom is shared: the other kind of card keeps its shape at the new text size.
         let oldZoom = d.double(forKey: Self.zoomKey)
         let ratio = oldZoom > 0 ? zoom / oldZoom : zoom
@@ -166,6 +166,12 @@ final class CardLayout: ObservableObject {
     }
 }
 
+/// Where the cards keep their size and pin: the app's defaults, or for `--show` a store of
+/// its own (CardShow.swift), so filming doesn't change the app's cards.
+enum CardDefaults {
+    nonisolated(unsafe) static var store = UserDefaults.standard
+}
+
 /// Whether cards stay put: a pinned card opens where it was left (drag it anywhere, the
 /// spot is remembered), new lookups replace its content in place, and only its close
 /// button or Esc on the card closes it.
@@ -174,17 +180,17 @@ final class CardPin: ObservableObject {
     static let shared = CardPin()
     private static let onKey = "card.pinned", spotKey = "card.pinnedTopLeft"
 
-    @Published var isOn: Bool { didSet { UserDefaults.standard.set(isOn, forKey: Self.onKey) } }
+    @Published var isOn: Bool { didSet { CardDefaults.store.set(isOn, forKey: Self.onKey) } }
     /// The card's top-left corner on screen (AppKit coordinates).
     var topLeft: NSPoint? {
         didSet {
-            if let p = topLeft { UserDefaults.standard.set(NSStringFromPoint(p), forKey: Self.spotKey) }
+            if let p = topLeft { CardDefaults.store.set(NSStringFromPoint(p), forKey: Self.spotKey) }
         }
     }
 
     private init() {
-        isOn = UserDefaults.standard.bool(forKey: Self.onKey)
-        topLeft = UserDefaults.standard.string(forKey: Self.spotKey).map(NSPointFromString)
+        isOn = CardDefaults.store.bool(forKey: Self.onKey)
+        topLeft = CardDefaults.store.string(forKey: Self.spotKey).map(NSPointFromString)
     }
 }
 
