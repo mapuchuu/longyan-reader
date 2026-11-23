@@ -628,13 +628,10 @@ sealed partial class CardWindow : Window, ICardActions
             Motion.Spring(revealScale, ScaleTransform.ScaleYProperty, 1, Motion.Reveal, from: 0.96);
             Motion.Spring(revealShift, TranslateTransform.YProperty, 0, Motion.Reveal, from: below ? -4 : 4);
         }
-        if (firstFrame) { Go(); return; }
-        // From the window's first frame, or 40 ms after Show if that frame is late (a busy
-        // machine): the reveal never waits longer than that.
-        var went = false;
-        void Once() { if (went) return; went = true; Go(); }
-        ContentRendered += (_, _) => { firstFrame = true; Once(); };
-        After(0.04, Once);
+        // Not before the window's first frame: started earlier (tried at 40 ms after Show), the
+        // fade ran on unseen while a slow first frame was made, and on CI it then showed at 1.
+        if (firstFrame) Go();
+        else ContentRendered += (_, _) => { firstFrame = true; Go(); };
     }
 
     bool firstFrame;
