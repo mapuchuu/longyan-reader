@@ -354,15 +354,21 @@ sealed class ChipWindow : Window
         // lands where the rule puts it (the circle keeps its whole pixels).
         if (mark.RenderTransform is TranslateTransform shift) { shift.X = 0.5 + (cx - left) / s; shift.Y = 0.5 + (cy - top) / s; }
 
+        // A small spring in (response 0.3, damping 0.68) and a 0.12 s fade, as on the Mac, from
+        // the window's first frame on screen (as the card does): timed from Show, the first
+        // frame came late and the fade was partly gone before anything was drawn.
+        ContentRendered += (_, _) =>
+        {
+            if (leaving) return;
+            Motion.Linear(this, OpacityProperty, 0, 1, 0.12, trace: "eye-fade-in");
+            if (Motion.Reduced) { scale.ScaleX = scale.ScaleY = 1; return; }
+            Motion.Spring(scale, ScaleTransform.ScaleXProperty, 1, Motion.EyeAppear, from: 0.6, trace: "eye-scale-in");
+            Motion.Spring(scale, ScaleTransform.ScaleYProperty, 1, Motion.EyeAppear, from: 0.6);
+        };
         hwnd = new WindowInteropHelper(this).EnsureHandle();
         SetWindowPos(hwnd, HWND_TOPMOST, left, top, (int)Math.Round(size), (int)Math.Round(size), SWP_NOACTIVATE);
         Show();
         SetWindowPos(hwnd, HWND_TOPMOST, left, top, (int)Math.Round(size), (int)Math.Round(size), SWP_NOACTIVATE);
-
-        // A small spring in (response 0.3, damping 0.68) and a 0.12 s fade, as on the Mac.
-        BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromSeconds(0.12)));
-        if (Motion.Reduced) scale.ScaleX = scale.ScaleY = 1;
-        else ScaleTo(1, Motion.EyeAppear, Motion.EyeAppearSeconds);
         timer.Start();
         return (left, top, (int)Math.Round(size));
     }
@@ -384,9 +390,7 @@ sealed class ChipWindow : Window
         leaving = true;
         timer.Stop();
         Chip.Forget(this);
-        var fade = new DoubleAnimation(0, TimeSpan.FromSeconds(0.1));
-        fade.Completed += (_, _) => Close();
-        BeginAnimation(OpacityProperty, fade);
+        Motion.Linear(this, OpacityProperty, Opacity, 0, 0.1, Close);
     }
 
     void Hover(bool on)
@@ -395,8 +399,8 @@ sealed class ChipWindow : Window
         Bounce();
         // The mark's colour changes in the same spring as the growth: SwiftUI's .animation(value:
         // hovering) covers both.
-        if (Motion.Reduced) { mark.BeginAnimation(OpacityProperty, null); mark.Opacity = InkAlpha(on); return; }
-        mark.BeginAnimation(OpacityProperty, new DoubleAnimation(InkAlpha(on), TimeSpan.FromSeconds(Motion.EyeHoverSeconds)) { EasingFunction = Motion.EyeHover });
+        if (Motion.Reduced) { Motion.Stop(mark, OpacityProperty); mark.Opacity = InkAlpha(on); return; }
+        Motion.Spring(mark, OpacityProperty, InkAlpha(on), Motion.EyeHover);
     }
 
     /// 1.08 on hover, 0.92 pressed, springing between (Chip.swift:212).
@@ -404,15 +408,16 @@ sealed class ChipWindow : Window
     {
         if (leaving) return;
         if (Motion.Reduced) return;
-        if (pressed) ScaleTo(0.92, Motion.EyePress, Motion.EyePressSeconds);
-        else ScaleTo(hovering ? 1.08 : 1, Motion.EyeHover, Motion.EyeHoverSeconds);
+        // On the spring driver: a press or hover cut short carries on at the speed it had, as
+        // SwiftUI's springs do, rather than restarting from rest.
+        if (pressed) ScaleTo(0.92, Motion.EyePress);
+        else ScaleTo(hovering ? 1.08 : 1, Motion.EyeHover);
     }
 
-    void ScaleTo(double to, IEasingFunction ease, double seconds)
+    void ScaleTo(double to, SpringSpec spec)
     {
-        var a = new DoubleAnimation(to, TimeSpan.FromSeconds(seconds)) { EasingFunction = ease };
-        scale.BeginAnimation(ScaleTransform.ScaleXProperty, a);
-        scale.BeginAnimation(ScaleTransform.ScaleYProperty, a);
+        Motion.Spring(scale, ScaleTransform.ScaleXProperty, to, spec, trace: "eye-scale");
+        Motion.Spring(scale, ScaleTransform.ScaleYProperty, to, spec);
     }
 
     /// Secondary at rest, primary on hover. The Mac's template image comes out a little
