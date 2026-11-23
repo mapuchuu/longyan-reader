@@ -20,20 +20,24 @@ static class Theme
     /// Black (light) or white (dark) at `alpha`: the Mac card's Color.primary.opacity(x).
     public static Brush Ink(double alpha) => Solid(Dark ? 0xFFFFFF : 0x000000, alpha);
 
-    public static Brush Surface => Solid(Dark ? 0x171719 : 0xFFFFFF);
-    public static Brush Hairline => Ink(0.10);
-    public static Brush Divider => Ink(0.08);
-    public static Brush NoteFill => Ink(0.045);
-    public static Brush RowHover => Ink(0.05);
-    public static Brush RowPressed => Ink(0.09);
-    public static Brush ButtonHover => Ink(0.07);
-    public static Brush Placeholder => Ink(0.12);
+    /// The Mac card's Color.primary.opacity(x): its primary is itself at 0.85, so this is
+    /// black or white at 0.85 × x.
+    public static Brush Fill(double x) => Ink(0.85 * x);
+
+    public static Brush Surface => Solid(Dark ? 0x1F1F21 : 0xFFFFFF);
+    public static Brush Hairline => Fill(0.10);
+    public static Brush Divider => Fill(0.08);
+    public static Brush NoteFill => Fill(0.045);
+    public static Brush RowHover => Fill(0.05);
+    public static Brush RowPressed => Fill(0.09);
+    public static Brush ButtonHover => Fill(0.07);
+    public static Brush Placeholder => Fill(0.12);
 
     public static Brush NoteLost => Solid(Dark ? 0xE6A3C2 : 0xB05C80);
     public static Brush NoteCulture => Solid(Dark ? 0x94C7C2 : 0x458280);
 
     /// The Mac renders' backdrop (underPageBackgroundColor), for the gallery.
-    public static Brush Backdrop => Solid(Dark ? 0x1E1E1E : 0x8C8C8C);
+    public static Brush Backdrop => Solid(Dark ? 0x282828 : 0x959595);
 
     // Latin text in Segoe UI Variable (Segoe UI before Windows 11), Chinese in Microsoft YaHei UI.
     public static readonly FontFamily Text = new("Segoe UI Variable Text, Segoe UI, Microsoft YaHei UI");

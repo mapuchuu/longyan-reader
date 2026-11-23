@@ -925,7 +925,14 @@ enum CLI {
         }
         host.frame = NSRect(origin: .zero, size: host.fittingSize)
         host.layoutSubtreeIfNeeded()
-        guard let rep = host.bitmapImageRepForCachingDisplay(in: host.bounds) else { return }
+        // Drawn in sRGB, as on screen: the default bitmap is Generic RGB, which blends
+        // translucent fills and text lighter than the screen does.
+        guard let cached = host.bitmapImageRepForCachingDisplay(in: host.bounds),
+              let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: cached.pixelsWide, pixelsHigh: cached.pixelsHigh,
+                                         bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+                                         colorSpaceName: .calibratedRGB, bytesPerRow: 0, bitsPerPixel: 0)?.retagging(with: .sRGB)
+        else { return }
+        rep.size = host.bounds.size
         host.cacheDisplay(in: host.bounds, to: rep)
         try rep.representation(using: .png, properties: [:])?.write(to: url)
     }

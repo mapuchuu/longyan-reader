@@ -123,10 +123,15 @@ sealed class CardWindow : Window, ICardActions
         var w = new CardWindow(null, true);
         w.view.Show(json, animate: false);
         w.Content = null;
-        w.card.Children.Remove(w.layers[0]);
-        w.card.Children.Remove(w.layers[1]);
+        // "shadow": true keeps the shadow, with the window's margin around it (gallery shadow.json).
+        var shadow = json["shadow"]?.GetValue<bool>() == true;
+        if (!shadow)
+        {
+            w.card.Children.Remove(w.layers[0]);
+            w.card.Children.Remove(w.layers[1]);
+        }
         foreach (var b in w.bands) b.Visibility = Visibility.Collapsed;
-        w.card.Margin = new Thickness(0);
+        w.card.Margin = new Thickness(shadow ? Frame : 0);
         w.card.Width = w.view.Width;
         w.scroller.VerticalScrollBarVisibility = ScrollBarVisibility.Disabled;
         var backdrop = new Border { Background = Theme.Backdrop, Padding = new Thickness(12), Child = w.frame };
@@ -181,9 +186,9 @@ sealed class CardWindow : Window, ICardActions
         for (var i = 0; i < 3; i++)
         {
             var inset = i * 3.5 + 2;
-            grip.Children.Add(new Line { X1 = 11, Y1 = inset, X2 = inset, Y2 = 11, StrokeThickness = 1, Stroke = Theme.Ink(0.22) });
+            grip.Children.Add(new Line { X1 = 11, Y1 = inset, X2 = inset, Y2 = 11, StrokeThickness = 1, Stroke = Theme.Fill(0.22) });
         }
-        grabber.Background = Theme.Ink(0.20);
+        grabber.Background = Theme.Fill(0.20);
         overlay.Children.Add(scroller);
         overlay.Children.Add(view.Buttons);
         overlay.Children.Add(grip);
@@ -200,7 +205,8 @@ sealed class CardWindow : Window, ICardActions
         };
 
         // The shadow: two layers cast by copies of the card's outline behind it.
-        layers = new FrameworkElement[] { Shadow(32, 8, 0.16), Shadow(3, 0.5, 0.08), surface };
+        // WPF's blur radius is three of the Gaussian's sigma; the Mac's shadow radius is one.
+        layers = new FrameworkElement[] { Shadow(48, 8, 0.16), Shadow(4.5, 0.5, 0.08), surface };
         foreach (var l in layers) card.Children.Add(l);
         Bands();
         Badge();
@@ -769,8 +775,8 @@ sealed class CardWindow : Window, ICardActions
             start = CardRect();
             startZoom = zoom;
             startWidth = CardWidth;
-            foreach (Line l in grip.Children) l.Stroke = Theme.Ink(0.45);
-            grabber.Background = Theme.Ink(0.40);
+            foreach (Line l in grip.Children) l.Stroke = Theme.Fill(0.45);
+            grabber.Background = Theme.Fill(0.40);
         };
         band.MouseMove += (_, e) =>
         {
@@ -809,8 +815,8 @@ sealed class CardWindow : Window, ICardActions
             if (!resizing) return;
             resizing = false;
             band.ReleaseMouseCapture();
-            foreach (Line l in grip.Children) l.Stroke = Theme.Ink(0.22);
-            grabber.Background = Theme.Ink(0.20);
+            foreach (Line l in grip.Children) l.Stroke = Theme.Fill(0.22);
+            grabber.Background = Theme.Fill(0.20);
             // From here the card hangs from its top, so later growth goes down.
             var tl = CardTopLeft();
             below = true;
@@ -833,7 +839,7 @@ sealed class CardWindow : Window, ICardActions
         var circle = new Border
         {
             Width = 20, Height = 20, CornerRadius = new CornerRadius(10), Background = Theme.Surface,
-            BorderBrush = Theme.Ink(0.12), BorderThickness = new Thickness(0.5), UseLayoutRounding = false,
+            BorderBrush = Theme.Fill(0.12), BorderThickness = new Thickness(0.5), UseLayoutRounding = false,
             Effect = new DropShadowEffect { BlurRadius = 4, ShadowDepth = 1, Direction = 270, Opacity = 0.12, Color = Colors.Black },
         };
         var x = new Path { Data = Geometry.Parse("M 7,7 L 13,13 M 13,7 L 7,13"), Stroke = Theme.Secondary, StrokeThickness = 1.6, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round, Width = 20, Height = 20 };

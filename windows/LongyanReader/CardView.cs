@@ -543,7 +543,7 @@ sealed class CardView
     /// pressed, radius 6, reaching `bleed` past the text on both sides.
     FrameworkElement RowButton(FrameworkElement child, double bleed, double vertical, Action? click, bool hug = false)
     {
-        var fill = new SolidColorBrush(((SolidColorBrush)Theme.Ink(1)).Color) { Opacity = 0 };
+        var fill = new SolidColorBrush(((SolidColorBrush)Theme.Primary).Color) { Opacity = 0 };
         var row = new Border
         {
             Child = child, Background = Brushes.Transparent, CornerRadius = new CornerRadius(6),
@@ -707,7 +707,7 @@ sealed class CardView
     Border ActionButton(Symbol symbol, string help, Action<Border> act)
     {
         if (!symbol.Tinted) symbols.Add(symbol);
-        var fill = new SolidColorBrush(((SolidColorBrush)Theme.Ink(1)).Color) { Opacity = 0 };
+        var fill = new SolidColorBrush(((SolidColorBrush)Theme.Primary).Color) { Opacity = 0 };
         var b = new Border { Width = ButtonW, Height = ButtonH, CornerRadius = new CornerRadius(6), Background = fill, Child = symbol.Path, ToolTip = help, Margin = new Thickness(ButtonGap / 2, 0, ButtonGap / 2, 0) };
         var pressed = false;
         b.MouseEnter += (_, _) =>
