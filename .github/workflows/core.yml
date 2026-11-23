@@ -1,5 +1,5 @@
-# Builds LongyanCore and longyan-core-check on Windows and Linux, runs the check and compares
-# its output with the Mac's (scripts/core-check-expected.txt, written by
+# Builds LongyanCore and longyan-core-check on Windows (x64, ARM64) and Linux, runs the check
+# and compares its output with the Mac's (scripts/core-check-expected.txt, written by
 # `swift run longyan-core-check > scripts/core-check-expected.txt` on a Mac).
 name: core
 
@@ -94,6 +94,87 @@ jobs:
           path: |
             check-windows.txt
             full-windows.txt
+
+  # The same on Windows on Arm, natively (llama.cpp built with clang, as windows.yml's app-arm64).
+  windows-arm64:
+    runs-on: windows-11-arm
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - run: git config --global core.autocrlf false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: llama
+        with:
+          path: Vendor/llama
+          key: llama-${{ env.LLAMA_TAG }}-windows-arm64-${{ env.LLAMA_CACHE }}-${{ hashFiles('patches/llama.cpp-output-tokens.patch', 'patches/llama.cpp-windows.patch', 'patches/llama.cpp-windows-arm64.patch') }}
+      - name: Build llama.cpp (ARM64, clang, DLLs)
+        if: steps.llama.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          T="$RUNNER_TEMP/llama"; mkdir -p "$T/src"
+          curl -fsSL -o "$T/src.tar.gz" "https://github.com/ggml-org/llama.cpp/archive/refs/tags/$LLAMA_TAG.tar.gz"
+          echo "$LLAMA_TAR_SHA  $T/src.tar.gz" | sha256sum -c
+          (cd "$T" && tar -xzf src.tar.gz -C src --strip-components 1)
+          (cd "$T/src" && git apply -p1 "$GITHUB_WORKSPACE/patches/llama.cpp-output-tokens.patch" \
+                       && git apply -p1 "$GITHUB_WORKSPACE/patches/llama.cpp-windows.patch" \
+                       && git apply -p1 "$GITHUB_WORKSPACE/patches/llama.cpp-windows-arm64.patch")
+          # The ARM64 build environment (headers, libraries, linker) from Visual Studio.
+          vs=$("/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe" -latest -property installationPath | tr -d '\r')
+          printf '@call "%s\\VC\\Auxiliary\\Build\\vcvarsall.bat" arm64 >nul\r\n@set\r\n' "$vs" > "$T/env.bat"
+          cmd //c "$(cygpath -w "$T/env.bat")" | tr -d '\r' > "$T/env.txt"
+          while IFS='=' read -r k v; do
+            case "${k^^}" in
+              PATH) export PATH="$(cygpath -p -u "$v"):$PATH" ;;
+              INCLUDE|LIB|LIBPATH|VCINSTALLDIR|VCTOOLSINSTALLDIR|WINDOWSSDKDIR|WINDOWSSDKVERSION|UCRTVERSION|UNIVERSALCRTSDKDIR) export "$k=$v" ;;
+            esac
+          done < "$T/env.txt"
+          # clang, as llama.cpp builds for Windows on Arm: MSVC can't build the kernels for other
+          # CPUs than this one. No -march here, so llama.dll and ggml-base.dll run on any ARM64
+          # CPU; the kernels are built once per kind of ARM CPU (ggml-cpu-armv8.0_1.dll up to
+          # -armv8.6_1 with i8mm) and ggml loads the best one.
+          CC="C:/Program Files/LLVM/bin/clang.exe"; CXX="C:/Program Files/LLVM/bin/clang++.exe"
+          "$CC" --version
+          arm=(-G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER="$CC" -DCMAKE_CXX_COMPILER="$CXX"
+               -DCMAKE_C_COMPILER_TARGET=arm64-pc-windows-msvc -DCMAKE_CXX_COMPILER_TARGET=arm64-pc-windows-msvc)
+          cmake -S "$T/src" -B "$T/build" "${arm[@]}" -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_LIBDIR=lib \
+            -DGGML_BACKEND_DL=ON -DGGML_CPU_ALL_VARIANTS=ON \
+            -DLLAMA_BUILD_APP=OFF -DLLAMA_BUILD_COMMON=OFF -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TOOLS=OFF \
+            -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_SERVER=OFF -DLLAMA_BUILD_MTMD=OFF -DLLAMA_OPENSSL=OFF -DLLAMA_CURL=OFF \
+            -DGGML_NATIVE=OFF -DGGML_OPENMP=OFF
+          cmake --build "$T/build" -j 4
+          cmake --install "$T/build" --prefix Vendor/llama
+          L=$(cygpath -m "$PWD/Vendor/llama"); S=$(cygpath -m "$T/src")
+          mkdir -p "$T/simple"
+          printf '%s\n' 'cmake_minimum_required(VERSION 3.20)' 'project(simple CXX)' \
+            "add_executable(llama-simple $S/examples/simple/simple.cpp)" \
+            "target_include_directories(llama-simple PRIVATE $L/include)" \
+            "target_link_libraries(llama-simple PRIVATE $L/lib/llama.lib $L/lib/ggml.lib $L/lib/ggml-base.lib)" \
+            'target_compile_features(llama-simple PRIVATE cxx_std_17)' > "$T/simple/CMakeLists.txt"
+          cmake -S "$T/simple" -B "$T/simple/build" "${arm[@]}"
+          cmake --build "$T/simple/build"
+          mkdir -p Vendor/llama/tools; cp "$T/simple/build/llama-simple.exe" Vendor/llama/tools/
+          ls Vendor/llama/bin Vendor/llama/lib
+      - uses: compnerd/gha-setup-swift@9ff1ee4c44888c5817fc14d1b257ac8cabb4935f # v0.5.1
+        with:
+          swift-version: swift-6.3.3-release
+          swift-build: 6.3.3-RELEASE
+          build_arch: arm64
+      - run: swift build -c release --product longyan-core-check
+      - name: Run the check
+        run: |
+          cp Vendor/llama/bin/*.dll .build/release/
+          .build/release/longyan-core-check.exe --full full-windows-arm64.txt > check-windows-arm64.txt
+      - name: Compare with the Mac
+        run: diff -u --strip-trailing-cr scripts/core-check-expected.txt check-windows-arm64.txt
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: check-windows-arm64
+          path: |
+            check-windows-arm64.txt
+            full-windows-arm64.txt
 
   linux:
     runs-on: ubuntu-latest

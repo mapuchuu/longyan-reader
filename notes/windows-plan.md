@@ -102,8 +102,25 @@ Streaming from Ollama uses `URLSession.bytes`, which only Apple's Foundation has
 - Reading the selection: UI Automation (text pattern and selection bounds) instead of Accessibility. Coverage will vary by app.
 - The card: still missing Add to Anki, History, pointing at a word without selecting. Listen uses a Windows Chinese voice when one is installed.
 - The eye (Chip.cs) is in: Raw Input watches the mouse (no hook), UI Automation reads the selection off the app's thread with a 0.5 s limit, and ly_prepare starts the card's work 0.3 s after the eye appears (cancelled if it goes unclicked). Apps that don't say what's selected get it on a double-click only, in elements that may hold text, never in terminals, dialogs, Excel or full screen. It matches the Mac's drawing (gallery eye.png). CI checks it in Notepad. Needs a real PC: mixed-DPI screens, Chrome and Electron on first use, WeChat, touch and pen.
-- Updates: WinSparkle reads the same appcast format.
+- Updates: WinSparkle 0.9.4, with its own feed (appcast-windows.xml on the windows-feed pre-release) and ed25519 signatures. Built and checked in CI (windows.yml's updates job); still needs the real key (scripts/windows-update-key.sh) and the installer. DEVELOPMENT.md has the details.
 - Signing: a Windows code-signing certificate, or SmartScreen warns on every download.
+
+## Installer (branch win/installer)
+
+- Inno Setup, `windows/installer/LongyanReader.iss`. Chosen over WiX: one script, per-user installs without admin are its normal case, it closes and reopens the running app, and it builds on the CI runners as they are. An MSI adds nothing for a free app installed by people, not IT.
+- Per user, no admin prompt: `%LOCALAPPDATA%\Programs\Longyan Reader`, a Start menu shortcut, an entry in Settings > Apps. Pages: Ready, the progress bar, then Finish with "Open Longyan Reader" ticked.
+- Open at sign-in stays the app's own setting: the welcome window's switch, on by default, writes the same Run value Task Manager lists. The installer doesn't ask too. The uninstaller removes the value when it points at the app it removes.
+- Upgrades: the installer sets the event `LongyanReader.Windows.Quit` and the app exits as from its menu (App.cs). After 10 s, Restart Manager closes it. A silent upgrade opens it again if it was open. The whole app folder is replaced, so files an older version had don't stay.
+- Uninstall asks whether to delete history, settings and the model (`%LOCALAPPDATA%\LongyanReader`); the default is to keep them. A silent uninstall keeps them.
+- The model isn't in the installer. The app downloads it on first run from the welcome window (the same file, hosts and checksum as the Mac, resumed from the `.part` file).
+- The version is `<Version>` in `LongyanReader.csproj`; the installer reads it from the exe.
+- `windows-installer.yml` (called from windows.yml) builds `LongyanReader-Setup-<version>-x64.exe`, `-arm64` or one for both, `-x64-arm64`, then installs, upgrades over the running app and uninstalls on a clean runner (`windows/installer/test.ps1`).
+- Signing: `windows/installer/sign.ps1` signs the app's files, the setup and the uninstaller when the `WINDOWS_CERT_PFX` secret exists, and does nothing until then.
+- A tag `windows-v<version>` makes a draft release, never marked latest.
+
+## Windows on Arm (branch win/arm64)
+
+An x64 build runs on a Snapdragon PC under emulation, where ggml only gets the SSE 4.2 kernels: on a Parallels ARM VM a word card never settled in 2.5 minutes. So there is a native ARM64 build: `windows.yml`'s `app-arm64` and `ui-arm64` jobs on GitHub's windows-11-arm runner, and `core.yml`'s `windows-arm64`. llama.cpp is built with clang (MSVC can't build kernels for other CPUs than its own), as DLLs with four CPU kernels, ggml-cpu-armv8.0_1 up to armv8.6_1 with dotprod, fp16 and i8mm; ggml has no such list for Windows, so `patches/llama.cpp-windows-arm64.patch` adds it. The Swift toolchain has an ARM64 Windows build, and WPF publishes for win-arm64. The core check and the bridge check match the Mac's. On the runner (Cobalt 100, 4 cores, armv8.6_1 kernels) a word card settles in about 20 s and a phrase in 40 s, about twice the x64 runner's time. The x64 build on the same runner, under emulation (which gave it AVX2 there, so haswell kernels), took 68 s and 136 s; llama-simple writes 11.7 tokens a second there, 7.8 on the plain armv8.0 kernels. A Snapdragon X has 8 to 12 faster cores. The UI check on that runner (Windows 11, not Server) still fails the pointing checks and now and then misses a shortcut, for the x64 build too, so those are the desktop, not ARM64. Of 45 word picks over the gallery's passages, ARM64 and x64 agree on 43 (研 and 這個 differ). For a release: two downloads (x64 and ARM64) or one installer that picks, and the x64 build should tell someone running it under emulation to get the ARM64 one (the "needs-arm64" status).
 
 ## Checked on Windows and Linux
 
