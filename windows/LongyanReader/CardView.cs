@@ -915,19 +915,25 @@ sealed class CardView
     void FadeOut(List<(string Key, string Value, FrameworkElement Element, Point At)> old)
     {
         var going = old.Where(o => !now.TryGetValue(o.Key, out var v) || (v != o.Value && crossfades.Contains(o.Key))).ToList();
-        var dpi = VisualTreeHelper.GetDpi(Root).PixelsPerDip * Zoom;
         foreach (var o in going)
         {
             if (going.Any(g => g.Element != o.Element && g.Element.IsAncestorOf(o.Element))) continue;
-            var w = o.Element.ActualWidth; var h = o.Element.ActualHeight;
-            var dv = new DrawingVisual();
-            using (var dc = dv.RenderOpen()) dc.DrawRectangle(new VisualBrush(o.Element) { Stretch = Stretch.None, AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top }, null, new Rect(0, 0, w, h));
-            var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap((int)Math.Ceiling(w * dpi), (int)Math.Ceiling(h * dpi), 96 * dpi, 96 * dpi, PixelFormats.Pbgra32);
-            bitmap.Render(dv);
-            var ghost = new Image { Source = bitmap, Width = w, Height = h };
+            // The old part itself, which left the card when it was rebuilt, fades out in place.
+            var ghost = o.Element;
+            var w = ghost.ActualWidth; var h = ghost.ActualHeight;
+            switch (VisualTreeHelper.GetParent(ghost) ?? LogicalTreeHelper.GetParent(ghost))
+            {
+                case null: break;
+                case Panel p: p.Children.Remove(ghost); break;
+                case Decorator d: d.Child = null; break;
+                default: continue;
+            }
+            ghost.Width = w; ghost.Height = h;
+            ghost.Margin = new Thickness(0);
+            ghost.RenderTransform = Transform.Identity;
             Canvas.SetLeft(ghost, o.At.X); Canvas.SetTop(ghost, o.At.Y);
             ghosts.Children.Add(ghost);
-            var fade = new DoubleAnimation(1, 0, Motion.Reduced ? Motion.ContentDuration : new Duration(TimeSpan.FromSeconds(0.3))) { EasingFunction = Motion.EaseOut };
+            var fade = new DoubleAnimation(0, Motion.Reduced ? Motion.ContentDuration : new Duration(TimeSpan.FromSeconds(0.3))) { EasingFunction = Motion.EaseOut };
             fade.Completed += (_, _) => ghosts.Children.Remove(ghost);
             ghost.BeginAnimation(UIElement.OpacityProperty, fade);
         }
