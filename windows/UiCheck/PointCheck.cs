@@ -18,8 +18,9 @@ static class PointCheck
 {
     public static void Run(System.Diagnostics.Process app, IntPtr notepad, string log, List<string> failures, Action<string> shot)
     {
-        Word(notepad, log, failures, shot, "4-point-start", "感", "感冒");
-        Word(notepad, log, failures, shot, "4-point-middle", "锁", "闭关锁国");
+        // Where each is in Notepad's text (the passage starts with it: the file is short).
+        Word(notepad, log, failures, shot, "4-point-start", "感", 3, "感冒");
+        Word(notepad, log, failures, shot, "4-point-middle", "锁", "他得了感冒，吃不了饭。\r\n".Length + 9, "闭关锁国");
 
         // Well past the end of the first line, on it.
         const string name = "4-point-empty";
@@ -44,7 +45,7 @@ static class PointCheck
         Thread.Sleep(800);
     }
 
-    static void Word(IntPtr notepad, string log, List<string> failures, Action<string> shot, string name, string at, string expect)
+    static void Word(IntPtr notepad, string log, List<string> failures, Action<string> shot, string name, string at, int offset, string expect)
     {
         if (TextIn(notepad, at) is not System.Windows.Rect r) { failures.Add($"{name}: couldn't find {at} in Notepad"); return; }
         Clear(notepad);
@@ -58,9 +59,12 @@ static class PointCheck
         Thread.Sleep(1500);
         shot(name);
         var how = (string?)Last(log, before, "selection")?["how"];
-        var found = (string?)Last(log, before, "point")?["found"];
+        var pointed = Last(log, before, "point");
+        var found = (string?)pointed?["found"];
+        var index = (int?)pointed?["at"];
         var word = (string?)card?["word"];
-        Console.WriteLine($"[{name}] pointer on {at}: point {found ?? "not tried"}, read by {how ?? "nothing logged"}, card for {word ?? "nothing"} ({(string?)card?["kind"] ?? "no card"})");
+        Console.WriteLine($"[{name}] pointer on {at}: point {found ?? "not tried"} at {index}, read by {how ?? "nothing logged"}, card for {word ?? "nothing"} ({(string?)card?["kind"] ?? "no card"})");
+        if (index != offset) failures.Add($"{name}: the character under the pointer is at {index}, not {offset}");
         if (how != "point") failures.Add($"{name}: read by {how ?? "nothing logged"}, not by pointing");
         if (word != expect) failures.Add($"{name}: the card is for {word ?? "nothing"}, not {expect}");
         Keys(VK_ESCAPE);

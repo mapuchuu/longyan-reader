@@ -170,7 +170,8 @@ static class Program
         if (selected == null || !SelectionReader.HasChinese(selected))
         {
             var pointed = await PointReader.ReadAsync();
-            Core.Log($"{{\"event\":\"point\",\"found\":\"{PointReader.Found}\"}}");
+            // Where the character is in the passage, a number; never the text.
+            Core.Log($"{{\"event\":\"point\",\"found\":\"{PointReader.Found}\",\"at\":{pointed?.Start ?? -1}}}");
             if (pointed != null) { how = "point"; selected = pointed; }
         }
         var point = clock.Elapsed.TotalMilliseconds;

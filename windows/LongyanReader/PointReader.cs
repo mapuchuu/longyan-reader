@@ -67,16 +67,29 @@ static class PointReader
 
     static Read InText(TextPattern text, Point point)
     {
-        var at = text.RangeFromPoint(point);
-        at.ExpandToEnclosingUnit(TextUnit.Character);
-        var ch = at.GetText(-1);
-        if (string.IsNullOrEmpty(ch)) return new Read(null, "no character");
-        // RangeFromPoint gives the nearest character, even past the end of a line or below
-        // the text: it must really be under the pointer.
-        var rects = at.GetBoundingRectangles().Where(r => !r.IsEmpty && r.Width > 0).ToArray();
-        if (rects.Length == 0) return new Read(null, "no character bounds");
-        if (!rects.Any(r => { r.Inflate(3, 3); return r.Contains(point); }))
-            return new Read(null, FormattableString.Invariant($"not under the pointer: {point.X:0},{point.Y:0} and {rects[0].X:0},{rects[0].Y:0} {rects[0].Width:0}x{rects[0].Height:0}"));
+        // RangeFromPoint gives the nearest place between characters (Notepad's, the one after
+        // the middle of a character), even past the end of a line or below the text: the
+        // character after it, or the one before, must really be under the pointer.
+        var near = text.RangeFromPoint(point);
+        near.ExpandToEnclosingUnit(TextUnit.Character);
+        TextPatternRange? at = null;
+        string? ch = null, missed = null;
+        foreach (var shift in new[] { 0, -1, 1 })
+        {
+            var r = near.Clone();
+            if (shift != 0)
+            {
+                r.MoveEndpointByUnit(TextPatternRangeEndpoint.Start, TextUnit.Character, shift);
+                r.MoveEndpointByUnit(TextPatternRangeEndpoint.End, TextUnit.Character, shift);
+            }
+            var t = r.GetText(-1);
+            if (string.IsNullOrEmpty(t)) continue;
+            var rects = r.GetBoundingRectangles().Where(x => !x.IsEmpty && x.Width > 0).ToArray();
+            if (rects.Length == 0) continue;
+            if (rects.Any(x => { x.Inflate(3, 3); return x.Contains(point); })) { at = r; ch = t; break; }
+            missed ??= FormattableString.Invariant($"not under the pointer: {point.X:0},{point.Y:0} and {rects[0].X:0},{rects[0].Y:0} {rects[0].Width:0}x{rects[0].Height:0}");
+        }
+        if (at == null || ch == null) return new Read(null, missed ?? "no character bounds");
 
         var wide = at.Clone();
         wide.MoveEndpointByUnit(TextPatternRangeEndpoint.Start, TextUnit.Character, -Around);
