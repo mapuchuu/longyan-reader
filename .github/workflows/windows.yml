@@ -582,3 +582,68 @@ jobs:
             ui-out
             picks.txt
             words-out.txt
+
+  # The x64 app on the same Windows 11 ARM runner, under emulation (the model counts as too
+  # slow there, so cards come in dictionary order): tells failures of this desktop (Windows 11,
+  # not Server) apart from failures of the ARM64 build. Doesn't fail the workflow.
+  ui-x64-on-arm64:
+    needs: app
+    runs-on: windows-11-arm
+    continue-on-error: true
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: LongyanReader-windows
+          path: dist
+      - name: Model folder
+        run: echo "MODELS=$(cygpath -u "$LOCALAPPDATA")/LongyanReader/models" >> "$GITHUB_ENV"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: model
+        with:
+          path: ~/AppData/Local/LongyanReader/models
+          key: model-qwen3.5-4b-q4_k_m-00fe7986
+      - name: Download the reading model
+        if: steps.model.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p "$MODELS"
+          curl -fL --retry 3 -o "$MODELS/qwen3.5-4b-q4_k_m.gguf" \
+            "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/e87f176479d0855a907a41277aca2f8ee7a09523/Qwen3.5-4B-Q4_K_M.gguf"
+          echo "00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4  $MODELS/qwen3.5-4b-q4_k_m.gguf" | sha256sum -c
+      - name: The runner
+        run: |
+          powershell -NoProfile -Command "Get-CimInstance Win32_Processor | Select-Object Name,NumberOfCores,NumberOfLogicalProcessors | Format-List"
+          echo "PROCESSOR_ARCHITECTURE=$PROCESSOR_ARCHITECTURE"
+      # This image (Windows 11, not Server) opens on the first-run privacy screen with the Start
+      # menu and a WSL update prompt over the desktop, so the keys the check sends go there.
+      # Close them (nothing is accepted). It also has the Store Notepad; the check is written
+      # for the classic one the x64 runner has, so remove the Store one and notepad.exe is
+      # the classic Notepad again.
+      - name: Clear the desktop
+        shell: pwsh
+        run: |
+          Get-Process | Where-Object MainWindowTitle | Format-Table Id,ProcessName,MainWindowTitle -AutoSize
+          foreach ($n in 'WWAHost','UserOOBEBroker','CloudExperienceHostBroker','wsl','wslhost','StartMenuExperienceHost','SearchHost') {
+            Stop-Process -Name $n -Force -ErrorAction SilentlyContinue
+          }
+          Get-AppxPackage -AllUsers *Microsoft.WindowsNotepad* | Remove-AppxPackage -AllUsers -ErrorAction Continue
+          Start-Sleep 3
+          Get-Process | Where-Object MainWindowTitle | Format-Table Id,ProcessName,MainWindowTitle -AutoSize
+          Get-AppxPackage -AllUsers *Microsoft.WindowsNotepad* | Select-Object Name,Version
+      - run: dotnet build windows/UiCheck -c Release -o uicheck
+      - name: Use the app
+        run: |
+          export LONGYAN_BACKEND_LOG="$(cygpath -w "$PWD/backend.txt")"
+          uicheck/UiCheck.exe "$(cygpath -w "$PWD/dist/LongyanReader/LongyanReader.exe")" ui-out
+      - name: CPU kernels used
+        if: always()
+        run: cat backend.txt || echo "no backend line, so the model didn't load"
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ui-check-x64-on-arm64
+          path: ui-out
