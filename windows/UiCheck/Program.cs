@@ -17,7 +17,7 @@ namespace Longyan;
 /// selects Chinese text in Notepad, presses Ctrl+Alt+L, and saves a screenshot and the card's
 /// text once the card settles (the model's pick and translation in, when there's a model).
 /// Usage: UiCheck APP_EXE OUT_DIR
-static class Program
+static partial class Program
 {
     static string outDir = ".";
     static string log = "";
@@ -120,6 +120,7 @@ static class Program
         Keys(VK_ESCAPE);
         Thread.Sleep(800);
         EyeCheck(window);
+        AnkiCheck(app, window);   // AnkiCheck.cs
 
         try { notepad.Kill(); } catch { }
         try { app.Kill(); } catch { }

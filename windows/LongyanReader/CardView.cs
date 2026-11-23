@@ -23,6 +23,7 @@ interface ICardActions
     void OpenPartOf();
     void Copy(string text);
     void Listen(string text);
+    void AddToAnki();
     void TogglePin();
     bool Pinned { get; }
     bool CanListen { get; }
@@ -620,19 +621,22 @@ sealed class CardView
 
     readonly List<Symbol> symbols = new();
 
-    /// The Listen, Copy and Pin buttons; returns the width their slot takes on the first line.
+    /// The Listen, Copy, Anki and Pin buttons; returns the width their slot takes on the first line.
     double AddButtons(string copy, string speech)
     {
         symbols.Clear();
         var n = 0;
         if (actions.CanListen) { buttons.Children.Add(ListenButton(speech)); n++; }
         buttons.Children.Add(CopyButton(copy)); n++;
+        if (AnkiState != null) { buttons.Children.Add(AnkiButton(copy)); n++; }
         var pin = actions.Pinned ? new Symbol(PinFill, true, ((SolidColorBrush)Theme.Accent).Color, true, dy: 1) : new Symbol(Pin, false, Rest, false, dy: 1);
         buttons.Children.Add(ActionButton(pin, actions.Pinned ? "Unpin: close when you click elsewhere" : "Pin: keep the card here for every lookup", _ => actions.TogglePin())); n++;
         buttons.Margin = new Thickness(0, 0, Pad * Zoom - 6 - ButtonGap / 2, 0);
         // The slot they take on the first line, in the content's own (unzoomed) units. The Mac
-        // keeps room for all three even when there's no voice to listen with.
-        return (3 * ButtonW + 2 * ButtonGap - 6) / Zoom;
+        // keeps room for Listen, Copy and Pin even when there's no voice to listen with, and
+        // one more for Anki.
+        var count = AnkiState != null ? 4 : 3;
+        return (count * ButtonW + (count - 1) * ButtonGap - 6) / Zoom;
     }
 
     /// A symbol's colour at rest: tertiary, secondary while the pointer is on the card.
@@ -711,7 +715,7 @@ sealed class CardView
     {
         if (!symbol.Tinted) symbols.Add(symbol);
         var fill = new SolidColorBrush(((SolidColorBrush)Theme.Ink(1)).Color) { Opacity = 0 };
-        var b = new Border { Width = ButtonW, Height = ButtonH, CornerRadius = new CornerRadius(6), Background = fill, Child = symbol.Path, ToolTip = help, Margin = new Thickness(ButtonGap / 2, 0, ButtonGap / 2, 0) };
+        var b = new ActionBorder { Width = ButtonW, Height = ButtonH, CornerRadius = new CornerRadius(6), Background = fill, Child = symbol.Path, ToolTip = help, Margin = new Thickness(ButtonGap / 2, 0, ButtonGap / 2, 0) };
         var pressed = false;
         b.MouseEnter += (_, _) =>
         {
@@ -741,7 +745,113 @@ sealed class CardView
             pressed = false;
             act(b);
         };
+        b.Invoked = () => act(b);
         return b;
+    }
+
+    /// A card button as UI Automation sees it: a button named by its help, which Invoke clicks.
+    sealed class ActionBorder : Border
+    {
+        public Action? Invoked;
+        protected override System.Windows.Automation.Peers.AutomationPeer OnCreateAutomationPeer() => new Peer(this);
+
+        sealed class Peer : System.Windows.Automation.Peers.FrameworkElementAutomationPeer, System.Windows.Automation.Provider.IInvokeProvider
+        {
+            public Peer(ActionBorder owner) : base(owner) { }
+            protected override System.Windows.Automation.Peers.AutomationControlType GetAutomationControlTypeCore() => System.Windows.Automation.Peers.AutomationControlType.Button;
+            protected override string GetClassNameCore() => "Button";
+            protected override string GetNameCore() => ((ActionBorder)Owner).ToolTip as string ?? "";
+            public override object GetPattern(System.Windows.Automation.Peers.PatternInterface p) =>
+                p == System.Windows.Automation.Peers.PatternInterface.Invoke ? this : base.GetPattern(p);
+            public void Invoke() => ((ActionBorder)Owner).Invoked?.Invoke();
+        }
+    }
+
+    // MARK: Anki
+
+    /// Add to Anki's state, as the core reports it (Anki.cs): "ready", "adding", "added" or
+    /// "failed" (AnkiMessage says why); null shows no button, as when Anki isn't open with
+    /// AnkiConnect or the card has nothing to add. The window sets it.
+    public string? AnkiState;
+    public string AnkiMessage = "";
+    Border? ankiButton;
+    Symbol? ankiSymbol;
+    string ankiWord = "";
+
+    /// Adds the card to Anki; once it's there, in the accent, and a click shows the note in
+    /// Anki; when Anki doesn't answer, a warning for a moment, with why in its help.
+    FrameworkElement AnkiButton(string text)
+    {
+        ankiWord = text.Length > 14 ? text[..13] + "…" : text;
+        var symbol = new Symbol("M 0,0", true, Rest, false);
+        symbol.Path.StrokeThickness = 0;
+        ankiSymbol = symbol;
+        ankiButton = ActionButton(symbol, "", _ => actions.AddToAnki());
+        ShowAnki();
+        return ankiButton;
+    }
+
+    /// The button's state changed: shown in place, without building the card again.
+    public void SetAnki(string? state, string message)
+    {
+        AnkiState = state;
+        AnkiMessage = message;
+        if (state != null && ankiButton != null && buttons.Children.Contains(ankiButton)) ShowAnki();
+    }
+
+    void ShowAnki()
+    {
+        if (ankiSymbol is not Symbol s || ankiButton is not Border b) return;
+        s.Path.Data = AnkiState switch { "added" => AnkiAdded, "failed" => Warning, _ => AnkiAdd };
+        s.Path.Opacity = AnkiState == "adding" ? 0.4 : 1;
+        b.ToolTip = AnkiState switch
+        {
+            "adding" => "Adding to Anki…",
+            "added" => "In Anki · click to show it there",
+            "failed" => AnkiMessage,
+            _ => $"Add “{ankiWord}” to Anki",
+        };
+        s.Ink.BeginAnimation(SolidColorBrush.ColorProperty, null);
+        if (AnkiState == "added")
+        {
+            symbols.Remove(s);
+            s.Ink.Color = ((SolidColorBrush)Theme.Accent).Color;
+        }
+        else
+        {
+            if (!symbols.Contains(s)) symbols.Add(s);
+            s.Ink.Color = b.IsMouseOver ? ((SolidColorBrush)Theme.Primary).Color : Rest;
+        }
+    }
+
+    // SF Symbols' rectangle.stack.badge.plus, checkmark.rectangle.stack and
+    // exclamationmark.triangle, traced from the Mac's at the size Copy's is drawn, as filled
+    // outlines: their bars are thinner than a stroke.
+    static readonly Geometry AnkiAdd = Join(
+        Stroked("M 2.65,6.8 V 4.77 A 0.9,0.9 0 0 1 3.55,3.87 H 12.05 A 0.9,0.9 0 0 1 12.95,4.77 V 10.9 A 0.9,0.9 0 0 1 12.05,11.8 H 5.85", 1.05, PenLineCap.Flat),
+        Geometry.Parse("M 3.33,2.5 A 0.85,0.85 0 0 1 4.18,1.65 H 11.43 A 0.85,0.85 0 0 1 12.28,2.5 Z"),
+        Geometry.Parse("M 4.41,0.89 A 0.72,0.72 0 0 1 5.13,0.17 H 10.48 A 0.72,0.72 0 0 1 11.2,0.89 Z"),
+        Geometry.Combine(new EllipseGeometry(new Point(2.67, 10.29), 2.74, 2.74),
+            Stroked("M 1.28,10.29 H 4.06 M 2.67,8.9 V 11.68", 0.7, PenLineCap.Round), GeometryCombineMode.Exclude, null));
+    static readonly Geometry AnkiAdded = Join(
+        Stroked("M 2.86,4.17 H 11.15 A 1,1 0 0 1 12.15,5.17 V 11.11 A 1,1 0 0 1 11.15,12.11 H 2.86 A 1,1 0 0 1 1.86,11.11 V 5.17 A 1,1 0 0 1 2.86,4.17 Z", 1.05, PenLineCap.Flat),
+        Geometry.Parse("M 2.52,2.78 A 0.82,0.82 0 0 1 3.34,1.96 H 10.66 A 0.82,0.82 0 0 1 11.48,2.78 Z"),
+        Geometry.Parse("M 3.61,1.2 A 0.74,0.74 0 0 1 4.35,0.46 H 9.65 A 0.74,0.74 0 0 1 10.39,1.2 Z"),
+        Stroked("M 5,8.48 L 6.41,10.1 L 8.98,6.32", 0.98, PenLineCap.Round));
+    static readonly Geometry Warning = Join(
+        Stroked("M 6.98,2.45 L 12.12,11.6 L 1.84,11.6 Z", 0.98, PenLineCap.Round),
+        Stroked("M 6.98,5.3 V 7.95", 1.0, PenLineCap.Round),
+        new EllipseGeometry(new Point(6.98, 9.63), 0.62, 0.62));
+
+    static Geometry Stroked(string data, double width, PenLineCap cap) =>
+        Geometry.Parse(data).GetWidenedPathGeometry(new Pen(Brushes.Black, width) { StartLineCap = cap, EndLineCap = cap, LineJoin = PenLineJoin.Round });
+
+    static Geometry Join(params Geometry[] parts)
+    {
+        Geometry all = parts[0];
+        foreach (var p in parts.Skip(1)) all = Geometry.Combine(all, p, GeometryCombineMode.Union, null);
+        all.Freeze();
+        return all;
     }
 
     /// The symbols brighten while the pointer is anywhere on the card (ease-out 0.2 s).
