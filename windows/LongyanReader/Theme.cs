@@ -37,7 +37,7 @@ static class Theme
     public static Brush NoteCulture => Solid(Dark ? 0x94C7C2 : 0x458280);
 
     /// The Mac renders' backdrop (underPageBackgroundColor), for the gallery.
-    public static Brush Backdrop => Solid(Dark ? 0x282828 : 0x959595);
+    public static Brush Backdrop => Solid(Dark ? 0x282828 : 0x969696);
 
     // Latin text in Segoe UI Variable (Segoe UI before Windows 11), Chinese in Microsoft YaHei UI.
     public static readonly FontFamily Text = new("Segoe UI Variable Text, Segoe UI, Microsoft YaHei UI");
