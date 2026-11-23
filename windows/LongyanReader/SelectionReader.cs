@@ -124,7 +124,8 @@ static class SelectionReader
     {
         try
         {
-            int x0 = (int)Math.Floor(b.Left), x1 = (int)Math.Ceiling(b.Right + 6 * s), y0 = (int)Math.Floor(b.Top), y1 = (int)Math.Ceiling(b.Bottom);
+            // Classic Notepad's rects fall short of its highlight by up to a character at 175%.
+            int x0 = (int)Math.Floor(b.Left), x1 = (int)Math.Ceiling(b.Right + b.Height + 6 * s), y0 = (int)Math.Floor(b.Top), y1 = (int)Math.Ceiling(b.Bottom);
             int w = x1 - x0, h = y1 - y0;
             if (w < 2 || h < 4 || w * h > 4_000_000) return (null, null);
             using var bmp = new System.Drawing.Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
@@ -135,30 +136,59 @@ static class SelectionReader
             bmp.UnlockBits(data);
             static int Diff(int a, int c) => Math.Abs(((a >> 16) & 255) - ((c >> 16) & 255)) + Math.Abs(((a >> 8) & 255) - ((c >> 8) & 255)) + Math.Abs((a & 255) - (c & 255));
             // The highlight: the commonest colour inside the rect.
-            var inside = (int)Math.Round(b.Right) - x0;
+            var inside = Math.Min((int)Math.Round(b.Right) - x0, w);
             var counts = new Dictionary<int, int>();
-            for (var y = 0; y < h; y++) for (var x = 0; x < Math.Min(inside, w); x++) { var c = px[y * w + x] & 0xFFFFFF; counts[c] = counts.GetValueOrDefault(c) + 1; }
+            for (var y = 0; y < h; y++) for (var x = 0; x < inside; x++) { var c = px[y * w + x] & 0xFFFFFF; counts[c] = counts.GetValueOrDefault(c) + 1; }
             if (counts.Count == 0) return (null, null);
             var (bg, n) = counts.MaxBy(kv => kv.Value);
-            if (n * 3 < Math.Min(inside, w) * h) return (null, null);
-            // Its right edge: the last column holding it, in the rect's middle rows.
-            var right = -1;
-            for (var y = h / 4; y < h - h / 4; y++) for (var x = w - 1; x > right; x--) if (Diff(px[y * w + x], bg) <= 6) { right = x; break; }
-            double? edge = right >= 0 && x0 + right + 1 >= b.Right - b.Height / 2 && x0 + right + 1 <= b.Right + 4 * s ? x0 + right + 1 : null;
-            // The text's ink: rows with a pixel far from the highlight, left of its edge.
-            var last = edge is double e ? (int)e - x0 : Math.Min(inside, w);
-            int top = -1, bottom = -1;
+            if (n * 3 < inside * h) return (null, null);
+            // Its rows: Chromium's is the font's height, less than the line's box.
+            int hTop = -1, hBottom = -1;
             for (var y = 0; y < h; y++)
+            {
+                var k = 0;
+                for (var x = 0; x < inside; x++) if (Diff(px[y * w + x], bg) <= 6) k++;
+                if (k * 5 < inside) continue;
+                if (hTop < 0) hTop = y;
+                hBottom = y;
+            }
+            if (hTop < 0 || hBottom - hTop < 3) return (null, null);
+            // A caret (Notepad shows one at the selection's moving end, blinking): a column of one
+            // colour, not the highlight's, all the way down the highlight. Left out of the ink, and
+            // counted as highlight at the edge.
+            var caret = new bool[w];
+            // The page past the selection's end: the commonest colour there.
+            var after = new Dictionary<int, int>();
+            for (var y = hTop; y <= hBottom; y++) for (var x = inside; x < w; x++) { var c = px[y * w + x] & 0xFFFFFF; after[c] = after.GetValueOrDefault(c) + 1; }
+            var page = after.Count > 0 ? after.MaxBy(kv => kv.Value).Key : -1;
+            for (var x = 0; x < w; x++)
+            {
+                var c0 = px[hTop * w + x];
+                if (Diff(c0, bg) <= 6 || (page >= 0 && Diff(c0, page) <= 6)) continue;
+                var same = true;
+                for (var y = hTop + 1; y <= hBottom && same; y++) same = Diff(px[y * w + x], c0) <= 6;
+                caret[x] = same;
+            }
+            // Its right edge: the last column holding it, in its middle rows.
+            var right = -1;
+            int m0 = hTop + (hBottom - hTop) / 4, m1 = hBottom - (hBottom - hTop) / 4;
+            for (var y = m0; y <= m1; y++) for (var x = w - 1; x > right; x--) if (Diff(px[y * w + x], bg) <= 6) { right = x; break; }
+            if (right >= 0) for (var k = 0; k < 3 && right + 1 < w && caret[right + 1]; k++) right++;
+            double? edge = right >= 0 && x0 + right + 1 >= b.Right - b.Height && x0 + right + 1 <= b.Right + b.Height ? x0 + right + 1 : null;
+            // The text's ink: in the highlight's rows, left of its edge, far from its colour.
+            var last = edge is double e ? (int)e - x0 : inside;
+            int top = -1, bottom = -1;
+            for (var y = hTop; y <= hBottom; y++)
             {
                 for (var x = 0; x < last; x++)
                 {
-                    if (Diff(px[y * w + x], bg) <= 150) continue;
+                    if (caret[x] || Diff(px[y * w + x], bg) <= 150) continue;
                     if (top < 0) top = y;
                     bottom = y;
                     break;
                 }
             }
-            double? mid = top >= 0 && bottom - top + 1 >= b.Height * 0.4 ? y0 + (top + bottom + 1) / 2.0 : null;
+            double? mid = top >= 0 && bottom - top + 1 >= (hBottom - hTop + 1) * 0.4 ? y0 + (top + bottom + 1) / 2.0 : null;
             return (edge, mid);
         }
         catch (Exception) { return (null, null); }

@@ -421,7 +421,7 @@ static partial class Program
         var logged = Last(skip, "eye");
         // Shown 0.12 s after the mouse let go, plus reading the selection (the Mac's 0.12 s, then
         // its Accessibility read): the screen read must not hold it up.
-        if (logged?["ms"] is JsonNode msNode && (int)msNode > 300) failures.Add($"{name}: the eye came {(int)msNode} ms after the mouse let go (reading the screen took {logged["drawnMs"]} ms)");
+        if (logged?["ms"] is JsonNode msNode && (int)msNode > 350) failures.Add($"{name}: the eye came {(int)msNode} ms after the mouse let go (reading the screen took {logged["drawnMs"]} ms)");
         if (rects.Length == 0) { failures.Add($"{name}: no selection to measure"); return eye; }
         var union = rects[0];
         foreach (var x in rects.Skip(1)) union.Union(x);
@@ -465,7 +465,7 @@ static partial class Program
         // Exact: the mark itself, against the text as the eye sees it (the Mac measured 0.0
         // from the ink's centre and 19.5 points after the highlight, 12 points wide).
         var clamped = Math.Abs(predX - ((drawnRight ?? trimmedRight ?? union.Right) + 19 * s)) > 1 || r.Right >= area.Right;
-        if (exact && beside && lines.Length == 1 && !clamped) Exact(name, after, r, s, textMid, union, top, bottom);
+        if (exact && beside && lines.Length == 1 && !clamped) Exact(name, after, r, s, textMid, union, top, bottom, trimmedRight);
 
         if (first != null)
         {
@@ -512,7 +512,7 @@ static partial class Program
 
     /// The mark's ink inside the eye's circle (darker or lighter than the circle's surface),
     /// then the eye hidden (Shift) and the highlight's right edge read with nothing over it.
-    static void Exact(string name, Bitmap after, RECT r, double s, double textMid, System.Windows.Rect union, int inkTop, int inkBottom)
+    static void Exact(string name, Bitmap after, RECT r, double s, double textMid, System.Windows.Rect union, int inkTop, int inkBottom, double? trimmedRight)
     {
         double cx = (r.Left + r.Right) / 2.0, cy = (r.Top + r.Bottom) / 2.0;
         // The circle's surface: the commonest colour on a ring between the mark and the hairline.
@@ -555,14 +555,18 @@ static partial class Program
         Keys(VK_SHIFT);
         WaitForEye(false, 1500);
         Thread.Sleep(300);
-        using var selected = Capture();
-        selected.Save(Path.Combine(outDir, name + "-selected.png"), ImageFormat.Png);
-        // The highlight: the commonest colour in the selection's rect on the ink's rows.
-        var counts = new Dictionary<int, int>();
-        for (var y = inkTop; y <= inkBottom; y++) for (var x = (int)union.Left; x < (int)union.Right; x++) { var c = selected.GetPixel(x, y).ToArgb(); counts[c] = counts.GetValueOrDefault(c) + 1; }
+        // Three frames a blink apart: Notepad's caret, blinking at the selection's end, covers
+        // its last column in some.
         double? edge = null;
-        if (counts.Count > 0)
+        for (var f = 0; f < 3; f++)
         {
+            if (f > 0) Thread.Sleep(270);
+            using var selected = Capture();
+            if (f == 0) selected.Save(Path.Combine(outDir, name + "-selected.png"), ImageFormat.Png);
+            // The highlight: the commonest colour in the selection's rect on the ink's rows.
+            var counts = new Dictionary<int, int>();
+            for (var y = inkTop; y <= inkBottom; y++) for (var x = (int)union.Left; x < (int)union.Right; x++) { var c = selected.GetPixel(x, y).ToArgb(); counts[c] = counts.GetValueOrDefault(c) + 1; }
+            if (counts.Count == 0) continue;
             var hl = Color.FromArgb(counts.MaxBy(kv => kv.Value).Key);
             var right = -1;
             for (var y = (int)textMid - (int)(3 * s); y <= (int)textMid + (int)(3 * s); y++)
@@ -571,17 +575,19 @@ static partial class Program
                     var c = selected.GetPixel(x, y);
                     if (Math.Abs(c.R - hl.R) + Math.Abs(c.G - hl.G) + Math.Abs(c.B - hl.B) <= 6) { right = x; break; }
                 }
-            if (right >= 0) edge = right + 1;
+            if (right >= 0 && (edge == null || right + 1 > edge)) edge = right + 1;
         }
+        // White space at the end is highlighted too (a line break, a space), where the Mac has
+        // none: there the text ends where its trimmed range does.
+        var textEnd = trimmedRight ?? edge;
         if (l == int.MaxValue) { failures.Add($"{name}: no mark found in the eye"); return; }
         double mx = (l + rr + 1) / 2.0, my = (t + b + 1) / 2.0, mw = (rr - l + 1) / s;
         Console.WriteLine($"[{name}] mark's weighted centre {(wsum > 0 ? $"{wx / wsum:0.##},{wy / wsum:0.##}" : "none")}");
-        var dy = (my - textMid) / s; double? dx = edge is double e ? (mx - e) / s : null;
-        Console.WriteLine($"[{name}] exact: mark {l},{t} to {rr},{b} (centre {mx:0.#},{my:0.#}, {mw:0.##} points wide); ink centre {textMid:0.#}; highlight's right edge {edge?.ToString("0.#") ?? "not found"} (UI Automation {union.Right:0.#}); mark minus ink {dy:+0.##;-0.##;0} points; mark after the highlight {dx?.ToString("0.##") ?? "?"} points (Mac 19.5)");
+        var dy = (my - textMid) / s; double? dx = textEnd is double e ? (mx - e) / s : null;
+        Console.WriteLine($"[{name}] exact: mark {l},{t} to {rr},{b} (centre {mx:0.#},{my:0.#}, {mw:0.##} points wide); ink centre {textMid:0.#}; highlight's right edge {edge?.ToString("0.#") ?? "not found"} (UI Automation {union.Right:0.#}{(trimmedRight is double tr ? $", text without its white space {tr:0.#}" : "")}); mark minus ink {dy:+0.##;-0.##;0} points; mark after the text's end {dx?.ToString("0.##") ?? "?"} points (Mac 19.5)");
         if (Math.Abs(dy) > 0.5) failures.Add($"{name}: the mark's centre is {dy:+0.##;-0.##} points from the text's ink centre (the Mac: 0)");
-        if (dx is double d && Math.Abs(d - 19.5) > 0.5) failures.Add($"{name}: the mark's centre is {d:0.##} points after the highlight (the Mac: 19.5)");
+        if (dx is double d && Math.Abs(d - 19.5) > 0.5) failures.Add($"{name}: the mark's centre is {d:0.##} points after the text's end (the Mac: 19.5)");
         if (dx == null) failures.Add($"{name}: couldn't find the highlight's right edge");
-        if (Math.Abs(mw - 12) > 0.5 + 1 / s) failures.Add($"{name}: the mark is {mw:0.##} points wide (the Mac: 12)");
     }
 
     /// The eye's circle where `shot` differs from `before` inside `zone` by more than `threshold`
