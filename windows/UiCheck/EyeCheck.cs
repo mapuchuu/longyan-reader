@@ -499,7 +499,7 @@ static partial class Program
         // Across, from the highlight's right edge as the app read it off the screen (the `exact`
         // cases check that edge against the screen themselves).
         var drawnRight = logged?["drawn"] is JsonArray da && da.Count == 2 && da[0] is JsonNode dr ? (double?)dr : null;
-        if (beside) { predX = (drawnRight ?? trimmedRight ?? union.Right) + 4 * s + 15 * s; predY = textMid; }
+        if (beside) { predX = (drawnRight ?? trimmedRight ?? union.Right) + 4.5 * s + 15 * s; predY = textMid; }
         else { predX = up.X + 6 * s + 15 * s; predY = up.Y - 6 * s - 15 * s; }
         var area = WorkArea(up);
         predX = Math.Clamp(predX - 22 * s, area.Left, area.Right - 44 * s) + 22 * s;
@@ -514,7 +514,7 @@ static partial class Program
         if (Math.Abs(cx - predX) > tolX) failures.Add($"{name}: the eye's centre is at x {cx:0.#}, the Mac's rule puts it at {predX:0.#}; off by {cx - predX:0.#} px at {s * 100:0}%");
         // Exact: the mark itself, against the text as the eye sees it (the Mac measured 0.0
         // from the ink's centre and 19.5 points after the highlight, 12 points wide).
-        var clamped = Math.Abs(predX - ((drawnRight ?? trimmedRight ?? union.Right) + 19 * s)) > 1 || r.Right >= area.Right;
+        var clamped = Math.Abs(predX - ((drawnRight ?? trimmedRight ?? union.Right) + 19.5 * s)) > 1 || r.Right >= area.Right;
         if (exact && beside && lines.Length == 1 && !clamped) Exact(name, after, r, s, textMid, union, top, bottom, trimmedRight);
 
         if (first != null)
@@ -646,6 +646,28 @@ static partial class Program
         if (Math.Abs(dy) > tol) failures.Add($"{name}: the mark's centre is {dy:+0.##;-0.##} points from the text's ink centre (the Mac: 0)");
         if (dx is double d && Math.Abs(d - 19.5) > tol) failures.Add($"{name}: the mark's centre is {d:0.##} points after the text's end (the Mac: 19.5)");
         if (dx == null) failures.Add($"{name}: couldn't find the highlight's right edge");
+        // The mark in the middle of the circle as drawn: the circle's edges on rows and columns
+        // 7 points either side of the middle, where the mark isn't.
+        double? Mid(bool across, int at)
+        {
+            bool Surface(int k) { var c = across ? after.GetPixel(k, at) : after.GetPixel(at, k); return Math.Abs(c.R - surface.R) + Math.Abs(c.G - surface.G) + Math.Abs(c.B - surface.B) < 24; }
+            int c0 = (int)(across ? cx : cy), lo = c0, hi = c0;
+            if (!Surface(c0)) return null;
+            while (Surface(lo - 1)) lo--;
+            while (Surface(hi + 1)) hi++;
+            return (lo + hi + 1) / 2.0;
+        }
+        var acrossMids = new[] { Mid(true, (int)(cy - 7 * s)), Mid(true, (int)(cy + 7 * s)) };
+        var downMids = new[] { Mid(false, (int)(cx - 7 * s)), Mid(false, (int)(cx + 7 * s)) };
+        if (acrossMids.All(v => v != null) && downMids.All(v => v != null))
+        {
+            double discX = acrossMids.Average(v => v!.Value), discY = downMids.Average(v => v!.Value);
+            double offX = (mx - discX) / s, offY = (my - discY) / s;
+            Console.WriteLine($"[{name}] circle's centre {discX:0.##},{discY:0.##}; mark minus circle {offX:+0.##;-0.##;0},{offY:+0.##;-0.##;0} points");
+            var ctol = 0.25 + 0.5 / s;
+            if (Math.Abs(offX) > ctol || Math.Abs(offY) > ctol) failures.Add($"{name}: the mark is {offX:+0.##;-0.##;0},{offY:+0.##;-0.##;0} points from the circle's centre (should be 0,0)");
+        }
+        else failures.Add($"{name}: couldn't find the circle's edges around the mark");
     }
 
     /// The highlight's colour, or that colour under a shadow (Edge's search button over a

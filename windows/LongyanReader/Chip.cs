@@ -282,6 +282,8 @@ sealed class ChipWindow : Window
     const double Box = 44, Target = 30, Diameter = 24;
     /// The mark's frame is 13 on the Mac, its eye 12 wide on screen; 12.6 here drew it 11.5.
     const double Mark = 13;
+    /// Where the image's ink centre sits from its frame's centre, in points.
+    const double MarkInkX = 0.061, MarkInkY = -0.012;
 
     public Selected? Selection;
     /// What it was built with (see Look).
@@ -293,6 +295,8 @@ sealed class ChipWindow : Window
     public bool Prepared;
     readonly ScaleTransform scale = new(0.6, 0.6, Target / 2, Target / 2);
     readonly Rectangle mark;
+    /// Moves the circle and the mark together by what snapping the window to whole pixels moved.
+    readonly TranslateTransform settle = new();
     readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(6) };
     bool hovering, pressed, leaving, menuOpen;
     public bool MenuOpen => menuOpen;
@@ -322,7 +326,7 @@ sealed class ChipWindow : Window
         mark = markShape;
         button.RenderTransform = scale;
         button.Invoked = () => Chip.Click(this);
-        Content = new Grid { Children = { button } };
+        Content = new Grid { Children = { button }, RenderTransform = settle };
 
         hit.MouseEnter += (_, _) => { Hover(true); Chip.Prepare(this); };
         hit.MouseLeave += (_, _) => Hover(false);
@@ -357,8 +361,8 @@ sealed class ChipWindow : Window
         if (!snapshot) surface.Effect = new DropShadowEffect { BlurRadius = 16, ShadowDepth = 2, Direction = 270, Opacity = 0.24, Color = Colors.Black, RenderingBias = RenderingBias.Quality };
         // A 0.5 border drawn inside the circle, as strokeBorder does.
         var hairline = new Ellipse { Width = Diameter, Height = Diameter, Stroke = Theme.Hairline, StrokeThickness = 0.5 };
-        // SwiftUI puts the image on whole points: half a point right and down of centre.
-        var mark = new Rectangle { Width = Mark, Height = Mark, Fill = Theme.Ink(1), OpacityMask = markBrush, Opacity = InkAlpha(false), RenderTransform = new TranslateTransform(0.5, 0.5), UseLayoutRounding = false };
+        // Centred in the circle by its ink (the image's ink sits 0.06 right of its frame's centre).
+        var mark = new Rectangle { Width = Mark, Height = Mark, Fill = Theme.Ink(1), OpacityMask = markBrush, Opacity = InkAlpha(false), RenderTransform = new TranslateTransform(-MarkInkX, -MarkInkY), UseLayoutRounding = false };
         RenderOptions.SetBitmapScalingMode(mark, BitmapScalingMode.HighQuality);
         // Not quite transparent: a layered window lets clicks through where it has no alpha.
         var hit = new Ellipse { Width = Target, Height = Target, Fill = new SolidColorBrush(Color.FromArgb(1, 0, 0, 0)) };
@@ -399,16 +403,16 @@ sealed class ChipWindow : Window
     /// for longer selections, or with no position, just above and right of where the mouse let
     /// go. Kept on that screen's working area.
     /// `right` and `inkMid`, when known, are the highlight's drawn right edge and the middle of
-    /// the text's ink: the mark (half a point right and down of the circle's centre) goes 19.5
-    /// after the highlight and level with the ink, as on the Mac.
+    /// the text's ink: the mark (centred in the circle) goes 19.5 after the highlight and level
+    /// with the ink, as on the Mac.
     public (int Left, int Top, int Size) Place(InputWatch.POINT up, Rect? selection, bool oneLine = false, double? right = null, double? inkMid = null)
     {
         s = Chip.ScaleAt(up);
         double x = up.X + 6 * s, y = up.Y - 6 * s - Target * s;
         if (selection is Rect b && b.Height > 0 && (oneLine || b.Height < 40 * s))
         {
-            x = (right ?? b.Right) + 4 * s;
-            y = inkMid is double m ? m - 0.5 * s - Target * s / 2 : b.Top + b.Height / 2 - Target * s / 2;
+            x = (right ?? b.Right) + 4.5 * s;
+            y = inkMid is double m ? m - Target * s / 2 : b.Top + b.Height / 2 - Target * s / 2;
         }
         var inset = (Box - Target) / 2 * s;
         x -= inset; y -= inset;
@@ -417,9 +421,9 @@ sealed class ChipWindow : Window
         double cx = Math.Clamp(x, area.Left, area.Right - size), cy = Math.Clamp(y, area.Top, area.Bottom - size);
         left = (int)Math.Round(cx);
         top = (int)Math.Round(cy);
-        // The window snaps to whole pixels; the mark takes up what that rounding moved, so it
-        // lands where the rule puts it (the circle keeps its whole pixels).
-        if (mark.RenderTransform is TranslateTransform shift) { shift.X = 0.5 + (cx - left) / s; shift.Y = 0.5 + (cy - top) / s; }
+        // The window snaps to whole pixels; the circle and the mark take up what that rounding
+        // moved together, so the mark lands where the rule puts it and stays centred.
+        settle.X = (cx - left) / s; settle.Y = (cy - top) / s;
 
         // A small spring in (response 0.3, damping 0.68) and a 0.12 s fade, as on the Mac, from
         // the window's first frame on screen (as the card does): timed from Show, the first
