@@ -444,15 +444,22 @@ jobs:
         run: |
           powershell -NoProfile -Command "Get-CimInstance Win32_Processor | Select-Object Name,NumberOfCores,NumberOfLogicalProcessors | Format-List"
           echo "PROCESSOR_ARCHITECTURE=$PROCESSOR_ARCHITECTURE"
-      # This image opens on Windows' first-run privacy screen, full screen over the desktop,
-      # so the keys the check sends go there. Close it (nothing is accepted).
+      # This image (Windows 11, not Server) opens on the first-run privacy screen with the Start
+      # menu and a WSL update prompt over the desktop, so the keys the check sends go there.
+      # Close them (nothing is accepted). It also has the Store Notepad; the check is written
+      # for the classic one the x64 runner has, so remove the Store one and notepad.exe is
+      # the classic Notepad again.
       - name: Clear the desktop
         shell: pwsh
         run: |
           Get-Process | Where-Object MainWindowTitle | Format-Table Id,ProcessName,MainWindowTitle -AutoSize
-          foreach ($n in 'WWAHost','UserOOBEBroker','CloudExperienceHostBroker') { Stop-Process -Name $n -Force -ErrorAction SilentlyContinue }
-          Start-Sleep 2
+          foreach ($n in 'WWAHost','UserOOBEBroker','CloudExperienceHostBroker','wsl','wslhost','StartMenuExperienceHost','SearchHost') {
+            Stop-Process -Name $n -Force -ErrorAction SilentlyContinue
+          }
+          Get-AppxPackage -AllUsers *Microsoft.WindowsNotepad* | Remove-AppxPackage -AllUsers -ErrorAction Continue
+          Start-Sleep 3
           Get-Process | Where-Object MainWindowTitle | Format-Table Id,ProcessName,MainWindowTitle -AutoSize
+          Get-AppxPackage -AllUsers *Microsoft.WindowsNotepad* | Select-Object Name,Version
       - run: dotnet build windows/UiCheck -c Release -o uicheck
       - name: Use the app
         run: |
