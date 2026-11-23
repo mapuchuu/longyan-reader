@@ -242,7 +242,20 @@ jobs:
         run: |
           set -euo pipefail
           dotnet build windows/BridgeCheck -c Release -o check-bin
-          cp dist/LongyanReader/*.dll check-bin/
+          # The core's DLLs, without the app's own .NET (it's self-contained, and the check isn't):
+          # native DLLs only, less .NET's.
+          python - <<'PY'
+          import glob, re, shutil, struct
+          for f in glob.glob("dist/LongyanReader/*.dll"):
+              name = f.replace("\\", "/").split("/")[-1]
+              if re.match(r"(?i)(hostfxr|hostpolicy|coreclr|clrjit|clrgc|mscor|microsoft\.|system\.|.*_cor3)", name): continue
+              b = open(f, "rb").read(4096)
+              pe = struct.unpack_from("<I", b, 0x3C)[0]
+              dirs = pe + 24 + (112 if struct.unpack_from("<H", b, pe + 24)[0] == 0x20B else 96)
+              if struct.unpack_from("<I", b, dirs + 14 * 8)[0] == 0:   # no .NET header
+                  shutil.copy(f, "check-bin")
+          PY
+          ls check-bin
           printf '%s\t%s\t%s\n' '他得了感冒，吃不了饭。' 1 2 '行不行，这一行很难' 6 7 '我等一下再给你打电话。' 0 11 > speed-lookups.txt
           cat speed-lookups.txt
       - name: Card times by CPU kernels
@@ -285,6 +298,7 @@ jobs:
           grep -q "model at start: too-slow" slow-log.txt
           grep -q "model at end: too-slow" slow-log.txt
           grep -q "^card 1: .*Dictionary order · this PC is too slow for the reading model" slow-log.txt
+          grep -q "^card 3: phrase: No translation · this PC is too slow for the reading model" slow-log.txt
           python - <<'PY'
           import re
           log = open("slow-log.txt", encoding="utf-8").read()
