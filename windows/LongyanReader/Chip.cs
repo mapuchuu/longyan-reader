@@ -74,6 +74,8 @@ static class Chip
                 w.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () => w.Close());
             }
             catch { }
+            // The first eye's own window, ready (see Take).
+            try { spare ??= new ChipWindow("", ""); spare.Ready(); } catch { spare = null; }
         });
     }
 
@@ -102,21 +104,36 @@ static class Chip
         lag = (long)System.Diagnostics.Stopwatch.GetElapsedTime(at).TotalMilliseconds;
         var mine = ++generation;
         // Give the app a moment to update its selection, 0.12 s from the button coming up as on
-        // the Mac, and build the eye's window meanwhile: its handle cost 30 to 60 ms after the
-        // read. Task.Delay ends on the system's 15.6 ms ticks (it waited 120 to 160 ms).
-        var settle = Precise.Until(at, 120);
-        var spare = new ChipWindow(app.Process, app.Path);
-        try
-        {
-            spare.Ready();
-            await settle;
-            if (mine != generation) return;
-            await Read(up, clicks, dragged, app, mine, at, spare);
-        }
-        finally { if (!spare.Used) spare.Close(); }
+        // the Mac. Task.Delay ends on the system's 15.6 ms ticks (it waited 120 to 160 ms).
+        await Precise.Until(at, 120);
+        waited = (long)System.Diagnostics.Stopwatch.GetElapsedTime(at).TotalMilliseconds;
+        if (mine != generation) return;
+        await Read(up, clicks, dragged, app, mine, at);
     }
 
-    static async Task Read(InputWatch.POINT up, int clicks, bool dragged, ForegroundApp app, int mine, long at, ChipWindow spare)
+    static long waited;       // from the button coming up to reading the selection (ms), for the log
+
+    /// The next eye's window, built when the app is idle: making its handle cost 30 to 60 ms
+    /// after the read (up to 300 under emulation on ARM), on top of the Mac's 0.12 s.
+    static ChipWindow? spare;
+
+    static ChipWindow Take(ForegroundApp app)
+    {
+        // One built before a switch to dark mode or a new shortcut has the old look or tooltip.
+        if (spare != null && spare.Built != ChipWindow.Look()) { spare.Close(); spare = null; }
+        var w = spare ?? new ChipWindow("", "");
+        spare = null;
+        w.process = app.Process;
+        w.path = app.Path;
+        Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () =>
+        {
+            if (spare != null) return;
+            try { spare = new ChipWindow("", ""); spare.Ready(); } catch { spare = null; }
+        });
+        return w;
+    }
+
+    static async Task Read(InputWatch.POINT up, int clicks, bool dragged, ForegroundApp app, int mine, long at)
     {
         static void Skip(string why) => Core.Log($"{{\"event\":\"eye-skip\",\"why\":\"{why}\"}}");
         var clock = System.Diagnostics.Stopwatch.StartNew();
@@ -144,7 +161,7 @@ static class Chip
         {
             case SelectionReader.Found.Selection when probed.Selection is Selected selection:
                 if (!SelectionReader.HasChinese(selection) || SelectionReader.Length(selection) > 400) { Skip($"not Chinese or too long ({SelectionReader.Length(selection)} characters)"); return; }
-                Show(up, Near(selection) ? selection : selection with { Bounds = null }, app, at, spare);
+                Show(up, Near(selection) ? selection : selection with { Bounds = null }, app, at);
                 break;
             case SelectionReader.Found.Unreadable:
                 // The app won't say what's selected: offer the eye and copy on a click. Only for a
@@ -154,20 +171,19 @@ static class Chip
                 // administrator), as the Mac skips lists, rows, buttons and windows.
                 if (clicks < 2 || !app.MayBeText || !MayBeText(probed.Role)) return;
                 if (probed.Area is Rect area && !area.Contains(new Point(up.X, up.Y))) return;
-                Show(up, null, app, at, spare);
+                Show(up, null, app, at);
                 break;
         }
     }
 
-    static void Show(InputWatch.POINT up, Selected? selection, ForegroundApp app, long at = 0, ChipWindow? spare = null)
+    static void Show(InputWatch.POINT up, Selected? selection, ForegroundApp app, long at = 0)
     {
         var steps = System.Diagnostics.Stopwatch.StartNew();
         Hide();
         Bridge.ly_warm_up();
         var warmMs = steps.ElapsedMilliseconds;
-        var w = spare ?? new ChipWindow(app.Process, app.Path);
+        var w = Take(app);
         w.Selection = selection;
-        w.Used = true;
         var buildMs = steps.ElapsedMilliseconds - warmMs;
         // One line: where its highlight ends and its text's ink is, as drawn (see Drawn).
         var drawnClock = System.Diagnostics.Stopwatch.StartNew();
@@ -181,7 +197,7 @@ static class Chip
         shown = w;
         // Positions only, in device pixels (UiCheck checks them): never the text.
         var bounds = selection?.Bounds is Rect b ? $"[{b.X:0.#},{b.Y:0.#},{b.Width:0.#},{b.Height:0.#}]" : "null";
-        Core.Log($"{{\"event\":\"eye\",\"readable\":{(selection != null ? "true" : "false")},\"up\":[{up.X},{up.Y}],\"bounds\":{bounds},\"window\":[{left},{top},{size}],\"scale\":{ScaleAt(up):0.##},\"oneLine\":{((selection?.OneLine ?? false) ? "true" : "false")},\"drawn\":[{drawn.Right?.ToString("0.#") ?? "null"},{drawn.InkMid?.ToString("0.#") ?? "null"}],\"ms\":{(at == 0 ? -1 : (long)System.Diagnostics.Stopwatch.GetElapsedTime(at).TotalMilliseconds)},\"drawnMs\":{drawnMs},\"warmMs\":{warmMs},\"buildMs\":{buildMs},\"placeMs\":{placeMs},\"lag\":{lag}}}");
+        Core.Log($"{{\"event\":\"eye\",\"readable\":{(selection != null ? "true" : "false")},\"up\":[{up.X},{up.Y}],\"bounds\":{bounds},\"window\":[{left},{top},{size}],\"scale\":{ScaleAt(up):0.##},\"oneLine\":{((selection?.OneLine ?? false) ? "true" : "false")},\"drawn\":[{drawn.Right?.ToString("0.#") ?? "null"},{drawn.InkMid?.ToString("0.#") ?? "null"}],\"ms\":{(at == 0 ? -1 : (long)System.Diagnostics.Stopwatch.GetElapsedTime(at).TotalMilliseconds)},\"drawnMs\":{drawnMs},\"warmMs\":{warmMs},\"buildMs\":{buildMs},\"placeMs\":{placeMs},\"lag\":{lag},\"waited\":{waited}}}");
         // The card's work starts once the eye has stayed a moment (or on hover): most selections
         // are made to copy, and the model's work costs battery.
         DispatcherTimer? soon = null;
@@ -257,9 +273,11 @@ sealed class ChipWindow : Window
     const double Mark = 13;
 
     public Selected? Selection;
-    /// Shown (or about to be): a window built ahead that wasn't is closed unseen.
-    public bool Used;
-    readonly string process, path;
+    /// What it was built with (see Look).
+    public readonly string Built = Look();
+    public static string Look() => $"{Theme.Dark} {Shortcut.Registered} {Shortcut.Name}";
+    /// The app the selection is in (its menu's "Hide the eye in …").
+    public string process, path;
     /// Whether the card's work was started for this eye (see Chip.Prepare).
     public bool Prepared;
     readonly ScaleTransform scale = new(0.6, 0.6, Target / 2, Target / 2);
