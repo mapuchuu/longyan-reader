@@ -57,15 +57,27 @@ Windows has neither. Qwen already picks senses and translates, so on Windows the
 
 Streaming from Ollama uses `URLSession.bytes`, which only Apple's Foundation has. The code is fenced off with `#if canImport(Darwin)`. Windows uses the built-in model only. (Making Ollama dev-only on the Mac is still an open decision.)
 
+## Decisions (2026-11-23)
+
+- The Mac keeps Apple's splitter. Windows uses the trained one. The two apps stay close but don't have to split every sentence alike.
+- One repo. Windows has its own releases (own tags, not marked latest, so the Mac's `releases/latest/download` link keeps working). The download count adds both.
+- The Windows app is C# with WPF, calling the core through a C interface.
+
+## Step 2: the bridge and a first Windows app
+
+- `Sources/LongyanBridge`: the core as a DLL with a C interface. The app starts it, asks for a card for a selection, and gets the card back as JSON each time it changes (the model's pick arriving, the translation streaming, a meaning picked). Entry points hop to the main actor; the app runs Swift's main queue from its own message loop (`_dispatch_main_queue_callback_4CF`), so the core runs on the app's main thread.
+- Windows reads `Resources/splitter.tsv` (the trained splitter) and `Resources/parts-of-speech.tsv` (the Mac tagger's answers where the core without a tagger would differ, from `scripts/parts-of-speech.sh`).
+- `scripts/bridge-check.sh` runs 27 lookups through the C interface on the Mac with no model. `.github/workflows/windows.yml` runs the same from C# on Windows and compares the cards.
+- `windows/LongyanReader`: a notification-area icon, Ctrl+Alt+L, the selection from UI Automation (else Ctrl+C and the clipboard put back), the card in a window that never takes the focus, the model download (same file and checksum as the Mac's). The workflow uploads the app folder as an artifact, to try in a VM.
+
 ## Still to build for Windows
 
 - llama.cpp for the app: CI builds it CPU-only and static. Vulkan (and maybe CUDA) for speed, and DLL or static.
 - Fold the Windows fence (patches/llama.cpp-windows.patch) into the output-tokens patch, which needs a Mac llama rebuild. Until then the output table's pages aren't given back on Windows.
 - Run the real model on Windows: load the GGUF, pick a sense, translate, and compare with the Mac.
 - Memory pressure: Windows has its own low-memory signal to call `EmbeddedModel.relieve`.
-- The main actor needs a run loop that drains the main queue alongside the Windows message loop.
 - Reading the selection: UI Automation (text pattern and selection bounds) instead of Accessibility. Coverage will vary by app.
-- The cards and windows: a Windows UI that observes the same state classes (`withObservationTracking`).
+- The card: still missing Listen, Add to Anki, History, zoom and resizing, the chip on selection, pointing at a word without selecting.
 - Updates: WinSparkle reads the same appcast format.
 - Signing: a Windows code-signing certificate, or SmartScreen warns on every download.
 

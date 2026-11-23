@@ -1,5 +1,6 @@
 import Foundation
 import LongyanCore
+import Observation
 
 // A C interface over the shared core, for apps not written in Swift (the Windows app, in C#).
 //

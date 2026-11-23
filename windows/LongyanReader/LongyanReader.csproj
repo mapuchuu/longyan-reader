@@ -19,8 +19,10 @@
     <Version>0.1.0</Version>
     <Product>Longyan Reader</Product>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ApplicationIcon>LongyanReader.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="LongyanReader.ico" CopyToOutputDirectory="PreserveNewest" />
     <Reference Include="UIAutomationClient" />
     <Reference Include="UIAutomationTypes" />
   </ItemGroup>
