@@ -95,14 +95,14 @@ static class Program
             // Ctrl and the wheel zoom in until the card scrolls; two notches down glide, then
             // back up and back to the usual size.
             MoveTo(row.Left + 10, row.Top + row.Height / 2);
-            CtrlWheel(120, 4);
+            CtrlWheel(120, 7);
             Thread.Sleep(800);
             Shot("2-zoomed");
             Wheel(-240);
             Burst("2-scroll", 600);
             Wheel(240);
             Thread.Sleep(600);
-            CtrlWheel(-120, 4);
+            CtrlWheel(-120, 7);
             Thread.Sleep(800);
             Click(row.Left + 10, row.Top + row.Height / 2);
             Burst("2-shut", 800);
