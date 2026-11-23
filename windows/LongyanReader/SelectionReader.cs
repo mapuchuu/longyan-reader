@@ -12,7 +12,9 @@ namespace Longyan;
 /// What the reader selected, with the text around it so the core can read the sentence.
 /// `OneLine`: the selection's text is on one line (its rects share a line), so the eye goes
 /// beside it whatever the line's height.
-record Selected(string Passage, int Start, int End, Rect? Bounds, bool OneLine = false);
+/// `Trimmed`: white space at its end (a line break, a space) was left out of `Bounds`, and its
+/// highlight on screen goes further.
+record Selected(string Passage, int Start, int End, Rect? Bounds, bool OneLine = false, bool Trimmed = false);
 
 /// Reads the selection in another app, as the Mac app does with Accessibility: through UI
 /// Automation's text pattern when the app offers one, else by copying (Ctrl+C) and putting
@@ -71,7 +73,7 @@ static class SelectionReader
                 passage = selected; start = 0;
             }
             var (bounds, oneLine) = Bounds(selection);
-            return new Probed(Found.Selection, new Selected(passage, start, start + selected.Length, bounds, oneLine), role, area);
+            return new Probed(Found.Selection, new Selected(passage, start, start + selected.Length, bounds, oneLine, selected.TrimEnd().Length < selected.Length), role, area);
         }
         catch (Exception)
         {

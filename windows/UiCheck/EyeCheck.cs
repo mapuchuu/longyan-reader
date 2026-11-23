@@ -458,7 +458,8 @@ static partial class Program
         if (Math.Abs(cx - predX) > tolX) failures.Add($"{name}: the eye's centre is at x {cx:0.#}, the Mac's rule puts it at {predX:0.#}; off by {cx - predX:0.#} px at {s * 100:0}%");
         // Exact: the mark itself, against the text as the eye sees it (the Mac measured 0.0
         // from the ink's centre and 19.5 points after the highlight, 12 points wide).
-        if (exact && beside) Exact(name, after, r, s, textMid, union, top, bottom);
+        var clamped = Math.Abs(predX - ((trimmedRight ?? union.Right) + 19 * s)) > 1 || r.Right >= area.Right;
+        if (exact && beside && lines.Length == 1 && !clamped) Exact(name, after, r, s, textMid, union, top, bottom);
 
         if (first != null)
         {
@@ -508,17 +509,43 @@ static partial class Program
     static void Exact(string name, Bitmap after, RECT r, double s, double textMid, System.Windows.Rect union, int inkTop, int inkBottom)
     {
         double cx = (r.Left + r.Right) / 2.0, cy = (r.Top + r.Bottom) / 2.0;
-        var surface = after.GetPixel((int)cx, (int)(cy - 9 * s));
-        int l = int.MaxValue, rr = int.MinValue, t = int.MaxValue, b = int.MinValue;
-        var rad = 8 * s;
-        for (var y = (int)(cy - rad); y <= (int)(cy + rad); y++)
-            for (var x = (int)(cx - rad); x <= (int)(cx + rad); x++)
+        // The circle's surface: the commonest colour on a ring between the mark and the hairline.
+        var ring = new Dictionary<int, int>();
+        var zone = (int)Math.Ceiling(10.5 * s);
+        int X0 = (int)Math.Floor(cx) - zone, Y0 = (int)Math.Floor(cy) - zone, n = 2 * zone + 1;
+        var diff = new int[n, n];
+        for (var j = 0; j < n; j++)
+            for (var i = 0; i < n; i++)
             {
-                if (x < 0 || y < 0 || x >= after.Width || y >= after.Height) continue;
-                var c = after.GetPixel(x, y);
-                if (Math.Abs(c.R - surface.R) + Math.Abs(c.G - surface.G) + Math.Abs(c.B - surface.B) <= 60) continue;
-                l = Math.Min(l, x); rr = Math.Max(rr, x); t = Math.Min(t, y); b = Math.Max(b, y);
+                var dist = Math.Sqrt(Math.Pow(X0 + i + 0.5 - cx, 2) + Math.Pow(Y0 + j + 0.5 - cy, 2)) / s;
+                if (dist >= 8.5 && dist <= 10.5) { var c = after.GetPixel(X0 + i, Y0 + j).ToArgb(); ring[c] = ring.GetValueOrDefault(c) + 1; }
             }
+        var surface = Color.FromArgb(ring.Count > 0 ? ring.MaxBy(kv => kv.Value).Key : after.GetPixel((int)cx, (int)(cy - 9 * s)).ToArgb());
+        var most = 0;
+        for (var j = 0; j < n; j++)
+            for (var i = 0; i < n; i++)
+            {
+                var dist = Math.Sqrt(Math.Pow(X0 + i + 0.5 - cx, 2) + Math.Pow(Y0 + j + 0.5 - cy, 2)) / s;
+                if (dist > 9.5) continue;
+                var c = after.GetPixel(X0 + i, Y0 + j);
+                diff[i, j] = Math.Abs(c.R - surface.R) + Math.Abs(c.G - surface.G) + Math.Abs(c.B - surface.B);
+                most = Math.Max(most, diff[i, j]);
+            }
+        // The mark's edges where it's at least half its full contrast.
+        int l = int.MaxValue, rr = int.MinValue, t = int.MaxValue, b = int.MinValue;
+        double wx = 0, wy = 0, wsum = 0;
+        for (var j = 0; j < n; j++)
+            for (var i = 0; i < n; i++)
+            {
+                wx += diff[i, j] * (X0 + i + 0.5); wy += diff[i, j] * (Y0 + j + 0.5); wsum += diff[i, j];
+                if (most == 0 || diff[i, j] * 2 < most) continue;
+                l = Math.Min(l, X0 + i); rr = Math.Max(rr, X0 + i); t = Math.Min(t, Y0 + j); b = Math.Max(b, Y0 + j);
+            }
+        if (name.Contains("line2") || name.Contains("h1-on"))
+        {
+            Console.WriteLine($"[{name}] mark map from {X0},{Y0} (window centre {cx},{cy}; surface {surface.R},{surface.G},{surface.B}; 9 = full contrast {most}):");
+            for (var j = 0; j < n; j++) Console.WriteLine("    " + string.Concat(Enumerable.Range(0, n).Select(i => most == 0 ? '.' : diff[i, j] * 10 / (most + 1) is var v && v == 0 ? '.' : (char)('0' + v))));
+        }
         Keys(VK_SHIFT);
         WaitForEye(false, 1500);
         Thread.Sleep(300);
@@ -542,6 +569,7 @@ static partial class Program
         }
         if (l == int.MaxValue) { failures.Add($"{name}: no mark found in the eye"); return; }
         double mx = (l + rr + 1) / 2.0, my = (t + b + 1) / 2.0, mw = (rr - l + 1) / s;
+        Console.WriteLine($"[{name}] mark's weighted centre {(wsum > 0 ? $"{wx / wsum:0.##},{wy / wsum:0.##}" : "none")}");
         var dy = (my - textMid) / s; double? dx = edge is double e ? (mx - e) / s : null;
         Console.WriteLine($"[{name}] exact: mark {l},{t} to {rr},{b} (centre {mx:0.#},{my:0.#}, {mw:0.##} points wide); ink centre {textMid:0.#}; highlight's right edge {edge?.ToString("0.#") ?? "not found"} (UI Automation {union.Right:0.#}); mark minus ink {dy:+0.##;-0.##;0} points; mark after the highlight {dx?.ToString("0.##") ?? "?"} points (Mac 19.5)");
         if (Math.Abs(dy) > 0.5) failures.Add($"{name}: the mark's centre is {dy:+0.##;-0.##} points from the text's ink centre (the Mac: 0)");
@@ -650,7 +678,10 @@ static partial class Program
             foreach (AutomationElement e in AutomationElement.FromHandle(hwnd).FindAll(TreeScope.Subtree, Condition.TrueCondition))
             {
                 if (!e.TryGetCurrentPattern(TextPattern.Pattern, out var p) || p is not TextPattern t) continue;
-                var rects = t.GetSelection().FirstOrDefault()?.GetBoundingRectangles();
+                // A caret is a selection too (Edge's address bar has one): only one holding text.
+                var sel = t.GetSelection().FirstOrDefault();
+                if (sel == null || string.IsNullOrWhiteSpace(sel.GetText(-1))) continue;
+                var rects = sel.GetBoundingRectangles();
                 if (rects is { Length: > 0 }) return rects;
             }
         }

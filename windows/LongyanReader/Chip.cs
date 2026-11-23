@@ -112,6 +112,8 @@ static class Chip
         var w = new ChipWindow(selection, app.Process, app.Path);
         // One line: where its highlight ends and its text's ink is, as drawn (see Drawn).
         var drawn = selection is { Bounds: Rect sb, OneLine: true } ? SelectionReader.Drawn(sb, ScaleAt(up)) : (null, null);
+        // White space left out of the rect is still highlighted: the text ends at the rect.
+        if (selection is { Trimmed: true, Bounds: Rect tb } && drawn.Right > tb.Right) drawn.Right = tb.Right;
         var (left, top, size) = w.Place(up, selection?.Bounds, selection?.OneLine ?? false, drawn.Right, drawn.InkMid);
         shown = w;
         // Positions only, in device pixels (UiCheck checks them): never the text.
