@@ -401,28 +401,28 @@ sealed class HistoryView : Grid
     public void Paint(bool dark)
     {
         void C(string key, uint argb) => Look[key] = Solid(argb);
-        C("WindowFill", dark ? 0xFF202020 : 0xFFF3F3F3);
-        C("Surface", dark ? 0xFF2B2B2B : 0xFFFBFBFB);
-        C("Stroke", dark ? 0xFF383838 : 0xFFE5E5E5);
-        C("Text", dark ? 0xFFFFFFFF : 0xFF1B1B1B);
-        C("TextSecondary", dark ? 0xFFC9C9C9 : 0xFF5F5F5F);
-        C("TextDisabled", dark ? 0xFF717171 : 0xFFA0A0A0);
-        C("ControlFill", dark ? 0xFF2D2D2D : 0xFFFBFBFB);
-        C("ControlHover", dark ? 0xFF323232 : 0xFFF6F6F6);
-        C("ControlPressed", dark ? 0xFF272727 : 0xFFF3F3F3);
-        C("ControlStroke", dark ? 0xFF3A3A3A : 0xFFE0E0E0);
-        C("FieldFocused", dark ? 0xFF1F1F1F : 0xFFFFFFFF);
-        C("Accent", dark ? 0xFF60CDFF : 0xFF005FB8);
-        C("AccentHover", dark ? 0xFF5AB9E6 : 0xFF196EBF);
-        C("TextOnAccent", dark ? 0xFF000000 : 0xFFFFFFFF);
-        C("RowHover", dark ? 0x0FFFFFFF : 0x09000000);
-        C("RowSelected", dark ? 0x15FFFFFF : 0x0F000000);
-        C("Scroll", dark ? 0x8BFFFFFF : 0x72000000);
-        C("MenuFill", dark ? 0xFF2C2C2C : 0xFFF9F9F9);
-        C("MenuStroke", dark ? 0xFF404040 : 0xFFDDDDDD);
-        C("Smoke", 0x4D000000);
-        C("DialogFill", dark ? 0xFF2B2B2B : 0xFFFFFFFF);
-        C("DialogFooter", dark ? 0xFF202020 : 0xFFF3F3F3);
+        C("WindowFill", dark ? 0xFF202020u : 0xFFF3F3F3u);
+        C("Surface", dark ? 0xFF2B2B2Bu : 0xFFFBFBFBu);
+        C("Stroke", dark ? 0xFF383838u : 0xFFE5E5E5u);
+        C("Text", dark ? 0xFFFFFFFFu : 0xFF1B1B1Bu);
+        C("TextSecondary", dark ? 0xFFC9C9C9u : 0xFF5F5F5Fu);
+        C("TextDisabled", dark ? 0xFF717171u : 0xFFA0A0A0u);
+        C("ControlFill", dark ? 0xFF2D2D2Du : 0xFFFBFBFBu);
+        C("ControlHover", dark ? 0xFF323232u : 0xFFF6F6F6u);
+        C("ControlPressed", dark ? 0xFF272727u : 0xFFF3F3F3u);
+        C("ControlStroke", dark ? 0xFF3A3A3Au : 0xFFE0E0E0u);
+        C("FieldFocused", dark ? 0xFF1F1F1Fu : 0xFFFFFFFFu);
+        C("Accent", dark ? 0xFF60CDFFu : 0xFF005FB8u);
+        C("AccentHover", dark ? 0xFF5AB9E6u : 0xFF196EBFu);
+        C("TextOnAccent", dark ? 0xFF000000u : 0xFFFFFFFFu);
+        C("RowHover", dark ? 0x0FFFFFFFu : 0x09000000u);
+        C("RowSelected", dark ? 0x15FFFFFFu : 0x0F000000u);
+        C("Scroll", dark ? 0x8BFFFFFFu : 0x72000000u);
+        C("MenuFill", dark ? 0xFF2C2C2Cu : 0xFFF9F9F9u);
+        C("MenuStroke", dark ? 0xFF404040u : 0xFFDDDDDDu);
+        C("Smoke", 0x4D000000u);
+        C("DialogFill", dark ? 0xFF2B2B2Bu : 0xFFFFFFFFu);
+        C("DialogFooter", dark ? 0xFF202020u : 0xFFF3F3F3u);
     }
 
     static SolidColorBrush Solid(uint argb)
