@@ -156,7 +156,9 @@ sealed class CardView
     /// when that doesn't fit.
     FrameworkElement Header(string word, JsonArray syllables, double slot)
     {
-        var line = Lines(new TextBlock { TextWrapping = TextWrapping.NoWrap, Margin = new Thickness(0, 0, slot + 8, 0) }, 34);
+        // YaHei sits 1.5 lower in the line than PingFang: the header moves up by that, keeping
+        // its height, so the meaning below lines up too.
+        var line = Lines(new TextBlock { TextWrapping = TextWrapping.NoWrap, Margin = new Thickness(0, -HeaderLift, slot + 8, HeaderLift) }, 34);
         AddHanzi(line.Inlines, word, syllables, 34, FontWeights.Medium, pending: false);
         line.Inlines.Add(new Run(" ") { FontFamily = Theme.Text, FontSize = 29 });   // 8 wide
         var pinyin = new Span();
@@ -167,7 +169,7 @@ sealed class CardView
 
         // Too long for one line: the word on a row as tall as a full-size one, shrunk to fit (to
         // half size at most, then cut short), and the pinyin under it.
-        var two = new StackPanel();
+        var two = new StackPanel { Margin = new Thickness(0, -HeaderLift, 0, HeaderLift) };
         var head = Lines(new TextBlock { TextWrapping = TextWrapping.NoWrap, TextTrimming = TextTrimming.CharacterEllipsis, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Bottom }, 34);
         AddHanzi(head.Inlines, word, syllables, 34, FontWeights.Medium, pending: false);
         head.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
@@ -183,6 +185,8 @@ sealed class CardView
         two.Children.Add(py);
         return two;
     }
+
+    const double HeaderLift = 1.5;
 
     FrameworkElement PartOf(JsonObject part)
     {
@@ -227,10 +231,12 @@ sealed class CardView
 
         var rows = c["rows"]?.AsArray() ?? new JsonArray();
         if (rows.Count == 0) return;
-        var words = new StackPanel { Margin = new Thickness(0, 12, 0, 0) };
+        // 2 more above the divider and 1 less under the label than the spec's 12 and 8: what
+        // lines the label and rows up with the Mac's, given the fonts' different metrics.
+        var words = new StackPanel { Margin = new Thickness(0, 14, 0, 0) };
         words.Children.Add(Divider());
         words.Children.Add(Section("Words"));
-        var list = new StackPanel { Margin = new Thickness(0, 8, 0, 0) };
+        var list = new StackPanel { Margin = new Thickness(0, 7, 0, 0) };
         // Every gloss starts at the same x: the widest word block's.
         var column = rows.OfType<JsonObject>().Select(r => WordBlock(r).Measure()).DefaultIfEmpty(0).Max();
         foreach (var node in rows)
