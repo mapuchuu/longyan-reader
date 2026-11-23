@@ -129,6 +129,8 @@ static partial class Program
         EyeCheck(window);
         HistoryCheck.Run(exe, app, outDir, failures);
         PointCheck.Run(app, window, log, failures, Shot);
+        CardFeelCheck.Run(app, window, log, failures, Shot);
+        AnkiCheck(app, window);   // AnkiCheck.cs
         SettingsCheck(exe);
 
         // Started again, as at login (no welcome now): its first eye, then the scalings.

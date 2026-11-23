@@ -1,7 +1,10 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Linq;
 using System.Text.Json.Nodes;
+using System.Windows.Automation;
+using System.Windows.Automation.Peers;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -19,10 +22,14 @@ namespace Longyan;
 sealed class CardWindow : Window, ICardActions
 {
     static CardWindow? current;
-    static bool pinned;
-    static double zoom = 1;
-    static double? wordWidth, phraseWidth;
-    static Point? pinnedAt;                  // a pinned card's top-left corner, device pixels   // widths set by dragging an edge, DIPs as drawn
+    // Kept in settings.json as the Mac keeps them in UserDefaults (card.zoom, card.width.word,
+    // card.width.phrase, card.pinned, card.pinnedTopLeft), so a restart opens cards as they were left.
+    static bool pinned = Settings.CardFlag("cardPinned");
+    static double zoom = Math.Clamp(Settings.CardNumber("cardZoom") ?? 1, 0.8, 2.2);
+    static double? wordWidth = Settings.CardNumber("cardWidthWord"), phraseWidth = Settings.CardNumber("cardWidthPhrase");   // set by dragging an edge, DIPs as drawn
+    static Point? pinnedAt = OnAScreen(Settings.CardNumber("cardPinnedX"), Settings.CardNumber("cardPinnedY"));   // a pinned card's top-left corner, device pixels
+    /// Every card window on screen, for re-theming them live.
+    static readonly System.Collections.Generic.List<CardWindow> open = new();
     /// True while a press has become a move, so the control under it doesn't count a click.
     public static bool WasDrag;
 
@@ -45,6 +52,7 @@ sealed class CardWindow : Window, ICardActions
     readonly ScaleTransform badgeScale = new(0.7, 0.7);
     readonly System.Collections.Generic.List<FrameworkElement> bands = new();
     readonly bool offscreen;
+    IntPtr Handle => new WindowInteropHelper(this).Handle;
 
     // Placement, in device pixels: the selection, and whether the card hangs below it.
     Rect anchor;
@@ -60,12 +68,88 @@ sealed class CardWindow : Window, ICardActions
     double cardLeft, edge;                    // device pixels: the card's left, and its top (below) or bottom (above)
     DispatcherTimer? shrink, hold;
     Stopwatch? firstContent;
+    readonly Stopwatch opened = Stopwatch.StartNew();   // from the lookup, as the Mac's hold runs from show()
     JsonObject? last;
+    bool ankiDecided;                         // whether the card has an Anki button is settled as it opens
 
     public bool Pinned => pinned;
     public bool CanListen => offscreen || Speech.Available;
     double Zoom => isHint ? 1 : zoom;
     double CardWidth => view.Width * Zoom;
+
+    /// A saved corner, if it's still on a screen (a monitor may have gone since).
+    static Point? OnAScreen(double? x, double? y)
+    {
+        if (x is not double px || y is not double py) return null;
+        foreach (var s in System.Windows.Forms.Screen.AllScreens)
+            if (s.WorkingArea.Contains((int)px, (int)py)) return new Point(px, py);
+        return null;
+    }
+
+    /// Saves the text size, the widths and the pin, as the Mac saves them after every change.
+    static void SaveCard()
+    {
+        Settings.SetCard(new()
+        {
+            ["cardZoom"] = zoom, ["cardWidthWord"] = wordWidth, ["cardWidthPhrase"] = phraseWidth,
+            ["cardPinned"] = pinned ? 1 : 0, ["cardPinnedX"] = pinnedAt?.X, ["cardPinnedY"] = pinnedAt?.Y,
+        });
+    }
+
+    // MARK: Light and dark
+
+    static bool watching;
+
+    /// Open cards switch to light or dark the moment Windows does, as the Mac's do
+    /// (CC:262-270, PU:709-712): the colours change in place, with no closing or motion.
+    static void WatchTheme()
+    {
+        if (watching) return;
+        watching = true;
+        Microsoft.Win32.SystemEvents.UserPreferenceChanged += (_, e) =>
+        {
+            if (e.Category is not (Microsoft.Win32.UserPreferenceCategory.General or Microsoft.Win32.UserPreferenceCategory.VisualStyle or Microsoft.Win32.UserPreferenceCategory.Color)) return;
+            Application.Current?.Dispatcher.BeginInvoke(ThemeChanged);
+        };
+    }
+
+    static void ThemeChanged()
+    {
+        var dark = Theme.SystemDark();
+        if (dark == Theme.Dark) return;
+        Theme.Dark = dark;
+        foreach (var w in open.ToArray()) w.Retheme();
+        Core.Log($"{{\"event\":\"theme\",\"dark\":{(dark ? "true" : "false")},\"cards\":{open.Count}}}");
+    }
+
+    readonly Border hairline = new() { BorderThickness = new Thickness(0.5), CornerRadius = new CornerRadius(16), IsHitTestVisible = false, UseLayoutRounding = false };
+    readonly Border badgeCircle = new() { Width = 20, Height = 20, CornerRadius = new CornerRadius(10), BorderThickness = new Thickness(0.5), UseLayoutRounding = false };
+    readonly Path badgeX = new() { Data = Geometry.Parse("M 7,7 L 13,13 M 13,7 L 7,13"), StrokeThickness = 1.6, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round, Width = 20, Height = 20 };
+    string? hintText;
+
+    /// The chrome's colours from the theme, as now.
+    void Paint()
+    {
+        surface.Background = Theme.Surface;
+        ((Border)layers[0]).Background = Theme.Surface;
+        ((Border)layers[1]).Background = Theme.Surface;
+        hairline.BorderBrush = Theme.Hairline;
+        foreach (Line l in grip.Children) l.Stroke = Theme.Ink(resizing ? 0.45 : 0.22);
+        grabber.Background = Theme.Ink(resizing ? 0.40 : 0.20);
+        badgeCircle.Background = Theme.Surface;
+        badgeCircle.BorderBrush = Theme.Ink(0.12);
+        badgeX.Stroke = badge.IsMouseOver ? Theme.Primary : Theme.Secondary;
+    }
+
+    /// Light or dark changed: the chrome and the content again in the new colours, in place.
+    void Retheme()
+    {
+        if (gone) return;
+        Paint();
+        if (isHint && hintText != null) view.Hint(hintText);
+        else if (last != null) view.Show(last, animate: false);
+        view.SetHovered(hovered);
+    }
 
     // MARK: Opening
 
@@ -95,6 +179,7 @@ sealed class CardWindow : Window, ICardActions
              "senses":[{"chosen":true,"dimmed":false,"gloss":"China","hasNote":false,"index":0,"number":1,"tip":"China"}]}
             """;
         if (JsonNode.Parse(sample) is not JsonObject json) return;
+        Anki.Start();   // asks AnkiConnect, so the first card knows whether to offer Add to Anki
         var w = new CardWindow(null, false) { Left = -30000, Top = -30000, Width = 400, Height = 300 };
         w.view.Show(json, animate: false);
         w.Show();
@@ -121,6 +206,7 @@ sealed class CardWindow : Window, ICardActions
     {
         pinned = pin;
         var w = new CardWindow(null, true);
+        w.view.AnkiState = (string?)json["anki"];   // the gallery's cards say which Anki state to draw
         w.view.Show(json, animate: false);
         w.Content = null;
         w.card.Children.Remove(w.layers[0]);
@@ -189,8 +275,8 @@ sealed class CardWindow : Window, ICardActions
         overlay.Children.Add(grip);
         overlay.Children.Add(grabber);
         // No layout rounding here, or the 0.5 line rounds to nothing at 100%.
-        overlay.Children.Add(new Border { BorderBrush = Theme.Hairline, BorderThickness = new Thickness(0.5), CornerRadius = new CornerRadius(16), IsHitTestVisible = false, UseLayoutRounding = false });
-        surface = new Border { Background = Theme.Surface, CornerRadius = new CornerRadius(16), Child = overlay, VerticalAlignment = VerticalAlignment.Top };
+        overlay.Children.Add(hairline);
+        surface = new Border { CornerRadius = new CornerRadius(16), Child = overlay, VerticalAlignment = VerticalAlignment.Top };
         overlay.SizeChanged += (_, _) =>
         {
             overlay.Clip = new RectangleGeometry(new Rect(overlay.RenderSize), 16, 16);
@@ -214,7 +300,10 @@ sealed class CardWindow : Window, ICardActions
         card.RenderTransformOrigin = new Point(0.5, 0);
         frame.Children.Add(card);
         Content = frame;
+        Paint();
         if (offscreen) return;
+        WatchTheme();
+        open.Add(this);
 
         SourceInitialized += (_, _) =>
         {
@@ -224,9 +313,10 @@ sealed class CardWindow : Window, ICardActions
         Closed += (_, _) =>
         {
             gone = true;
+            open.Remove(this);
             DropSwap(fade: false);
             Hooks.Remove(this);
-            if (cardID != 0) Core.Shared.Close(cardID);
+            if (cardID != 0) { Anki.Close(cardID); Core.Shared.Close(cardID); }
             if (current == this) current = null;
         };
         card.MouseEnter += (_, _) => Hover(true);
@@ -279,12 +369,13 @@ sealed class CardWindow : Window, ICardActions
     void ShowHint(string message)
     {
         if (closing) return;
-        if (cardID != 0) { Core.Shared.Close(cardID); cardID = 0; }
+        if (cardID != 0) { Anki.Close(cardID); Core.Shared.Close(cardID); cardID = 0; }
         DropSwap(fade: true);
         isHint = true;
         zoomScale.ScaleX = zoomScale.ScaleY = 1;
         foreach (var b in bands) b.Visibility = Visibility.Collapsed;
         view.Buttons.Children.Clear();
+        hintText = message;
         view.Hint(message);
         Arrive();
         // A hint goes by itself.
@@ -298,13 +389,15 @@ sealed class CardWindow : Window, ICardActions
         History.Saw(cardID, json);   // History: what the card says, for the lookup history
         if (closing) return;
         last = json;
+        if (!ankiDecided) OpenAnki(json);
         if (!revealed)
         {
-            // Hold a word card up to 0.4 s for the model's pick, so it opens complete.
+            // Hold a word card up to 0.4 s from the lookup for the model's pick, so it opens
+            // complete (APP:756, PU:371-375).
             var reading = (string?)json["kind"] != "phrase" && (string?)json["status"] == "Reading the sentence…";
             view.Show(json, animate: false);
             firstContent ??= Stopwatch.StartNew();
-            if (reading) { hold ??= After(0.4, Arrive); return; }
+            if (reading) { hold ??= After(Math.Max(0, 0.4 - opened.Elapsed.TotalSeconds), Arrive); return; }
             Arrive();
             return;
         }
@@ -353,9 +446,15 @@ sealed class CardWindow : Window, ICardActions
         if (!IsVisible) { Show(); Hooks.Add(this); }
         Resize(animated: false);
         Reveal();
+        Announce();
         // How long it waited after its first content (0.4 s at most for a word's pick, unless the
         // app's thread was held up), and how long showing the window took.
-        Core.Log(FormattableString.Invariant($"{{\"event\":\"revealed\",\"waited\":{waited:F0},\"show\":{showing.Elapsed.TotalMilliseconds:F1}}}"));
+        // And where the card went (device pixels), for the UI check to hold against the selection.
+        GetWindowRect(Handle, out var r);
+        var m = Frame * scale;
+        var h = shownHeight * scale;
+        var top = below ? r.Top + m : r.Bottom - m - h;
+        Core.Log(FormattableString.Invariant($"{{\"event\":\"revealed\",\"waited\":{waited:F0},\"opened\":{opened.Elapsed.TotalMilliseconds:F0},\"show\":{showing.Elapsed.TotalMilliseconds:F1},\"left\":{r.Left + m:F0},\"top\":{top:F0},\"width\":{CardWidth * scale:F0},\"height\":{h:F0},\"below\":{(below ? "true" : "false")},\"scale\":{scale:F2},\"anchor\":[{anchor.Left:F0},{anchor.Top:F0},{anchor.Right:F0},{anchor.Bottom:F0}],\"hint\":{(isHint ? "true" : "false")}}}"));
     }
 
     /// Below the selection when the card fits there, else whichever side has more room.
@@ -412,10 +511,27 @@ sealed class CardWindow : Window, ICardActions
         return Math.Ceiling(Math.Min(view.Root.DesiredSize.Height, MaxHeight()));
     }
 
+    /// The card never takes the focus, so Narrator wouldn't notice it: say what it shows, as
+    /// the Mac does for VoiceOver (PU:450-457): the word, its pinyin, its meaning.
+    void Announce()
+    {
+        if (isHint || last == null || !AutomationPeer.ListenerExists(AutomationEvents.Notification)) return;
+        var pinyin = string.Join(" ", (last["pinyin"] as JsonArray ?? new JsonArray()).Select(p => (string?)p?["text"] ?? ""));
+        var words = new[] { (string?)last["copy"], pinyin, (string?)last["meaning"] ?? (string?)last["translation"] }.Where(w => !string.IsNullOrWhiteSpace(w));
+        try
+        {
+            UIElementAutomationPeer.CreatePeerForElement(frame)?.RaiseNotificationEvent(AutomationNotificationKind.Other,
+                AutomationNotificationProcessing.ImportantMostRecent, string.Join(", ", words), "LongyanCard");
+        }
+        catch (Exception) { }
+    }
+
     void Reveal()
     {
         card.RenderTransformOrigin = new Point(0.5, below ? 0 : 1);
-        var inPlace = moved || (pinned && !isHint);
+        // In place only when it replaces a card at the same spot (PU:429-441): a pinned card
+        // opening at its corner with no card there springs in as any card does.
+        var inPlace = swapping != null;
         var fade = new DoubleAnimation(0, 1, new Duration(TimeSpan.FromSeconds(inPlace ? 0.12 : 0.14)));
         // Once this card is in, the one it replaces goes, with no fade.
         fade.Completed += (_, _) => DropSwap(fade: false);
@@ -447,10 +563,7 @@ sealed class CardWindow : Window, ICardActions
         if (target > held) SetFrame(target);
         foreach (var l in layers)
         {
-            var a = new DoubleAnimation(from, target, Motion.Reduced ? new Duration(TimeSpan.FromSeconds(0.15)) : Motion.CardDuration)
-            {
-                EasingFunction = Motion.Reduced ? new QuadraticEase { EasingMode = EasingMode.EaseInOut } : Motion.Card,
-            };
+            var a = new DoubleAnimation(from, target, Motion.ContentDuration) { EasingFunction = Motion.ContentEase };
             l.BeginAnimation(HeightProperty, a);
         }
         shownHeight = target;
@@ -591,6 +704,7 @@ sealed class CardWindow : Window, ICardActions
     {
         WasDrag = false;
         flipped = false;
+        if (isHint) return;   // hints don't move (PU:637)
         if (e.OriginalSource is DependencyObject d && (IsIn(d, badge) || bands.Exists(b => IsIn(d, b)))) return;
         pressing = true;
         GetCursorPos(out pressScreen);
@@ -651,7 +765,7 @@ sealed class CardWindow : Window, ICardActions
         var tl = CardTopLeft();
         cardLeft = tl.X;
         edge = tl.Y;
-        if (pinned) pinnedAt = tl;
+        if (pinned) { pinnedAt = tl; SaveCard(); }
         e.Handled = true;
         Dispatcher.BeginInvoke(() => WasDrag = false, DispatcherPriority.Input);
         Resize(animated: true);
@@ -707,6 +821,7 @@ sealed class CardWindow : Window, ICardActions
         if (phraseWidth != null) phraseWidth *= ratio;
         zoom = z;
         Relayout();
+        SaveCard();
     }
 
     /// Draws the content again at the current zoom and width, with no animation.
@@ -749,7 +864,7 @@ sealed class CardWindow : Window, ICardActions
             if (e.ClickCount == 2)
             {
                 // An edge: the default width. A corner: actual size.
-                if (grab is Grab.Left or Grab.Right) { if (IsPhrase) phraseWidth = null; else wordWidth = null; Relayout(); }
+                if (grab is Grab.Left or Grab.Right) { if (IsPhrase) phraseWidth = null; else wordWidth = null; Relayout(); SaveCard(); }
                 else
                 {
                     // The other kind of card keeps its shape at the new text size.
@@ -758,6 +873,7 @@ sealed class CardWindow : Window, ICardActions
                     else { wordWidth = null; if (phraseWidth != null) phraseWidth *= ratio; }
                     zoom = 1;
                     Relayout();
+                    SaveCard();
                 }
                 return;
             }
@@ -817,6 +933,7 @@ sealed class CardWindow : Window, ICardActions
             edge = tl.Y;
             Resize(animated: false);
             if (pinned) pinnedAt = tl;
+            SaveCard();
             if (!hovered) Hover(false);
         };
         bands.Add(band);
@@ -830,13 +947,9 @@ sealed class CardWindow : Window, ICardActions
     /// The pinned card's close badge, over its top-left corner, shown while the pointer is on it.
     void Badge()
     {
-        var circle = new Border
-        {
-            Width = 20, Height = 20, CornerRadius = new CornerRadius(10), Background = Theme.Surface,
-            BorderBrush = Theme.Ink(0.12), BorderThickness = new Thickness(0.5), UseLayoutRounding = false,
-            Effect = new DropShadowEffect { BlurRadius = 4, ShadowDepth = 1, Direction = 270, Opacity = 0.12, Color = Colors.Black },
-        };
-        var x = new Path { Data = Geometry.Parse("M 7,7 L 13,13 M 13,7 L 7,13"), Stroke = Theme.Secondary, StrokeThickness = 1.6, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round, Width = 20, Height = 20 };
+        var circle = badgeCircle;
+        circle.Effect = new DropShadowEffect { BlurRadius = 4, ShadowDepth = 1, Direction = 270, Opacity = 0.12, Color = Colors.Black };
+        var x = badgeX;
         // The press dims the circle and the x together.
         var face = new Grid { Width = 20, Height = 20 };
         face.Children.Add(circle);
@@ -892,10 +1005,14 @@ sealed class CardWindow : Window, ICardActions
     }
 
     /// From the hooks: a click or scroll somewhere else, or Esc.
-    public void Outside(Hooks.Kind kind, POINT at)
+    /// `window` is the top-level window the click or scroll is over when it's one of this app's
+    /// own (the eye, History, Settings), else zero: like the Mac's global monitors, which see
+    /// only other apps' events, those leave the card open. So does Esc in those windows.
+    public void Outside(Hooks.Kind kind, POINT at, IntPtr window)
     {
         if (closing || pinned && !isHint) return;
-        if (kind == Hooks.Kind.Escape) { Dismiss(); return; }
+        if (kind == Hooks.Kind.Escape) { if (window == IntPtr.Zero) Dismiss(); return; }
+        if (window != IntPtr.Zero && !open.Exists(w => w.Handle == window)) return;
         if (Contains(at)) return;
         if (kind == Hooks.Kind.Scroll && dragged) return;
         Dismiss();
@@ -911,7 +1028,10 @@ sealed class CardWindow : Window, ICardActions
 
     DispatcherTimer After(double seconds, Action act)
     {
-        var t = new DispatcherTimer { Interval = TimeSpan.FromSeconds(seconds) };
+        // Normal, not the default Background: a Background timer waits while anything of higher
+        // priority is queued (each frame's rendering, input), and on a slow machine the hold
+        // ran 1.4 s instead of 0.4 (the CI's eye card), or longer.
+        var t = new DispatcherTimer(DispatcherPriority.Normal) { Interval = TimeSpan.FromSeconds(seconds) };
         t.Tick += (_, _) => { t.Stop(); act(); };
         t.Start();
         return t;
@@ -939,6 +1059,38 @@ sealed class CardWindow : Window, ICardActions
     }
 
     public void Copy(string text) { try { Clipboard.SetText(text); } catch { } }
+
+    // MARK: Anki
+
+    /// As the card opens: the Anki button if AnkiConnect answered the last check and the card
+    /// has something to add, so the row of buttons doesn't change while the card is up. Then a
+    /// check for the next card, in case Anki was opened or quit since.
+    void OpenAnki(JsonObject json)
+    {
+        ankiDecided = true;
+        if (Anki.Available && Anki.HasNote(json))
+        {
+            view.AnkiState = "ready";
+            Anki.Open(cardID, AnkiChanged);
+        }
+        Anki.Check();
+    }
+
+    void AnkiChanged(string state, string message)
+    {
+        if (closing || gone) return;
+        if (state == "none")
+        {
+            // The core found nothing to add after all: no button.
+            if (view.AnkiState == null) return;
+            view.AnkiState = null;
+            if (last != null) { view.Show(last, animate: revealed); if (revealed) Resize(animated: true); }
+            return;
+        }
+        view.SetAnki(state, message);
+    }
+
+    public void AddToAnki() { Act("anki"); Anki.Click(cardID); }
     /// Says the text, or stops if it's being said (the Mac's Listen turns into Stop).
     public void Listen(string text) { if (Speech.Speaking == text) Speech.Stop(); else Speech.Say(text); }
 
@@ -957,6 +1109,7 @@ sealed class CardWindow : Window, ICardActions
             Hover(hovered);
         }
         if (last != null) view.Show(last, animate: true);
+        SaveCard();
     }
 
     // MARK: Win32
@@ -1005,8 +1158,13 @@ static class Hooks
 
     static void Tell(Kind kind, CardWindow.POINT at)
     {
+        // The window it's for, when it's one of ours: the one under the pointer for a click or
+        // scroll, the one in front for a key.
+        var w = kind == Kind.Escape ? GetForegroundWindow() : GetAncestor(WindowFromPoint(at), GA_ROOT);
+        GetWindowThreadProcessId(w, out var pid);
+        var ours = w != IntPtr.Zero && pid == (uint)Environment.ProcessId ? w : IntPtr.Zero;
         // Later, on the app's thread: a hook must return quickly.
-        Application.Current?.Dispatcher.BeginInvoke(() => { foreach (var c in cards.ToArray()) c.Outside(kind, at); });
+        Application.Current?.Dispatcher.BeginInvoke(() => { foreach (var c in cards.ToArray()) c.Outside(kind, at, ours); });
     }
 
     static IntPtr MouseHook(int code, IntPtr wParam, IntPtr lParam)
@@ -1033,6 +1191,11 @@ static class Hooks
     [DllImport("user32.dll")] static extern bool UnhookWindowsHookEx(IntPtr h);
     [DllImport("user32.dll")] static extern IntPtr CallNextHookEx(IntPtr h, int code, IntPtr wParam, IntPtr lParam);
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] static extern IntPtr GetModuleHandle(string? name);
+    const uint GA_ROOT = 2;
+    [DllImport("user32.dll")] static extern IntPtr WindowFromPoint(CardWindow.POINT p);
+    [DllImport("user32.dll")] static extern IntPtr GetAncestor(IntPtr h, uint flags);
+    [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
 }
 
 /// Listen: Windows' own Chinese voice, when one is installed.

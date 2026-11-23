@@ -86,10 +86,35 @@ static class Settings
         catch { }
     }
 
+    // The card's size and pin (CardWindow): the Mac's card.zoom, card.width.word,
+    // card.width.phrase, card.pinned and card.pinnedTopLeft.
+    public static double? CardNumber(string key) => data[key] is JsonValue v && v.TryGetValue<double>(out var d) && double.IsFinite(d) ? d : null;
+    public static bool CardFlag(string key) => CardNumber(key) is double d && d != 0;
+
+    /// Sets several at once (null removes one), with one save.
+    public static void SetCard(Dictionary<string, double?> values)
+    {
+        foreach (var (key, value) in values)
+        {
+            if (value is double d) data[key] = d; else data.Remove(key);
+        }
+        Save();
+    }
+
     // History (History.cs): "off", "days30" or "all", the Mac's lookupHistory. Kept whole unless changed.
     public static string HistoryKeep
     {
         get => Text(data["lookupHistory"]) is "off" or "days30" or "all" ? Text(data["lookupHistory"]) : "all";
         set { data["lookupHistory"] = value; Save(); }
+    }
+
+    // Add to Anki (Anki.cs).
+
+    /// The deck Add to Anki puts cards in (the Mac's "ankiDeck"), or null for the default,
+    /// "Longyan Reader". Set it through Anki.Deck, which tells the core too.
+    public static string? AnkiDeck
+    {
+        get => data["ankiDeck"] is JsonValue v && v.TryGetValue<string>(out var d) && d.Length > 0 ? d : null;
+        set { if (value == null) data.Remove("ankiDeck"); else data["ankiDeck"] = value; Save(); }
     }
 }
