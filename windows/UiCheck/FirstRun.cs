@@ -36,7 +36,7 @@ static partial class Program
         var models = Path.Combine(data, "models");
         var modelFile = Path.Combine(models, "qwen3.5-4b-q4_k_m.gguf");
 
-        using var film = new Film(Path.Combine(outDir, "film"));
+        using var film = new FirstRunFilm(Path.Combine(outDir, "film"));
         var start = new ProcessStartInfo(exe) { WorkingDirectory = Path.GetDirectoryName(exe)! };
         start.Environment["LONGYAN_CARD_LOG"] = log;
         // Nothing listens on port 9: every piece fails there first, and the download moves on.
@@ -262,7 +262,7 @@ static partial class Program
 
     /// The screen, filmed: a JPEG every `Every` ms into a folder, numbered, with the time each
     /// was taken in times.txt (the workflow makes film.mp4 from them).
-    sealed class Film : IDisposable
+    sealed class FirstRunFilm : IDisposable
     {
         readonly string dir;
         readonly Thread thread;
@@ -270,7 +270,7 @@ static partial class Program
         volatile bool stop;
         public volatile int Every = 200;
 
-        public Film(string dir)
+        public FirstRunFilm(string dir)
         {
             this.dir = dir;
             Directory.CreateDirectory(dir);
