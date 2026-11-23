@@ -166,6 +166,19 @@ begin
   Result := WizardSilent and WasRunning;
 end;
 
+{ The copy in this folder only: a copy elsewhere, from a zip, keeps running. Stop: end it;
+  else wait up to 10 seconds for it to end. }
+procedure ProcessHere(Stop: Boolean);
+var
+  Code: Integer;
+  Action: String;
+begin
+  if Stop then Action := 'Stop-Process -Force' else Action := 'Wait-Process -Timeout 10';
+  Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
+    '-NoProfile -Command "Get-Process LongyanReader -ErrorAction SilentlyContinue | Where-Object { $_.Path -like ''' +
+    ExpandConstant('{app}') + '\*'' } | ' + Action + '"', '', SW_HIDE, ewWaitUntilTerminated, Code);
+end;
+
 { The app exits as from its menu when the event is set (App.cs), freeing the model first.
   Up to 10 seconds; true when it's gone. }
 function AskAppToExit: Boolean;
@@ -190,6 +203,8 @@ begin
     Sleep(250);
   end;
   Result := not AppRunning;
+  { The mutex goes a moment before the process: a folder it has open can't be deleted. }
+  if Result then ProcessHere(False);
   if Result then Log('Longyan Reader exited') else Log('Longyan Reader is still running');
 end;
 
@@ -199,16 +214,6 @@ begin
   { If it's still open, Restart Manager (CloseApplications) closes it next. }
   AskAppToExit;
   Result := '';
-end;
-
-{ Only the copy in this folder: a copy elsewhere, from a zip, keeps running. }
-procedure StopAppHere;
-var
-  Code: Integer;
-begin
-  Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
-    '-NoProfile -Command "Get-Process LongyanReader -ErrorAction SilentlyContinue | Where-Object { $_.Path -like ''' +
-    ExpandConstant('{app}') + '\*'' } | Stop-Process -Force"', '', SW_HIDE, ewWaitUntilTerminated, Code);
 end;
 
 { Open at sign-in, when it opens this copy. }
@@ -231,7 +236,7 @@ var
 begin
   if CurUninstallStep = usUninstall then
   begin
-    if not AskAppToExit then StopAppHere;
+    if not AskAppToExit then ProcessHere(True);
     RemoveRunValue;
   end;
   if CurUninstallStep = usPostUninstall then
