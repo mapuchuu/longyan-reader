@@ -722,6 +722,12 @@ enum CLI {
                                  meaning: c?.meaningHere ?? ws.first.map { Gloss.short($0.gloss) })
         }
         if look == "all" { state.showAllSenses = true }
+        // LONGYAN_RENDER_PICK=N: the reader picked meaning N (0-based) over the model's, which
+        // shows Back to (the gallery's word-picked).
+        if let n = ProcessInfo.processInfo.environment["LONGYAN_RENDER_PICK"].flatMap(Int.init) {
+            state.suggested = state.choice
+            state.pick(n)
+        }
         let wasPinned = CardPin.shared.isOn
         if look == "pinned" { CardPin.shared.isOn = true }
         defer { if look == "pinned" { CardPin.shared.isOn = wasPinned } }
@@ -875,6 +881,9 @@ enum CLI {
         if look != "translating" {
             state.translation = await LocalModel.isAvailable() ? try? await LocalModel.translate(text) : try? await Translator.translate(text)
         }
+        // LONGYAN_RENDER_TRANSLATION: this wording instead of the model's, so the gallery's two
+        // drawings of a card show the same text.
+        if let t = ProcessInfo.processInfo.environment["LONGYAN_RENDER_TRANSLATION"], !t.isEmpty, look != "translating" { state.translation = t }
         // LONGYAN_RENDER_PENDING=1 draws the card as it looks while senses are still being chosen.
         if ProcessInfo.processInfo.environment["LONGYAN_RENDER_PENDING"] == "1" || look == "pending" || look == "translating" { state.resolving = true }
         else { state.apply(await PhraseState.resolve(state.tokens, in: passage, dict: dict)) }
