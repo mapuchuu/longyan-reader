@@ -34,7 +34,8 @@ package enum SenseChooser {
 
     /// Why no sense picker can run, for the card's dictionary-order line.
     package static var noPickerReason: String {
-        LocalModel.enabled ? "download the reading model to pick the meaning here" : "Apple's model: \(unavailableReason)"
+        if let why = LocalModel.problem?.reason { return why }
+        return LocalModel.enabled ? "download the reading model to pick the meaning here" : "Apple's model: \(unavailableReason)"
     }
 
     package static var unavailableReason: String { Platform.sensePicker?.unavailableReason ?? "not on this system" }
