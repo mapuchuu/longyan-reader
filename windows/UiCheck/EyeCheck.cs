@@ -406,7 +406,7 @@ static partial class Program
         {
             Shot(name);
             var why = string.Join("; ", new[] { "eye-probe", "eye-skip", "eye-error" }.Select(e => Last(skip, e)?.ToJsonString()).Where(x => x != null));
-            Console.WriteLine($"[{name}] no eye; selection {Fmt(SelectionRects(window) is { Length: > 0 } sr ? sr.Aggregate((a, b) => System.Windows.Rect.Union(a, b)) : null)}; logged {(why.Length > 0 ? why : "nothing")}");
+            Console.WriteLine($"[{name}] no eye; selection {Fmt(SelectionRects(window) is { Length: > 0 } sr ? sr.Aggregate((a, b) => System.Windows.Rect.Union(a, b)) : null)}; logged {(why.Length > 0 ? why : "nothing")}; {NotepadState(window)}");
             failures.Add($"{name}: no eye ({(why.Length > 0 ? why : "nothing logged")})");
             first?.Dispose();
             return null;

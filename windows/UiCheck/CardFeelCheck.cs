@@ -31,6 +31,7 @@ static class CardFeelCheck
         for (var i = 0; i < 2; i++) Keys(VK_SHIFT, VK_RIGHT);
         Thread.Sleep(300);
         var sel = SelectionIn(notepad);
+        Console.WriteLine($"[{Name}] before the shortcut: {Program.NotepadState(notepad)}");
         var before = Lines(log);
         Keys(VK_CONTROL, VK_MENU, 0x4C);
         var started = DateTime.Now;
@@ -40,6 +41,7 @@ static class CardFeelCheck
         Thread.Sleep(800);
         shot(Name);
         Console.WriteLine($"[{Name}] revealed: {shown.ToJsonString()}; the selection at {sel}");
+        Console.WriteLine($"[{Name}] after: {Program.NotepadState(notepad)}; {Last(log, before, "selection")?.ToJsonString()}");
 
         // Placement: hanging below, left edges together, 8 between (PU:620-628).
         double left = (double?)shown["left"] ?? 0, top = (double?)shown["top"] ?? 0, width = (double?)shown["width"] ?? 0, scale = (double?)shown["scale"] ?? 1;
