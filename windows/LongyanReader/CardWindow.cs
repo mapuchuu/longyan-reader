@@ -88,8 +88,9 @@ sealed class CardWindow : Window, ICardActions
 
     /// Draws `card` as the card would show it, at twice the size (as a Retina screenshot of the
     /// Mac card is), on the Mac renders' grey backdrop with 12 around it and no shadow.
-    public static void RenderToFile(JsonObject json, string path)
+    public static void RenderToFile(JsonObject json, string path, bool pin = false)
     {
+        pinned = pin;
         var w = new CardWindow(null, true);
         w.view.Show(json, animate: false);
         w.Content = null;
@@ -250,8 +251,10 @@ sealed class CardWindow : Window, ICardActions
             Arrive();
             return;
         }
+        var drawing = System.Diagnostics.Stopwatch.StartNew();
         view.Show(json, animate: true);
         Resize(animated: true);
+        if (Core.Logging) Core.Log($"{{\"event\":\"drawn\",\"ms\":{drawing.Elapsed.TotalMilliseconds:0.0}}}");
     }
 
     /// First content: measure, place, then reveal.
@@ -669,10 +672,12 @@ sealed class CardWindow : Window, ICardActions
 
     // MARK: ICardActions
 
-    public void Pick(int token, int sense) => Bridge.ly_pick(cardID, token, sense);
-    public void UseSuggested(int token) => Bridge.ly_use_suggested(cardID, token);
-    public void ToggleAll(int token) => Bridge.ly_toggle_all(cardID, token);
-    public void ToggleRow(int token) => Bridge.ly_toggle_row(cardID, token);
+    public void Pick(int token, int sense) { Act("pick"); Bridge.ly_pick(cardID, token, sense); }
+    public void UseSuggested(int token) { Act("back"); Bridge.ly_use_suggested(cardID, token); }
+    public void ToggleAll(int token) { Act("all"); Bridge.ly_toggle_all(cardID, token); }
+    public void ToggleRow(int token) { Act("row"); Bridge.ly_toggle_row(cardID, token); }
+
+    static void Act(string what) { if (Core.Logging) Core.Log($"{{\"event\":\"action\",\"what\":\"{what}\"}}"); }
 
     /// Part of: a new card replaces this one, hanging from the same corner.
     public void OpenPartOf()

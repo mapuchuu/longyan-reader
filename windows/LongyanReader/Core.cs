@@ -62,11 +62,20 @@ sealed class Core
 
     /// LONGYAN_CARD_LOG=file: every event from the core, one JSON line each (for the UI check).
     static readonly string? eventLog = Environment.GetEnvironmentVariable("LONGYAN_CARD_LOG");
+    static readonly System.Diagnostics.Stopwatch clock = System.Diagnostics.Stopwatch.StartNew();
+
+    /// One line of the event log, stamped with the milliseconds since the app started.
+    public static void Log(string json)
+    {
+        if (eventLog == null || json.Length < 2) return;
+        try { File.AppendAllText(eventLog, "{\"t\":" + clock.ElapsedMilliseconds + "," + json.Substring(1) + "\n"); } catch { }
+    }
+    public static bool Logging => eventLog != null;
 
     void OnEvent(IntPtr json)
     {
         var text = Bridge.FromUtf8(json);
-        if (eventLog != null) { try { File.AppendAllText(eventLog, text + "\n"); } catch { } }
+        Log(text);
         JsonObject? e;
         try { e = JsonNode.Parse(text) as JsonObject; } catch { return; }
         if (e == null) return;

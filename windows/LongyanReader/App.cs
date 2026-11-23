@@ -41,7 +41,7 @@ static class Program
             foreach (var dark in new[] { false, true })
             {
                 Theme.Dark = dark;
-                CardWindow.RenderToFile(card, System.IO.Path.Combine(output, name + (dark ? "-dark" : "") + ".png"));
+                CardWindow.RenderToFile(card, System.IO.Path.Combine(output, name + (dark ? "-dark" : "") + ".png"), pin: name.Contains("pinned"));
             }
             Console.WriteLine(name);
         }

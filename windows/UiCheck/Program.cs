@@ -44,6 +44,10 @@ static class Program
         var window = WaitForWindow("longyan-ui", TimeSpan.FromSeconds(20));
         if (window == IntPtr.Zero) { Console.WriteLine("Notepad didn't open"); Shot("no-notepad"); return 1; }
         Thread.Sleep(1500);
+        // A short Notepad at the top: the card then hangs over the dark console, where its
+        // edges show in the frames.
+        SetWindowPos(window, IntPtr.Zero, 40, 30, 760, 170, 0x4 /* SWP_NOZORDER */);
+        Thread.Sleep(300);
         Focus(window);
 
         // 感冒: the 4th and 5th characters of the first line.
@@ -96,6 +100,7 @@ static class Program
         Keys(VK_ESCAPE);
         try { notepad.Kill(); } catch { }
         try { app.Kill(); } catch { }
+        Latencies();
         foreach (var f in failures) Console.WriteLine("FAILED: " + f);
         return failures.Count == 0 ? 0 : 1;
     }
@@ -128,6 +133,26 @@ static class Program
         Console.WriteLine($"[{name}] card text:\n{text}\n");
         if (card == null || !Settled(card)) failures.Add($"{name}: the card didn't settle");
         foreach (var e in expect) if (!text.Contains(e)) failures.Add($"{name}: no \"{e}\" on the card");
+    }
+
+    /// For each click on the card: how long until the core's new card, and until it's drawn.
+    static void Latencies()
+    {
+        if (!File.Exists(log)) return;
+        long? action = null, card = null;
+        foreach (var line in File.ReadAllLines(log))
+        {
+            if (JsonNode.Parse(line) is not JsonObject e) continue;
+            var t = (long?)e["t"] ?? 0;
+            switch ((string?)e["event"])
+            {
+                case "action": action = t; card = null; break;
+                case "card" when action != null && card == null: card = t; break;
+                case "drawn" when action != null && card != null:
+                    Console.WriteLine($"[latency] click to card {card - action} ms, to drawn {t - action} ms (drawing {e["ms"]} ms)");
+                    action = null; break;
+            }
+        }
     }
 
     /// The newest card event after line `skip` of the log.
@@ -302,6 +327,7 @@ static class Program
 
     [DllImport("user32.dll")] static extern uint SendInput(uint n, INPUT[] inputs, int size);
     [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr h);
+    [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int cx, int cy, uint flags);
     [DllImport("user32.dll")] static extern bool SetCursorPos(int x, int y);
     [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr h, out RECT r);
     [DllImport("user32.dll")] static extern bool EnumWindows(EnumProc f, IntPtr p);
