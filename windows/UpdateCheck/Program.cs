@@ -55,7 +55,7 @@ static class Program
         Check(Button(offer, "Install update") != null && Button(offer, "Skip this version") != null, "Install update and Skip this version are there");
         Click(offer, "Remind me later");
         Thread.Sleep(2000);
-        Check(!File.ReadAllText(serverLog).Contains(Path.GetFileName(installer)), "nothing downloaded before Install update");
+        Check(!Read(serverLog).Contains(Path.GetFileName(installer)), "nothing downloaded before Install update");
         Check(LogHas("updates: found a new version") && LogHas("updates: remind me later"), "the app logged the offer and Remind me later");
 
         // 2. A tampered installer: downloaded, refused, not run.
@@ -82,7 +82,7 @@ static class Program
         var ready = WaitForUpdateWindow(TimeSpan.FromSeconds(60), "Ready to install");
         Shot("3-ready");
         if (ready == null) return Fail("the download didn't finish (no \"Ready to install.\")");
-        Check(File.ReadAllText(serverLog).Contains("GET /" + Path.GetFileName(installer)), "the installer was downloaded from the feed's URL");
+        Check(Read(serverLog).Contains("GET /" + Path.GetFileName(installer)), "the installer was downloaded from the feed's URL");
         Click(ready, "Install update");
         for (var i = 0; i < 40 && !(File.Exists(marker) && app.HasExited); i++) Thread.Sleep(500);
         Shot("3-installed");
@@ -156,14 +156,17 @@ static class Program
         Console.WriteLine("clicked " + name);
     }
 
-    static bool LogHas(string text)
+    static bool LogHas(string text) => Read(appLog).Contains(text);
+
+    /// A file another process is still writing (the app's log, the server's).
+    static string Read(string path)
     {
         try
         {
-            using var s = new FileStream(appLog, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-            return new StreamReader(s).ReadToEnd().Contains(text);
+            using var s = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            return new StreamReader(s).ReadToEnd();
         }
-        catch { return false; }
+        catch { return ""; }
     }
 
     static void Check(bool ok, string what)
