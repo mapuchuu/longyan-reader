@@ -61,3 +61,33 @@ jobs:
         with:
           name: compat
           path: compat-out
+
+  # Windows 11's Notepad (the Store app), which Windows Server doesn't have: on the Windows 11
+  # ARM runner, the x64 app under emulation.
+  notepad11:
+    runs-on: windows-11-arm
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: LongyanReader-windows
+          path: dist
+      - name: Notepad
+        run: |
+          powershell -NoProfile -Command "Get-AppxPackage *WindowsNotepad* | Select-Object Name,Version | Format-Table -HideTableHeaders" || true
+          a="$LOCALAPPDATA/Microsoft/WindowsApps/Microsoft.WindowsNotepad_8wekyb3d8bbwe/notepad.exe"
+          if [ -f "$a" ]; then echo "NOTEPAD11=$(cygpath -w "$a")" >> "$GITHUB_ENV"; else echo "NOTEPAD11=C:\\Windows\\notepad.exe" >> "$GITHUB_ENV"; fi
+      - run: dotnet build windows/CompatCheck -c Release -o compatcheck
+      - name: Use the app in Notepad
+        run: compatcheck/CompatCheck.exe "$(cygpath -w "$PWD/dist/LongyanReader/LongyanReader.exe")" compat-out notepad11
+      - name: Table
+        if: always()
+        run: cat compat-out/compat.md >> "$GITHUB_STEP_SUMMARY" || true
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: compat-notepad11
+          path: compat-out

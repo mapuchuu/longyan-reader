@@ -67,6 +67,8 @@ static class Program
             new("writer", "LibreOffice Writer", () => Env("SOFFICE"), d => $"-env:UserInstallation=file:///{LibreProfile().Replace('\\', '/')} --writer --norestore --nologo \"{d}\"", "rtf", new[] { "soffice", "soffice.bin" }, Settle: 10000),
             new("wordpad", "WordPad", () => First(@"C:\Program Files\Windows NT\Accessories\wordpad.exe"), d => $"\"{d}\"", "rtf", new[] { "wordpad" }),
             new("edge-pdf", "PDF in Edge", edge, d => Chromium("edge-pdf", d), "pdf", browsers, Settle: 6000),
+            // Windows 11's Notepad (the Store app on a rich edit box): plain text, found through UI Automation.
+            new("notepad11", "Notepad (Windows 11)", () => Env("NOTEPAD11"), d => $"\"{d}\"", "txt", new[] { "notepad" }, Settle: 4000),
             new("sumatra", "SumatraPDF", () => Env("SUMATRA"), d => $"-new-window \"{d}\"", "pdf", new[] { "sumatrapdf" }, Settle: 5000),
         };
         var wanted = args.Skip(2).ToHashSet();
@@ -81,9 +83,9 @@ static class Program
         foreach (var c in cases)
         {
             var exe = c.Exe();
-            if (exe == null) { rows.Add(new[] { c.App, "all", "skipped: not installed", "", "", "" }); continue; }
+            if (exe == null) { rows.Add(new[] { c.App, "all", "skipped: not installed", "", "", "", "" }); continue; }
             try { Run(c, exe); }
-            catch (Exception e) { rows.Add(new[] { c.App, "all", "check failed: " + e.Message, "", "", "" }); Console.WriteLine(e); }
+            catch (Exception e) { rows.Add(new[] { c.App, "all", "check failed: " + e.Message, "", "", "", "" }); Console.WriteLine(e); }
             Kill(c.Kill);
         }
         try { app?.Kill(); } catch { }
@@ -202,6 +204,7 @@ static class Program
         app = Process.Start(start)!;
         appWakes = wake;
         Thread.Sleep(12000);   // the dictionary and splitter load
+        Ping(app);
     }
 
     static void Run(Case c, string exe)
@@ -214,7 +217,7 @@ static class Program
         var launched = Stopwatch.StartNew();
         Process.Start(new ProcessStartInfo(exe, c.Args(doc)) { UseShellExecute = false, WorkingDirectory = work });
         var window = WaitForWindow(Title, 60000);
-        if (window == IntPtr.Zero) { Shot(c.Name + "-no-window"); rows.Add(new[] { c.App, "all", "the app's window didn't open", "", "", "" }); return; }
+        if (window == IntPtr.Zero) { Shot(c.Name + "-no-window"); rows.Add(new[] { c.App, "all", "the app's window didn't open", "", "", "", "" }); return; }
         ShowWindow(window, SW_RESTORE);
         SetWindowPos(window, IntPtr.Zero, 0, 0, 1000, 720, SWP_NOZORDER);
         Thread.Sleep(c.Settle);
@@ -224,9 +227,9 @@ static class Program
         Click(wr.Left + (wr.Right - wr.Left) * 0.72, wr.Top + 10);
         Thread.Sleep(800);
         Rectangle? found = null;
-        for (var i = 0; i < 40 && found == null; i++) { found = Magenta(); if (found == null) Thread.Sleep(500); }
+        for (var i = 0; i < 40 && found == null; i++) { found = c.Name == "notepad11" ? Located(window) : Magenta(); if (found == null) Thread.Sleep(500); }
         Shot(c.Name + "-0");
-        if (found is not Rectangle ink) { rows.Add(new[] { c.App, "all", "couldn't find the text on screen", "", "", "" }); return; }
+        if (found is not Rectangle ink) { rows.Add(new[] { c.App, "all", "couldn't find the text on screen", "", "", "", "" }); return; }
         var cell = ink.Width / (double)Line.Length;
         var word = new Rect(ink.Left + 3 * cell, ink.Top, 2 * cell, ink.Height);   // 感冒
         var line = new Rect(ink.Left, ink.Top, ink.Width, ink.Height);
@@ -279,6 +282,7 @@ static class Program
     /// selection, where it is; then a click on it and the card.
     static string Eye(Case c, string action, Action select, Rect word, Rect line)
     {
+        Stall();
         var mark = Lines();
         select();
         var up = Cursor();
@@ -287,7 +291,7 @@ static class Program
         Shot($"{c.Name}-{action.Replace(' ', '-')}");
         if (eye == IntPtr.Zero || e == null)
         {
-            rows.Add(new[] { c.App, action, "no eye", "", "", "" });
+            rows.Add(new[] { c.App, action, "no eye", "", "", "", $"{Stall()}" });
             return "no eye";
         }
         var readable = (bool?)e["readable"] == true;
@@ -304,7 +308,8 @@ static class Program
         Click((r.Left + r.Right) / 2.0, mid);
         var card = Card(before, word, line);
         Shot($"{c.Name}-{action.Replace(' ', '-')}-card");
-        rows.Add(new[] { c.App, action, readable ? "eye, read" : "eye, not read (copies on click)", place, card.word, card.place });
+        Thread.Sleep(1500);
+        rows.Add(new[] { c.App, action, readable ? "eye, read" : "eye, not read (copies on click)", place, card.word, card.place, $"{Stall()}" });
         Keys(VK_ESCAPE);
         Thread.Sleep(500);
         return readable ? "read" : "unreadable";
@@ -312,6 +317,7 @@ static class Program
 
     static void Shortcut(Case c, string action, Rect word, Rect line)
     {
+        Stall();
         var mark = Lines();
         Keys(VK_CONTROL, VK_MENU, 0x4C);
         var card = Card(mark, word, line);
@@ -320,7 +326,8 @@ static class Program
         var point = WaitFor(mark, "point", 100) is JsonObject p ? (string?)p["found"] : null;
         var read = how switch { "automation" => "read (UI Automation)", "point" => "read at the pointer", "copy" => "read by copying", "none" => "nothing read", _ => how };
         if (point != null && how != "point") read += $"; pointer: {point}";
-        rows.Add(new[] { c.App, action, read, "", card.word, card.place });
+        Thread.Sleep(1500);
+        rows.Add(new[] { c.App, action, read, "", card.word, card.place, $"{Stall()}" });
         Keys(VK_ESCAPE);
         Thread.Sleep(500);
     }
@@ -354,8 +361,8 @@ static class Program
     static void Table()
     {
         var md = new StringBuilder();
-        md.AppendLine("| App | What | Read | Eye place | Card word | Card place |");
-        md.AppendLine("|---|---|---|---|---|---|");
+        md.AppendLine("| App | What | Read | Eye place | Card word | Card place | App thread's longest wait (ms) |");
+        md.AppendLine("|---|---|---|---|---|---|---|");
         foreach (var r in rows) md.AppendLine("| " + string.Join(" | ", r) + " |");
         md.AppendLine();
         foreach (var n in notes) md.AppendLine("- " + n);
@@ -386,6 +393,59 @@ static class Program
             }
         if (n < 60 || r - l < 40) return null;
         return new Rectangle(l + b.Left, t + b.Top, r - l + 1, bt - t + 1);
+    }
+
+    /// The line in a window's document, through its UI Automation text pattern.
+    static Rectangle? Located(IntPtr hwnd)
+    {
+        try
+        {
+            foreach (System.Windows.Automation.AutomationElement e in System.Windows.Automation.AutomationElement.FromHandle(hwnd).FindAll(System.Windows.Automation.TreeScope.Subtree, System.Windows.Automation.Condition.TrueCondition))
+            {
+                if (!e.TryGetCurrentPattern(System.Windows.Automation.TextPattern.Pattern, out var p) || p is not System.Windows.Automation.TextPattern t) continue;
+                var rects = t.DocumentRange.FindText(Line, false, false)?.GetBoundingRectangles();
+                if (rects is { Length: > 0 }) return new Rectangle((int)rects[0].Left, (int)rects[0].Top, (int)rects[0].Width, (int)rects[0].Height);
+            }
+        }
+        catch { }
+        return null;
+    }
+
+    // How long the app's own thread takes to answer: a WM_NULL sent every 100 ms to one of its
+    // windows. A click on the eye or the card waits as long.
+    static long longest, pingStarted;
+
+    static void Ping(Process p)
+    {
+        var hwnd = IntPtr.Zero;
+        for (var i = 0; i < 20 && hwnd == IntPtr.Zero; i++)
+        {
+            EnumWindows((h, _) => { GetWindowThreadProcessId(h, out var pid); if (pid == p.Id) { hwnd = h; return false; } return true; }, IntPtr.Zero);
+            if (hwnd == IntPtr.Zero) Thread.Sleep(500);
+        }
+        if (hwnd == IntPtr.Zero) { Console.WriteLine("[ping] no window of the app's"); return; }
+        new Thread(() =>
+        {
+            while (!p.HasExited)
+            {
+                var clock = Stopwatch.StartNew();
+                Interlocked.Exchange(ref pingStarted, Environment.TickCount64);
+                SendMessageTimeout(hwnd, 0 /* WM_NULL */, IntPtr.Zero, IntPtr.Zero, 0, 300000, out _);
+                Interlocked.Exchange(ref pingStarted, 0);
+                var ms = clock.ElapsedMilliseconds;
+                long seen;
+                while (ms > (seen = Interlocked.Read(ref longest)) && Interlocked.CompareExchange(ref longest, ms, seen) != seen) { }
+                Thread.Sleep(100);
+            }
+        }) { IsBackground = true }.Start();
+    }
+
+    /// The longest wait since the last call, a wait still going included; and starts again.
+    static long Stall()
+    {
+        var started = Interlocked.Read(ref pingStarted);
+        var now = started > 0 ? Environment.TickCount64 - started : 0;
+        return Math.Max(Interlocked.Exchange(ref longest, 0), now);
     }
 
     static void Shot(string name)
@@ -533,4 +593,6 @@ static class Program
     [DllImport("user32.dll")] static extern bool EnumWindows(EnumProc f, IntPtr p);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetWindowText(IntPtr h, StringBuilder sb, int n);
     [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr h);
+    [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
+    [DllImport("user32.dll")] static extern IntPtr SendMessageTimeout(IntPtr h, uint msg, IntPtr w, IntPtr l, uint flags, uint timeout, out IntPtr result);
 }
