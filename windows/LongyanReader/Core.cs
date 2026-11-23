@@ -91,6 +91,15 @@ sealed class Core
         if (!stopped) Bridge._dispatch_main_queue_callback_4CF(IntPtr.Zero);
     }
 
+    /// Runs the core's work for something the card just asked for now, in the same turn of the
+    /// message loop, so its answer is drawn on the next frame. Waiting for the queue's signal
+    /// (a thread-pool wake, then a queued dispatcher call) cost tens of ms before a pick showed.
+    /// A few rounds, for work that queues more work (the state change, then its event).
+    public void DrainNow()
+    {
+        for (var i = 0; i < 3 && !stopped; i++) Drain();
+    }
+
     /// The app asked the core for something, or heard from it: keep the backup timer going.
     void Busy()
     {

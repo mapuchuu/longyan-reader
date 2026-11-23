@@ -111,7 +111,56 @@ package final class EmbeddedModel: @unchecked Sendable {
     }()
 
     /// Loads the model if needed (about a second from a warm disk cache). Safe to call often.
-    func warmUp() { queue.async { _ = try? self.loadIfNeeded() } }
+    /// `systems` are the instructions that start each kind of request: where prefixes are
+    /// primed (`primesPrefixes`), their state is read in now, so a card reads only its own part.
+    func warmUp(systems: [String] = []) {
+        queue.async {
+            guard (try? self.loadIfNeeded()) != nil, Self.primesPrefixes else { return }
+            for text in systems { if !self.prime(text) { break } }
+        }
+    }
+
+    /// Requests queued and not yet started: priming gives way to them.
+    private let waitingLock = NSLock()
+    private var waiting = 0
+    private func queued() { waitingLock.withLock { waiting += 1 } }
+    private func started() { waitingLock.withLock { waiting -= 1 } }
+
+    /// On a CPU, where reading a prompt is most of a card's time, the state after each kind of
+    /// request's instructions is kept even when they're short, and made ahead of the first card
+    /// (warmUp), and a prompt reuses the longest kept start it begins with. On the Mac's GPU those
+    /// ~50 tokens take ~15 ms, so it keeps its own rule (only starts of 64 tokens or more).
+    /// Reading the instructions apart from the rest changes the last digits of the numbers on
+    /// the CPU, and with them a near tie now and then, but toward the Mac's answers: in the speed
+    /// job 1 of 27 bridge cards and 2 of 184 eval picks differ from the Mac's with it, 3 and 3
+    /// without. LONGYAN_PRIME=0 turns it off.
+    #if os(Windows)
+    static let primesPrefixes = ProcessInfo.processInfo.environment["LONGYAN_PRIME"] != "0"
+    #else
+    static let primesPrefixes = ProcessInfo.processInfo.environment["LONGYAN_PRIME"] == "1"
+    #endif
+
+    /// Reads in one system turn and keeps its state as a prefix. False when a request is waiting.
+    private func prime(_ system: String) -> Bool {
+        guard let ctx, let model, llama_model_is_hybrid(model) || llama_model_is_recurrent(model) else { return false }
+        if waitingLock.withLock({ waiting }) > 0 { return false }
+        let tokens = tokenize("<|im_start|>system\n\(system)<|im_end|>\n")
+        guard tokens.count >= Self.prefixMin, !prefixes.contains(where: { $0.tokens == tokens }) else { return true }
+        let started = Date()
+        llama_memory_clear(llama_get_memory(ctx), true)
+        cached = []
+        do { try decode(tokens, startingAt: 0) } catch { cached = []; return false }
+        if let p = save(tokens) {
+            prefixes.append(p)
+            if prefixes.count > Self.maxPrefixes { prefixes.removeFirst() }
+        }
+        llama_memory_clear(llama_get_memory(ctx), true)
+        cached = []
+        if ProcessInfo.processInfo.environment["LONGYAN_TIMING"] == "1" {
+            FileHandle.standardError.write(Data(String(format: "timing: primed %d tokens, %.0f ms\n", tokens.count, Date().timeIntervalSince(started) * 1000).utf8))
+        }
+        return true
+    }
 
     private func loadIfNeeded() throws {
         // Quitting: a request queued behind the exit handler's free must not load it again.
@@ -131,6 +180,7 @@ package final class EmbeddedModel: @unchecked Sendable {
             llama_backend_init()
             backendReady = true
         }
+        let loadStarted = Date()
         var mp = llama_model_default_params()
         mp.n_gpu_layers = 99
         #if os(Windows)
@@ -141,7 +191,10 @@ package final class EmbeddedModel: @unchecked Sendable {
         // CPU side, outside the GPU's mapped range, which Metal keeps wired. Only the rows the input
         // looks up are then read; the kept output rows get a GPU copy of their own.
         let trim = Self.outputTokens != nil
-        let pattern = strdup("^(token_embd|output_norm)\\.weight$")
+        // With repacking on (LONGYAN_REPACK=1), the output table stays plain too: its kept rows are
+        // copied out of it, which a repacked buffer can't give back.
+        let repack = ProcessInfo.processInfo.environment["LONGYAN_REPACK"] == "1"
+        let pattern = strdup(repack ? "^(token_embd|output_norm|output)\\.weight$" : "^(token_embd|output_norm)\\.weight$")
         defer { releaseCString(pattern) }
         var overrides = [llama_model_tensor_buft_override(pattern: pattern, buft: ggml_backend_cpu_buffer_type()),
                          llama_model_tensor_buft_override(pattern: nil, buft: nil)]
@@ -150,6 +203,7 @@ package final class EmbeddedModel: @unchecked Sendable {
                 mp.tensor_buft_overrides = UnsafePointer(o.baseAddress)
                 mp.use_extra_bufts = false   // else the CPU side repacks the whole table into a copy of its own
             }
+            if let r = ProcessInfo.processInfo.environment["LONGYAN_REPACK"] { mp.use_extra_bufts = r == "1" }
             return llama_model_load_from_file(path, mp)
         }
         guard let m = loaded else {
@@ -157,6 +211,7 @@ package final class EmbeddedModel: @unchecked Sendable {
             Self.brokenFlag.set()
             loadError = Self.error("couldn't load \(path)"); throw loadError!
         }
+        let modelMs = Date().timeIntervalSince(loadStarted) * 1000
         if let ids = Self.outputTokens {
             let ok = ids.withUnsafeBufferPointer { llama_model_set_output_tokens(m, $0.baseAddress, Int32($0.count)) }
             if ProcessInfo.processInfo.environment["LONGYAN_TIMING"] == "1" {
@@ -171,11 +226,30 @@ package final class EmbeddedModel: @unchecked Sendable {
         cp.n_outputs_max = 1
         cp.n_threads = Int32(max(1, min(8, ProcessInfo.processInfo.activeProcessorCount - 2)))
         cp.n_threads_batch = cp.n_threads
+        #if os(Windows)
+        // On the CPU every thread counts: the fast cores' threads, hyperthreads included, less one
+        // for the app (with all of them, the card missed an Esc in the UI check), and only the
+        // fast cores on a chip that also has slow ones. On CI's 2 cores and 4 threads, 3 write a
+        // reply 1.3x as fast as 2; on a 4-core Arm, 3 make a word card 19 s -> 13 s.
+        if let n = Self.fastThreads() {
+            cp.n_threads = Int32(max(1, min(n - 1, 8))); cp.n_threads_batch = Int32(max(1, min(n - 1, 16)))
+        }
+        #endif
         let env = ProcessInfo.processInfo.environment
         if let t = env["LONGYAN_THREADS"].flatMap(Int32.init) { cp.n_threads = t; cp.n_threads_batch = t }
+        if let t = env["LONGYAN_THREADS_BATCH"].flatMap(Int32.init) { cp.n_threads_batch = t }
+        if let u = env["LONGYAN_UBATCH"].flatMap(UInt32.init) { cp.n_ubatch = u }
         if let f = env["LONGYAN_FA"].flatMap(Int32.init) { cp.flash_attn_type = llama_flash_attn_type(rawValue: f) }
         guard let c = llama_init_from_model(m, cp) else {
             llama_model_free(m); contextFailedAt = Date(); throw Self.error("couldn't create a context")
+        }
+        if env["LONGYAN_TIMING"] == "1" {
+            FileHandle.standardError.write(Data(String(format: "timing: load %.0f ms (model %.0f ms), threads %d/%d, ubatch %d, repack %@, flash attention %d, %d logical CPUs\n",
+                Date().timeIntervalSince(loadStarted) * 1000, modelMs, cp.n_threads, cp.n_threads_batch, cp.n_ubatch,
+                mp.use_extra_bufts ? "on" : "off", cp.flash_attn_type.rawValue, ProcessInfo.processInfo.activeProcessorCount).utf8))
+            #if os(Windows)
+            FileHandle.standardError.write(Data("timing: \(Self.fastThreads().map(String.init) ?? "?") fast threads\n".utf8))
+            #endif
         }
         model = m; ctx = c; vocab = llama_model_get_vocab(m)
         // ggml frees its Metal device at exit and asserts nothing still uses it, so the context
@@ -259,7 +333,9 @@ package final class EmbeddedModel: @unchecked Sendable {
         AsyncThrowingStream { continuation in
             let stop = StopFlag()
             continuation.onTermination = { _ in stop.set() }
+            queued()
             queue.async {
+                self.started()
                 do {
                     // Cancelled while queued (a newer selection): skip the prompt read entirely.
                     if stop.isSet { throw CancellationError() }
@@ -300,6 +376,9 @@ package final class EmbeddedModel: @unchecked Sendable {
     /// for what comes after its last token. Returns how many tokens were reused.
 
     private var imStart: llama_token { tokenize("<|im_start|>").first ?? -1 }
+    /// The shortest fixed start worth keeping a state for.
+    private static let prefixMin: Int = ProcessInfo.processInfo.environment["LONGYAN_PREFIX_MIN"].flatMap(Int.init)
+        ?? (primesPrefixes ? 16 : 64)
 
     private func read(_ tokens: [llama_token]) throws -> Int {
         guard let ctx, let model else { throw Self.error("not loaded") }
@@ -332,13 +411,18 @@ package final class EmbeddedModel: @unchecked Sendable {
                 // too, and a new passage reads only its own turn.
                 let starts = body.indices.filter { body[$0] == imStart }
                 let cut = starts.count >= 2 ? starts[starts.count - 2] : 0
-                if cut >= 64, let i = prefixes.firstIndex(where: { $0.tokens.count == cut && body.starts(with: $0.tokens) }),
-                   restore(prefixes[i]) {
+                // Where prefixes are primed, the system turn alone may be kept, and a prompt with
+                // worked examples after it starts from that.
+                let fits: (Snapshot) -> Bool = Self.primesPrefixes
+                    ? { $0.tokens.count <= cut && body.starts(with: $0.tokens) }
+                    : { $0.tokens.count == cut && body.starts(with: $0.tokens) }
+                let found = prefixes.indices.filter { fits(prefixes[$0]) }.max { prefixes[$0].tokens.count < prefixes[$1].tokens.count }
+                if cut >= Self.prefixMin, let i = found, restore(prefixes[i]) {
                     prefixes.append(prefixes.remove(at: i))
                     cached = prefixes.last!.tokens
-                    keep = cut
-                    if timing { FileHandle.standardError.write(Data("prefix hit: \(cut) tokens\n".utf8)) }
-                } else if cut >= 64 {
+                    keep = cached.count
+                    if timing { FileHandle.standardError.write(Data("prefix hit: \(keep) tokens\n".utf8)) }
+                } else if cut >= Self.prefixMin {
                     llama_memory_clear(memory, true)
                     try decode(Array(body[..<cut]), startingAt: 0)
                     if let p = save(Array(body[..<cut])) {
@@ -459,7 +543,9 @@ package final class EmbeddedModel: @unchecked Sendable {
         AsyncThrowingStream { continuation in
             let stop = StopFlag()
             continuation.onTermination = { _ in stop.set() }
+            queued()
             queue.async {
+                self.started()
                 do {
                     // Cancelled while queued (a newer selection): skip the prompt read entirely.
                     if stop.isSet { throw CancellationError() }
@@ -471,6 +557,7 @@ package final class EmbeddedModel: @unchecked Sendable {
                     let stepTokens = steps.dropFirst().reduce(2 * steps.count) { $0 + self.tokenize($1.text).count }
                     guard tokens.count + stepTokens < Int(Self.contextSize) else { throw Self.error("prompt too long (\(tokens.count) tokens)") }
                     let keep = try self.read(tokens)
+                    let promptMs = Date().timeIntervalSince(started) * 1000
                     var pending: [llama_token] = []
                     for (i, step) in steps.enumerated() {
                         if stop.isSet || Self.exiting.isSet { throw CancellationError() }
@@ -480,8 +567,8 @@ package final class EmbeddedModel: @unchecked Sendable {
                         continuation.yield(pick)
                     }
                     if ProcessInfo.processInfo.environment["LONGYAN_TIMING"] == "1" {
-                        FileHandle.standardError.write(Data(String(format: "timing: pick, prompt %d tok (%d new), %d numbers, %.0f ms\n",
-                            tokens.count, tokens.count - keep, steps.count, Date().timeIntervalSince(started) * 1000).utf8))
+                        FileHandle.standardError.write(Data(String(format: "timing: pick, prompt %d tok (%d new) %.0f ms, %d numbers, %.0f ms\n",
+                            tokens.count, tokens.count - keep, promptMs, steps.count, Date().timeIntervalSince(started) * 1000).utf8))
                     }
                     self.noteUse()
                     continuation.finish()
@@ -617,6 +704,28 @@ private func releaseCString(_ p: UnsafeMutablePointer<CChar>?) {
 #if os(Windows)
 extension EmbeddedModel {
     nonisolated(unsafe) private static var backendLog = ""
+
+    /// The logical processors of the CPU's cores; on a chip with performance and efficiency
+    /// cores, of the performance ones.
+    fileprivate static func fastThreads() -> Int? {
+        var length: DWORD = 0
+        _ = GetLogicalProcessorInformationEx(RelationProcessorCore, nil, &length)
+        guard length > 0 else { return nil }
+        let buffer = UnsafeMutableRawPointer.allocate(byteCount: Int(length), alignment: 8)
+        defer { buffer.deallocate() }
+        guard GetLogicalProcessorInformationEx(RelationProcessorCore, buffer.assumingMemoryBound(to: SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX.self), &length) else { return nil }
+        var cores: [(efficiency: UInt8, threads: Int)] = []
+        var offset = 0
+        while offset < Int(length) {
+            let info = (buffer + offset).assumingMemoryBound(to: SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX.self)
+            let mask = UInt64(info.pointee.Processor.GroupMask.Mask)
+            cores.append((info.pointee.Processor.EfficiencyClass, max(1, mask.nonzeroBitCount)))
+            offset += Int(info.pointee.Size)
+        }
+        guard let top = cores.map(\.efficiency).max() else { return nil }
+        let n = cores.filter { $0.efficiency == top }.reduce(0) { $0 + $1.threads }
+        return n > 0 ? n : nil
+    }
 
     /// The CPU kernels are ggml-cpu-*.dll beside the app, one per kind of CPU (x64 and sse42 up
     /// to AVX-512 with VNNI). ggml loads the best one this CPU runs, so a laptop without AVX2
