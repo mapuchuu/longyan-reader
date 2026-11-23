@@ -43,6 +43,19 @@ static class Theme
     /// PingFang Medium is heavier than YaHei's Regular, and YaHei has no Medium: Bold stands in.
     public static System.Windows.FontWeight ChineseWeight(System.Windows.FontWeight w) =>
         w.ToOpenTypeWeight() >= 500 ? System.Windows.FontWeights.Bold : w;
+    /// Segoe draws a little smaller and narrower than San Francisco at the same size: Latin
+    /// text is set this much larger, which matches the Mac's x-height and most of its width
+    /// (measured on the gallery's cards). Line heights stay the Mac's.
+    public const double LatinScale = 1.04;
+    public static double Latin(double size) => size * LatinScale;
+    /// San Francisco's weights look heavier than Segoe's of the same name: Medium is drawn
+    /// Semibold and Semibold Bold, which matches the Mac's stems.
+    public static System.Windows.FontWeight LatinWeight(System.Windows.FontWeight w) => w.ToOpenTypeWeight() switch
+    {
+        >= 600 => System.Windows.FontWeights.Bold,
+        >= 500 => System.Windows.FontWeights.SemiBold,
+        _ => w,
+    };
     /// San Francisco's line spacing as a multiple of the size.
     public const double LineFactor = 1.2;
     public static readonly FontFamily Icons = new("Segoe Fluent Icons, Segoe MDL2 Assets");
