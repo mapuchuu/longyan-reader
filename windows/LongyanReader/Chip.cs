@@ -110,11 +110,13 @@ static class Chip
         Hide();
         Bridge.ly_warm_up();
         var w = new ChipWindow(selection, app.Process, app.Path);
-        var (left, top, size) = w.Place(up, selection?.Bounds, selection?.OneLine ?? false);
+        // One line: where its highlight ends and its text's ink is, as drawn (see Drawn).
+        var drawn = selection is { Bounds: Rect sb, OneLine: true } ? SelectionReader.Drawn(sb, ScaleAt(up)) : (null, null);
+        var (left, top, size) = w.Place(up, selection?.Bounds, selection?.OneLine ?? false, drawn.Right, drawn.InkMid);
         shown = w;
         // Positions only, in device pixels (UiCheck checks them): never the text.
         var bounds = selection?.Bounds is Rect b ? $"[{b.X:0.#},{b.Y:0.#},{b.Width:0.#},{b.Height:0.#}]" : "null";
-        Core.Log($"{{\"event\":\"eye\",\"readable\":{(selection != null ? "true" : "false")},\"up\":[{up.X},{up.Y}],\"bounds\":{bounds},\"window\":[{left},{top},{size}],\"scale\":{ScaleAt(up):0.##},\"oneLine\":{((selection?.OneLine ?? false) ? "true" : "false")}}}");
+        Core.Log($"{{\"event\":\"eye\",\"readable\":{(selection != null ? "true" : "false")},\"up\":[{up.X},{up.Y}],\"bounds\":{bounds},\"window\":[{left},{top},{size}],\"scale\":{ScaleAt(up):0.##},\"oneLine\":{((selection?.OneLine ?? false) ? "true" : "false")},\"drawn\":[{drawn.Right?.ToString("0.#") ?? "null"},{drawn.InkMid?.ToString("0.#") ?? "null"}]}}");
         // The card's work starts once the eye has stayed a moment (or on hover): most selections
         // are made to copy, and the model's work costs battery.
         DispatcherTimer? soon = null;
@@ -186,9 +188,8 @@ static class Chip
 sealed class ChipWindow : Window
 {
     const double Box = 44, Target = 30, Diameter = 24;
-    /// The mark is 13 on the Mac; SwiftUI's sharper downsampling draws it lighter, so 12.6
-    /// here matches its weight (windows/gallery/mac/eye.png).
-    const double Mark = 12.6;
+    /// The mark's frame is 13 on the Mac, its eye 12 wide on screen; 12.6 here drew it 11.5.
+    const double Mark = 13;
 
     public readonly Selected? Selection;
     readonly string process, path;
@@ -302,14 +303,17 @@ sealed class ChipWindow : Window
     /// 40 points in Microsoft YaHei, under it in PingFang on the Mac) or under 40 points tall;
     /// for longer selections, or with no position, just above and right of where the mouse let
     /// go. Kept on that screen's working area.
-    public (int Left, int Top, int Size) Place(InputWatch.POINT up, Rect? selection, bool oneLine = false)
+    /// `right` and `inkMid`, when known, are the highlight's drawn right edge and the middle of
+    /// the text's ink: the mark (half a point right and down of the circle's centre) goes 19.5
+    /// after the highlight and level with the ink, as on the Mac.
+    public (int Left, int Top, int Size) Place(InputWatch.POINT up, Rect? selection, bool oneLine = false, double? right = null, double? inkMid = null)
     {
         s = Chip.ScaleAt(up);
         double x = up.X + 6 * s, y = up.Y - 6 * s - Target * s;
         if (selection is Rect b && b.Height > 0 && (oneLine || b.Height < 40 * s))
         {
-            x = b.Right + 4 * s;
-            y = b.Top + b.Height / 2 - Target * s / 2;
+            x = (right ?? b.Right) + 4 * s;
+            y = inkMid is double m ? m - 0.5 * s - Target * s / 2 : b.Top + b.Height / 2 - Target * s / 2;
         }
         var inset = (Box - Target) / 2 * s;
         x -= inset; y -= inset;

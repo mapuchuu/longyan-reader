@@ -350,8 +350,8 @@ Consolas line), so UiCheck allows 2 px.
 |---|---|---|---|---|
 | Which rect | AXBoundsForRange of the whole selection, untrimmed (CS:59-66) | union of the range's GetBoundingRectangles, top-line margin cut (SR.Bounds) | same | eye-sheet-*: first line in Notepad and rich edit |
 | One line or not | bounds height > 0 and < 40 pt (CS:93) | beside when the rects share one line, any height, or the bounds are under 40 × scale (C.Place, SR.Bounds) | same in effect: a 32 px heading's line is under 40 pt in PingFang, 42-44 in Microsoft YaHei, which sent it to the pointer rule | `edge-h1-*` within 1 point; `two lines` beside, `three lines` by the pointer |
-| Beside: horizontal | button box left = maxX + 4 (CS:95); circle starts 7 after | window left = right + 4s − 7s (C.Place) | same | UiCheck x within 1 + s/2 px |
-| Beside: vertical | box centred on bounds midY (CS:95) | window centre on midY of the cut bounds | same | UiCheck y within 2 px of the ink centre, 100-175% |
+| Beside: horizontal | button box left = maxX + 4 (CS:95); measured: mark centre 19.5 after the highlight | one line: from the highlight's drawn right edge (SR.Drawn), else the rect's right | same | UiCheck `exact`: mark 19.5 ± 0.5 points after the highlight |
+| Beside: vertical | box centred on bounds midY (CS:95); measured on the Mac the mark, highlight and ink share a centre (0.0) | one line: the mark on the middle of the text's ink as drawn, read from the screen in the selection's rect (SR.Drawn); else the box's midY | same | UiCheck `exact`: mark centre within 0.5 points of the ink centre |
 | Otherwise | box bottom-left 6 right of, 6 above the mouse-up point (CS:92) | same in device pixels (C.Place) | same | `three lines` cases |
 | Right-to-left drag | rect rule; mouse point only for the fallback | same | same | `rtl` cases |
 | Drag past the line's end | eye after the line's text | same; the probe can no longer fail on odd rects (SR.Bounds never throws, empty rects dropped) and the line break is left out | same | `past1/2/3` in each Notepad and rich edit, `edge-20px-past` |
@@ -360,6 +360,7 @@ Consolas line), so UiCheck allows 2 px.
 | Empty or zero rect | dropped (SelectionReader.checked, width and height ≥ 1) | same (C.Consider) | same | code |
 | Screen edges | clamped to the visible frame of the screen with the pointer (CS:101-105) | clamped to that screen's working area (C.Place) | same | `edge` case at 100% |
 | Box | 44 window, 30 button, 24 circle (CS:79-81, 208) | same (C:184) | same | gallery eye.png |
+| Mark size | 13 frame, 12 wide on screen | 13 frame; was 12.6 (11.5 wide) | same | UiCheck `exact` |
 | Scalings | points | device pixels × monitor DPI (per-monitor v2) | same | eye-sheet-100/125/150/175 on CI (the runner offers no 200%); 200% read in the user's VM |
 
 ### Edge's selection menu (open, the user's call)

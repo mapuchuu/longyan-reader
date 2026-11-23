@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
@@ -110,6 +111,55 @@ static class SelectionReader
             return (r, oneLine);
         }
         catch (Exception) { return (null, false); }
+    }
+
+    /// The selection as drawn, read from the screen within its rect (a little wider): the right
+    /// edge of its highlight and the middle of its text's ink. On the Mac the line's box, its
+    /// highlight and its ink share a centre; on Windows the box is up to 2 px off the ink, and its
+    /// right edge up to a point off the highlight's. Null for either when it can't be told (no
+    /// one colour covers a third of the rect, or the ink is too short to be a line of text).
+    public static (double? Right, double? InkMid) Drawn(Rect b, double s)
+    {
+        try
+        {
+            int x0 = (int)Math.Floor(b.Left), x1 = (int)Math.Ceiling(b.Right + 6 * s), y0 = (int)Math.Floor(b.Top), y1 = (int)Math.Ceiling(b.Bottom);
+            int w = x1 - x0, h = y1 - y0;
+            if (w < 2 || h < 4 || w * h > 4_000_000) return (null, null);
+            using var bmp = new System.Drawing.Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            using (var g = System.Drawing.Graphics.FromImage(bmp)) g.CopyFromScreen(x0, y0, 0, 0, new System.Drawing.Size(w, h));
+            var data = bmp.LockBits(new System.Drawing.Rectangle(0, 0, w, h), System.Drawing.Imaging.ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            var px = new int[w * h];
+            for (var y = 0; y < h; y++) Marshal.Copy(data.Scan0 + y * data.Stride, px, y * w, w);
+            bmp.UnlockBits(data);
+            static int Diff(int a, int c) => Math.Abs(((a >> 16) & 255) - ((c >> 16) & 255)) + Math.Abs(((a >> 8) & 255) - ((c >> 8) & 255)) + Math.Abs((a & 255) - (c & 255));
+            // The highlight: the commonest colour inside the rect.
+            var inside = (int)Math.Round(b.Right) - x0;
+            var counts = new Dictionary<int, int>();
+            for (var y = 0; y < h; y++) for (var x = 0; x < Math.Min(inside, w); x++) { var c = px[y * w + x] & 0xFFFFFF; counts[c] = counts.GetValueOrDefault(c) + 1; }
+            if (counts.Count == 0) return (null, null);
+            var (bg, n) = counts.MaxBy(kv => kv.Value);
+            if (n * 3 < Math.Min(inside, w) * h) return (null, null);
+            // Its right edge: the last column holding it, in the rect's middle rows.
+            var right = -1;
+            for (var y = h / 4; y < h - h / 4; y++) for (var x = w - 1; x > right; x--) if (Diff(px[y * w + x], bg) <= 6) { right = x; break; }
+            double? edge = right >= 0 && x0 + right + 1 >= b.Right - b.Height / 2 && x0 + right + 1 <= b.Right + 4 * s ? x0 + right + 1 : null;
+            // The text's ink: rows with a pixel far from the highlight, left of its edge.
+            var last = edge is double e ? (int)e - x0 : Math.Min(inside, w);
+            int top = -1, bottom = -1;
+            for (var y = 0; y < h; y++)
+            {
+                for (var x = 0; x < last; x++)
+                {
+                    if (Diff(px[y * w + x], bg) <= 150) continue;
+                    if (top < 0) top = y;
+                    bottom = y;
+                    break;
+                }
+            }
+            double? mid = top >= 0 && bottom - top + 1 >= b.Height * 0.4 ? y0 + (top + bottom + 1) / 2.0 : null;
+            return (edge, mid);
+        }
+        catch (Exception) { return (null, null); }
     }
 
     static TextPatternRange WithoutTrailingSpace(TextPatternRange selection)

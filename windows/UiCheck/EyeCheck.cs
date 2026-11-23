@@ -269,7 +269,7 @@ static partial class Program
             }
             if (found is not System.Windows.Rect l || l.IsEmpty) { failures.Add($"{tag}: couldn't find the text in Edge"); continue; }
             var x = l.Left + (index + 0.5) * px * s;
-            var eye = Placement(tag, window, () => DoubleClick(x, l.Top + l.Height / 2), new[] { l }, l.Height);
+            var eye = Placement(tag, window, () => DoubleClick(x, l.Top + l.Height / 2), new[] { l }, l.Height, exact: true);
             if (lastCrop != null) { crops.Add(($"{name} {label}, double-click {line[index]}", lastCrop)); lastCrop = null; }
             // Edge's own menu for a selection, if it came: its windows besides the page's.
             foreach (var (h, r) in EdgePopups(window)) Console.WriteLine($"[{tag}] Edge popup {h:X}: {r.Left},{r.Top} to {r.Right},{r.Bottom}");
@@ -303,16 +303,16 @@ static partial class Program
         var em = 32 * s; var y = h.Top + h.Height / 2;
         var from = h.Left + 3 * em + 2 * s;   // 行
         Console.WriteLine($"[{name}-h1] heading's box {Fmt(h)}");
-        Placement($"{name}-h1-on", window, () => Drag(from, y, (int)(h.Left + 11 * em + 2 * s - from), 0), new[] { h }, h.Height, oneLine: true, tolerance: 1);
+        Placement($"{name}-h1-on", window, () => Drag(from, y, (int)(h.Left + 11 * em + 2 * s - from), 0), new[] { h }, h.Height, oneLine: true, tolerance: 1, exact: true);
         Add("32 px heading, 行 to just past 国");
-        Placement($"{name}-h1-below", window, () => Drag(from, y, (int)(h.Left + 9.9 * em - from), (int)(h.Bottom + 12 * s - y)), new[] { h }, h.Height, oneLine: true, tolerance: 1);
+        Placement($"{name}-h1-below", window, () => Drag(from, y, (int)(h.Left + 9.9 * em - from), (int)(h.Bottom + 12 * s - y)), new[] { h }, h.Height, oneLine: true, tolerance: 1, exact: true);
         Add("32 px heading, 行 to 锁, let go below the line");
-        Placement($"{name}-h1-past", window, () => Drag(from, y, (int)(h.Left + 12 * em + 90 * s - from), 0), new[] { h }, h.Height, oneLine: true, tolerance: 1);
+        Placement($"{name}-h1-past", window, () => Drag(from, y, (int)(h.Left + 12 * em + 90 * s - from), 0), new[] { h }, h.Height, oneLine: true, tolerance: 1, exact: true);
         Add("32 px heading, 行 to 90 points past the text");
         const string para = "我们研究研究再说吧。";
         if (Find(para) is not System.Windows.Rect p) { failures.Add($"{name}-past: couldn't find the 20 px line in Edge"); return; }
         var start = p.Left + 2 * 20 * s + 2 * s;   // 研
-        Placement($"{name}-20px-past", window, () => Drag(start, p.Top + p.Height / 2, (int)(p.Left + 10 * 20 * s + 90 * s - start), 0), new[] { p }, p.Height, tolerance: 1);
+        Placement($"{name}-20px-past", window, () => Drag(start, p.Top + p.Height / 2, (int)(p.Left + 10 * 20 * s + 90 * s - start), 0), new[] { p }, p.Height, tolerance: 1, exact: true);
         Add("20 px line, 研 to 90 points past the end");
     }
 
@@ -342,17 +342,17 @@ static partial class Program
         System.Windows.Rect At(string c) => TextIn(window, c) ?? System.Windows.Rect.Empty;
         var mao = At("冒"); var hai = At("海"); var bi = At("闭"); var guo = At("国"); var gan = At("感"); var shi = At("实"); var jiu = At("究");
         if (new[] { mao, hai, bi, guo, gan, shi, jiu }.Any(r => r.IsEmpty)) { failures.Add($"{name}: couldn't find the characters"); return; }
-        Add("first line, double-click 冒", Placement($"{name}-line1", window, () => DoubleClick(mao.Left + mao.Width / 2, y1), new[] { l1 }, l2.Height));
-        Add("second line, double-click 海", Placement($"{name}-line2", window, () => DoubleClick(hai.Left + hai.Width / 2, y2), new[] { l2 }, l2.Height));
-        Add("right-to-left drag 国 to 闭", Placement($"{name}-rtl", window, () => Drag(guo.Right - 2, y2, (int)(bi.Left + 2 - (guo.Right - 2)), 0), new[] { l2 }, l2.Height));
-        Add("two lines, 感 to 实", Placement($"{name}-two", window, () => Drag(gan.Left + 2, y1, (int)(shi.Right - 2 - (gan.Left + 2)), (int)(y2 - y1)), new[] { l1, l2 }, l2.Height));
+        Add("first line, double-click 冒", Placement($"{name}-line1", window, () => DoubleClick(mao.Left + mao.Width / 2, y1), new[] { l1 }, l2.Height, exact: true));
+        Add("second line, double-click 海", Placement($"{name}-line2", window, () => DoubleClick(hai.Left + hai.Width / 2, y2), new[] { l2 }, l2.Height, exact: true));
+        Add("right-to-left drag 国 to 闭", Placement($"{name}-rtl", window, () => Drag(guo.Right - 2, y2, (int)(bi.Left + 2 - (guo.Right - 2)), 0), new[] { l2 }, l2.Height, exact: true));
+        Add("two lines, 感 to 实", Placement($"{name}-two", window, () => Drag(gan.Left + 2, y1, (int)(shi.Right - 2 - (gan.Left + 2)), (int)(y2 - y1)), new[] { l1, l2 }, l2.Height, exact: true));
         Add("three lines, 感 to 究", Placement($"{name}-three", window, () => Drag(gan.Left + 2, y1, (int)(jiu.Right - 2 - (gan.Left + 2)), (int)(y3 - y1)), new[] { l1, l2, l3 }, l2.Height));
         // A drag from inside a line to well past its end (90 points right, same line): the Mac
         // puts the eye after the line's text.
         var yan = At("研");
-        Add("first line, 感 to past the end", Placement($"{name}-past1", window, () => Drag(gan.Left + 2, y1, (int)(l1.Right + 90 * s - (gan.Left + 2)), 0), new[] { l1 }, l2.Height));
-        Add("second line, 闭 to past the end", Placement($"{name}-past2", window, () => Drag(bi.Left + 2, y2, (int)(l2.Right + 90 * s - (bi.Left + 2)), 0), new[] { l2 }, l2.Height));
-        if (!yan.IsEmpty) Add("third line, 研 to past the end", Placement($"{name}-past3", window, () => Drag(yan.Left + 2, y3, (int)(l3.Right + 90 * s - (yan.Left + 2)), 0), new[] { l3 }, l2.Height));
+        Add("first line, 感 to past the end", Placement($"{name}-past1", window, () => Drag(gan.Left + 2, y1, (int)(l1.Right + 90 * s - (gan.Left + 2)), 0), new[] { l1 }, l2.Height, exact: true));
+        Add("second line, 闭 to past the end", Placement($"{name}-past2", window, () => Drag(bi.Left + 2, y2, (int)(l2.Right + 90 * s - (bi.Left + 2)), 0), new[] { l2 }, l2.Height, exact: true));
+        if (!yan.IsEmpty) Add("third line, 研 to past the end", Placement($"{name}-past3", window, () => Drag(yan.Left + 2, y3, (int)(l3.Right + 90 * s - (yan.Left + 2)), 0), new[] { l3 }, l2.Height, exact: true));
         if (edge)
         {
             // The first line's end a few points from the working area's right edge.
@@ -362,7 +362,7 @@ static partial class Program
             SetWindowPos(window, IntPtr.Zero, w.Left + dx, w.Top, w.Right - w.Left, w.Bottom - w.Top, 0x4);
             Thread.Sleep(600);
             if (TextIn(window, lines[0]) is System.Windows.Rect e1 && TextIn(window, "饭") is System.Windows.Rect fan)
-                Add("at the screen's edge, double-click 饭", Placement($"{name}-edge", window, () => DoubleClick(fan.Left + fan.Width / 2, e1.Bottom - l2.Height / 2), new[] { e1 }, l2.Height));
+                Add("at the screen's edge, double-click 饭", Placement($"{name}-edge", window, () => DoubleClick(fan.Left + fan.Width / 2, e1.Bottom - l2.Height / 2), new[] { e1 }, l2.Height, exact: true));
         }
     }
 
@@ -375,7 +375,7 @@ static partial class Program
     /// `tolerance`: how far from the Mac rule's centre, in points (default 2 px down, 1 + s/2
     /// across). `early`: also a frame about 30 ms after the eye's window shows, whose circle
     /// must already be centred where it settles.
-    static IntPtr? Placement(string name, IntPtr window, Action select, System.Windows.Rect[] lines, double lineHeight, string? burst = null, bool oneLine = false, double? tolerance = null, bool early = false)
+    static IntPtr? Placement(string name, IntPtr window, Action select, System.Windows.Rect[] lines, double lineHeight, string? burst = null, bool oneLine = false, double? tolerance = null, bool early = false, bool exact = false)
     {
         // The caret out of the way (at the end), so it isn't taken for ink.
         Keys(VK_CONTROL, VK_END);
@@ -456,6 +456,10 @@ static partial class Program
         var tolY = tolerance is double t1 ? t1 * s : 2.0; var tolX = tolerance is double t2 ? t2 * s : 1 + s / 2;
         if (Math.Abs(cy - predY) > tolY) failures.Add($"{name}: the eye's centre is at y {cy:0.#}, the Mac's rule puts it at {predY:0.#} ({(beside ? "the text's centre" : "6 above where the mouse let go")}); off by {cy - predY:0.#} px at {s * 100:0}%");
         if (Math.Abs(cx - predX) > tolX) failures.Add($"{name}: the eye's centre is at x {cx:0.#}, the Mac's rule puts it at {predX:0.#}; off by {cx - predX:0.#} px at {s * 100:0}%");
+        // Exact: the mark itself, against the text as the eye sees it (the Mac measured 0.0
+        // from the ink's centre and 19.5 points after the highlight, 12 points wide).
+        if (exact && beside) Exact(name, after, r, s, textMid, union, top, bottom);
+
         if (first != null)
         {
             // The circle's centre in the early frame and once settled, from what changed on
@@ -497,6 +501,53 @@ static partial class Program
         }
         lastCrop = img;
         return eye;
+    }
+
+    /// The mark's ink inside the eye's circle (darker or lighter than the circle's surface),
+    /// then the eye hidden (Shift) and the highlight's right edge read with nothing over it.
+    static void Exact(string name, Bitmap after, RECT r, double s, double textMid, System.Windows.Rect union, int inkTop, int inkBottom)
+    {
+        double cx = (r.Left + r.Right) / 2.0, cy = (r.Top + r.Bottom) / 2.0;
+        var surface = after.GetPixel((int)cx, (int)(cy - 9 * s));
+        int l = int.MaxValue, rr = int.MinValue, t = int.MaxValue, b = int.MinValue;
+        var rad = 8 * s;
+        for (var y = (int)(cy - rad); y <= (int)(cy + rad); y++)
+            for (var x = (int)(cx - rad); x <= (int)(cx + rad); x++)
+            {
+                if (x < 0 || y < 0 || x >= after.Width || y >= after.Height) continue;
+                var c = after.GetPixel(x, y);
+                if (Math.Abs(c.R - surface.R) + Math.Abs(c.G - surface.G) + Math.Abs(c.B - surface.B) <= 60) continue;
+                l = Math.Min(l, x); rr = Math.Max(rr, x); t = Math.Min(t, y); b = Math.Max(b, y);
+            }
+        Keys(VK_SHIFT);
+        WaitForEye(false, 1500);
+        Thread.Sleep(300);
+        using var selected = Capture();
+        selected.Save(Path.Combine(outDir, name + "-selected.png"), ImageFormat.Png);
+        // The highlight: the commonest colour in the selection's rect on the ink's rows.
+        var counts = new Dictionary<int, int>();
+        for (var y = inkTop; y <= inkBottom; y++) for (var x = (int)union.Left; x < (int)union.Right; x++) { var c = selected.GetPixel(x, y).ToArgb(); counts[c] = counts.GetValueOrDefault(c) + 1; }
+        double? edge = null;
+        if (counts.Count > 0)
+        {
+            var hl = Color.FromArgb(counts.MaxBy(kv => kv.Value).Key);
+            var right = -1;
+            for (var y = (int)textMid - (int)(3 * s); y <= (int)textMid + (int)(3 * s); y++)
+                for (var x = Math.Min(selected.Width - 1, (int)(union.Right + 12 * s)); x > right; x--)
+                {
+                    var c = selected.GetPixel(x, y);
+                    if (Math.Abs(c.R - hl.R) + Math.Abs(c.G - hl.G) + Math.Abs(c.B - hl.B) <= 6) { right = x; break; }
+                }
+            if (right >= 0) edge = right + 1;
+        }
+        if (l == int.MaxValue) { failures.Add($"{name}: no mark found in the eye"); return; }
+        double mx = (l + rr + 1) / 2.0, my = (t + b + 1) / 2.0, mw = (rr - l + 1) / s;
+        var dy = (my - textMid) / s; double? dx = edge is double e ? (mx - e) / s : null;
+        Console.WriteLine($"[{name}] exact: mark {l},{t} to {rr},{b} (centre {mx:0.#},{my:0.#}, {mw:0.##} points wide); ink centre {textMid:0.#}; highlight's right edge {edge?.ToString("0.#") ?? "not found"} (UI Automation {union.Right:0.#}); mark minus ink {dy:+0.##;-0.##;0} points; mark after the highlight {dx?.ToString("0.##") ?? "?"} points (Mac 19.5)");
+        if (Math.Abs(dy) > 0.5) failures.Add($"{name}: the mark's centre is {dy:+0.##;-0.##} points from the text's ink centre (the Mac: 0)");
+        if (dx is double d && Math.Abs(d - 19.5) > 0.5) failures.Add($"{name}: the mark's centre is {d:0.##} points after the highlight (the Mac: 19.5)");
+        if (dx == null) failures.Add($"{name}: couldn't find the highlight's right edge");
+        if (Math.Abs(mw - 12) > 0.5 + 1 / s) failures.Add($"{name}: the mark is {mw:0.##} points wide (the Mac: 12)");
     }
 
     /// The eye's circle where `shot` differs from `before` inside `zone` by more than `threshold`
