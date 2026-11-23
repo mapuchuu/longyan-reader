@@ -25,6 +25,7 @@ static partial class Program
 
     static int Main(string[] args)
     {
+        if (args.Length == 3 && args[0] == "--first-run") return FirstRun(args[1], args[2]);   // FirstRun.cs
         var exe = args[0];
         outDir = Path.GetFullPath(args[1]);
         Directory.CreateDirectory(outDir);

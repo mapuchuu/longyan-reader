@@ -309,3 +309,43 @@ jobs:
           assert len(times) == 3 and max(times) < 3, "a card waited"
           assert peak < 1000, "the model was loaded"
           PY
+
+  # A first-time reader on a clean profile, filmed: no settings and no model (no model cache
+  # here), the welcome window, a card before the model, the download from the welcome window
+  # (a dead first host, Stop, Resume, the checksum), the card with the model, then Done.
+  # windows/UiCheck/FirstRun.cs. The film is film.mp4 in the first-run artifact.
+  first-run:
+    needs: app
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: LongyanReader-windows
+          path: dist
+      - run: dotnet build windows/UiCheck -c Release -o uicheck
+      - name: First run
+        run: uicheck/UiCheck.exe --first-run "$(cygpath -w "$PWD/dist/LongyanReader/LongyanReader.exe")" first-run
+      - name: The film
+        if: always()
+        run: |
+          set -uo pipefail
+          cd first-run/film || exit 0
+          # Each frame for as long as it was on screen (the film slows down while the download runs).
+          awk -F'\t' 'NR > 1 { printf "file %s.jpg\nduration %.3f\n", prev, ($2 - t) / 1000 } { prev = $1; t = $2 } END { printf "file %s.jpg\n", prev }' times.txt > frames.txt
+          command -v ffmpeg >/dev/null || choco install ffmpeg -y --no-progress > /dev/null
+          export PATH="$PATH:/c/ProgramData/chocolatey/bin"
+          ffmpeg -loglevel error -f concat -safe 0 -i frames.txt -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2,fps=10" -c:v libx264 -pix_fmt yuv420p ../film.mp4 \
+            && echo "film.mp4: $(du -h ../film.mp4 | cut -f1), $(wc -l < times.txt) frames" \
+            && cd .. && rm -rf film
+      - name: The app's log
+        if: always()
+        run: cat "$LOCALAPPDATA/LongyanReader/logs/longyan.log" || true
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: first-run
+          path: first-run

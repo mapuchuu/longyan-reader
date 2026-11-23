@@ -105,6 +105,15 @@ Streaming from Ollama uses `URLSession.bytes`, which only Apple's Foundation has
 - Updates: WinSparkle reads the same appcast format.
 - Signing: a Windows code-signing certificate, or SmartScreen warns on every download.
 
+## First run (branch win/firstrun)
+
+- The welcome window opens as soon as the app starts, before the dictionary loads (that took up to 12 s with nothing on screen). Its model button waits for the core's answer, so a PC too slow for the model isn't sent 2.7 GB.
+- It says the Mac's onboarding where it applies, with no Accessibility step: the eye, the shortcut as it is on this PC (with why, when an AltGr layout moved it to Win+Ctrl+Y, and a Choose a shortcut button when another app has it), pointing, and where the tray icon is. Mica on Windows 11 22H2 and later; it redraws when light or dark changes.
+- Closing it shows a notification: the app is in the notification area, and the shortcut.
+- The download is the Mac's: 32 MB pieces over 8 connections, a piece under 50 KB/s for 20 s asked for again, three failures and the next host, the .pieces ledger, only replies with the right byte range written, disk space checked first, waiting while Windows says it's offline. The system proxy is used. The card's wording follows the Mac's: Stop, Resume, "Download failed: …" with Try again, "Not enough disk space. The download needs …".
+- Before the model, cards come at once in dictionary order; after the download the next card opens at once and the pick fills in. Both from the core, as on the Mac.
+- `windows.yml`'s first-run job runs `UiCheck --first-run` on a clean profile with no model cache and films it (film.mp4 in the first-run artifact). `--render-windows` draws every welcome state.
+
 ## Checked on Windows and Linux
 
 `.github/workflows/core.yml` builds llama.cpp (the same release and patch, CPU only), the core and `longyan-core-check` on Windows and Linux. The check prints the core's answers for a fixed set of words and sentences, plus a hash of every dictionary entry's senses and card wording, with a one-character splitter and no English tagger. Both platforms match the Mac's output (scripts/core-check-expected.txt) exactly.
