@@ -36,6 +36,8 @@ static class Bridge
     public static extern void ly_warm_up();
     [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)]
     public static extern void ly_refresh(byte[]? model);
+    [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)]
+    public static extern void ly_shutdown();
 
     /// NUL-terminated UTF-8, as the bridge reads strings.
     public static byte[] Utf8(string s)

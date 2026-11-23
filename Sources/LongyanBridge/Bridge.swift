@@ -13,7 +13,9 @@ import Observation
 //   {"event":"failed", "message":"…"}                 it couldn't be
 //   {"event":"card", "id":N, "card":{…}}              a card's contents, again on every change
 //   {"event":"hint", "id":N, "message":"…"}           no card for that selection, and why
-//   {"event":"model", "model":"…"}                    "ready", or why the model can't pick (after ly_refresh)
+//   {"event":"model", "model":"…"}                    "ready", "unloadable" (the file won't load),
+//                                                     "no-memory", or why the model can't pick: after
+//                                                     ly_refresh, and whenever a load fails or recovers
 //
 // Text offsets are UTF-16 code units, as C# strings count them.
 
@@ -21,6 +23,8 @@ public typealias LyCallback = @convention(c) (UnsafePointer<CChar>) -> Void
 
 @MainActor private var callback: LyCallback?
 @MainActor private var dict: CEDict?
+/// Why the dictionary didn't load, when it didn't.
+@MainActor private var startFailure: String?
 @MainActor private var cards: [Int64: Card] = [:]
 /// Each word card's sense picks. One can be shared with a card opened after it ("part of").
 @MainActor private var cardPicks: [Int64: [Task<SenseChoice, Error>]] = [:]
@@ -62,6 +66,7 @@ public func ly_start(_ resources: UnsafePointer<CChar>, _ model: UnsafePointer<C
         FileManager.default.changeCurrentDirectoryPath(dir.deletingLastPathComponent().path)
         // Only the app's own model file: not one another app put elsewhere on this computer.
         EmbeddedModel.pathOverride = modelPath ?? ""
+        LocalModel.problemChanged = { _ in onMain { send(["event": "model", "model": modelStatus()]) } }
         Task { @MainActor in
             let loaded = await Task.detached { () -> Result<CEDict, Error> in
                 let breaker = TaggerWordBreaker(weights: dir.appendingPathComponent("splitter.tsv"),
@@ -79,13 +84,17 @@ public func ly_start(_ resources: UnsafePointer<CChar>, _ model: UnsafePointer<C
                 _ = await LocalModel.isAvailable()
                 send(["event": "ready", "entries": d.entryCount, "model": modelStatus()])
             case .failure(let e):
-                send(["event": "failed", "message": String(describing: e)])
+                startFailure = String(describing: e)
+                send(["event": "failed", "message": startFailure!])
             }
         }
     }
 }
 
-@MainActor private func modelStatus() -> String { SenseChooser.canChoose ? "ready" : SenseChooser.noPickerReason }
+@MainActor private func modelStatus() -> String {
+    if let p = LocalModel.problem { return p.rawValue }
+    return SenseChooser.canChoose ? "ready" : SenseChooser.noPickerReason
+}
 
 /// Starts loading the model, so a lookup that follows soon doesn't wait: call it when the
 /// shortcut is pressed or text is selected.
@@ -93,17 +102,26 @@ public func ly_start(_ resources: UnsafePointer<CChar>, _ model: UnsafePointer<C
 public func ly_warm_up() { LocalModel.warmUp() }
 
 /// Checks again for the model file (after a download), with the answer as a "model" event.
+/// A file that failed to load is tried again: loaded now, so a failure shows at once.
 @_cdecl("ly_refresh")
 public func ly_refresh(_ model: UnsafePointer<CChar>?) {
     let path = model.map { String(cString: $0) }
     onMain {
         if let path { EmbeddedModel.pathOverride = path }
+        EmbeddedModel.shared.forgetLoadFailure()
+        LocalModel.forgetProblem()
         Task { @MainActor in
             _ = await LocalModel.isAvailable()
             send(["event": "model", "model": modelStatus()])
+            if EmbeddedModel.modelPath != nil { LocalModel.warmUp() }
         }
     }
 }
+
+/// Quitting: stops the model's work and frees it, after a load or reply in progress (a reply
+/// stops at its next token). It can wait seconds for a load, so call it off the main thread.
+@_cdecl("ly_shutdown")
+public func ly_shutdown() { EmbeddedModel.shared.shutdown() }
 
 /// Opens a card for `passage`'s text from `start` to `end`. Returns the card's id: its
 /// contents arrive as "card" events, or one "hint" event when there's nothing to show.
@@ -113,7 +131,10 @@ public func ly_lookup(_ passage: UnsafePointer<CChar>, _ start: Int32, _ end: In
     let id = newID()
     onMain {
         @MainActor func hint(_ message: String) { send(["event": "hint", "id": id, "message": message]) }
-        guard let dict else { hint("Dictionary still loading…"); return }
+        guard let dict else {
+            hint(startFailure == nil ? "Dictionary still loading…" : "The dictionary didn't load. Exit Longyan Reader and open it again.")
+            return
+        }
         let range = characterRange(text, Int(start), Int(end))
         var selection = Selection(passage: Array(text), range: range, bounds: nil, source: .accessibility, appName: nil).trimmed()
         guard !selection.range.isEmpty, selection.hasChinese else { hint("No Chinese text in the selection"); return }
