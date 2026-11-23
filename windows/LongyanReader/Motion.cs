@@ -20,6 +20,11 @@ static class Motion
     public static readonly Duration BadgeDuration = new(TimeSpan.FromSeconds(0.35));
     public static readonly IEasingFunction Badge = new Spring(0.25, 0.9, 0.35);
 
+    /// The eye (Chip.swift:212-228): in with response 0.3, damping 0.68; hover 0.25, 0.7; press 0.2, 0.7.
+    public static readonly IEasingFunction EyeAppear = new Spring(0.3, 0.68, 0.6);
+    public static readonly IEasingFunction EyeHover = new Spring(0.25, 0.7, 0.5);
+    public static readonly IEasingFunction EyePress = new Spring(0.2, 0.7, 0.4);
+
     public static readonly IEasingFunction EaseOut = new CubicEase { EasingMode = EasingMode.EaseOut };
 
     /// How the content moves when it changes: cardMotion, or easeInOut 0.15 s with Reduce Motion

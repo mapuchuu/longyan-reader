@@ -116,6 +116,9 @@ static class Program
         else failures.Add("2-phrase: no \"to implement\" row to open");
 
         Keys(VK_ESCAPE);
+        Thread.Sleep(800);
+        EyeCheck(window);
+
         try { notepad.Kill(); } catch { }
         try { app.Kill(); } catch { }
         Latencies();
@@ -153,6 +156,87 @@ static class Program
         foreach (var e in expect) if (!text.Contains(e)) failures.Add($"{name}: no \"{e}\" on the card");
     }
 
+    /// The eye: a plain click shows nothing; a double-click on Chinese text shows it; hovering
+    /// grows it; a click on it opens the card; a drag shows it too; a key press hides it.
+    static void EyeCheck(IntPtr notepad)
+    {
+        if (TextIn(notepad, "海禁") is not System.Windows.Rect word) { failures.Add("3-eye: couldn't find 海禁 in Notepad"); return; }
+        double x = word.Left + word.Width / 2, y = word.Top + word.Height / 2;
+        Click(x, y);
+        Thread.Sleep(800);
+        if (Eye() != IntPtr.Zero) failures.Add("3-eye: a plain click showed the eye");
+        DoubleClick(x, y);
+        Burst("3-eye-in", 700);
+        var eye = Eye();
+        Shot("3-eye");
+        if (eye == IntPtr.Zero) { failures.Add("3-eye: no eye after a double-click on Chinese text"); return; }
+        GetWindowRect(eye, out var r);
+        double cx = (r.Left + r.Right) / 2.0, cy = (r.Top + r.Bottom) / 2.0;
+        Console.WriteLine($"[3-eye] at {r.Left},{r.Top} to {r.Right},{r.Bottom}; the word at {word}");
+        MoveTo(cx, cy);
+        Thread.Sleep(600);
+        Shot("3-eye-hover");
+        var before = File.Exists(log) ? File.ReadAllLines(log).Length : 0;
+        Click(cx, cy);
+        Burst("3-eye-reveal", 1500);
+        var started = DateTime.Now;
+        JsonObject? card = null;
+        while ((DateTime.Now - started).TotalSeconds < 60 && (card = LastCard(before)) == null) Thread.Sleep(300);
+        Thread.Sleep(800);
+        Shot("3-eye-card");
+        if (card == null) failures.Add("3-eye: clicking the eye opened no card");
+        Keys(VK_ESCAPE);
+        Thread.Sleep(800);
+
+        Drag(word.Left - word.Width, y, (int)(word.Width * 2), 0);
+        Thread.Sleep(700);
+        Shot("3-eye-drag");
+        if (Eye() == IntPtr.Zero) failures.Add("3-eye: no eye after dragging over Chinese text");
+        Keys(VK_RIGHT);
+        Thread.Sleep(500);
+        if (Eye() != IntPtr.Zero) failures.Add("3-eye: a key press didn't hide the eye");
+    }
+
+    /// The eye's window, when one is showing.
+    static IntPtr Eye()
+    {
+        var found = IntPtr.Zero;
+        EnumWindows((h, _) =>
+        {
+            var sb = new StringBuilder(64);
+            GetWindowText(h, sb, 64);
+            if (IsWindowVisible(h) && sb.ToString() == "Longyan eye") { found = h; return false; }
+            return true;
+        }, IntPtr.Zero);
+        return found;
+    }
+
+    /// Where `text` is in a window's document, through its UI Automation text pattern.
+    static System.Windows.Rect? TextIn(IntPtr hwnd, string text)
+    {
+        try
+        {
+            var root = AutomationElement.FromHandle(hwnd);
+            foreach (AutomationElement e in root.FindAll(TreeScope.Subtree, Condition.TrueCondition))
+            {
+                if (!e.TryGetCurrentPattern(TextPattern.Pattern, out var p) || p is not TextPattern t) continue;
+                var range = t.DocumentRange.FindText(text, false, false);
+                var rects = range?.GetBoundingRectangles();
+                if (rects is { Length: > 0 }) return rects[0];
+            }
+        }
+        catch { }
+        return null;
+    }
+
+    static void DoubleClick(double x, double y)
+    {
+        MoveTo(x, y);
+        Thread.Sleep(60);
+        var clicks4 = new[] { Mouse(MOUSEEVENTF_LEFTDOWN), Mouse(MOUSEEVENTF_LEFTUP), Mouse(MOUSEEVENTF_LEFTDOWN), Mouse(MOUSEEVENTF_LEFTUP) };
+        SendInput(4, clicks4, Marshal.SizeOf<INPUT>());
+    }
+
     /// For each click on the card: how long until the core's new card, and until it's drawn.
     /// Clicks sent, by the system's tick count, to match against the app's log.
     static readonly List<long> clicks = new();
@@ -169,6 +253,15 @@ static class Program
             {
                 case "shortcut":
                     action = t; card = null;
+                    break;
+                case "eye":
+                    Console.WriteLine($"[latency] the eye appeared (readable: {e["readable"]})");
+                    break;
+                case "eye-click":
+                    action = t; card = null;
+                    break;
+                case "revealed" when action != null:
+                    Console.WriteLine($"[latency] the card on screen {t - action} ms after the shortcut or eye");
                     break;
                 case "selection":
                     Console.WriteLine($"[latency] shortcut: warm-up {e["warm"]} ms, automation read {e["automation"]} ms, copy {e["copy"]} ms ({e["how"]})");

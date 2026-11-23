@@ -85,8 +85,7 @@ sealed class CardWindow : Window, ICardActions
     }
 
     /// Draws one card out of sight at launch, so the first real card doesn't pay for WPF's first
-    /// window, the fonts and the first compile: 0.9 s to the first card on the CI desktop,
-    /// against 0.2 s for later ones.
+    /// window, the fonts and the first compile.
     public static void Warm()
     {
         const string sample = """
@@ -349,6 +348,7 @@ sealed class CardWindow : Window, ICardActions
         if (!IsVisible) { Show(); Hooks.Add(this); }
         Resize(animated: false);
         Reveal();
+        Core.Log("{\"event\":\"revealed\"}");
     }
 
     /// Below the selection when the card fits there, else whichever side has more room.

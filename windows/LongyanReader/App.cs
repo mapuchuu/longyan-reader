@@ -14,6 +14,7 @@ static class Program
 {
     static Forms.NotifyIcon? tray;
     static Forms.ToolStripMenuItem? modelItem;
+    static Forms.ToolStripMenuItem? eyeItem, eyeAppsItem;
     static string modelStatus = "";
 
     [STAThread]
@@ -63,7 +64,26 @@ static class Program
         core.Failed += message => MessageBox.Show("Longyan Reader couldn't start: " + message, "Longyan Reader");
         core.Start();
         MakeTray();
+        MenuChanged();
         HotKey.Register(LookUp);
+        Chip.Clicked = EyeClicked;
+        Chip.Start();
+    }
+
+    /// The eye: the selection read when it appeared, else copy it now (the eye never took the
+    /// focus, so the app with the selection still has it).
+    static async System.Threading.Tasks.Task EyeClicked(Selected? selected)
+    {
+        if (!Core.Shared.IsReady) { CardWindow.Hint("Dictionary still loading…"); return; }
+        selected ??= await SelectionReader.ReadByCopying();
+        if (selected == null) { CardWindow.Hint("Couldn't read that selection. Try Ctrl+Alt+L"); return; }
+        Present(selected);
+    }
+
+    static void Present(Selected selected)
+    {
+        Chip.Hide();
+        CardWindow.Present(selected);
     }
 
     /// The shortcut: read the selection, else copy it, then open its card.
@@ -74,7 +94,7 @@ static class Program
         Core.Log("{\"event\":\"shortcut\"}");
         Bridge.ly_warm_up();
         var warm = clock.Elapsed.TotalMilliseconds;
-        var selected = SelectionReader.ReadAutomation();
+        var selected = (await SelectionReader.ProbeAsync()).Selection;
         var read = clock.Elapsed.TotalMilliseconds;
         var how = "automation";
         if (selected == null) { how = "copy"; selected = await SelectionReader.ReadByCopying(); }
@@ -82,7 +102,7 @@ static class Program
         // Timings only: the selected text never goes in the log.
         Core.Log(FormattableString.Invariant($"{{\"event\":\"selection\",\"how\":\"{(selected == null ? "none" : how)}\",\"warm\":{warm:F1},\"automation\":{read - warm:F1},\"copy\":{done - read:F1}}}"));
         if (selected == null) { CardWindow.Hint("Highlight Chinese text, then press Ctrl+Alt+L"); return; }
-        CardWindow.Present(selected);
+        Present(selected);
     }
 
     static void MakeTray()
@@ -92,12 +112,29 @@ static class Program
         menu.Items.Add(new Forms.ToolStripMenuItem("Select Chinese text, then press Ctrl+Alt+L") { Enabled = false });
         modelItem = new Forms.ToolStripMenuItem("Reading model: checking…", null, (_, _) => ModelClicked());
         menu.Items.Add(modelItem);
+        eyeItem = new Forms.ToolStripMenuItem("Show the eye when you select text", null, (_, _) => { Settings.ShowEye = !Settings.ShowEye; MenuChanged(); });
+        menu.Items.Add(eyeItem);
+        eyeAppsItem = new Forms.ToolStripMenuItem("Show the eye in");
+        menu.Items.Add(eyeAppsItem);
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add("Quit Longyan Reader", null, (_, _) => { tray!.Visible = false; Application.Current.Shutdown(); });
         tray = new Forms.NotifyIcon
         {
             Icon = LoadIcon(), Text = "Longyan Reader", Visible = true, ContextMenuStrip = menu,
         };
+    }
+
+    /// The eye's menu items, after a change from the tray or the eye's own right-click menu.
+    public static void MenuChanged()
+    {
+        if (eyeItem == null || eyeAppsItem == null) return;
+        if (!Settings.ShowEye) Chip.Hide();
+        eyeItem.Checked = Settings.ShowEye;
+        // Apps the eye was hidden in, each a click to bring it back.
+        eyeAppsItem.DropDownItems.Clear();
+        foreach (var (process, name) in Settings.EyeHiddenApps)
+            eyeAppsItem.DropDownItems.Add(name, null, (_, _) => { Settings.ShowEyeIn(process); MenuChanged(); });
+        eyeAppsItem.Visible = Settings.ShowEye && eyeAppsItem.DropDownItems.Count > 0;
     }
 
     static System.Drawing.Icon LoadIcon()

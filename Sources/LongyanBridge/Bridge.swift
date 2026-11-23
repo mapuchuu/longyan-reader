@@ -22,6 +22,12 @@ public typealias LyCallback = @convention(c) (UnsafePointer<CChar>) -> Void
 @MainActor private var callback: LyCallback?
 @MainActor private var dict: CEDict?
 @MainActor private var cards: [Int64: Card] = [:]
+/// Each word card's sense picks. One can be shared with a card opened after it ("part of").
+@MainActor private var cardPicks: [Int64: [Task<SenseChoice, Error>]] = [:]
+/// Work started by `ly_prepare`, before the reader clicks. A word card's "part of" pick is
+/// kept in wordPrep too, so opening that word doesn't ask again.
+@MainActor private var wordPrep: (key: String, task: Task<SenseChoice, Error>)?
+@MainActor private var phrasePrep: PhrasePrep?
 private let idLock = NSLock()
 nonisolated(unsafe) private var lastID: Int64 = 0
 private func newID() -> Int64 { idLock.withLock { lastID += 1; return lastID } }
@@ -122,6 +128,34 @@ public func ly_lookup(_ passage: UnsafePointer<CChar>, _ start: Int32, _ end: In
     return id
 }
 
+/// Starts the work of a card for `passage`'s text from `start` to `end` before the reader
+/// asks for it: call it when the selection button appears. Sends no events; a ly_lookup of the
+/// same text then uses the work already started.
+@_cdecl("ly_prepare")
+public func ly_prepare(_ passage: UnsafePointer<CChar>, _ start: Int32, _ end: Int32) {
+    let text = String(cString: passage)
+    onMain {
+        guard let dict else { return }
+        let range = characterRange(text, Int(start), Int(end))
+        var selection = Selection(passage: Array(text), range: range, bounds: nil, source: .accessibility, appName: nil).trimmed()
+        guard !selection.range.isEmpty, selection.hasChinese, selection.range.count <= 400 else { return }
+        selection = selection.wholeWords(dict: dict)
+        if selection.isOneWord(dict: dict) {
+            let context = Segmenter.context(for: selection.range, in: selection.passage)
+            let key = wordKey(context)
+            let senses = dict.senses(for: context.word)
+            guard wordPrep?.key != key, SenseChooser.canChoose, !senses.isEmpty,
+                  GrammarWords.entry(context.word, in: context.passage, at: context.wordRange.lowerBound) == nil else { return }
+            release(wordPrep?.task)
+            wordPrep = (key, Task { try await SenseChooser.choose(for: context, senses: senses) })
+            return
+        }
+        if phrasePrep?.matches(selection) == true { return }
+        phrasePrep?.cancel()
+        phrasePrep = PhrasePrep(selection, dict: dict)
+    }
+}
+
 /// The reader picks a meaning: `token` is the phrase row's id, or -1 on a word card.
 @_cdecl("ly_pick")
 public func ly_pick(_ id: Int64, _ token: Int32, _ sense: Int32) {
@@ -183,8 +217,9 @@ public func ly_open_part_of(_ id: Int64) -> Int64 {
 @_cdecl("ly_close")
 public func ly_close(_ id: Int64) {
     onMain {
+        let picks = cardPicks.removeValue(forKey: id) ?? []
         switch cards.removeValue(forKey: id) {
-        case .word(_, _, let tasks)?: tasks.forEach { $0.cancel() }
+        case .word(_, _, let tasks)?: tasks.forEach { $0.cancel() }; picks.forEach(release)
         case .phrase(_, let prep, let task)?: prep.cancel(); task.cancel()
         case nil: break
         }
@@ -193,16 +228,38 @@ public func ly_close(_ id: Int64) {
 
 // MARK: Cards
 
+private func wordKey(_ context: WordInContext) -> String {
+    "\(context.wordRange)|\(String(context.passage))"
+}
+
+/// Stops a pick no open card is using.
+@MainActor private func release(_ task: Task<SenseChoice, Error>?) {
+    guard let task, !cardPicks.values.contains(where: { $0.contains(task) }) else { return }
+    task.cancel()
+    if wordPrep?.task == task { wordPrep = nil }
+}
+
 @MainActor private func openWord(_ id: Int64, _ context: WordInContext, alone: Bool) {
     guard let dict else { return }
     let opening = LookupState.opening(context, dict: dict, alone: alone)
     let state = opening.state
     var tasks: [Task<Void, Never>] = []
+    // Usually started when the text was selected (see `ly_prepare`); otherwise start now.
+    let key = wordKey(context)
+    let prepared = wordPrep.flatMap { $0.key == key ? $0.task : nil }
+    let old = wordPrep?.task
+    wordPrep = nil
+    if prepared == nil { release(old) }
+    phrasePrep?.cancel()
+    phrasePrep = nil
+    var picks: [Task<SenseChoice, Error>] = []
     if opening.modelReady {
         let senses = state.senses
+        let pick = prepared ?? Task { try await SenseChooser.choose(for: context, senses: senses) }
+        picks.append(pick)
         tasks.append(Task { @MainActor in
             do {
-                let choice = try await SenseChooser.choose(for: context, senses: senses)
+                let choice = try await pick.value
                 guard !Task.isCancelled else { return }
                 state.receive(choice)
             } catch is CancellationError {
@@ -210,23 +267,37 @@ public func ly_close(_ id: Int64) {
                 state.pickFailed(error)
             }
         })
+    } else {
+        release(prepared)
     }
     if let partPick = opening.partPick {
         let first = tasks.first
         tasks.append(Task { @MainActor in
             await first?.value
-            guard !Task.isCancelled, let c = try? await SenseChooser.choose(for: partPick.context, senses: partPick.senses),
-                  !Task.isCancelled else { return }
+            guard !Task.isCancelled, cards[id] != nil else { return }
+            // Kept as the word's prepared answer, so opening the word doesn't ask again.
+            let pick = Task { try await SenseChooser.choose(for: partPick.context, senses: partPick.senses) }
+            cardPicks[id, default: []].append(pick)
+            let old = wordPrep?.task
+            wordPrep = (wordKey(partPick.context), pick)
+            release(old)
+            guard let c = try? await pick.value, !Task.isCancelled else { return }
             state.receivePartOf(c, senses: partPick.senses)
         })
     }
     cards[id] = .word(state, whole: opening.whole, tasks: tasks)
+    cardPicks[id] = picks
     observe(id) { wordCard(state) }
 }
 
 @MainActor private func openPhrase(_ id: Int64, _ selection: Selection) {
     guard let dict else { return }
-    let prep = PhrasePrep(selection, dict: dict)
+    release(wordPrep?.task)
+    wordPrep = nil
+    // Usually started when the text was selected (see `ly_prepare`); otherwise start now.
+    let prep = phrasePrep.flatMap { $0.matches(selection) ? $0 : nil } ?? PhrasePrep(selection, dict: dict)
+    if phrasePrep !== prep { phrasePrep?.cancel() }
+    phrasePrep = nil
     let state = PhraseState(selection: selection, dict: dict)
     state.resolving = !prep.done
     state.follow(prep)

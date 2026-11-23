@@ -18,17 +18,31 @@ static class SelectionReader
 {
     const int Around = 200;   // characters of context each way
 
-    public static Selected? ReadAutomation()
+    public enum Found { Selection, NothingSelected, Unreadable }
+
+    public static Selected? ReadAutomation() => Probe().Selection;
+
+    /// UI Automation on a thread of its own, given up after `timeout`: an app that doesn't
+    /// answer must not freeze ours (the Mac caps its Accessibility calls at 0.5 s the same way).
+    public static async Task<(Found Found, Selected? Selection)> ProbeAsync(int timeout = 500)
+    {
+        var work = Task.Run(Probe);
+        return await Task.WhenAny(work, Task.Delay(timeout)) == work ? work.Result : (Found.Unreadable, null);
+    }
+
+    /// The focused element's selection; or that it has a text pattern and nothing is selected;
+    /// or that the app doesn't say (no text pattern, or no answer).
+    public static (Found Found, Selected? Selection) Probe()
     {
         try
         {
             var element = AutomationElement.FocusedElement;
-            if (element == null) return null;
-            if (!element.TryGetCurrentPattern(TextPattern.Pattern, out var p) || p is not TextPattern text) return null;
+            if (element == null) return (Found.Unreadable, null);
+            if (!element.TryGetCurrentPattern(TextPattern.Pattern, out var p) || p is not TextPattern text) return (Found.Unreadable, null);
             var selection = text.GetSelection().FirstOrDefault();
-            if (selection == null) return null;
+            if (selection == null) return (Found.NothingSelected, null);
             var selected = selection.GetText(-1);
-            if (string.IsNullOrEmpty(selected)) return null;
+            if (string.IsNullOrEmpty(selected)) return (Found.NothingSelected, null);
 
             var wide = selection.Clone();
             wide.MoveEndpointByUnit(TextPatternRangeEndpoint.Start, TextUnit.Character, -Around);
@@ -50,13 +64,29 @@ static class SelectionReader
                 foreach (var x in rects.Skip(1)) r.Union(x);
                 bounds = r;
             }
-            return new Selected(passage, start, start + selected.Length, bounds);
+            return (Found.Selection, new Selected(passage, start, start + selected.Length, bounds));
         }
         catch (Exception)
         {
-            return null;   // the app went away or doesn't answer
+            return (Found.Unreadable, null);   // the app went away or doesn't answer
         }
     }
+
+    /// True when the selected part has a Chinese character (CJK ideographs, extensions included).
+    public static bool HasChinese(Selected s)
+    {
+        var text = s.Passage.Substring(s.Start, s.End - s.Start);
+        for (var i = 0; i < text.Length; i++)
+        {
+            var c = text[i];
+            if (c is >= '\u3400' and <= '\u9FFF' or >= '\uF900' and <= '\uFAFF') return true;
+            if (char.IsHighSurrogate(c) && i + 1 < text.Length && char.ConvertToUtf32(c, text[i + 1]) is >= 0x20000 and <= 0x3134F) return true;
+        }
+        return false;
+    }
+
+    /// The selected part's length without the white space around it, in characters.
+    public static int Length(Selected s) => s.Passage.Substring(s.Start, s.End - s.Start).Trim().Length;
 
     /// Copies the selection and reads it from the clipboard, then puts back what was there.
     public static async Task<Selected?> ReadByCopying()

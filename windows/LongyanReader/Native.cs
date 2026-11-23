@@ -17,6 +17,8 @@ static class Bridge
     [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)]
     public static extern long ly_lookup(byte[] passage, int start, int end);
     [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)]
+    public static extern void ly_prepare(byte[] passage, int start, int end);
+    [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)]
     public static extern void ly_pick(long id, int token, int sense);
     [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)]
     public static extern void ly_use_suggested(long id, int token);
