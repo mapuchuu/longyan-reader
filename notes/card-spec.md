@@ -43,6 +43,9 @@ to match the Mac exactly.
 |---|---|---|---|
 | Card surface over the material (classic) | #FFFFFF at alpha 0.80 | #1F1F21 (0.12, 0.12, 0.13) at alpha 0.78 | CC:273-279 |
 | Card surface, opaque (snapshots, no blur) | #FFFFFF | #1F1F21 | CC:276-277 |
+
+The Mac card on screen reads darker in dark mode than #1F1F21: its 0.78 surface over the material comes out near #171719 (sampled from the renders). Windows has no material, so it uses #171719 opaque.
+
 | Glass tint (Liquid Glass style only) | #FFFFFF at alpha 0.55 | #141417 (0.08, 0.08, 0.09) at alpha 0.38 | CC:549-553 |
 | Tone 1, brick | #A8544C | #E39E94 | TC:62 |
 | Tone 2, sage | #4A8761 | #9ECCA8 | TC:63 |

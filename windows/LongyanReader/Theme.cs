@@ -20,7 +20,7 @@ static class Theme
     /// Black (light) or white (dark) at `alpha`: the Mac card's Color.primary.opacity(x).
     public static Brush Ink(double alpha) => Solid(Dark ? 0xFFFFFF : 0x000000, alpha);
 
-    public static Brush Surface => Solid(Dark ? 0x1F1F21 : 0xFFFFFF);
+    public static Brush Surface => Solid(Dark ? 0x171719 : 0xFFFFFF);
     public static Brush Hairline => Ink(0.10);
     public static Brush Divider => Ink(0.08);
     public static Brush NoteFill => Ink(0.045);
