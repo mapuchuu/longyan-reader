@@ -76,7 +76,7 @@ package enum LocalModel {
     private static var _lastWarmUp: Date?
     package static func warmUp() {
         guard enabled else { return }
-        if backend == .embedded { EmbeddedModel.shared.warmUp(); return }
+        if backend == .embedded { EmbeddedModel.shared.warmUp(); checkWarmUp(); return }
         guard ollamaAllowed else { return }
         let due = lock.withLock {
             if let last = _lastWarmUp, Date().timeIntervalSince(last) < 60 { return false }
@@ -93,6 +93,59 @@ package enum LocalModel {
                 "model": name, "keep_alive": "5m", "options": ["num_ctx": 2048],
             ])
             _ = try? await URLSession.shared.data(for: req)
+        }
+    }
+
+    // MARK: Whether the built-in model works
+
+    /// Why the built-in model can't run, as last seen: its file wouldn't load, or there was no
+    /// memory for a context (the model tries again a minute later). Nil when it worked or
+    /// hasn't been tried.
+    package enum Problem: String, Sendable { case unloadable, noMemory = "no-memory" }
+    private static var _problem: Problem?
+    package static var problem: Problem? { lock.withLock { _problem } }
+    /// Told of each change of `problem`, on any thread. Set by the Windows bridge.
+    nonisolated(unsafe) package static var problemChanged: (@Sendable (Problem?) -> Void)?
+    private static var checkingWarmUp = false
+
+    /// After a new download: forget the last problem, without telling.
+    package static func forgetProblem() { lock.withLock { _problem = nil } }
+
+    private static func note(_ p: Problem?) {
+        let changed = lock.withLock { () -> Bool in
+            guard _problem != p else { return false }
+            _problem = p
+            return true
+        }
+        // A file that won't load stays that way: cards stop waiting for it.
+        if p == .unloadable { lastCheck = (Date(), false) }
+        if changed { problemChanged?(p) }
+    }
+
+    /// A request to the built-in model failed: was it the load?
+    private static func note(_ error: Error) {
+        let e = error as NSError
+        guard e.domain == "LongyanReader", e.code == 7 else { return }
+        if EmbeddedModel.fileUnloadable || e.localizedDescription.contains("couldn't load") { note(.unloadable) }
+        else if e.localizedDescription.contains("couldn't create a context") { note(.noMemory) }
+    }
+
+    /// Whether a warm-up loaded the model, once it's done. memoryState() waits for the model's
+    /// queue, so this waits on a dispatch thread, not one of Swift's. Only when someone listens.
+    private static func checkWarmUp() {
+        guard problemChanged != nil else { return }
+        let start = lock.withLock { () -> Bool in
+            if checkingWarmUp { return false }
+            checkingWarmUp = true
+            return true
+        }
+        guard start else { return }
+        DispatchQueue.global(qos: .utility).async {
+            let loaded = EmbeddedModel.shared.memoryState().loaded
+            lock.withLock { checkingWarmUp = false }
+            if loaded { note(nil) }
+            else if EmbeddedModel.fileUnloadable { note(.unloadable) }
+            else if EmbeddedModel.modelPath != nil { note(.noMemory) }
         }
     }
 
@@ -247,13 +300,16 @@ package enum LocalModel {
                                       onPick: @MainActor (Int, Int) -> Void) async throws -> [Int?] {
         var picks: [Int?] = []
         let messages = body["messages"] as? [[String: String]] ?? []
-        for try await p in EmbeddedModel.shared.pick(messages: messages, steps: zip(steps, words).map { ($0, $1.senses.count) }) {
-            try Task.checkCancellation()
-            let i = picks.count
-            record(words[i].word, p.number, p.confidence)
-            picks.append(p.number)
-            await onPick(i, p.number)
-        }
+        do {
+            for try await p in EmbeddedModel.shared.pick(messages: messages, steps: zip(steps, words).map { ($0, $1.senses.count) }) {
+                try Task.checkCancellation()
+                let i = picks.count
+                record(words[i].word, p.number, p.confidence)
+                picks.append(p.number)
+                await onPick(i, p.number)
+            }
+        } catch { note(error); throw error }
+        note(nil)
         guard picks.count == words.count else { throw unexpected("\(picks.count) of \(words.count) picks") }
         return picks
     }
@@ -384,14 +440,17 @@ package enum LocalModel {
             let options = body["options"] as? [String: Any] ?? [:]
             let keys = (body["format"] as? [String: Any])?["required"] as? [String]
             var text = ""
-            for try await t in EmbeddedModel.shared.stream(messages: body["messages"] as? [[String: String]] ?? [],
-                                                           maxTokens: options["num_predict"] as? Int,
-                                                           grammar: keys.map(EmbeddedModel.jsonGrammar),
-                                                           banned: body["banned"] as? [String] ?? [],
-                                                           endsAt: body["endsAt"] as? @Sendable (String) -> Bool) {
-                try Task.checkCancellation()
-                if t != text { text = t; await onText(text) }
-            }
+            do {
+                for try await t in EmbeddedModel.shared.stream(messages: body["messages"] as? [[String: String]] ?? [],
+                                                               maxTokens: options["num_predict"] as? Int,
+                                                               grammar: keys.map(EmbeddedModel.jsonGrammar),
+                                                               banned: body["banned"] as? [String] ?? [],
+                                                               endsAt: body["endsAt"] as? @Sendable (String) -> Bool) {
+                    try Task.checkCancellation()
+                    if t != text { text = t; await onText(text) }
+                }
+            } catch { note(error); throw error }
+            note(nil)
             return text
         }
         #if canImport(Darwin)
