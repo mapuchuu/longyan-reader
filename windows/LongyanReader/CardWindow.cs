@@ -49,7 +49,13 @@ sealed class CardWindow : Window, ICardActions
     // Placement, in device pixels: the selection, and whether the card hangs below it.
     Rect anchor;
     bool below = true, placed, moved, revealed, closing, isHint, hovered, resizing;
+    bool dragged;                             // moved by the user (a drag or a resize), not just hung
+    bool gone;                                // the window has closed
     double scale = 1;
+    CardWindow? swapping;                     // the card this one replaces, kept up until this one has faded in
+    readonly LinearGradientBrush fadeMask = new() { StartPoint = new Point(0, 0), EndPoint = new Point(0, 1) };
+    readonly GradientStop[] fadeStops = new GradientStop[5];
+    bool fadeTop, fadeBottom;
     double shownHeight;                       // the card's target height, DIPs
     double cardLeft, edge;                    // device pixels: the card's left, and its top (below) or bottom (above)
     DispatcherTimer? shrink, hold;
@@ -67,8 +73,13 @@ sealed class CardWindow : Window, ICardActions
         var old = current;
         current = new CardWindow(selected.Bounds, false);
         // A pinned card opens at its corner for every lookup.
-        if (pinned && old != null && !old.isHint && old.IsVisible) current.HangFrom(old.CardTopLeft(), old.scale);
-        else if (pinned && pinnedAt is Point at) current.HangFrom(at, 1);
+        if (pinned && old != null && !old.isHint && old.IsVisible && !old.closing)
+        {
+            current.HangFrom(old.CardTopLeft());
+            current.TakeOver(old);
+            old = null;
+        }
+        else if (pinned && pinnedAt is Point at) current.HangFrom(at);
         current.Open(selected);
         old?.Dismiss();
     }
@@ -143,6 +154,11 @@ sealed class CardWindow : Window, ICardActions
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, Focusable = false,
         };
         scroller.ScrollChanged += (_, _) => Fades();
+        for (var i = 0; i < fadeStops.Length; i++)
+        {
+            fadeStops[i] = new GradientStop(Colors.Black, i < 2 ? 0 : 1);
+            fadeMask.GradientStops.Add(fadeStops[i]);
+        }
         view.Root.LayoutTransform = zoomScale;
         for (var i = 0; i < 3; i++)
         {
@@ -154,7 +170,8 @@ sealed class CardWindow : Window, ICardActions
         overlay.Children.Add(view.Buttons);
         overlay.Children.Add(grip);
         overlay.Children.Add(grabber);
-        overlay.Children.Add(new Border { BorderBrush = Theme.Hairline, BorderThickness = new Thickness(0.5), CornerRadius = new CornerRadius(16), IsHitTestVisible = false });
+        // No layout rounding here, or the 0.5 line rounds to nothing at 100%.
+        overlay.Children.Add(new Border { BorderBrush = Theme.Hairline, BorderThickness = new Thickness(0.5), CornerRadius = new CornerRadius(16), IsHitTestVisible = false, UseLayoutRounding = false });
         surface = new Border { Background = Theme.Surface, CornerRadius = new CornerRadius(16), Child = overlay, VerticalAlignment = VerticalAlignment.Top };
         overlay.SizeChanged += (_, _) =>
         {
@@ -188,6 +205,8 @@ sealed class CardWindow : Window, ICardActions
         };
         Closed += (_, _) =>
         {
+            gone = true;
+            DropSwap(fade: false);
             Hooks.Remove(this);
             if (cardID != 0) Core.Shared.Close(cardID);
             if (current == this) current = null;
@@ -208,14 +227,30 @@ sealed class CardWindow : Window, ICardActions
     };
 
     /// Opens at a fixed top-left corner (a pinned card, or one opened from inside another).
-    void HangFrom(Point topLeft, double scale)
+    void HangFrom(Point topLeft)
     {
         placed = true;
         below = true;
         moved = true;
         cardLeft = topLeft.X;
         edge = topLeft.Y;
-        this.scale = scale;
+    }
+
+    /// Keeps `old` on screen until this card has faded in over it.
+    void TakeOver(CardWindow old)
+    {
+        old.DropSwap(fade: false);
+        old.Retire();
+        swapping = old;
+    }
+
+    /// Lets go of the card this one replaces: closed at once, or faded out.
+    void DropSwap(bool fade)
+    {
+        var old = swapping;
+        swapping = null;
+        if (old == null) return;
+        if (fade) old.FadeOut(); else old.CloseNow();
     }
 
     void Open(Selected s)
@@ -225,7 +260,9 @@ sealed class CardWindow : Window, ICardActions
 
     void ShowHint(string message)
     {
+        if (closing) return;
         if (cardID != 0) { Core.Shared.Close(cardID); cardID = 0; }
+        DropSwap(fade: true);
         isHint = true;
         zoomScale.ScaleX = zoomScale.ScaleY = 1;
         foreach (var b in bands) b.Visibility = Visibility.Collapsed;
@@ -263,12 +300,58 @@ sealed class CardWindow : Window, ICardActions
         if (revealed || closing) return;
         revealed = true;
         hold?.Stop();
+        // The scale of the screen the card goes on, then its side, before it is measured.
+        scale = placed ? DpiFor(new Rect(cardLeft, edge, 1, 1)) : DpiFor(anchor);
+        ChoosePlacement();
         Width = CardWidth + 2 * Frame;
         Height = 200;
         if (!IsVisible) { Show(); Hooks.Add(this); }
-        scale = VisualTreeHelper.GetDpi(this).DpiScaleX;
         Resize(animated: false);
         Reveal();
+    }
+
+    /// Below the selection when the card fits there, else whichever side has more room.
+    void ChoosePlacement()
+    {
+        if (placed) return;
+        var area = Screen().WorkingArea;
+        var s = scale;
+        view.Root.InvalidateMeasure();
+        view.Root.Measure(new Size(CardWidth, double.PositiveInfinity));
+        var content = view.Root.DesiredSize.Height;
+        var roomBelow = (area.Bottom - anchor.Bottom) / s - 16;
+        var roomAbove = (anchor.Top - area.Top) / s - 16;
+        below = roomBelow >= Math.Max(content, 320) || roomBelow >= roomAbove;
+        cardLeft = anchor.Left;
+        edge = below ? anchor.Bottom + Gap * s : anchor.Top - Gap * s;
+        placed = true;
+    }
+
+    /// The display scale of the monitor showing most of `r` (device pixels).
+    double DpiFor(Rect r)
+    {
+        var rect = new RECT { Left = (int)r.Left, Top = (int)r.Top, Right = (int)Math.Max(r.Right, r.Left + 1), Bottom = (int)Math.Max(r.Bottom, r.Top + 1) };
+        var monitor = MonitorFromRect(ref rect, MONITOR_DEFAULTTONEAREST);
+        try
+        {
+            if (monitor != IntPtr.Zero && GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, out var x, out _) == 0 && x > 0) return x / 96.0;
+        }
+        catch (DllNotFoundException) { }
+        catch (EntryPointNotFoundException) { }
+        return VisualTreeHelper.GetDpi(this).DpiScaleX;
+    }
+
+    protected override void OnDpiChanged(DpiScale oldDpi, DpiScale newDpi)
+    {
+        base.OnDpiChanged(oldDpi, newDpi);
+        scale = newDpi.DpiScaleX;
+        if (offscreen || !revealed || closing) return;
+        // Windows may have resized the window for the new scale; put the card back by its edge.
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (closing || gone || (pressing && WasDrag)) return;
+            SetFrame(Math.Max(shownHeight, surface.ActualHeight));
+        }, DispatcherPriority.Input);
     }
 
     /// The content's height as drawn (zoomed), up to the most the card may be.
@@ -284,12 +367,12 @@ sealed class CardWindow : Window, ICardActions
     void Reveal()
     {
         card.RenderTransformOrigin = new Point(0.5, below ? 0 : 1);
-        if (Motion.Reduced || moved || pinned)
-        {
-            BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, new Duration(TimeSpan.FromSeconds(moved || pinned ? 0.12 : 0.14))));
-            return;
-        }
-        BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, new Duration(TimeSpan.FromSeconds(0.14))));
+        var inPlace = moved || (pinned && !isHint);
+        var fade = new DoubleAnimation(0, 1, new Duration(TimeSpan.FromSeconds(inPlace ? 0.12 : 0.14)));
+        // Once this card is in, the one it replaces goes, with no fade.
+        fade.Completed += (_, _) => DropSwap(fade: false);
+        BeginAnimation(OpacityProperty, fade);
+        if (Motion.Reduced || inPlace) return;
         Motion.Animate(revealScale, ScaleTransform.ScaleXProperty, 0.96, 1, Motion.RevealDuration, Motion.Reveal);
         Motion.Animate(revealScale, ScaleTransform.ScaleYProperty, 0.96, 1, Motion.RevealDuration, Motion.Reveal);
         Motion.Animate(revealShift, TranslateTransform.YProperty, below ? -4 : 4, 0, Motion.RevealDuration, Motion.Reveal);
@@ -326,41 +409,51 @@ sealed class CardWindow : Window, ICardActions
         if (target < from) shrink = After(0.32, () => SetFrame(target));
     }
 
-    /// Sizes the window for a card `height` tall and places it by the selection.
+    /// Sizes the window for a card `height` tall and places it by the selection, in one move.
     void SetFrame(double height)
     {
-        Width = CardWidth + 2 * Frame;
-        Height = height + 2 * Frame;
         Place(height);
         card.VerticalAlignment = below ? VerticalAlignment.Top : VerticalAlignment.Bottom;
         foreach (var l in layers) l.VerticalAlignment = card.VerticalAlignment;
     }
 
     /// The scroll-edge fades: the bottom 36 fades out while there's more below; scrolled, the
-    /// content is hidden under the buttons and fades in over 14 below them.
+    /// content is hidden under the buttons and fades in over 14 below them. "More" is judged
+    /// at the height the card is going to, so a growing card doesn't flash the bottom fade.
+    /// One mask is kept, and its stops' colors fade over 0.2 s.
     void Fades()
     {
-        var h = scroller.ActualHeight;
-        if (h <= 0) return;
+        var drawn = scroller.ActualHeight;
+        var h = shownHeight > 0 ? shownHeight : drawn;
+        if (h <= 0 || drawn <= 0) return;
         var top = scroller.VerticalOffset > 1;
         var more = scroller.ExtentHeight - scroller.VerticalOffset - h > 2;
-        if (!top && !more) { scroller.OpacityMask = null; return; }
-        var mask = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(0, 1) };
-        if (top)
+        // Offsets follow the height as drawn, so the fades keep their size while it animates.
+        var hide = view.Buttons.Margin.Top + CardView.ButtonH;
+        fadeStops[0].Offset = 0;
+        fadeStops[1].Offset = Math.Min(1, hide / drawn);
+        fadeStops[2].Offset = Math.Min(1, (hide + 14 * Zoom) / drawn);
+        fadeStops[3].Offset = Math.Max(0, (drawn - 36 * Zoom) / drawn);
+        fadeStops[4].Offset = 1;
+        if (scroller.OpacityMask != fadeMask) scroller.OpacityMask = fadeMask;
+        if (top != fadeTop)
         {
-            var hide = view.Buttons.Margin.Top + CardView.ButtonH;
-            mask.GradientStops.Add(new GradientStop(Colors.Transparent, 0));
-            mask.GradientStops.Add(new GradientStop(Colors.Transparent, hide / h));
-            mask.GradientStops.Add(new GradientStop(Colors.Black, Math.Min(1, (hide + 14 * Zoom) / h)));
+            fadeTop = top;
+            FadeStop(fadeStops[0], top);
+            FadeStop(fadeStops[1], top);
         }
-        else mask.GradientStops.Add(new GradientStop(Colors.Black, 0));
-        if (more)
+        if (more != fadeBottom)
         {
-            mask.GradientStops.Add(new GradientStop(Colors.Black, Math.Max(0, (h - 36 * Zoom) / h)));
-            mask.GradientStops.Add(new GradientStop(Colors.Transparent, 1));
+            fadeBottom = more;
+            FadeStop(fadeStops[4], more);
         }
-        else mask.GradientStops.Add(new GradientStop(Colors.Black, 1));
-        scroller.OpacityMask = mask;
+    }
+
+    void FadeStop(GradientStop stop, bool hidden)
+    {
+        var to = hidden ? Color.FromArgb(0, 0, 0, 0) : Colors.Black;
+        if (offscreen) { stop.Color = to; return; }
+        stop.BeginAnimation(GradientStop.ColorProperty, new ColorAnimation(to, new Duration(TimeSpan.FromSeconds(0.2))) { EasingFunction = Motion.EaseOut });
     }
 
     void Hover(bool on)
@@ -378,20 +471,23 @@ sealed class CardWindow : Window, ICardActions
 
     // MARK: Placement
 
+    /// The screen the card is on once placed, else the one with the selection.
     System.Windows.Forms.Screen Screen()
     {
-        var r = new System.Drawing.Rectangle((int)anchor.X, (int)anchor.Y, Math.Max(1, (int)anchor.Width), Math.Max(1, (int)anchor.Height));
+        var r = placed
+            ? new System.Drawing.Rectangle((int)cardLeft, (int)edge, 1, 1)
+            : new System.Drawing.Rectangle((int)anchor.X, (int)anchor.Y, Math.Max(1, (int)anchor.Width), Math.Max(1, (int)anchor.Height));
         return System.Windows.Forms.Screen.FromRectangle(r);
     }
 
-    /// The tallest the card may be: the room on its side of the selection, at most 0.8 of the
-    /// screen, at least 120.
+    /// The tallest the card may be: the room from its edge to the screen's on its side, at
+    /// most 0.8 of the screen, at least 120.
     double MaxHeight()
     {
         var area = Screen().WorkingArea;
         var s = scale <= 0 ? 1 : scale;
         double room;
-        if (placed && moved) room = below ? (area.Bottom - edge) / s - Inset : (edge - area.Top) / s - Inset;
+        if (placed) room = below ? (area.Bottom - edge) / s - Inset : (edge - area.Top) / s - Inset;
         else room = below ? (area.Bottom - anchor.Bottom) / s - Gap - Inset : (anchor.Top - area.Top) / s - Gap - Inset;
         return Math.Max(120, Math.Min(room, area.Height / s * 0.8));
     }
@@ -400,20 +496,9 @@ sealed class CardWindow : Window, ICardActions
     {
         var hwnd = new WindowInteropHelper(this).Handle;
         if (hwnd == IntPtr.Zero) return;
+        ChoosePlacement();
         var area = Screen().WorkingArea;
         var s = scale;
-        if (!placed)
-        {
-            placed = true;
-            view.Root.InvalidateMeasure();
-            view.Root.Measure(new Size(CardWidth, double.PositiveInfinity));
-            var content = view.Root.DesiredSize.Height;
-            var roomBelow = (area.Bottom - anchor.Bottom) / s - 16;
-            var roomAbove = (anchor.Top - area.Top) / s - 16;
-            below = roomBelow >= Math.Max(content, 320) || roomBelow >= roomAbove;
-            cardLeft = anchor.Left;
-            edge = below ? anchor.Bottom + Gap * s : anchor.Top - Gap * s;
-        }
         var w = CardWidth * s;
         var h = height * s;
         var left = Math.Max(area.Left + Inset * s, Math.Min(cardLeft, area.Right - Inset * s - w));
@@ -438,13 +523,14 @@ sealed class CardWindow : Window, ICardActions
 
     // MARK: Moving
 
-    bool pressing;
+    bool pressing, flipped;
     POINT pressScreen;
     RECT pressWindow;
 
     void PressStart(object sender, MouseButtonEventArgs e)
     {
         WasDrag = false;
+        flipped = false;
         if (e.OriginalSource is DependencyObject d && (IsIn(d, badge) || bands.Exists(b => IsIn(d, b)))) return;
         pressing = true;
         GetCursorPos(out pressScreen);
@@ -453,6 +539,7 @@ sealed class CardWindow : Window, ICardActions
         if (!below && !isHint)
         {
             below = true;
+            flipped = true;
             edge = CardTopLeft().Y;
             SetFrame(shownHeight);
             GetWindowRect(new WindowInteropHelper(this).Handle, out pressWindow);
@@ -473,22 +560,41 @@ sealed class CardWindow : Window, ICardActions
         double dx = now.X - pressScreen.X, dy = now.Y - pressScreen.Y;
         if (!WasDrag && Math.Sqrt(dx * dx + dy * dy) < 4 * scale) return;
         if (!WasDrag) { WasDrag = true; CaptureMouse(); }
-        SetWindowPos(new WindowInteropHelper(this).Handle, IntPtr.Zero, pressWindow.Left + (int)dx, pressWindow.Top + (int)dy, 0, 0, SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSIZE);
+        // The card stays 8 inside the screen under the pointer.
+        var area = System.Windows.Forms.Screen.FromPoint(new System.Drawing.Point(now.X, now.Y)).WorkingArea;
+        var s = scale;
+        double m = Frame * s, pad = Inset * s, w = CardWidth * s, h = surface.ActualHeight * s;
+        var offY = below ? m : pressWindow.Bottom - pressWindow.Top - m - h;
+        var x = pressWindow.Left + dx + m;
+        var y = pressWindow.Top + dy + offY;
+        x = Math.Max(area.Left + pad, Math.Min(x, area.Right - pad - w));
+        y = Math.Max(area.Top + pad, Math.Min(y, area.Bottom - pad - h));
+        SetWindowPos(new WindowInteropHelper(this).Handle, IntPtr.Zero, (int)Math.Round(x - m), (int)Math.Round(y - offY), 0, 0, SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSIZE);
         e.Handled = true;
     }
 
     void PressEnd(object sender, MouseButtonEventArgs e)
     {
+        var wasPressing = pressing;
         pressing = false;
-        if (!WasDrag) return;
+        if (!WasDrag)
+        {
+            // A press that flipped an above card: its room now runs down from its top.
+            if (wasPressing && flipped && !closing) Resize(animated: true);
+            flipped = false;
+            return;
+        }
         ReleaseMouseCapture();
         moved = true;
+        dragged = true;
+        flipped = false;
         var tl = CardTopLeft();
         cardLeft = tl.X;
         edge = tl.Y;
         if (pinned) pinnedAt = tl;
         e.Handled = true;
         Dispatcher.BeginInvoke(() => WasDrag = false, DispatcherPriority.Input);
+        Resize(animated: true);
     }
 
     /// Ctrl and the wheel change the text size, as a pinch does on the Mac.
@@ -527,8 +633,8 @@ sealed class CardWindow : Window, ICardActions
     /// the corners the text size and width together.
     void Bands()
     {
-        Band(Grab.Left, 8, double.NaN, new Thickness(-4, 14, 0, 14), HorizontalAlignment.Left, VerticalAlignment.Stretch, Cursors.SizeWE);
-        Band(Grab.Right, 12, double.NaN, new Thickness(0, 14, -4, 14), HorizontalAlignment.Right, VerticalAlignment.Stretch, Cursors.SizeWE);
+        Band(Grab.Left, 8, double.NaN, new Thickness(-4, 10, 0, 10), HorizontalAlignment.Left, VerticalAlignment.Stretch, Cursors.SizeWE);
+        Band(Grab.Right, 12, double.NaN, new Thickness(0, 10, -4, 10), HorizontalAlignment.Right, VerticalAlignment.Stretch, Cursors.SizeWE);
         Band(Grab.TopLeft, 14, 14, new Thickness(-4, -4, 0, 0), HorizontalAlignment.Left, VerticalAlignment.Top, Cursors.SizeNWSE);
         Band(Grab.TopRight, 14, 14, new Thickness(0, -4, -4, 0), HorizontalAlignment.Right, VerticalAlignment.Top, Cursors.SizeNESW);
         Band(Grab.BottomLeft, 14, 14, new Thickness(-4, 0, 0, -4), HorizontalAlignment.Left, VerticalAlignment.Bottom, Cursors.SizeNESW);
@@ -539,6 +645,7 @@ sealed class CardWindow : Window, ICardActions
     {
         // Nearly clear, not clear: a fully clear pixel of a layered window lets clicks through.
         var band = new Border { Width = width, Height = height, Margin = margin, HorizontalAlignment = h, VerticalAlignment = v, Cursor = cursor, Background = new SolidColorBrush(Color.FromArgb(1, 0, 0, 0)) };
+        // Check on Windows: tooltips may not open on a window that is never activated.
         if (grab is not (Grab.Left or Grab.Right)) band.ToolTip = "Drag to resize · double-click for actual size";
         Rect start = default;
         POINT from = default;
@@ -550,11 +657,20 @@ sealed class CardWindow : Window, ICardActions
             {
                 // An edge: the default width. A corner: actual size.
                 if (grab is Grab.Left or Grab.Right) { if (IsPhrase) phraseWidth = null; else wordWidth = null; Relayout(); }
-                else { wordWidth = phraseWidth = null; zoom = 1; Relayout(); }
+                else
+                {
+                    // The other kind of card keeps its shape at the new text size.
+                    var ratio = 1 / zoom;
+                    if (IsPhrase) { phraseWidth = null; if (wordWidth != null) wordWidth *= ratio; }
+                    else { wordWidth = null; if (phraseWidth != null) phraseWidth *= ratio; }
+                    zoom = 1;
+                    Relayout();
+                }
                 return;
             }
             resizing = true;
             moved = true;
+            dragged = true;
             band.CaptureMouse();
             GetCursorPos(out from);
             start = CardRect();
@@ -569,11 +685,13 @@ sealed class CardWindow : Window, ICardActions
             GetCursorPos(out var now);
             double dx = (now.X - from.X) / scale, dy = (now.Y - from.Y) / scale;
             var area = Screen().WorkingArea;
-            var widest = Math.Min(Widest, area.Width / scale - 2 * Inset);
+            var widest = Math.Max(Narrowest, Math.Min(Widest, area.Width / scale - 2 * Inset));
             double width;
             var right = grab is Grab.Right or Grab.TopRight or Grab.BottomRight;
             var bottom = grab is Grab.BottomLeft or Grab.BottomRight or Grab.Left or Grab.Right;
-            if (grab is Grab.Left or Grab.Right) width = Math.Clamp(startWidth + (right ? dx : -dx), Narrowest, widest);
+            // An edge stops at the screen, given the opposite edge stays put.
+            if (grab is Grab.Right) width = Math.Clamp(startWidth + dx, Narrowest, Math.Max(Narrowest, Math.Min(Widest, (area.Right - Inset * scale - start.Left) / scale)));
+            else if (grab is Grab.Left) width = Math.Clamp(startWidth - dx, Narrowest, Math.Max(Narrowest, Math.Min(Widest, (start.Right - area.Left - Inset * scale) / scale)));
             else
             {
                 double w = start.Width / scale, hgt = start.Height / scale;
@@ -600,7 +718,12 @@ sealed class CardWindow : Window, ICardActions
             band.ReleaseMouseCapture();
             foreach (Line l in grip.Children) l.Stroke = Theme.Ink(0.22);
             grabber.Background = Theme.Ink(0.20);
-            if (pinned) pinnedAt = CardTopLeft();
+            // From here the card hangs from its top, so later growth goes down.
+            var tl = CardTopLeft();
+            below = true;
+            edge = tl.Y;
+            Resize(animated: false);
+            if (pinned) pinnedAt = tl;
             if (!hovered) Hover(false);
         };
         bands.Add(band);
@@ -617,31 +740,62 @@ sealed class CardWindow : Window, ICardActions
         var circle = new Border
         {
             Width = 20, Height = 20, CornerRadius = new CornerRadius(10), Background = Theme.Surface,
-            BorderBrush = Theme.Ink(0.12), BorderThickness = new Thickness(0.5),
+            BorderBrush = Theme.Ink(0.12), BorderThickness = new Thickness(0.5), UseLayoutRounding = false,
             Effect = new DropShadowEffect { BlurRadius = 4, ShadowDepth = 1, Direction = 270, Opacity = 0.12, Color = Colors.Black },
         };
         var x = new Path { Data = Geometry.Parse("M 7,7 L 13,13 M 13,7 L 7,13"), Stroke = Theme.Secondary, StrokeThickness = 1.6, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round, Width = 20, Height = 20 };
-        badge.Children.Add(circle);
-        badge.Children.Add(x);
+        // The press dims the circle and the x together.
+        var face = new Grid { Width = 20, Height = 20 };
+        face.Children.Add(circle);
+        face.Children.Add(x);
+        badge.Children.Add(face);
         badge.RenderTransform = badgeScale;
         badge.RenderTransformOrigin = new Point(0.5, 0.5);
         badge.MouseEnter += (_, _) => x.Stroke = Theme.Primary;
-        badge.MouseLeave += (_, _) => { x.Stroke = Theme.Secondary; Motion.To(circle, OpacityProperty, 1, 0.08); };
-        badge.MouseLeftButtonDown += (_, e) => { Motion.To(circle, OpacityProperty, 0.55, 0.08); e.Handled = true; };
-        badge.MouseLeftButtonUp += (_, e) => { e.Handled = true; Dismiss(); };
+        badge.MouseLeave += (_, _) => { x.Stroke = Theme.Secondary; Motion.To(face, OpacityProperty, 1, 0.08); };
+        badge.MouseLeftButtonDown += (_, e) => { Motion.To(face, OpacityProperty, 0.55, 0.08); e.Handled = true; };
+        badge.MouseLeftButtonUp += (_, e) => { e.Handled = true; Motion.To(face, OpacityProperty, 1, 0.08); Dismiss(); };
+    }
+
+    /// Springs the close badge away, then hides it (on unpinning).
+    void HideBadge()
+    {
+        var fade = new DoubleAnimation(badge.Opacity, 0, Motion.BadgeDuration) { EasingFunction = Motion.Badge };
+        fade.Completed += (_, _) => { if (!pinned) badge.Visibility = Visibility.Collapsed; };
+        badge.BeginAnimation(OpacityProperty, fade);
+        Motion.Animate(badgeScale, ScaleTransform.ScaleXProperty, badgeScale.ScaleX, 0.7, Motion.BadgeDuration, Motion.Badge);
+        Motion.Animate(badgeScale, ScaleTransform.ScaleYProperty, badgeScale.ScaleY, 0.7, Motion.BadgeDuration, Motion.Badge);
     }
 
     public void Dismiss()
     {
         if (closing) return;
+        Retire();
+        DropSwap(fade: true);
+        FadeOut();
+    }
+
+    /// Stops the card taking part (updates, hooks, speech) while it is still on screen.
+    void Retire()
+    {
         closing = true;
         hold?.Stop();
         Hooks.Remove(this);
         Speech.Stop();
-        if (!IsVisible) { Close(); return; }
+    }
+
+    void FadeOut()
+    {
+        if (gone) return;
+        if (!IsVisible) { CloseNow(); return; }
         var a = new DoubleAnimation(Opacity, 0, new Duration(TimeSpan.FromSeconds(0.12)));
-        a.Completed += (_, _) => Close();
+        a.Completed += (_, _) => CloseNow();
         BeginAnimation(OpacityProperty, a);
+    }
+
+    void CloseNow()
+    {
+        if (!gone) Close();
     }
 
     /// From the hooks: a click or scroll somewhere else, or Esc.
@@ -650,7 +804,7 @@ sealed class CardWindow : Window, ICardActions
         if (closing || pinned && !isHint) return;
         if (kind == Hooks.Kind.Escape) { Dismiss(); return; }
         if (Contains(at)) return;
-        if (kind == Hooks.Kind.Scroll && moved) return;
+        if (kind == Hooks.Kind.Scroll && dragged) return;
         Dismiss();
     }
 
@@ -658,7 +812,7 @@ sealed class CardWindow : Window, ICardActions
     bool Contains(POINT p)
     {
         var r = CardRect();
-        r.Inflate(8 * scale, 8 * scale);
+        r.Inflate(4 * scale, 4 * scale);
         return r.Contains(new Point(p.X, p.Y));
     }
 
@@ -682,22 +836,26 @@ sealed class CardWindow : Window, ICardActions
     /// Part of: a new card replaces this one, hanging from the same corner.
     public void OpenPartOf()
     {
+        if (closing) return;
         var next = new CardWindow(null, false);
-        next.HangFrom(CardTopLeft(), scale);
-        next.cardID = Core.Shared.OpenPartOf(cardID, next.Update, next.ShowHint);
+        next.HangFrom(CardTopLeft());
+        // This card stays up until the new one has faded in over it.
+        next.TakeOver(this);
         current = next;
-        Dismiss();
+        next.cardID = Core.Shared.OpenPartOf(cardID, next.Update, next.ShowHint);
     }
 
     public void Copy(string text) { try { Clipboard.SetText(text); } catch { } }
-    public void Listen(string text) => Speech.Say(text);
+    /// Says the text, or stops if it's being said (the Mac's Listen turns into Stop).
+    public void Listen(string text) { if (Speech.Speaking == text) Speech.Stop(); else Speech.Say(text); }
 
     public void TogglePin()
     {
         pinned = !pinned;
-        badge.Visibility = pinned ? Visibility.Visible : Visibility.Collapsed;
-        if (pinned)
+        if (!pinned) HideBadge();
+        else
         {
+            badge.Visibility = Visibility.Visible;
             // Pinning keeps the card where it is and hangs it from its top-left corner.
             var tl = CardTopLeft();
             pinnedAt = tl;
@@ -719,6 +877,10 @@ sealed class CardWindow : Window, ICardActions
     [DllImport("user32.dll")] public static extern bool GetCursorPos(out POINT p);
     [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr h, out RECT r);
     [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int cx, int cy, uint flags);
+    const uint MONITOR_DEFAULTTONEAREST = 2;
+    const int MDT_EFFECTIVE_DPI = 0;
+    [DllImport("user32.dll")] static extern IntPtr MonitorFromRect(ref RECT r, uint flags);
+    [DllImport("shcore.dll")] static extern int GetDpiForMonitor(IntPtr monitor, int type, out uint dpiX, out uint dpiY);
 }
 
 /// Low-level mouse and keyboard hooks, so clicks, scrolls and Esc in other apps reach the
@@ -795,6 +957,7 @@ static class Speech
         try
         {
             synth = new System.Speech.Synthesis.SpeechSynthesizer();
+            synth.SpeakCompleted += Done;
             foreach (var v in synth.GetInstalledVoices())
             {
                 if (!v.Enabled || !v.VoiceInfo.Culture.Name.StartsWith("zh", StringComparison.OrdinalIgnoreCase)) continue;
@@ -807,13 +970,36 @@ static class Speech
         catch { found = false; }
     }
 
+    /// What's being said now, if anything; Changed fires on the UI thread when that changes.
+    public static string? Speaking { get; private set; }
+    public static event Action? Changed;
+    static System.Speech.Synthesis.Prompt? prompt;
+
     public static void Say(string text)
     {
         Find();
         if (!found || synth == null) return;
         synth.SpeakAsyncCancelAll();
-        synth.SpeakAsync(text);
+        prompt = synth.SpeakAsync(text);
+        Set(text);
     }
 
-    public static void Stop() { try { synth?.SpeakAsyncCancelAll(); } catch { } }
+    public static void Stop()
+    {
+        try { synth?.SpeakAsyncCancelAll(); } catch { }
+        prompt = null;
+        Set(null);
+    }
+
+    static void Set(string? text)
+    {
+        Speaking = text;
+        Changed?.Invoke();
+    }
+
+    static void Done(object? sender, System.Speech.Synthesis.SpeakCompletedEventArgs e)
+    {
+        var p = e.Prompt;
+        System.Windows.Application.Current?.Dispatcher.BeginInvoke(() => { if (p == prompt) { prompt = null; Set(null); } });
+    }
 }

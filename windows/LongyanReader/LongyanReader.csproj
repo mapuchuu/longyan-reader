@@ -19,6 +19,9 @@
     <Version>0.1.0</Version>
     <Product>Longyan Reader</Product>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <!-- Compiled ahead, so the first card of each kind doesn't wait on the JIT. -->
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <TieredPGO>true</TieredPGO>
     <ApplicationIcon>LongyanReader.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>

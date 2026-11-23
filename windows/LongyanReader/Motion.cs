@@ -22,6 +22,12 @@ static class Motion
 
     public static readonly IEasingFunction EaseOut = new CubicEase { EasingMode = EasingMode.EaseOut };
 
+    /// How the content moves when it changes: cardMotion, or easeInOut 0.15 s with Reduce Motion
+    /// (the Mac keeps content transitions then, just short and without slides).
+    public static Duration ContentDuration => Reduced ? new Duration(TimeSpan.FromSeconds(0.15)) : CardDuration;
+    public static IEasingFunction ContentEase => Reduced ? EaseInOut : Card;
+    static readonly IEasingFunction EaseInOut = new QuadraticEase { EasingMode = EasingMode.EaseInOut };
+
     /// True when Windows' "Animation effects" are off (Reduce Motion on the Mac).
     public static bool Reduced => !SystemParameters.ClientAreaAnimation;
 
@@ -40,8 +46,8 @@ static class Motion
     /// Fades an element in with cardMotion, optionally sliding down from `fromY` above.
     public static void FadeIn(UIElement e, double fromY = 0)
     {
-        Animate(e, UIElement.OpacityProperty, 0, 1);
-        if (fromY != 0)
+        Animate(e, UIElement.OpacityProperty, 0, 1, ContentDuration, ContentEase);
+        if (fromY != 0 && !Reduced)
         {
             var t = new TranslateTransform(0, fromY);
             e.RenderTransform = t;

@@ -58,29 +58,43 @@ sealed class CardView
         this.actions = actions;
         content.Margin = new Thickness(Pad, Pad, Pad, PadBottom);
         Root.Children.Add(content);
+        Root.Children.Add(ghosts);
     }
+
+    /// Copies of parts that left or changed, fading out where they were.
+    readonly Canvas ghosts = new() { IsHitTestVisible = false, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
 
     /// The pointer came onto the card or left it: the buttons brighten or dim.
     public void SetHovered(bool on) { hovered = on; Recolor(); }
 
     public void Show(JsonObject card, bool animate)
     {
-        this.animate = animate && !Motion.Reduced;
-        var was = this.animate ? Positions() : null;
+        this.animate = animate;
+        var was = animate ? Positions() : null;
+        var old = animate ? Snapshot() : null;
+        if (!animate) ghosts.Children.Clear();
         tracked.Clear();
         before = now; now = new();
+        builtAt = Environment.TickCount64;
         content.Children.Clear();
         buttons.Children.Clear();
         if ((string?)card["kind"] == "phrase") { Width = WidthFor?.Invoke(true) ?? PhraseWidth; Phrase(card); }
         else { Width = WidthFor?.Invoke(false) ?? WordWidth; Word(card); }
         if (was != null) Slide(was);
+        if (old != null) FadeOut(old);
     }
+
+    /// When the content was last rebuilt: the part under the pointer then is already hovered,
+    /// so it takes its highlight at once rather than fading in again.
+    long builtAt;
+    bool JustBuilt => Environment.TickCount64 - builtAt < 200;
 
     public void Hint(string message)
     {
         Width = HintWidth;
         content.Children.Clear();
         buttons.Children.Clear();
+        ghosts.Children.Clear();
         content.Children.Add(Label(message, 12, Theme.Secondary));
     }
 
@@ -95,7 +109,7 @@ sealed class CardView
         // The top group, 4 apart: header, meaning, Part of, Back to, status.
         var top = new StackPanel();
         var header = Header(word, syllables, slot);
-        top.Children.Add(Track("header", header));
+        top.Children.Add(Keyed("header", header, string.Join(" ", syllables.Select(x => (string?)x?["text"])), crossfade: true));
         PlaceButtons(header, 34, Theme.Chinese, FontWeights.Medium, 12);
 
         if ((string?)c["meaning"] is string meaning)
@@ -106,8 +120,8 @@ sealed class CardView
                 block.Children.Add(Keyed("contextual", Label("Meaning in this sentence", 11, Theme.Secondary, top: 2)));
             top.Children.Add(Keyed("meaningBlock", block));
         }
-        if (c["partOf"] is JsonObject part) top.Children.Add(Track("partOf", PartOf(part)));
-        if ((string?)c["back"] is string back) top.Children.Add(Keyed("back", Back(back, -1)));
+        if (c["partOf"] is JsonObject part) top.Children.Add(Keyed("partOf", PartOf(part), (string?)part["word"] + "|" + (string?)part["meaning"], crossfade: true));
+        if ((string?)c["back"] is string back) top.Children.Add(Keyed("back", Back(back, -1, top: 4)));
         if ((string?)c["status"] is string status)
             top.Children.Add(Keyed("status:" + status, status == "Reading the sentence…" ? Busy(status) : Label(status, 11, Theme.Secondary, top: 4)));
         content.Children.Add(Track("top", top));
@@ -144,10 +158,19 @@ sealed class CardView
         line.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         if (line.DesiredSize.Width <= Width - 2 * Pad) return line;
 
+        // Too long for one line: the word on a row as tall as a full-size one, shrunk to fit (to
+        // half size at most, then cut short), and the pinyin under it.
         var two = new StackPanel();
-        var head = Lines(new TextBlock { TextWrapping = TextWrapping.NoWrap, Margin = new Thickness(0, 0, slot + 8, 0) }, 34);
+        var head = Lines(new TextBlock { TextWrapping = TextWrapping.NoWrap, TextTrimming = TextTrimming.CharacterEllipsis, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Bottom }, 34);
         AddHanzi(head.Inlines, word, syllables, 34, FontWeights.Medium, pending: false);
-        two.Children.Add(new Viewbox { Child = head, StretchDirection = StretchDirection.DownOnly, HorizontalAlignment = HorizontalAlignment.Left, MaxWidth = Width - 2 * Pad });
+        head.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        var room = Width - 2 * Pad - slot - 8;
+        var scale = Math.Clamp(room / Math.Max(1, head.DesiredSize.Width), 0.5, 1);
+        head.LayoutTransform = new ScaleTransform(scale, scale);
+        head.MaxWidth = room / scale;
+        var cell = new Grid { Height = Math.Round(34 * Theme.LineFactor), Margin = new Thickness(0, 0, slot + 8, 0) };
+        cell.Children.Add(head);
+        two.Children.Add(cell);
         var py = Lines(new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 0) }, 15);
         AddPinyin(py.Inlines, syllables, 15, " ");
         two.Children.Add(py);
@@ -162,7 +185,9 @@ sealed class CardView
         line.Inlines.Add(new Run(" " + (string?)part["pinyin"]) { Foreground = Theme.Secondary });
         if ((string?)part["meaning"] is string m) line.Inlines.Add(new Run(" " + m) { Foreground = Theme.Primary });
         line.Inlines.Add(new Run(" "));
-        line.Inlines.Add(new Run("") { FontFamily = Theme.Icons, FontSize = 8, Foreground = Theme.Tertiary, BaselineAlignment = BaselineAlignment.Center });
+        var chevron = Shape(ChevronRight, 10, 10, Theme.Tertiary, 1.4);
+        chevron.Margin = new Thickness(0, 0, 0, -1);
+        line.Inlines.Add(new InlineUIContainer(chevron) { BaselineAlignment = BaselineAlignment.Center });
         var row = RowButton(line, bleed: 4, vertical: 2, () => actions.OpenPartOf(), hug: true);
         row.ToolTip = $"Look up {part["word"]}";
         row.Margin = new Thickness(0, 4, 0, 0);
@@ -190,7 +215,7 @@ sealed class CardView
             top.Children.Add(Keyed("translation", tb));
         }
         else if ((string?)c["translationError"] is string e) top.Children.Add(Keyed("translationError", Label(e, 11, Theme.Secondary, top: 4)));
-        else top.Children.Add(Keyed("translating", Busy("Translating…", top: 4, height: Math.Round(16 * Theme.LineFactor) + 2)));
+        else top.Children.Add(Keyed("translating", Busy("Translating…", top: 4)));
         content.Children.Add(Track("phraseTop", top));
 
         var rows = c["rows"]?.AsArray() ?? new JsonArray();
@@ -285,7 +310,7 @@ sealed class CardView
         var d = new StackPanel { Margin = new Thickness(0, 2, 0, 8) };
         void Add(FrameworkElement e) { if (d.Children.Count > 0) e.Margin = new Thickness(e.Margin.Left, e.Margin.Top + 8, e.Margin.Right, e.Margin.Bottom); d.Children.Add(e); }
         if ((string?)r["status"] is string status)
-            Add(Keyed($"dstatus:{token}:{status}", status == "Reading the sentence…" ? Busy(status) : Label(status, status == "Not in the dictionary" ? 12 : 11, Theme.Secondary)));
+            Add(Keyed($"dstatus:{token}:{status}", status == "Reading the sentence…" ? Busy(status, top: 0) : Label(status, status == "Not in the dictionary" ? 12 : 11, Theme.Secondary)));
         if ((string?)r["here"] is string here)
         {
             var line = Lines(new TextBlock { FontSize = 12, FontFamily = Theme.Text, TextWrapping = TextWrapping.Wrap, Foreground = Theme.Primary }, 12);
@@ -293,7 +318,7 @@ sealed class CardView
             line.Inlines.Add(new Run(here) { FontWeight = FontWeights.Medium });
             Add(Keyed("here:" + token, line));
         }
-        if ((string?)r["back"] is string back) Add(Keyed("back:" + token, Back(back, token)));
+        if ((string?)r["back"] is string back) Add(Keyed("back:" + token, Back(back, token, top: 0)));
         if (r["note"] is JsonObject note) Add(Keyed("dnote:" + token, Note(note, 0)));
         var senses = r["senses"]?.AsArray() ?? new JsonArray();
         if (senses.Count > 0)
@@ -375,19 +400,35 @@ sealed class CardView
         return RowButton(line, bleed: 8, vertical: vertical, toggle);
     }
 
-    FrameworkElement Back(string meaning, int token)
+    FrameworkElement Back(string meaning, int token, double top)
     {
-        var line = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 4, 0, 0), Background = Brushes.Transparent };
-        var icon = Icon("", 11, Theme.Accent);
+        var line = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, top, 0, 0), Background = Brushes.Transparent, HorizontalAlignment = HorizontalAlignment.Left, Cursor = Cursors.Arrow };
+        var icon = Shape(UturnBack, 12, 11, Theme.Accent, 1.3);
         icon.VerticalAlignment = VerticalAlignment.Center;
-        icon.Margin = new Thickness(0, 1, 5, 0);
+        icon.Margin = new Thickness(0, 1, 4, 0);
         line.Children.Add(icon);
         var label = Label($"Back to “{meaning}”", 12, Theme.Accent);
         label.TextWrapping = TextWrapping.NoWrap;
         label.TextTrimming = TextTrimming.CharacterEllipsis;
         line.Children.Add(label);
-        line.MouseLeftButtonUp += (_, _) => actions.UseSuggested(token);
+        Pressable(line, () => actions.UseSuggested(token));
         return line;
+    }
+
+    /// A plain button: dims to 0.55 while pressed (ease-out 0.08 s), acts on a release over it.
+    static void Pressable(UIElement e, Action act)
+    {
+        var pressed = false;
+        e.MouseLeftButtonDown += (_, a) => { pressed = true; Motion.To(e, UIElement.OpacityProperty, 0.55, 0.08); a.Handled = true; };
+        e.MouseLeave += (_, _) => { pressed = false; Motion.To(e, UIElement.OpacityProperty, 1, 0.08); };
+        e.MouseLeftButtonUp += (_, a) =>
+        {
+            a.Handled = true;
+            Motion.To(e, UIElement.OpacityProperty, 1, 0.08);
+            if (!pressed || CardWindow.WasDrag) return;
+            pressed = false;
+            act();
+        };
     }
 
     FrameworkElement Note(JsonObject note, double top)
@@ -396,7 +437,7 @@ sealed class CardView
         var box = new Border { Background = Theme.NoteFill, CornerRadius = new CornerRadius(10), Padding = new Thickness(12, 10, 12, 10), Margin = new Thickness(0, top, 0, 0) };
         var stack = new StackPanel();
         var title = new StackPanel { Orientation = Orientation.Horizontal };
-        var icon = Icon(lost ? "" : "", 11, lost ? Theme.NoteLost : Theme.NoteCulture);
+        var icon = lost ? Shape(Translate, 12, 12, Theme.NoteLost, 1.1) : Globe(Theme.NoteCulture);
         icon.VerticalAlignment = VerticalAlignment.Center;
         icon.Margin = new Thickness(0, 1, 4, 0);
         title.Children.Add(icon);
@@ -461,6 +502,17 @@ sealed class CardView
     const string ChevronRight = "M 3.5,1.5 L 7,5 L 3.5,8.5";
     const string ChevronDown = "M 1.5,3.5 L 5,7 L 8.5,3.5";
     const string Checkmark = "M 1.5,7.2 L 5.2,10.8 L 12.5,2";
+    const string UturnBack = "M 4,1.5 L 1.2,4.3 L 4,7.1 M 1.2,4.3 H 7.4 A 3.2,3.2 0 0 1 7.4,10.7 H 5.6";
+    // translate: a character card and a Latin "A" card, overlapping.
+    const string Translate = "M 1.2,1.6 H 6.6 V 7 H 1.2 Z M 2.4,3.2 H 5.4 M 3.9,2.4 V 3.2 M 4.9,3.2 Q 4.4,5.2 2.6,6 M 3,4.4 Q 4,5.6 5.4,6 M 7.8,5 H 10.8 V 10.8 H 5 V 8.2 M 6.6,10 L 7.9,6.4 L 9.2,10 M 7,9 H 8.8";
+
+    /// globe.asia.australia.fill: a disc in the colour with the land cut out of it.
+    static FrameworkElement Globe(Brush color)
+    {
+        var disc = new EllipseGeometry(new Point(6, 6), 5.5, 5.5);
+        var land = Geometry.Parse("M 3.2,2.6 C 4.6,1.9 6.4,2.2 6.6,3.2 C 6.8,4.1 5.4,4.2 5.2,5.2 C 5,6.1 3.6,6.4 2.8,5.6 C 2.1,4.9 2.3,3.1 3.2,2.6 Z M 6.9,6.6 C 8,6.2 9.6,6.8 9.4,8.1 C 9.2,9.3 7.7,9.8 6.9,9.1 C 6.3,8.5 6.2,6.9 6.9,6.6 Z M 8.4,2.6 C 9.2,2.8 9.8,3.6 9.6,4.2 C 9.2,4.4 8.5,3.6 8.4,2.6 Z");
+        return new Path { Data = new CombinedGeometry(GeometryCombineMode.Exclude, disc, land), Fill = color, Width = 12, Height = 12, Stretch = Stretch.None };
+    }
     const string Bubble = "M 2.5,1 H 10.5 A 1.8,1.8 0 0 1 12.3,2.8 V 7.4 A 1.8,1.8 0 0 1 10.5,9.2 H 6 L 3.4,11.2 V 9.2 H 2.5 A 1.8,1.8 0 0 1 0.7,7.4 V 2.8 A 1.8,1.8 0 0 1 2.5,1 Z M 3.6,4 H 9.4 M 3.6,6.2 H 7.6";
 
     static FrameworkElement Shape(string data, double width, double height, Brush color, double thickness) => new Path
@@ -481,14 +533,18 @@ sealed class CardView
             Padding = new Thickness(bleed, vertical, bleed, vertical), Margin = new Thickness(-bleed, 0, -bleed, 0),
             HorizontalAlignment = hug ? HorizontalAlignment.Left : HorizontalAlignment.Stretch,
         };
-        var highlight = new Border { CornerRadius = new CornerRadius(6), Background = fill, IsHitTestVisible = false };
+        var highlight = new Border { CornerRadius = new CornerRadius(6), Background = fill, IsHitTestVisible = false, Margin = new Thickness(-bleed, 0, -bleed, 0) };
         var host = new Grid();
         host.Children.Add(highlight);
         host.Children.Add(row);
         host.HorizontalAlignment = row.HorizontalAlignment;
         if (click == null) return host;
         var pressed = false;
-        host.MouseEnter += (_, _) => Motion.To(fill, Brush.OpacityProperty, pressed ? 0.09 : 0.05, 0.08);
+        host.MouseEnter += (_, _) =>
+        {
+            if (JustBuilt) { fill.BeginAnimation(Brush.OpacityProperty, null); fill.Opacity = 0.05; }
+            else Motion.To(fill, Brush.OpacityProperty, pressed ? 0.09 : 0.05, 0.08);
+        };
         host.MouseLeave += (_, _) => { pressed = false; Motion.To(fill, Brush.OpacityProperty, 0, 0.2); };
         host.MouseLeftButtonDown += (_, e) => { pressed = true; Motion.To(fill, Brush.OpacityProperty, 0.09, 0.08); e.Handled = true; };
         host.MouseLeftButtonUp += (_, e) =>
@@ -511,7 +567,7 @@ sealed class CardView
         public readonly Path Path;
         public readonly SolidColorBrush Ink;
         public readonly bool Tinted;
-        public Symbol(string data, bool filled, Color color, bool tinted)
+        public Symbol(string data, bool filled, Color color, bool tinted, double scale = 1.15, double dy = 0)
         {
             Ink = new SolidColorBrush(color);
             Tinted = tinted;
@@ -520,6 +576,9 @@ sealed class CardView
                 Data = Geometry.Parse(data), Stroke = Ink, StrokeThickness = 1.15, Fill = filled ? Ink : null,
                 StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round, StrokeLineJoin = PenLineJoin.Round,
                 Width = 14, Height = 14, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
+                RenderTransformOrigin = new Point(0.5, 0.5),
+                // Drawn on a 14 grid; SF Symbols at the Mac's size come out a little larger.
+                RenderTransform = new TransformGroup { Children = { new ScaleTransform(scale, scale), new TranslateTransform(0, dy) } },
             };
         }
         public void To(Brush target, double seconds)
@@ -542,13 +601,14 @@ sealed class CardView
     {
         symbols.Clear();
         var n = 0;
-        if (actions.CanListen) { buttons.Children.Add(ActionButton(new Symbol(Speaker, false, Rest, false), $"Listen to “{speech}”", _ => actions.Listen(speech))); n++; }
+        if (actions.CanListen) { buttons.Children.Add(ListenButton(speech)); n++; }
         buttons.Children.Add(CopyButton(copy)); n++;
-        var pin = actions.Pinned ? new Symbol(PinFill, true, ((SolidColorBrush)Theme.Accent).Color, true) : new Symbol(Pin, false, Rest, false);
+        var pin = actions.Pinned ? new Symbol(PinFill, true, ((SolidColorBrush)Theme.Accent).Color, true, dy: 1) : new Symbol(Pin, false, Rest, false, dy: 1);
         buttons.Children.Add(ActionButton(pin, actions.Pinned ? "Unpin: close when you click elsewhere" : "Pin: keep the card here for every lookup", _ => actions.TogglePin())); n++;
         buttons.Margin = new Thickness(0, 0, Pad * Zoom - 6 - ButtonGap / 2, 0);
-        // The slot they take on the first line, in the content's own (unzoomed) units.
-        return (n * ButtonW + (n - 1) * ButtonGap - 6) / Zoom;
+        // The slot they take on the first line, in the content's own (unzoomed) units. The Mac
+        // keeps room for all three even when there's no voice to listen with.
+        return (3 * ButtonW + 2 * ButtonGap - 6) / Zoom;
     }
 
     /// A symbol's colour at rest: tertiary, secondary while the pointer is on the card.
@@ -561,33 +621,65 @@ sealed class CardView
         buttons.Margin = new Thickness(0, Math.Max(0, top), buttons.Margin.Right, 0);
     }
 
+    /// Until when Copy shows its checkmark; kept here so a rebuild doesn't lose it.
+    DateTime copiedUntil;
+    string copied = "";
+
+    /// Listen: in the accent while the words are being said, when a click stops them.
+    FrameworkElement ListenButton(string speech)
+    {
+        var help = $"Listen to “{speech}”";
+        var symbol = new Symbol(Speaker, false, Rest, false);
+        var button = ActionButton(symbol, help, _ => actions.Listen(speech));
+        void Update()
+        {
+            if (!buttons.Children.Contains(button)) { Speech.Changed -= Update; return; }   // rebuilt since
+            var on = Speech.Speaking == speech;
+            button.ToolTip = on ? "Stop" : help;
+            if (on) { symbols.Remove(symbol); symbol.To(Theme.Accent, 0.15); }
+            else if (!symbols.Contains(symbol)) { symbols.Add(symbol); symbol.To(button.IsMouseOver ? Theme.Primary : hovered ? Theme.Secondary : Theme.Tertiary, 0.15); }
+        }
+        Speech.Changed += Update;
+        if (Speech.Speaking == speech) { symbols.Remove(symbol); symbol.Ink.Color = ((SolidColorBrush)Theme.Accent).Color; button.ToolTip = "Stop"; }
+        return button;
+    }
+
     FrameworkElement CopyButton(string text)
     {
         var label = text.Length > 14 ? text[..13] + "…" : text;
-        var symbol = new Symbol(Copy, false, Rest, false);
-        Border? button = null;
-        button = ActionButton(symbol, $"Copy “{label}”", b =>
+        var help = $"Copy “{label}”";
+        var symbol = new Symbol(Copy, false, Rest, false, scale: 1.22);
+        void Checked(Border b, TimeSpan left)
         {
-            actions.Copy(text);
-            // A checkmark in the accent for 1.5 s.
+            // A checkmark in the accent, then back to the copy symbol.
             symbol.Path.Data = Geometry.Parse(Check);
             symbol.Path.StrokeThickness = 1.6;
             symbol.Ink.BeginAnimation(SolidColorBrush.ColorProperty, null);
             symbol.Ink.Color = ((SolidColorBrush)Theme.Accent).Color;
             symbols.Remove(symbol);
             b.ToolTip = "Copied";
-            var t = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1.5) };
+            var t = new System.Windows.Threading.DispatcherTimer { Interval = left };
             t.Tick += (_, _) =>
             {
                 t.Stop();
+                if (DateTime.UtcNow < copiedUntil - TimeSpan.FromMilliseconds(50)) return;   // copied again since
                 symbol.Path.Data = Geometry.Parse(Copy);
                 symbol.Path.StrokeThickness = 1.15;
                 symbol.Ink.Color = b.IsMouseOver ? ((SolidColorBrush)Theme.Primary).Color : Rest;
-                symbols.Add(symbol);
-                b.ToolTip = $"Copy “{label}”";
+                if (!symbols.Contains(symbol)) symbols.Add(symbol);
+                b.ToolTip = help;
             };
             t.Start();
+        }
+        Border? button = null;
+        button = ActionButton(symbol, help, b =>
+        {
+            actions.Copy(text);
+            copied = text;
+            copiedUntil = DateTime.UtcNow.AddSeconds(1.5);
+            Checked(b, TimeSpan.FromSeconds(1.5));
         });
+        if (copied == text && DateTime.UtcNow < copiedUntil) Checked(button, copiedUntil - DateTime.UtcNow);
         return button;
     }
 
@@ -597,7 +689,18 @@ sealed class CardView
         var fill = new SolidColorBrush(((SolidColorBrush)Theme.Ink(1)).Color) { Opacity = 0 };
         var b = new Border { Width = ButtonW, Height = ButtonH, CornerRadius = new CornerRadius(6), Background = fill, Child = symbol.Path, ToolTip = help, Margin = new Thickness(ButtonGap / 2, 0, ButtonGap / 2, 0) };
         var pressed = false;
-        b.MouseEnter += (_, _) => { Motion.To(fill, Brush.OpacityProperty, 0.07, 0.15); if (symbols.Contains(symbol)) symbol.To(Theme.Primary, 0.15); };
+        b.MouseEnter += (_, _) =>
+        {
+            if (JustBuilt)
+            {
+                // Rebuilt under the pointer: hovered already.
+                fill.BeginAnimation(Brush.OpacityProperty, null); fill.Opacity = 0.07;
+                if (symbols.Contains(symbol)) { symbol.Ink.BeginAnimation(SolidColorBrush.ColorProperty, null); symbol.Ink.Color = ((SolidColorBrush)Theme.Primary).Color; }
+                return;
+            }
+            Motion.To(fill, Brush.OpacityProperty, 0.07, 0.15);
+            if (symbols.Contains(symbol)) symbol.To(Theme.Primary, 0.15);
+        };
         b.MouseLeave += (_, _) =>
         {
             pressed = false;
@@ -639,11 +742,6 @@ sealed class CardView
         t.LineHeight = Math.Round(size * Theme.LineFactor) + extra;
         return t;
     }
-
-    static TextBlock Icon(string glyph, double size, Brush color) => new()
-    {
-        Text = glyph, FontFamily = Theme.Icons, FontSize = size, Foreground = color, RenderTransformOrigin = new Point(0.5, 0.5),
-    };
 
     static void AddHanzi(InlineCollection inlines, string word, JsonArray syllables, double size, FontWeight weight, bool pending)
     {
@@ -785,15 +883,65 @@ sealed class CardView
             if (Math.Abs(dy) < 0.5) continue;
             var t = e.RenderTransform as TranslateTransform ?? new TranslateTransform();
             e.RenderTransform = t;
-            Motion.Animate(t, TranslateTransform.YProperty, dy, 0);
+            Motion.Animate(t, TranslateTransform.YProperty, dy, 0, Motion.ContentDuration, Motion.ContentEase);
+        }
+
+        // Parts that are new and not keyed (rows after Show All, Show Fewer, Other words) fade
+        // in, unless they're inside a part that's new itself and fades in whole.
+        var fresh = tracked.Where(p => !was.ContainsKey(p.Key)).Select(p => p.Value).ToList();
+        foreach (var (key, e) in tracked)
+        {
+            if (was.ContainsKey(key) || now.ContainsKey(key)) continue;
+            if (fresh.Any(f => f != e && f.IsAncestorOf(e))) continue;
+            Motion.FadeIn(e);
         }
     }
+
+    /// The keyed parts on the card now, where they are, so the ones that leave or change can
+    /// fade out in place.
+    List<(string Key, string Value, FrameworkElement Element, Point At)> Snapshot()
+    {
+        var list = new List<(string, string, FrameworkElement, Point)>();
+        foreach (var (key, value) in now)
+        {
+            if (!tracked.TryGetValue(key, out var e) || !e.IsVisible || e.ActualWidth < 1 || e.ActualHeight < 1) continue;
+            try { list.Add((key, value, e, e.TransformToAncestor(Root).Transform(new Point(0, 0)))); } catch (InvalidOperationException) { }
+        }
+        return list;
+    }
+
+    /// Parts that left, and the old copy of a part whose text changed, fade out where they
+    /// were while the rest moves and the new copy fades in: SwiftUI's removal and crossfade.
+    void FadeOut(List<(string Key, string Value, FrameworkElement Element, Point At)> old)
+    {
+        var going = old.Where(o => !now.TryGetValue(o.Key, out var v) || (v != o.Value && crossfades.Contains(o.Key))).ToList();
+        var dpi = VisualTreeHelper.GetDpi(Root).PixelsPerDip * Zoom;
+        foreach (var o in going)
+        {
+            if (going.Any(g => g.Element != o.Element && g.Element.IsAncestorOf(o.Element))) continue;
+            var w = o.Element.ActualWidth; var h = o.Element.ActualHeight;
+            var dv = new DrawingVisual();
+            using (var dc = dv.RenderOpen()) dc.DrawRectangle(new VisualBrush(o.Element) { Stretch = Stretch.None, AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top }, null, new Rect(0, 0, w, h));
+            var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap((int)Math.Ceiling(w * dpi), (int)Math.Ceiling(h * dpi), 96 * dpi, 96 * dpi, PixelFormats.Pbgra32);
+            bitmap.Render(dv);
+            var ghost = new Image { Source = bitmap, Width = w, Height = h };
+            Canvas.SetLeft(ghost, o.At.X); Canvas.SetTop(ghost, o.At.Y);
+            ghosts.Children.Add(ghost);
+            var fade = new DoubleAnimation(1, 0, Motion.Reduced ? Motion.ContentDuration : new Duration(TimeSpan.FromSeconds(0.3))) { EasingFunction = Motion.EaseOut };
+            fade.Completed += (_, _) => ghosts.Children.Remove(ghost);
+            ghost.BeginAnimation(UIElement.OpacityProperty, fade);
+        }
+    }
+
+    /// Keys whose old copy fades out when their value changes.
+    readonly HashSet<string> crossfades = new();
 
     /// Registers a part by key: new parts fade in (sliding from `slide` above), and with
     /// `crossfade`, a part whose value changed fades in again.
     T Keyed<T>(string key, T e, string value = "", double slide = 0, bool crossfade = false) where T : UIElement
     {
         now[key] = value;
+        if (crossfade) crossfades.Add(key);
         if (e is FrameworkElement fe) tracked[key] = fe;
         if (!animate) return e;
         if (!before.TryGetValue(key, out var old)) Motion.FadeIn(e, slide);
@@ -808,7 +956,7 @@ sealed class CardView
         e.RenderTransform = r;
         var was = before.TryGetValue(key, out var v) ? double.Parse(v, CultureInfo.InvariantCulture) : angle;
         now[key] = angle.ToString(CultureInfo.InvariantCulture);
-        if (animate && was != angle) Motion.Animate(r, RotateTransform.AngleProperty, was, angle);
+        if (animate && was != angle) Motion.Animate(r, RotateTransform.AngleProperty, was, angle, Motion.ContentDuration, Motion.ContentEase);
     }
 
     /// The checkmark: shown at full size when chosen, else hidden at 0.6 scale; animated.
@@ -821,8 +969,8 @@ sealed class CardView
         now[key] = chosen ? "1" : "0";
         if (!animate || was == chosen) return;
         double a = chosen ? 0 : 1, b = chosen ? 1 : 0, sa = chosen ? 0.6 : 1, sb = chosen ? 1 : 0.6;
-        Motion.Animate(e, UIElement.OpacityProperty, a, b);
-        Motion.Animate(s, ScaleTransform.ScaleXProperty, sa, sb);
-        Motion.Animate(s, ScaleTransform.ScaleYProperty, sa, sb);
+        Motion.Animate(e, UIElement.OpacityProperty, a, b, Motion.ContentDuration, Motion.ContentEase);
+        Motion.Animate(s, ScaleTransform.ScaleXProperty, sa, sb, Motion.ContentDuration, Motion.ContentEase);
+        Motion.Animate(s, ScaleTransform.ScaleYProperty, sa, sb, Motion.ContentDuration, Motion.ContentEase);
     }
 }
