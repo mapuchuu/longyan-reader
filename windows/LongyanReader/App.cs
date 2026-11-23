@@ -17,13 +17,35 @@ static class Program
     static string modelStatus = "";
 
     [STAThread]
-    static void Main()
+    static int Main(string[] args)
     {
+        // --render DIR OUT: draws every DIR/*.json card into OUT, light and dark (gallery.yml).
+        if (args.Length == 3 && args[0] == "--render") return RenderGallery(args[1], args[2]);
+
         using var single = new Mutex(true, "LongyanReader.Windows", out var first);
-        if (!first) return;
+        if (!first) return 0;
         var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
         app.Startup += (_, _) => Start();
         app.Run();
+        return 0;
+    }
+
+    static int RenderGallery(string dir, string output)
+    {
+        System.IO.Directory.CreateDirectory(output);
+        foreach (var file in System.IO.Directory.GetFiles(dir, "*.json"))
+        {
+            var card = System.Text.Json.Nodes.JsonNode.Parse(System.IO.File.ReadAllText(file)) as System.Text.Json.Nodes.JsonObject;
+            if (card == null) continue;
+            var name = System.IO.Path.GetFileNameWithoutExtension(file);
+            foreach (var dark in new[] { false, true })
+            {
+                Theme.Dark = dark;
+                CardWindow.RenderToFile(card, System.IO.Path.Combine(output, name + (dark ? "-dark" : "") + ".png"));
+            }
+            Console.WriteLine(name);
+        }
+        return 0;
     }
 
     static void Start()

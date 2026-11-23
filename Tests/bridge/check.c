@@ -10,10 +10,11 @@
 
 void ly_start(const char *resources, const char *model, void (*cb)(const char *));
 int64_t ly_lookup(const char *passage, int32_t start, int32_t end);
+void ly_toggle_row(int64_t id, int32_t token);
 
 #define MAX 256
 static char *passages[MAX];
-static int starts[MAX], ends[MAX], count;
+static int starts[MAX], ends[MAX], expands[MAX], count, expanded;
 static int64_t ids[MAX];
 static char *last[MAX];
 static int64_t events, seen;
@@ -27,8 +28,15 @@ static int indexOf(const char *json) {
 }
 
 static void quiet(void *ctx) {
-    // Done once two seconds pass with no event.
+    // Done once two seconds pass with no event; then the rows to open (a fourth column), and
+    // the same wait again.
     if (events != seen) { seen = events; dispatch_after_f(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC), dispatch_get_main_queue(), NULL, quiet); return; }
+    if (!expanded) {
+        expanded = 1;
+        int any = 0;
+        for (int i = 0; i < count; i++) if (expands[i] >= 0) { ly_toggle_row(ids[i], expands[i]); any = 1; }
+        if (any) { dispatch_after_f(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC), dispatch_get_main_queue(), NULL, quiet); return; }
+    }
     for (int i = 0; i < count; i++) printf("%s\n", last[i] ? last[i] : "{\"missing\":true}");
     exit(0);
 }
@@ -57,7 +65,9 @@ int main(int argc, char **argv) {
         if (line[0] == '#' || line[0] == '\n') continue;
         char *a = strchr(line, '\t'); if (!a) continue; *a++ = 0;
         char *b = strchr(a, '\t'); if (!b) continue; *b++ = 0;
-        passages[count] = strdup(line); starts[count] = atoi(a); ends[count] = atoi(b); count++;
+        char *c = strchr(b, '\t'); if (c) *c++ = 0;
+        passages[count] = strdup(line); starts[count] = atoi(a); ends[count] = atoi(b);
+        expands[count] = c ? atoi(c) : -1; count++;
     }
     fclose(f);
     ly_start(argv[1], argc > 3 ? argv[3] : NULL, callback);

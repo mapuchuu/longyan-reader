@@ -1,0 +1,12 @@
+# Card states for comparing the Windows card with the Mac's (scripts/card-gallery.sh):
+# name, passage, the selected text (a word card when it's one word), the phrase row to open.
+word-ganmao	他得了感冒，吃不了饭。	感冒	
+word-le	他得了感冒，吃不了饭。	了	
+word-partof	这个问题我们研究过了。	研	
+word-readings	行不行，这一行很难	行	
+word-note	他靠关系找到了工作。	关系	
+word-mianzi	在中国，面子很重要。	面子	
+phrase-ming	明朝实行海禁，闭关锁国。	明朝实行海禁，闭关锁国。	
+phrase-ming-open	明朝实行海禁，闭关锁国。	明朝实行海禁，闭关锁国。	明朝
+phrase-trad	他們覺得這個問題很難。	他們覺得這個問題很難。	
+phrase-guanxi-open	他靠关系找到了工作。	他靠关系找到了工作。	关系

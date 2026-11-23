@@ -60,10 +60,15 @@ sealed class Core
 
     static void Drain() => Bridge._dispatch_main_queue_callback_4CF(IntPtr.Zero);
 
+    /// LONGYAN_CARD_LOG=file: every event from the core, one JSON line each (for the UI check).
+    static readonly string? eventLog = Environment.GetEnvironmentVariable("LONGYAN_CARD_LOG");
+
     void OnEvent(IntPtr json)
     {
+        var text = Bridge.FromUtf8(json);
+        if (eventLog != null) { try { File.AppendAllText(eventLog, text + "\n"); } catch { } }
         JsonObject? e;
-        try { e = JsonNode.Parse(Bridge.FromUtf8(json)) as JsonObject; } catch { return; }
+        try { e = JsonNode.Parse(text) as JsonObject; } catch { return; }
         if (e == null) return;
         switch ((string?)e["event"])
         {

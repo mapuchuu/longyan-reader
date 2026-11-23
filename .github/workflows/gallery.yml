@@ -1,0 +1,36 @@
+# The card states in windows/gallery drawn by the Windows app (--render), light and dark, to
+# compare with the Mac's drawings of the same states (windows/gallery/mac, from
+# scripts/card-gallery.sh). Only the C# app is built: drawing a card needs no core, so this
+# runs in a couple of minutes, on any branch, for working on the card's looks.
+name: gallery
+
+on:
+  push:
+    paths:
+      - windows/LongyanReader/**
+      - windows/gallery/**
+      - .github/workflows/gallery.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gallery:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: dotnet build windows/LongyanReader -c Release -o app
+      - name: Draw the cards
+        run: |
+          set -euo pipefail
+          mkdir -p gallery-out
+          app/LongyanReader.exe --render windows/gallery gallery-out
+          ls gallery-out
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gallery-windows
+          path: gallery-out

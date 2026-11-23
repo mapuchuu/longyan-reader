@@ -37,6 +37,28 @@ sealed class CardWindow : Window
         current.ShowHint(message);
     }
 
+    /// Draws `card` as the card would show it, onto a PNG at twice the size (as a Retina
+    /// screenshot of the Mac card is), on the Mac renders' grey backdrop.
+    public static void RenderToFile(JsonObject card, string path)
+    {
+        var w = new CardWindow(null) { offscreen = true };
+        w.Render(card);
+        var chrome = (FrameworkElement)w.Content;
+        w.Content = null;
+        var backdrop = new Border { Background = Theme.Backdrop, Child = chrome, Padding = new Thickness(0) };
+        chrome.Margin = new Thickness(12);
+        backdrop.Width = w.Width;
+        backdrop.Measure(new Size(w.Width, double.PositiveInfinity));
+        backdrop.Arrange(new Rect(backdrop.DesiredSize));
+        backdrop.UpdateLayout();
+        var bmp = new System.Windows.Media.Imaging.RenderTargetBitmap((int)Math.Ceiling(backdrop.ActualWidth * 2), (int)Math.Ceiling(backdrop.ActualHeight * 2), 192, 192, PixelFormats.Pbgra32);
+        bmp.Render(backdrop);
+        var png = new System.Windows.Media.Imaging.PngBitmapEncoder();
+        png.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bmp));
+        using var f = System.IO.File.Create(path);
+        png.Save(f);
+    }
+
     CardWindow(Rect? anchor)
     {
         this.anchor = anchor;
@@ -100,8 +122,11 @@ sealed class CardWindow : Window
         t.Start();
     }
 
+    bool offscreen;
+
     void Reveal()
     {
+        if (offscreen) return;
         if (!IsVisible) { Show(); watch.Start(); }
     }
 

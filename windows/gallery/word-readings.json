@@ -1,0 +1,70 @@
+{
+ "alternatives": [],
+ "contextual": false,
+ "copy": "行",
+ "kind": "word",
+ "meaning": "line of business",
+ "more": "Show All 15",
+ "note": null,
+ "pinyin": [
+  {
+   "text": "háng",
+   "tone": 2
+  }
+ ],
+ "senses": [
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "all right; OK!; will do",
+   "hasNote": false,
+   "index": 0,
+   "number": 1,
+   "pos": "adj.",
+   "reading": "xíng",
+   "tip": "all right; OK!; will do"
+  },
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "capable; competent",
+   "hasNote": false,
+   "index": 1,
+   "number": 2,
+   "pos": "adj.",
+   "tip": "capable; competent"
+  },
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "to walk; to go; to travel",
+   "hasNote": false,
+   "index": 2,
+   "number": 3,
+   "pos": "v.",
+   "tip": "to walk; to go; to travel"
+  },
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "to do; to perform",
+   "hasNote": false,
+   "index": 3,
+   "number": 4,
+   "pos": "v.",
+   "tip": "to do; to perform"
+  },
+  {
+   "chosen": true,
+   "dimmed": false,
+   "gloss": "line of business; trade; profession",
+   "hasNote": false,
+   "index": 4,
+   "number": 5,
+   "pos": "n.",
+   "reading": "háng",
+   "tip": "line of business; trade; profession"
+  }
+ ],
+ "word": "行"
+}

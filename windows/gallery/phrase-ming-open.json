@@ -1,0 +1,130 @@
+{
+ "copy": "明朝实行海禁，闭关锁国",
+ "kind": "phrase",
+ "rows": [
+  {
+   "gloss": "Ming Dynasty",
+   "guess": false,
+   "hasNote": false,
+   "note": null,
+   "open": true,
+   "opens": true,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "Míng",
+     "tone": 2
+    },
+    {
+     "text": "cháo",
+     "tone": 2
+    }
+   ],
+   "senses": [
+    {
+     "chosen": false,
+     "dimmed": true,
+     "gloss": "tomorrow morning",
+     "hasNote": false,
+     "index": 0,
+     "number": 1,
+     "pos": "n.",
+     "reading": "míng zhāo",
+     "tip": "tomorrow morning"
+    },
+    {
+     "chosen": false,
+     "dimmed": true,
+     "gloss": "the following morning",
+     "hasNote": false,
+     "index": 1,
+     "number": 2,
+     "pos": "n.",
+     "tip": "the following morning"
+    },
+    {
+     "chosen": true,
+     "dimmed": false,
+     "gloss": "Ming Dynasty (1368-1644)",
+     "hasNote": false,
+     "index": 2,
+     "number": 3,
+     "reading": "Míng cháo",
+     "tip": "Ming Dynasty (1368-1644)"
+    }
+   ],
+   "text": "明朝",
+   "token": 0
+  },
+  {
+   "gloss": "to implement",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": true,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "shí",
+     "tone": 2
+    },
+    {
+     "text": "xíng",
+     "tone": 2
+    }
+   ],
+   "text": "实行",
+   "token": 1
+  },
+  {
+   "gloss": "prohibition on entering or leaving by sea",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": false,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "hǎi",
+     "tone": 3
+    },
+    {
+     "text": "jìn",
+     "tone": 4
+    }
+   ],
+   "text": "海禁",
+   "token": 2
+  },
+  {
+   "gloss": "to close a country to exclude foreign contact",
+   "guess": false,
+   "hasNote": true,
+   "open": false,
+   "opens": true,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "bì",
+     "tone": 4
+    },
+    {
+     "text": "guān",
+     "tone": 1
+    },
+    {
+     "text": "suǒ",
+     "tone": 3
+    },
+    {
+     "text": "guó",
+     "tone": 2
+    }
+   ],
+   "text": "闭关锁国",
+   "token": 3
+  }
+ ],
+ "text": "明朝实行海禁，闭关锁国",
+ "translation": "During the Ming Dynasty, the government enforced a ban on maritime trade and adopted a policy of closing itself off from the outside world."
+}

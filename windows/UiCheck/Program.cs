@@ -8,6 +8,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
+using System.Text.Json.Nodes;
 using System.Windows.Automation;
 
 namespace Longyan;
@@ -19,16 +20,20 @@ namespace Longyan;
 static class Program
 {
     static string outDir = ".";
+    static string log = "";
     static readonly List<string> failures = new();
 
     static int Main(string[] args)
     {
         var exe = args[0];
-        outDir = args[1];
+        outDir = Path.GetFullPath(args[1]);
         Directory.CreateDirectory(outDir);
+        log = Path.Combine(outDir, "events.jsonl");
         Console.OutputEncoding = new UTF8Encoding(false);
 
-        var app = Process.Start(new ProcessStartInfo(exe) { WorkingDirectory = Path.GetDirectoryName(exe)! })!;
+        var start = new ProcessStartInfo(exe) { WorkingDirectory = Path.GetDirectoryName(exe)! };
+        start.Environment["LONGYAN_CARD_LOG"] = log;
+        var app = Process.Start(start)!;
         Thread.Sleep(12000);   // the dictionary and splitter load
         if (app.HasExited) { Console.WriteLine($"the app exited: {app.ExitCode}"); return 1; }
         Shot("0-started");
@@ -64,29 +69,58 @@ static class Program
         return failures.Count == 0 ? 0 : 1;
     }
 
-    /// Presses the shortcut, then waits for the card to settle: its text unchanged for a few
-    /// seconds and no longer reading or translating, or two minutes at most.
+    /// Presses the shortcut, then waits for the card to settle, as the core reports it (the
+    /// app's event log): the model's pick in, the translation in and no row still waiting.
+    /// Three minutes at most.
     static void Check(string name, Process app, string[] expect)
     {
+        var before = File.Exists(log) ? File.ReadAllLines(log).Length : 0;
         Keys(VK_CONTROL, VK_MENU, 0x4C);
         var started = DateTime.Now;
-        string text = "", last = "";
-        var steadySince = DateTime.Now;
         var shotEarly = false;
-        while ((DateTime.Now - started).TotalSeconds < 120)
+        JsonObject? card = null;
+        while ((DateTime.Now - started).TotalSeconds < 180)
         {
-            Thread.Sleep(1000);
-            text = CardText(app);
-            if (!shotEarly && text.Length > 0) { Shot(name + "-first"); shotEarly = true; Console.WriteLine($"[{name}] first card after {(DateTime.Now - started).TotalSeconds:0.0} s"); }
-            if (text != last) { last = text; steadySince = DateTime.Now; continue; }
-            var busy = text.Contains("Reading the sentence") || text.Contains("Translating");
-            if (text.Length > 0 && !busy && (DateTime.Now - steadySince).TotalSeconds >= 4) break;
+            Thread.Sleep(500);
+            card = LastCard(before);
+            if (card == null) continue;
+            if (!shotEarly) { Thread.Sleep(300); Shot(name + "-first"); shotEarly = true; Console.WriteLine($"[{name}] first card after {(DateTime.Now - started).TotalSeconds:0.0} s"); }
+            if (Settled(card)) break;
         }
-        Console.WriteLine($"[{name}] settled after {(DateTime.Now - started).TotalSeconds:0.0} s");
+        Console.WriteLine($"[{name}] {(card != null && Settled(card) ? "settled" : "NOT settled")} after {(DateTime.Now - started).TotalSeconds:0.0} s");
+        Thread.Sleep(600);   // the last change drawn
         Shot(name);
+        var text = CardText(app);
         File.WriteAllText(Path.Combine(outDir, name + ".txt"), text, new UTF8Encoding(false));
+        File.WriteAllText(Path.Combine(outDir, name + ".json"), card?.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }) ?? "", new UTF8Encoding(false));
         Console.WriteLine($"[{name}] card text:\n{text}\n");
+        if (card == null || !Settled(card)) failures.Add($"{name}: the card didn't settle");
         foreach (var e in expect) if (!text.Contains(e)) failures.Add($"{name}: no \"{e}\" on the card");
+    }
+
+    /// The newest card event after line `skip` of the log.
+    static JsonObject? LastCard(int skip)
+    {
+        if (!File.Exists(log)) return null;
+        string[] lines;
+        try { lines = File.ReadAllLines(log); } catch { return null; }
+        for (var i = lines.Length - 1; i >= skip; i--)
+        {
+            if (JsonNode.Parse(lines[i]) is JsonObject e && (string?)e["event"] == "card") return e["card"] as JsonObject;
+        }
+        return null;
+    }
+
+    static bool Settled(JsonObject card)
+    {
+        if ((string?)card["kind"] == "phrase")
+        {
+            if (card["translation"] == null && card["translationError"] == null) return false;
+            foreach (var r in card["rows"]?.AsArray() ?? new JsonArray())
+                if ((bool?)r?["pending"] == true || ((string?)r?["status"])?.StartsWith("Reading") == true) return false;
+            return true;
+        }
+        return (string?)card["status"] != "Reading the sentence…";
     }
 
     /// The text of the app's visible windows, through UI Automation, as a screen reader sees it.
