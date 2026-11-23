@@ -170,6 +170,9 @@ sealed class Core
                 Diagnostics.Write($"reading model: {e["model"]}");
                 ModelChanged?.Invoke((string?)e["model"] ?? "");
                 break;
+            case "gpu":
+                Gpu.OnEvent(e);
+                break;
             case "card":
                 if (e["card"] is JsonObject card && cardHandlers.TryGetValue((long)e["id"]!, out var onCard)) onCard(card);
                 break;

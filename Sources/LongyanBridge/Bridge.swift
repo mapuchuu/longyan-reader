@@ -539,3 +539,38 @@ private func characterRange(_ text: String, _ start: Int, _ end: Int) -> Range<I
     let first = text.distance(from: text.startIndex, to: a)
     return first..<(first + text[a..<b].count)
 }
+
+#if os(Windows)
+// MARK: The GPU (Windows)
+
+/// The GPU self-test, in a process of its own (LongyanReader.exe --gpu-test): a fixed word
+/// card's pick on the CPU, then on `backend`'s GPU ("vulkan", "opencl"). Writes the result to
+/// `out` as JSON ("use", "why", the times and the picks) and returns 0, or 1 when it couldn't
+/// write it. A broken driver may end the process instead; the app then keeps the CPU.
+@_cdecl("ly_gpu_test")
+public func ly_gpu_test(_ resources: UnsafePointer<CChar>, _ model: UnsafePointer<CChar>, _ backend: UnsafePointer<CChar>,
+                        _ out: UnsafePointer<CChar>) -> Int32 {
+    let dir = URL(fileURLWithPath: String(cString: resources), isDirectory: true)
+    FileManager.default.changeCurrentDirectoryPath(dir.deletingLastPathComponent().path)
+    EmbeddedModel.pathOverride = String(cString: model)
+    let pick = LocalModel.gpuTestPick()
+    var result = EmbeddedModel.gpuSelfTest(backend: String(cString: backend), messages: pick.messages, steps: pick.steps)
+    result["threads"] = ProcessInfo.processInfo.activeProcessorCount
+    guard let data = try? JSONSerialization.data(withJSONObject: result, options: [.sortedKeys]),
+          FileManager.default.createFile(atPath: String(cString: out), contents: data) else { return 1 }
+    EmbeddedModel.shared.shutdown()
+    return 0
+}
+
+/// The GPU the app's model loads on from now on: `backend` with `layers` of the model on it, or
+/// NULL for the CPU. The model loaded now is let go, so the next card loads it the new way.
+/// Each GPU line comes back as {"event":"gpu","message":"…"}, and a GPU that fails in this
+/// process (the CPU from then on) as {"event":"gpu","failed":"…"}.
+@_cdecl("ly_use_gpu")
+public func ly_use_gpu(_ backend: UnsafePointer<CChar>?, _ layers: Int32) {
+    let choice = backend.map { (backend: String(cString: $0), layers: layers) }
+    EmbeddedModel.onGPUNote = { line in onMain { send(["event": "gpu", "message": line]) } }
+    EmbeddedModel.onGPUFailure = { why in onMain { send(["event": "gpu", "failed": why]) } }
+    EmbeddedModel.shared.useGPU(choice)
+}
+#endif

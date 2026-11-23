@@ -38,6 +38,10 @@ static class Program
         // [--trace FILE], a live card from a saved card JSON, for filming beside the Mac's
         // (CardWindow.Show, CardWindow.Script.cs). Runs beside the usual copy; quit from its icon's menu.
         if (args.Length >= 4 && args[0] == "--show") return ShowCard(args);
+        // --gpu-test BACKEND OUT: the GPU self-test, run by the app in a process of its own (Gpu.cs).
+        if (args.Length == 3 && args[0] == "--gpu-test") return Gpu.TestCommand(args[1], args[2]);
+        // --gpu-check: the self-test now, its choice saved and logged (CI, beta testers).
+        if (args.Length == 1 && args[0] == "--gpu-check") return Gpu.CheckCommand();
 
         using var single = new Mutex(true, "LongyanReader.Windows", out var first);
         if (!first)
@@ -188,6 +192,7 @@ static class Program
             modelStatus = status;
             ModelDownload.TooSlow = status is "too-slow" or "needs-arm64";
             UpdateMenu();
+            if (status == "ready") Gpu.ModelReady();
             Application.Current.Dispatcher.BeginInvoke(CardWindow.Warm, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
             if (lastRunEndedBadly)
             {
@@ -205,7 +210,7 @@ static class Program
         core.Failed += message => Application.Current.Dispatcher.BeginInvoke(() => MessageBox.Show(
             "Longyan Reader couldn't load its dictionary, so it can't show cards (" + message + ").\n\n" +
             "Extract the download again, or use Report a problem in the icon's menu.", "Longyan Reader", MessageBoxButton.OK, MessageBoxImage.Error));
-        try { core.Start(); }
+        try { Gpu.Apply(lastRunEndedBadly); core.Start(); }
         catch (Exception e) when (e is DllNotFoundException or EntryPointNotFoundException or BadImageFormatException)
         {
             Diagnostics.Write("couldn't start the core: " + Diagnostics.Describe(e));
@@ -330,6 +335,7 @@ static class Program
         Try(ModelDownload.Stop);
         Try(Speech.Stop);
         Try(Updates.Stop);
+        Try(Gpu.Stop);
         // The cards' windows, and with them their mouse and keyboard hooks.
         foreach (var w in Application.Current.Windows.Cast<Window>().ToList()) Try(w.Close);
         var stopped = clock.Elapsed.TotalMilliseconds;
@@ -352,7 +358,7 @@ static class Program
     }
 
     public static void Report() => Diagnostics.Report(modelStatus.Length == 0 ? "checking"
-        : modelStatus + (ModelDownload.IsDownloaded ? ", file downloaded" : ", no file"));
+        : modelStatus + (ModelDownload.IsDownloaded ? ", file downloaded" : ", no file") + ", runs on the " + Gpu.Status);
 
     /// The eye's settings changed, in Settings or the eye's own right-click menu.
     public static void MenuChanged()
@@ -374,7 +380,7 @@ static class Program
         modelStatus = status;
         ModelDownload.TooSlow = status is "too-slow" or "needs-arm64";
         UpdateMenu();
-        if (status == "ready") toldAbout = null;
+        if (status == "ready") { toldAbout = null; Gpu.ModelReady(); }
         // Each problem said once until it's fixed; the menu keeps saying it.
         if (status == toldAbout || status is not ("unloadable" or "no-memory" or "too-slow" or "needs-arm64")) return;
         toldAbout = status;

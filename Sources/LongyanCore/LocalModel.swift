@@ -534,3 +534,29 @@ package enum LocalModel {
 package struct NoSenseFits: LocalizedError {
     package var errorDescription: String? { "none of the dictionary's meanings was picked" }
 }
+
+#if os(Windows)
+extension LocalModel {
+    /// The GPU self-test's pick (Windows): a word card's request for a fixed sentence, built the
+    /// way chooseAllOnOneLine builds it, so the test reads a prompt like a card's.
+    package static func gpuTestPick() -> (messages: [[String: String]], steps: [(text: String, count: Int)]) {
+        let words: [(word: String, senses: [Sense])] = [
+            ("得", [Sense(pinyin: "de2", gloss: "to obtain; to get; to catch (an illness)"),
+                    Sense(pinyin: "de5", gloss: "structural particle: used after a verb to show effect or degree"),
+                    Sense(pinyin: "dei3", gloss: "to have to; must")]),
+            ("感冒", [Sense(pinyin: "gan3 mao4", gloss: "to catch cold; a cold"),
+                      Sense(pinyin: "gan3 mao4", gloss: "(coll.) to be interested in")]),
+            ("吃", [Sense(pinyin: "chi1", gloss: "to eat"),
+                    Sense(pinyin: "chi1", gloss: "to suffer; to be subjected to"),
+                    Sense(pinyin: "chi1", gloss: "to absorb; to soak up")]),
+        ]
+        let labels = words.indices.map { "w\($0 + 1)" }
+        let user = chooseAllPrompt("他得了感冒，吃不了饭。", false, words, labels: labels)
+            + "\n\nReply on one line with each word and its sense number, in order, like: "
+            + words.prefix(2).enumerated().map { "\($1.word)=\($0 + 1)" }.joined(separator: " ")
+        let messages = [["role": "system", "content": chooseAllInstructions], ["role": "user", "content": user]]
+        let steps = words.enumerated().map { (($0 == 0 ? "" : " ") + $1.word + "=", $1.senses.count) }
+        return (messages, steps)
+    }
+}
+#endif

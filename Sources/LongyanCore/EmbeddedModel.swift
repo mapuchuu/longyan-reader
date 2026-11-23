@@ -91,6 +91,10 @@ package final class EmbeddedModel: @unchecked Sendable {
     private var pressure: DispatchSourceMemoryPressure?
     #endif
     private var contextFailedAt: Date?
+    #if os(Windows)
+    /// The loaded model runs on the GPU.
+    private var onGPU = false
+    #endif
 
     private init() {}
 
@@ -186,6 +190,15 @@ package final class EmbeddedModel: @unchecked Sendable {
         #if os(Windows)
         // Exit (shutdown()) during a first load stops it instead of waiting for the whole file.
         mp.progress_callback = { _, _ in !EmbeddedModel.exiting.isSet }
+        // The GPU only when the self-test (or LONGYAN_GPU=1) chose it, and only that one device;
+        // otherwise no devices at all, so nothing but the CPU is used.
+        let gpu = Self.gpuDevice()
+        let devices = UnsafeMutablePointer<OpaquePointer?>.allocate(capacity: 2)
+        defer { devices.deallocate() }
+        devices[0] = gpu?.device; devices[1] = nil
+        mp.devices = devices
+        mp.n_gpu_layers = gpu.map { $0.layers } ?? 0
+        if gpu != nil { Self.markGPU(true) }
         #endif
         // Trimmed, the full word table (and the small norm just before it in the file) loads on the
         // CPU side, outside the GPU's mapped range, which Metal keeps wired. Only the rows the input
@@ -208,6 +221,10 @@ package final class EmbeddedModel: @unchecked Sendable {
         }
         guard let m = loaded else {
             if Self.exiting.isSet { throw CancellationError() }
+            #if os(Windows)
+            // On the GPU: likely short of its memory. The CPU instead, at once.
+            if gpu != nil { Self.markGPU(false); Self.gpuFailed("the model didn't load on the GPU"); return try loadIfNeeded() }
+            #endif
             Self.brokenFlag.set()
             loadError = Self.error("couldn't load \(path)"); throw loadError!
         }
@@ -241,8 +258,19 @@ package final class EmbeddedModel: @unchecked Sendable {
         if let u = env["LONGYAN_UBATCH"].flatMap(UInt32.init) { cp.n_ubatch = u }
         if let f = env["LONGYAN_FA"].flatMap(Int32.init) { cp.flash_attn_type = llama_flash_attn_type(rawValue: f) }
         guard let c = llama_init_from_model(m, cp) else {
-            llama_model_free(m); contextFailedAt = Date(); throw Self.error("couldn't create a context")
+            llama_model_free(m)
+            #if os(Windows)
+            if gpu != nil { Self.markGPU(false); Self.gpuFailed("no context on the GPU"); return try loadIfNeeded() }
+            #endif
+            contextFailedAt = Date(); throw Self.error("couldn't create a context")
         }
+        #if os(Windows)
+        onGPU = gpu != nil
+        if let gpu {
+            Self.gpuNote(String(format: "loaded on the GPU: %@, %d of %d layers, %.0f ms", gpu.name, min(Int(gpu.layers), Int(llama_model_n_layer(m)) + 1),
+                                Int(llama_model_n_layer(m)) + 1, Date().timeIntervalSince(loadStarted) * 1000))
+        }
+        #endif
         if env["LONGYAN_TIMING"] == "1" {
             FileHandle.standardError.write(Data(String(format: "timing: load %.0f ms (model %.0f ms), threads %d/%d, ubatch %d, repack %@, flash attention %d, %d logical CPUs\n",
                 Date().timeIntervalSince(loadStarted) * 1000, modelMs, cp.n_threads, cp.n_threads_batch, cp.n_ubatch,
@@ -321,6 +349,9 @@ package final class EmbeddedModel: @unchecked Sendable {
         if let ctx { llama_free(ctx) }
         if let model { llama_model_free(model) }
         ctx = nil; model = nil; vocab = nil; cached = []; snapshots = []; prefixes = []
+        #if os(Windows)
+        if onGPU { onGPU = false; Self.markGPU(false) }
+        #endif
     }
 
     /// Streams a chat reply. `messages` are role/content pairs as sent to Ollama; `grammar`
@@ -614,7 +645,14 @@ package final class EmbeddedModel: @unchecked Sendable {
 
     private func decode(_ tokens: [llama_token], startingAt pos: Int, allLogits: Bool = false) throws {
         guard let ctx, !tokens.isEmpty else { return }
-        guard decodeRaw(ctx, tokens, at: pos, allLogits: allLogits) else { cached = []; throw Self.error("decode failed") }
+        guard decodeRaw(ctx, tokens, at: pos, allLogits: allLogits) else {
+            cached = []
+            #if os(Windows)
+            // A GPU that fails mid-card: the next request loads the model on the CPU.
+            if onGPU { Self.gpuFailed("a decode failed on the GPU"); queue.async { self.free() } }
+            #endif
+            throw Self.error("decode failed")
+        }
         cached += tokens
     }
 
@@ -775,6 +813,217 @@ extension EmbeddedModel {
             FileManager.default.createFile(atPath: path, contents: nil) ? FileHandle(forWritingAtPath: path) : nil
         }() {
             h.seekToEndOfFile(); h.write(Data(line.utf8)); h.closeFile()
+        }
+    }
+
+    // MARK: The GPU
+
+    /// The GPU backends ship in the app's gpu folder (ggml-vulkan.dll on x64, ggml-opencl.dll on
+    /// ARM64), out of the folder ggml_backend_load_all reads, so they load only when asked for:
+    /// a missing or broken driver can't take the app down unless the self-test passed on it.
+    package static var defaultGPUBackend: String {
+        #if arch(arm64)
+        return "opencl"
+        #else
+        return "vulkan"
+        #endif
+    }
+
+    /// Set by the app from the self-test's choice: the backend and how many layers go on the GPU.
+    /// nil: the CPU only. LONGYAN_GPU=0 keeps the CPU whatever this says; LONGYAN_GPU=1 uses the
+    /// GPU without the test (LONGYAN_GPU_BACKEND, LONGYAN_GPU_LAYERS, default all layers).
+    nonisolated(unsafe) package static var gpuChoice: (backend: String, layers: Int32)?
+    /// Called with each GPU line for the app's log, and when the GPU failed in this process.
+    nonisolated(unsafe) package static var onGPUNote: ((String) -> Void)?
+    nonisolated(unsafe) package static var onGPUFailure: ((String) -> Void)?
+    /// The GPU failed in this process: the CPU from now on.
+    private static let gpuBroken = StopFlag()
+    nonisolated(unsafe) private static var selfTesting = false
+    nonisolated(unsafe) private static var gpuRegs: [String: OpaquePointer] = [:]
+    nonisolated(unsafe) private static var gpuLoadLog: [String: String] = [:]
+
+    /// Uses the GPU from the next load on (the model loaded now is let go). nil: the CPU.
+    package func useGPU(_ choice: (backend: String, layers: Int32)?) {
+        queue.async {
+            let old = Self.gpuChoice
+            Self.gpuChoice = choice
+            if choice != nil { Self.gpuBroken.clear() }
+            if old?.backend != choice?.backend || old?.layers != choice?.layers, self.ctx != nil { self.free() }
+        }
+    }
+
+    /// The device to load the model on, and how many layers, or nil for the CPU.
+    fileprivate static func gpuDevice() -> (device: OpaquePointer, layers: Int32, name: String)? {
+        let env = ProcessInfo.processInfo.environment
+        if env["LONGYAN_GPU"] == "0" || gpuBroken.isSet { return nil }
+        var choice = gpuChoice
+        if env["LONGYAN_GPU"] == "1", !selfTesting {
+            choice = (env["LONGYAN_GPU_BACKEND"] ?? defaultGPUBackend, env["LONGYAN_GPU_LAYERS"].flatMap(Int32.init) ?? 99)
+        }
+        guard let choice else { return nil }
+        switch device(choice.backend) {
+        case .success(let d): return (d.device, choice.layers, d.name)
+        case .failure(let why): gpuFailed(why.message); return nil
+        }
+    }
+
+    struct GPUProblem: Error { let message: String }
+    struct GPUDevice { let device: OpaquePointer; let name: String; let integrated: Bool }
+
+    /// Loads gpu\ggml-<backend>.dll once and finds its device: a discrete GPU first, else an
+    /// integrated one (llama.cpp's own order).
+    fileprivate static func device(_ backend: String) -> Result<GPUDevice, GPUProblem> {
+        let reg: OpaquePointer
+        if let r = gpuRegs[backend] {
+            reg = r
+        } else {
+            guard let dir = Bundle.main.executableURL?.deletingLastPathComponent() else { return .failure(GPUProblem(message: "no app folder")) }
+            let file = dir.appendingPathComponent("gpu").appendingPathComponent("ggml-\(backend).dll")
+            guard FileManager.default.fileExists(atPath: file.path) else { return .failure(GPUProblem(message: "no gpu\\ggml-\(backend).dll")) }
+            backendLog = ""
+            llama_log_set({ _, text, _ in
+                if let text { EmbeddedModel.backendLog += String(cString: text) }
+            }, nil)
+            let loaded = file.withUnsafeFileSystemRepresentation { p in p.flatMap { ggml_backend_load($0) } }
+            if ProcessInfo.processInfo.environment["LONGYAN_LLAMA_LOG"] == "1" { llama_log_set(nil, nil) } else { llama_log_set({ _, _, _ in }, nil) }
+            let lines = backendLog.split(whereSeparator: \.isNewline).map(String.init)
+                .filter { $0.contains("ggml_") || $0.contains("load") || $0.contains("Vulkan") || $0.contains("OpenCL") }
+            gpuLoadLog[backend] = lines.prefix(12).joined(separator: " | ")
+            guard let r = loaded else {
+                return .failure(GPUProblem(message: "\(backend) didn't load (no driver?): " + (gpuLoadLog[backend] ?? "")))
+            }
+            gpuRegs[backend] = r
+            reg = r
+        }
+        var integrated: GPUDevice?
+        for i in 0..<ggml_backend_reg_dev_count(reg) {
+            guard let dev = ggml_backend_reg_dev_get(reg, i) else { continue }
+            let type = ggml_backend_dev_type(dev)
+            let name = ggml_backend_dev_description(dev).map { String(cString: $0) } ?? "?"
+            if type == GGML_BACKEND_DEVICE_TYPE_GPU { return .success(GPUDevice(device: dev, name: name, integrated: false)) }
+            if type == GGML_BACKEND_DEVICE_TYPE_IGPU, integrated == nil { integrated = GPUDevice(device: dev, name: name, integrated: true) }
+        }
+        if let integrated { return .success(integrated) }
+        return .failure(GPUProblem(message: "no \(backend) GPU on this PC" + ((gpuLoadLog[backend] ?? "").isEmpty ? "" : ": " + gpuLoadLog[backend]!)))
+    }
+
+    /// %LOCALAPPDATA%\LongyanReader\gpu-in-use, there while the app's model is on the GPU. Still
+    /// there after a crash, so the app's next start blames the GPU and keeps the CPU.
+    fileprivate static func markGPU(_ on: Bool) {
+        guard !selfTesting, let base = ProcessInfo.processInfo.environment["LOCALAPPDATA"] else { return }
+        let path = base + "\\LongyanReader\\gpu-in-use"
+        if on { FileManager.default.createFile(atPath: path, contents: Data((gpuChoice?.backend ?? "gpu").utf8)) }
+        else { try? FileManager.default.removeItem(atPath: path) }
+    }
+
+    fileprivate static func gpuNote(_ line: String) {
+        log("gpu: " + line + "\n")
+        onGPUNote?(line)
+    }
+
+    fileprivate static func gpuFailed(_ why: String) {
+        gpuBroken.set()
+        gpuNote("the CPU instead: " + why)
+        onGPUFailure?(why)
+    }
+
+    /// A pick read from scratch (no kept states), timed. On the queue.
+    private func timedPick(_ messages: [[String: String]], _ steps: [(text: String, count: Int)]) throws -> (numbers: [Int], confidence: [Double], ms: Double, tokens: Int) {
+        snapshots = []; prefixes = []; cached = []
+        if let ctx { llama_memory_clear(llama_get_memory(ctx), true) }
+        let started = Date()
+        let digits = (0...9).map { tokenize(String($0)) }
+        guard digits.allSatisfy({ $0.count == 1 }), let first = steps.first else { throw Self.error("digits aren't single tokens") }
+        let tokens = tokenize(Self.render(messages) + first.text)
+        _ = try read(tokens)
+        var pending: [llama_token] = []
+        var numbers: [Int] = [], confidence: [Double] = []
+        for (i, step) in steps.enumerated() {
+            if i > 0 { try decode(pending + tokenize(step.text), startingAt: cached.count) }
+            let (pick, rest) = try readNumber(upTo: step.count, digits: digits.map { $0[0] })
+            pending = rest
+            numbers.append(pick.number); confidence.append((pick.confidence * 1000).rounded() / 1000)
+        }
+        return (numbers, confidence, (Date().timeIntervalSince(started) * 1000).rounded(), tokens.count)
+    }
+
+    /// The GPU self-test, run in a process of its own (LongyanReader.exe --gpu-test) so a broken
+    /// driver can only take that one down. The GPU's device first (none: done), then the pick on
+    /// the CPU, then on the GPU twice (the
+    /// first run builds the GPU's shaders); the GPU is kept only if it gives the same numbers and
+    /// is faster. An integrated GPU shares the PC's memory: when the device has less free than
+    /// the model needs, only as many layers as fit go on it; when a load fails, half as many.
+    package static func gpuSelfTest(backend: String, messages: [[String: String]], steps: [(text: String, count: Int)]) -> [String: Any] {
+        selfTesting = true
+        let m = shared
+        return m.queue.sync { () -> [String: Any] in
+            var r: [String: Any] = ["backend": backend, "use": false]
+            func finish(_ why: String, use: Bool = false) -> [String: Any] {
+                m.free(); gpuChoice = nil
+                r["use"] = use; r["why"] = why
+                if let l = gpuLoadLog[backend], !l.isEmpty { r["log"] = l }
+                return r
+            }
+            // The device first: on a PC without one, that's the whole test.
+            let dev: GPUDevice
+            switch device(backend) {
+            case .success(let d): dev = d
+            case .failure(let why): return finish(why.message)
+            }
+            r["device"] = dev.name; r["integrated"] = dev.integrated
+            gpuChoice = nil
+            do { try m.loadIfNeeded() } catch { return finish("the model didn't load on the CPU: \(error.localizedDescription)") }
+            guard let model = m.model else { return finish("no model") }
+            let layerCount = Int(llama_model_n_layer(model)) + 1   // and the output layer
+            r["layerCount"] = layerCount
+            let cpu: (numbers: [Int], confidence: [Double], ms: Double, tokens: Int)
+            do { cpu = try m.timedPick(messages, steps) } catch { return finish("the pick failed on the CPU: \(error.localizedDescription)") }
+            r["cpuMs"] = cpu.ms; r["cpuPicks"] = cpu.numbers; r["cpuConfidence"] = cpu.confidence; r["promptTokens"] = cpu.tokens
+            m.free()
+
+            var free = 0, total = 0
+            ggml_backend_dev_memory(dev.device, &free, &total)
+            r["freeMB"] = free >> 20; r["totalMB"] = total >> 20
+            let fileBytes = (modelPath.flatMap { try? FileManager.default.attributesOfItem(atPath: $0)[.size] as? Int }) ?? 0
+            // Room for the context, the work buffers and the shaders beside the weights.
+            let spare = 768 << 20
+            var layers = layerCount
+            if free > 0, fileBytes > 0, free < fileBytes + spare {
+                layers = max(0, Int(Double(free - spare) / (Double(fileBytes) / Double(layerCount))))
+            }
+            if let l = ProcessInfo.processInfo.environment["LONGYAN_GPU_LAYERS"].flatMap(Int.init) { layers = min(l, layerCount) }
+            if layers < max(1, layerCount / 4) && ProcessInfo.processInfo.environment["LONGYAN_GPU_LAYERS"] == nil {
+                return finish("not enough GPU memory: \(free >> 20) MB free, the model is \(fileBytes >> 20) MB")
+            }
+            var tries = [layers]
+            if layers / 2 >= max(1, layerCount / 4) { tries.append(layers / 2) }
+            var why = ""
+            for l in tries {
+                gpuBroken.clear()
+                gpuChoice = (backend, Int32(l))
+                do { try m.loadIfNeeded() } catch { why = "the model didn't load on the GPU: \(error.localizedDescription)"; m.free(); continue }
+                guard m.onGPU else { why = "the model didn't load on the GPU with \(l) layers"; m.free(); continue }
+                r["layers"] = l
+                do {
+                    let first = try m.timedPick(messages, steps)
+                    let gpu = try m.timedPick(messages, steps)
+                    r["gpuFirstMs"] = first.ms; r["gpuMs"] = gpu.ms; r["gpuPicks"] = gpu.numbers; r["gpuConfidence"] = gpu.confidence
+                    r["speedup"] = gpu.ms > 0 ? (cpu.ms / gpu.ms * 10).rounded() / 10 : 0
+                    if gpu.numbers != cpu.numbers || first.numbers != cpu.numbers {
+                        return finish("the GPU's answer differs from the CPU's (\(gpu.numbers) against \(cpu.numbers))")
+                    }
+                    if gpu.ms >= cpu.ms * 0.9 {
+                        return finish(String(format: "the GPU is no faster (%.0f ms against %.0f ms on the CPU)", gpu.ms, cpu.ms))
+                    }
+                    return finish(String(format: "the same answer, %.1fx as fast", cpu.ms / max(gpu.ms, 1)), use: true)
+                } catch {
+                    why = "the pick failed on the GPU: \(error.localizedDescription)"
+                    m.free()
+                    if gpuBroken.isSet { continue }
+                    break
+                }
+            }
+            return finish(why.isEmpty ? "the GPU didn't work" : why)
         }
     }
 

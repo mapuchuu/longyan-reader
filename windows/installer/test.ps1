@@ -50,6 +50,11 @@ Write-Host "setup: $Setup, $([Math]::Round((Get-Item $Setup).Length / 1MB)) MB"
 Run $Setup install.log
 if (-not (Test-Path $exe)) { Fail "no $exe" }
 if (-not (Test-Path "$app\Resources\splitter.tsv")) { Fail 'no Resources\splitter.tsv' }
+# The GPU backend, in its own folder so the app loads it only after the GPU self-test (Gpu.cs).
+$gpu = @(Get-ChildItem "$app\gpu\ggml-*.dll" -ErrorAction SilentlyContinue)
+if ($gpu.Count -eq 0) { Fail 'no GPU backend in gpu\' }
+if (Test-Path "$app\ggml-vulkan.dll") { Fail 'ggml-vulkan.dll is beside the app, where ggml loads it at start' }
+Ok "GPU backend: $($gpu.Name -join ', ')"
 if (-not (Test-Path $lnk)) { Fail "no Start menu shortcut at $lnk" }
 $target = (New-Object -ComObject WScript.Shell).CreateShortcut($lnk).TargetPath
 if ($target -ne $exe) { Fail "the shortcut opens $target" }

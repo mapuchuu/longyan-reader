@@ -108,6 +108,14 @@ static class Settings
         set { data["lookupHistory"] = value; Save(); }
     }
 
+    /// The GPU self-test's last answer (Gpu.cs): "use", "backend", "layers", "why", the times,
+    /// and the "fingerprint" of the app and drivers it was for. A copy each way.
+    public static JsonObject? Gpu
+    {
+        get => data["gpu"] is JsonObject o ? JsonNode.Parse(o.ToJsonString()) as JsonObject : null;
+        set { if (value == null) data.Remove("gpu"); else data["gpu"] = JsonNode.Parse(value.ToJsonString()); Save(); }
+    }
+
     // Add to Anki (Anki.cs).
 
     /// The deck Add to Anki puts cards in (the Mac's "ankiDeck"), or null for the default,

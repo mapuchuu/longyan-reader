@@ -40,6 +40,10 @@ static class Bridge
     public static extern void ly_refresh(byte[]? model);
     [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)]
     public static extern void ly_shutdown();
+    [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)]
+    public static extern int ly_gpu_test(byte[] resources, byte[] model, byte[] backend, byte[] output);
+    [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)]
+    public static extern void ly_use_gpu(byte[]? backend, int layers);
 
     /// NUL-terminated UTF-8, as the bridge reads strings.
     public static byte[] Utf8(string s)

@@ -44,6 +44,7 @@ env:
 
 jobs:
   app:
+    needs: vulkan
     runs-on: windows-latest
     defaults:
       run:
@@ -54,6 +55,10 @@ jobs:
         with:
           # The build number updates compare is the commit count, which needs the whole history.
           fetch-depth: 0
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ggml-vulkan
+          path: vulkan
       # The card's springs against SwiftUI's (windows/MotionCheck): a spring given a new target
       # carries on at its speed, and matches the Mac's, filmed.
       - name: Motion check
@@ -108,6 +113,11 @@ jobs:
           cp .build/release/LongyanBridge.dll "$out/"
           # llama.dll, ggml.dll, ggml-base.dll and the CPU kernels, ggml-cpu-*.dll.
           cp Vendor/llama/bin/*.dll "$out/"
+          # The GPU backend in a folder of its own, which ggml_backend_load_all doesn't read: the
+          # app loads it only after the GPU self-test passed (windows/LongyanReader/Gpu.cs).
+          mkdir -p "$out/gpu"
+          cp vulkan/ggml-vulkan.dll "$out/gpu/"
+          ! ls "$out"/ggml-vulkan*.dll 2>/dev/null
           # The Swift runtime: the folder that holds swiftCore.dll on this runner.
           rt=$(cygpath -u "$(where.exe swiftCore.dll | head -1 | tr -d '\r')")
           echo "Swift runtime: $(dirname "$rt")"
@@ -123,7 +133,7 @@ jobs:
           du -sh "$out"
       - name: CPU kernels shipped
         run: |
-          ls -l dist/LongyanReader/ggml*.dll dist/LongyanReader/llama.dll
+          ls -l dist/LongyanReader/ggml*.dll dist/LongyanReader/llama.dll dist/LongyanReader/gpu
           du -ch dist/LongyanReader/ggml*.dll dist/LongyanReader/llama.dll | tail -1
       - name: Bridge check
         run: |
@@ -256,7 +266,12 @@ jobs:
         run: |
           # The app adds a line there saying which CPU kernels ggml loaded.
           export LONGYAN_BACKEND_LOG="$(cygpath -w "$PWD/backend.txt")"
+          # The GPU self-test soon after the model is ready, not a minute later.
+          export LONGYAN_GPU_TEST_DELAY=5
           uicheck/UiCheck.exe "$(cygpath -w "$PWD/dist/LongyanReader/LongyanReader.exe")" ui-out
+      - name: The GPU self-test's lines
+        if: always()
+        run: grep -a "gpu" "$LOCALAPPDATA/LongyanReader/logs/longyan.log" || echo "no gpu lines"
       - name: Not too slow here
         run: |
           set -euo pipefail
@@ -503,7 +518,7 @@ jobs:
         id: llama
         with:
           path: Vendor/llama
-          key: llama-${{ env.LLAMA_TAG }}-windows-arm64-${{ env.LLAMA_CACHE }}-${{ hashFiles('patches/llama.cpp-output-tokens.patch', 'patches/llama.cpp-windows.patch', 'patches/llama.cpp-windows-arm64.patch') }}
+          key: llama-${{ env.LLAMA_TAG }}-windows-arm64-opencl-${{ env.LLAMA_CACHE }}-${{ hashFiles('patches/llama.cpp-output-tokens.patch', 'patches/llama.cpp-windows.patch', 'patches/llama.cpp-windows-arm64.patch') }}
       - name: Build llama.cpp (ARM64, clang, DLLs)
         if: steps.llama.outputs.cache-hit != 'true'
         run: |
@@ -533,8 +548,22 @@ jobs:
           "$CC" --version
           arm=(-G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER="$CC" -DCMAKE_CXX_COMPILER="$CXX"
                -DCMAKE_C_COMPILER_TARGET=arm64-pc-windows-msvc -DCMAKE_CXX_COMPILER_TARGET=arm64-pc-windows-msvc)
+          # OpenCL's headers and loader library (Khronos), for ggml-opencl.dll: llama.cpp's GPU
+          # backend for Qualcomm's Adreno GPUs (Snapdragon X). It loads OpenCL.dll, which the
+          # Adreno driver installs; the app doesn't ship one.
+          CL="$T/opencl"
+          for r in OpenCL-Headers OpenCL-ICD-Loader; do
+            curl -fsSL -o "$T/$r.tar.gz" "https://github.com/KhronosGroup/$r/archive/refs/tags/v2024.10.24.tar.gz"
+            mkdir -p "$T/$r" && tar -xzf "$T/$r.tar.gz" -C "$T/$r" --strip-components 1
+          done
+          cmake -S "$T/OpenCL-Headers" -B "$T/OpenCL-Headers/build" "${arm[@]}" -DBUILD_TESTING=OFF -DOPENCL_HEADERS_BUILD_TESTING=OFF \
+            -DOPENCL_HEADERS_BUILD_CXX_TESTS=OFF -DCMAKE_INSTALL_PREFIX="$CL"
+          cmake --build "$T/OpenCL-Headers/build" --target install
+          cmake -S "$T/OpenCL-ICD-Loader" -B "$T/OpenCL-ICD-Loader/build" "${arm[@]}" -DBUILD_TESTING=OFF \
+            -DCMAKE_PREFIX_PATH="$CL" -DCMAKE_INSTALL_PREFIX="$CL"
+          cmake --build "$T/OpenCL-ICD-Loader/build" --target install
           cmake -S "$T/src" -B "$T/build" "${arm[@]}" -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_LIBDIR=lib \
-            -DGGML_BACKEND_DL=ON -DGGML_CPU_ALL_VARIANTS=ON \
+            -DGGML_BACKEND_DL=ON -DGGML_CPU_ALL_VARIANTS=ON -DGGML_OPENCL=ON -DCMAKE_PREFIX_PATH="$CL" \
             -DLLAMA_BUILD_APP=OFF -DLLAMA_BUILD_COMMON=OFF -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TOOLS=OFF \
             -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_SERVER=OFF -DLLAMA_BUILD_MTMD=OFF -DLLAMA_OPENSSL=OFF -DLLAMA_CURL=OFF \
             -DGGML_NATIVE=OFF -DGGML_OPENMP=OFF
@@ -565,6 +594,11 @@ jobs:
           ls .build/release/*.dll
           cp .build/release/LongyanBridge.dll "$out/"
           cp Vendor/llama/bin/*.dll "$out/"
+          # The GPU backend (OpenCL, for Adreno) in a folder of its own, loaded only after the
+          # GPU self-test passed (windows/LongyanReader/Gpu.cs).
+          mkdir -p "$out/gpu"
+          mv "$out/ggml-opencl.dll" "$out/gpu/"
+          rm -f "$out/OpenCL.dll"
           rt=$(cygpath -u "$(where.exe swiftCore.dll | head -1 | tr -d '\r')")
           echo "Swift runtime: $(dirname "$rt")"
           cp "$(dirname "$rt")"/*.dll "$out/"
@@ -600,7 +634,7 @@ jobs:
           cp -r publish/* dist/LongyanReader/
           # Every native DLL and the app itself should be ARM64 (machine type aa64). .NET's
           # IL-only assemblies run on any CPU.
-          python - dist/LongyanReader/*.dll dist/LongyanReader/LongyanReader.exe <<'PY'
+          python - dist/LongyanReader/*.dll dist/LongyanReader/gpu/*.dll dist/LongyanReader/LongyanReader.exe <<'PY'
           import struct, sys
           bad = []
           for f in sys.argv[1:]:
@@ -722,6 +756,15 @@ jobs:
           $b $r words.txt "$(cygpath -w "$MODELS/qwen3.5-4b-q4_k_m.gguf")" > words-out.txt
           cat pick-backend.txt || true
           python scripts/pick-parity.py picks words.txt words-out.txt | tee picks.txt
+      # The GPU self-test with no Adreno driver here (no OpenCL.dll): the CPU, and why.
+      - name: GPU self-test
+        if: always()
+        run: |
+          set -euo pipefail
+          dist/LongyanReader/LongyanReader.exe --gpu-check
+          grep -a "gpu" "$LOCALAPPDATA/LongyanReader/logs/longyan.log" | tail -5
+          cat "$LOCALAPPDATA/LongyanReader/logs/gpu-test-opencl.txt" || true
+          python -c "import json,os; g=json.load(open(os.environ['LOCALAPPDATA']+'/LongyanReader/settings.json',encoding='utf-8'))['gpu']; print(g); assert g['use'] is False and 'opencl' in g['why'].lower()"
       - name: Kernel speed
         if: always()
         run: |
@@ -827,7 +870,7 @@ jobs:
   # runs in a fresh process. Then the eval sets' words with the default and the fast settings,
   # to see whether any pick changes.
   speed:
-    needs: [app, vulkan]
+    needs: app
     if: always() && needs.app.result == 'success'
     runs-on: windows-latest
     defaults:
@@ -839,11 +882,6 @@ jobs:
         with:
           name: LongyanReader-windows
           path: dist
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        continue-on-error: true
-        with:
-          name: ggml-vulkan
-          path: vulkan
       - name: Model folder
         run: echo "MODELS=$(cygpath -u "$LOCALAPPDATA")/LongyanReader/models" >> "$GITHUB_ENV"
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -895,15 +933,16 @@ jobs:
           run now X=1
           run now-noprime LONGYAN_PRIME=0
           run now-warm LONGYAN_CHECK_WARM=20
-          # ggml-vulkan.dll beside the bridge, with no Vulkan device here: the same as on the CPU.
-          if [ -f vulkan/ggml-vulkan.dll ]; then
-            cp vulkan/ggml-vulkan.dll check-bin/
-            run now-vulkan-dll X=1
-            rm check-bin/ggml-vulkan.dll
-          fi
+          # The GPU forced on (LONGYAN_GPU=1) with no Vulkan device here: the core says why and
+          # loads the model on the CPU, with the same cards.
+          mkdir -p check-bin/gpu
+          cp dist/LongyanReader/gpu/ggml-vulkan.dll check-bin/gpu/
+          run now-gpu-forced LONGYAN_GPU=1
+          grep -a "gpu: the CPU instead" speed/now-gpu-forced-log.txt
           for f in speed/*.txt; do case $f in *-log.txt) ;; *) python scripts/bridge-normalize.py < $f > $f.norm ;; esac; done
           for f in speed/*.txt.norm; do cmp -s speed/base.txt.norm $f && echo "same cards as base: $f" || echo "DIFFERENT cards from base: $f"; done
           for f in speed/now*.txt.norm; do cmp -s speed/now.txt.norm $f && echo "same cards as now: $f" || echo "DIFFERENT cards from now: $f"; done
+          cmp speed/now.txt.norm speed/now-gpu-forced.txt.norm
       - name: Eval picks, default and fast
         run: |
           set -euo pipefail
@@ -930,9 +969,145 @@ jobs:
           name: speed
           path: speed
 
-  # ggml's Vulkan backend as one more DLL (ggml-vulkan.dll), for GPUs from Intel, AMD, NVIDIA and
-  # Qualcomm. Not in the app folder yet: CI has no GPU to measure it on. The speed job checks the
-  # fallback: with the DLL beside the app and no Vulkan device, the model runs on the CPU as before.
+  # The GPU self-test where there's no GPU (this runner) and where the driver crashes, with the
+  # app itself (Gpu.cs): the test runs in a process of its own, the app keeps the CPU, says
+  # why in its log, and never loads the GPU backend itself. A fake vulkan-1.dll that crashes
+  # in every call stands in for a broken driver.
+  gpu:
+    needs: app
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: LongyanReader-windows
+          path: dist
+      - name: Model folder
+        run: |
+          echo "MODELS=$(cygpath -u "$LOCALAPPDATA")/LongyanReader/models" >> "$GITHUB_ENV"
+          echo "DATA=$(cygpath -u "$LOCALAPPDATA")/LongyanReader" >> "$GITHUB_ENV"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: model
+        with:
+          path: ~/AppData/Local/LongyanReader/models
+          key: model-qwen3.5-4b-q4_k_m-00fe7986
+      - name: Download the reading model
+        if: steps.model.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p "$MODELS"
+          curl -fL --retry 3 -o "$MODELS/qwen3.5-4b-q4_k_m.gguf" \
+            "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/e87f176479d0855a907a41277aca2f8ee7a09523/Qwen3.5-4B-Q4_K_M.gguf"
+          echo "00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4  $MODELS/qwen3.5-4b-q4_k_m.gguf" | sha256sum -c
+      - name: Vulkan on this runner
+        shell: pwsh
+        run: |
+          "vulkan-1.dll in System32: $(Test-Path "$env:windir\System32\vulkan-1.dll")"
+          Get-CimInstance Win32_VideoController | Format-List Name,DriverVersion,AdapterRAM
+      - name: No GPU
+        run: |
+          set -euo pipefail
+          dist/LongyanReader/LongyanReader.exe --gpu-check
+          grep "gpu" "$DATA/logs/longyan.log"
+          cat "$DATA/logs/gpu-test-vulkan.txt" || true
+          python - <<'PY'
+          import json, os
+          g = json.load(open(os.environ["LOCALAPPDATA"] + "/LongyanReader/settings.json", encoding="utf-8"))["gpu"]
+          print(g)
+          assert g["use"] is False, g
+          assert "vulkan" in g["why"].lower(), g
+          assert g["fingerprint"].count("|") >= 1, g
+          PY
+      - name: A driver that crashes
+        run: |
+          set -euo pipefail
+          # Every function ggml-vulkan.dll takes from vulkan-1.dll, plus the loader's entry points.
+          llvm-readobj --coff-imports dist/LongyanReader/gpu/ggml-vulkan.dll > imports.txt || true
+          python - <<'PY'
+          import re
+          text = open("imports.txt", encoding="utf-8", errors="replace").read()
+          names = set()
+          for block in re.split(r"\n(?=Import \{)", text):
+              if re.search(r"Name: vulkan-1\.dll", block, re.I):
+                  names.update(re.findall(r"Symbol: (vk\w+)", block))
+          names.update(["vkGetInstanceProcAddr", "vkGetDeviceProcAddr", "vkCreateInstance", "vkEnumerateInstanceVersion",
+                        "vkEnumerateInstanceExtensionProperties", "vkEnumerateInstanceLayerProperties", "vkEnumeratePhysicalDevices"])
+          print(len(names), "exports")
+          with open("fake.def", "w") as f:
+              f.write("LIBRARY vulkan-1\nEXPORTS\n" + "".join(f"  {n}=crash\n" for n in sorted(names)))
+          with open("fake.c", "w") as f:
+              f.write("void crash(void) { *(volatile int *)0 = 1; }\n")
+          PY
+          clang -shared -O1 fake.c -o vulkan-1.dll -Wl,/DEF:fake.def
+          rm -rf broken && cp -r dist/LongyanReader broken && cp vulkan-1.dll broken/
+          rm -f "$DATA/settings.json"
+          broken/LongyanReader.exe --gpu-check
+          grep "gpu" "$DATA/logs/longyan.log" | tail -5
+          python - <<'PY'
+          import json, os
+          g = json.load(open(os.environ["LOCALAPPDATA"] + "/LongyanReader/settings.json", encoding="utf-8"))["gpu"]
+          print(g)
+          assert g["use"] is False and "ended with 0x" in g["why"], g
+          PY
+      # The app itself with the crashing driver: a run that ended badly with the model on the
+      # GPU turns the GPU off at the next start; then the background test, which crashes, and
+      # the app carries on with the CPU, never having loaded ggml-vulkan.dll itself.
+      - name: The app with the crashing driver
+        shell: pwsh
+        run: |
+          $data = "$env:LOCALAPPDATA\LongyanReader"
+          $log = "$data\logs\longyan.log"
+          $s = Get-Content "$data\settings.json" -Raw | ConvertFrom-Json
+          $fp = $s.gpu.fingerprint
+          function Settings($gpu) {
+            @{ welcomeShown = $true; gpu = $gpu } | ConvertTo-Json -Depth 5 | Set-Content "$data\settings.json" -Encoding utf8
+          }
+          function Run([string] $until, [int] $seconds) {
+            Remove-Item $log -ErrorAction SilentlyContinue
+            $env:LONGYAN_GPU_TEST_DELAY = '2'
+            $env:LONGYAN_CARD_LOG = "$PWD\events.txt"
+            $p = Start-Process "$PWD\broken\LongyanReader.exe" -PassThru
+            $end = (Get-Date).AddSeconds($seconds)
+            while ((Get-Date) -lt $end -and -not ((Test-Path $log) -and (Select-String -Path $log -Pattern $until -Quiet))) { Start-Sleep 1 }
+            Start-Sleep 2
+            if ($p.HasExited) { Get-Content $log; throw "the app exited ($($p.ExitCode))" }
+            $mods = (Get-Process -Id $p.Id).Modules.ModuleName
+            if ($mods -contains 'ggml-vulkan.dll' -or $mods -contains 'vulkan-1.dll') { throw 'the app loaded the GPU backend itself' }
+            $quit = [System.Threading.EventWaitHandle]::OpenExisting('LongyanReader.Windows.Quit'); $quit.Set() | Out-Null
+            if (-not $p.WaitForExit(30000)) { throw 'the app did not exit' }
+            Get-Content $log
+            if (-not (Select-String -Path $log -Pattern $until -Quiet)) { throw "not in the log: $until" }
+          }
+          # 1. The last run ended badly while the model was on the GPU.
+          Settings @{ use = $true; backend = 'vulkan'; layers = 99; fingerprint = $fp; why = 'test' }
+          'vulkan' | Set-Content "$data\gpu-in-use"
+          'dev' | Set-Content "$data\running"
+          Run 'gpu at start: CPU \(the app closed unexpectedly while the model was on the GPU\)' 60
+          if (-not (Select-String -Path $log -Pattern 'gpu: off, the app closed unexpectedly' -Quiet)) { throw 'the GPU was not turned off' }
+          # 2. Not tested yet: the test runs in the background and crashes.
+          Settings $null
+          Run 'gpu: CPU \(vulkan: the test process ended with 0x' 240
+          $g = (Get-Content "$data\settings.json" -Raw | ConvertFrom-Json).gpu
+          if ($g.use) { throw 'the GPU was kept' }
+          "chosen: $($g.why)"
+      - if: always()
+        run: |
+          mkdir -p gpu-out
+          cp -r "$DATA/logs" gpu-out/ || true
+          cp "$DATA/settings.json" events.txt gpu-out/ || true
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gpu-check
+          path: gpu-out
+
+  # ggml's Vulkan backend as one more DLL (ggml-vulkan.dll), for GPUs from Intel, AMD and NVIDIA.
+  # The app job puts it in the app folder's gpu folder; the app uses it only after its GPU
+  # self-test passes (Gpu.cs). CI has no GPU: the gpu job checks the fallback (no device, a
+  # driver that crashes), the speed job that LONGYAN_GPU=1 with no device gives the CPU's cards.
   vulkan:
     runs-on: windows-latest
     env:
