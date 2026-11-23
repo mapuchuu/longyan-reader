@@ -172,6 +172,11 @@ jobs:
           # The app adds a line there saying which CPU kernels ggml loaded.
           export LONGYAN_BACKEND_LOG="$(cygpath -w "$PWD/backend.txt")"
           uicheck/UiCheck.exe "$(cygpath -w "$PWD/dist/LongyanReader/LongyanReader.exe")" ui-out
+      - name: Not too slow here
+        run: |
+          set -euo pipefail
+          cat backend.txt
+          grep -q "too slow for the model by CPU features: no" backend.txt
       - name: CPU kernels used
         if: always()
         run: cat backend.txt || echo "no backend line, so the model didn't load"
@@ -231,4 +236,76 @@ jobs:
           done
           grep -q "ggml-cpu-sse42.dll" sse42-log.txt
           grep -q "Paris" sse42.txt
-
+      # The app's own cards, one at a time, with the model on each kind of kernels: how long a
+      # card takes. LONGYAN_ALLOW_SLOW=1 uses the model even where it counts as too slow.
+      - name: Build the bridge check
+        run: |
+          set -euo pipefail
+          dotnet build windows/BridgeCheck -c Release -o check-bin
+          # The core's DLLs, without the app's own .NET (it's self-contained, and the check isn't):
+          # native DLLs only, less .NET's.
+          python - <<'PY'
+          import glob, re, shutil, struct
+          for f in glob.glob("dist/LongyanReader/*.dll"):
+              name = f.replace("\\", "/").split("/")[-1]
+              if re.match(r"(?i)(hostfxr|hostpolicy|coreclr|clrjit|clrgc|mscor|microsoft\.|system\.|.*_cor3)", name): continue
+              b = open(f, "rb").read(4096)
+              pe = struct.unpack_from("<I", b, 0x3C)[0]
+              dirs = pe + 24 + (112 if struct.unpack_from("<H", b, pe + 24)[0] == 0x20B else 96)
+              if struct.unpack_from("<I", b, dirs + 14 * 8)[0] == 0:   # no .NET header
+                  shutil.copy(f, "check-bin")
+          PY
+          ls check-bin
+          printf '%s\t%s\t%s\n' '他得了感冒，吃不了饭。' 1 2 '行不行，这一行很难' 6 7 '我等一下再给你打电话。' 0 11 > speed-lookups.txt
+          cat speed-lookups.txt
+      - name: Card times by CPU kernels
+        run: |
+          set -uo pipefail
+          m="$(cygpath -w "$MODELS/qwen3.5-4b-q4_k_m.gguf")"
+          for v in best haswell sandybridge; do
+            echo "== $v"
+            if [ $v = best ]; then unset LONGYAN_CPU; else export LONGYAN_CPU=$v; fi
+            LONGYAN_ALLOW_SLOW=1 LONGYAN_TIMING=1 LONGYAN_CHECK_MINUTES=4 \
+              check-bin/BridgeCheck.exe dist/LongyanReader/Resources speed-lookups.txt "$m" > speed-$v.txt 2> speed-$v-log.txt \
+              && echo "exit 0" || { echo "exit $?"; tail -40 speed-$v-log.txt; }
+            grep -aE "CPU backend|by CPU features|model at|^card [0-9]|timing:|^read:|reads|peak memory" speed-$v-log.txt || true
+          done
+      - name: Speed by CPU kernels, llama-simple with a longer prompt
+        run: |
+          set -uo pipefail
+          m="$(cygpath -w "$MODELS/qwen3.5-4b-q4_k_m.gguf")"
+          p=$(python -c "print(' '.join(['The quick brown fox jumps over the lazy dog near the river bank.'] * 25))")
+          for v in haswell sandybridge sse42; do
+            d=speed-$v; mkdir -p $d
+            cp tool/llama-simple.exe dist/LongyanReader/{llama,ggml,ggml-base,vcruntime140,vcruntime140_1,msvcp140}.dll dist/LongyanReader/ggml-cpu-$v.dll $d/
+            echo "== $v"
+            (cd $d && ./llama-simple.exe -m "$m" -n 16 "$p") > /dev/null 2> $d/log.txt
+            grep -aE "loaded CPU backend|decoded|prompt eval time|eval time" $d/log.txt
+          done
+      # Too slow: on the SSE 4.2 kernels the model isn't loaded, the status is "too-slow", and
+      # cards come at once in dictionary order.
+      - name: Too slow on SSE 4.2
+        run: |
+          set -euo pipefail
+          m="$(cygpath -w "$MODELS/qwen3.5-4b-q4_k_m.gguf")"
+          export LONGYAN_BACKEND_LOG="$(cygpath -w "$PWD/slow-backend.txt")"
+          LONGYAN_CPU=sse42 LONGYAN_CHECK_MINUTES=1 \
+            check-bin/BridgeCheck.exe dist/LongyanReader/Resources speed-lookups.txt "$m" > slow.txt 2> slow-log.txt || { cat slow-log.txt; exit 1; }
+          cat slow-backend.txt slow-log.txt
+          python - <<'PY'
+          import re
+          backend = open("slow-backend.txt", encoding="utf-8").read()
+          log = open("slow-log.txt", encoding="utf-8", errors="replace").read().replace("\r", "")
+          for text, where in [("ggml-cpu-sse42.dll", backend), ("too slow for the model by CPU features: yes", backend),
+                              ('"model":"too-slow"', log), ("model at start: too-slow", log), ("model at end: too-slow", log),
+                              ("card 1: first", log), ("this PC is too slow for the reading model", log),
+                              ("phrase: No translation", log)]:
+              assert text in where, "missing: " + text
+          lines = [l for l in log.splitlines() if l.startswith("card ")]
+          assert all("this PC is too slow for the reading model" in l for l in lines), lines
+          times = [float(t) for t in re.findall(r"^card \d+: first [\d.]+ s, settled ([\d.]+) s", log, re.M)]
+          peak = int(re.search(r"peak memory: (\d+) MB", log).group(1))
+          print("settled in", times, "s; peak memory", peak, "MB")
+          assert len(times) == 3 and max(times) < 3, "a card waited"
+          assert peak < 1000, "the model was loaded"
+          PY
