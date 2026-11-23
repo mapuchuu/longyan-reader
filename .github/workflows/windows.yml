@@ -283,7 +283,12 @@ jobs:
       - name: Build BridgeCheck
         run: |
           dotnet build windows/BridgeCheck -c Release -o check-bin
-          cp dist/LongyanReader/*.dll check-bin/
+          # The native DLLs only: the app folder also holds its own .NET runtime, which isn't BridgeCheck's.
+          for f in dist/LongyanReader/*.dll; do
+            case $(basename "$f") in hostfxr.dll|hostpolicy.dll|coreclr.dll|clr*.dll|mscor*.dll|System.*|Microsoft.*|Presentation*|wpfgfx*|WindowsBase.dll|D3DCompiler*|netstandard.dll|mscorlib.dll) ;;
+              *) [ -e "check-bin/$(basename "$f")" ] || cp "$f" check-bin/ ;;
+            esac
+          done
       - name: Settings
         run: |
           set -euo pipefail
@@ -356,6 +361,7 @@ jobs:
     env:
       VULKAN_VERSION: 1.4.357.0
     steps:
+      - run: git config --global core.autocrlf false
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         id: vk
