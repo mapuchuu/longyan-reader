@@ -1,6 +1,6 @@
 # Windows release checklist
 
-Every step from a green shared-core to a public Windows release, in order. Written 2026-11-23 on branch win/launch-docs, from shared-core at baed711 (windows.yml green, run 45198517061).
+Every step from a green shared-core to a public Windows release, in order. First written 2026-11-23; brought up to date 2026-11-24 with shared-core at 8984051.
 
 Marks:
 - **[done]**: already true.
@@ -11,43 +11,47 @@ Marks:
 
 Nothing here has been run. No tag, release, secret or deploy has been made.
 
-## Where things stand
+## Where things stand (2026-11-24)
 
-- **shared-core is green** on windows.yml (jobs app, ui, sse42), core.yml and gallery.yml. [done]
-- **Three release branches aren't merged yet**, and all three edit windows.yml:
-  - win/installer (Inno Setup, per-user installer, tag `windows-v*` makes a draft release). Its last run (45201078155) failed at "Install, upgrade, uninstall".
-  - win/updates (WinSparkle, `appcast-windows.xml` on the `windows-feed` pre-release, the `windows-release` workflow).
-  - win/arm64 (native ARM64 build on the windows-11-arm runner).
+- **shared-core is green** at 8984051: app, ui, sse42, installer, installer-arm64, updates, speed, vulkan, first-run, compat. [done]
+- **Merged into shared-core:** installer (x64 and ARM64), updates (WinSparkle, own feed), native ARM64, motion parity, speed (threads, priming), eye parity, selection reading across apps. [done]
+- **Waiting to merge** (on win/integrate and its branches): the Windows 11 UI fixes (win/win11), the welcome window and model download (win/firstrun), the eye centred in its circle (win/eye-centre), the decisions below (win/decisions). Then ui-arm64 and ui-x64-on-arm64 must pass too, not just run.
 - **The app's version is 0.1.0** (`<Version>` in windows/LongyanReader/LongyanReader.csproj). The installer and the tag read it.
 - **No update key and no certificate yet.** `gh secret list` shows no secrets on the repo.
-- **Speed is unknown on real PCs.** The model runs on the CPU. On GitHub's 4-core runner a word card takes 15 to 17 s (AVX2) and about 20 s on the ARM runner. A real 8-core laptop will be faster, but nobody has measured one. Vulkan is started on win/speed.
-- **Not tested on Windows 10.** CI runs windows-latest (Windows Server 2025) and windows-11-arm. The installer allows Windows 10 (`MinVersion=10.0`).
+- **Speed.** The card shows at once with the dictionary rows; the model's work is what takes time, and almost all of it is reading the prompt on the CPU (20 to 40 tokens a second on CI and the VM; the Mac's GPU reads 1500). In the Parallels VM (4 cores, native ARM64): a phrase's translation starts at 0.7 to 3 s and all its rows are picked at 15 to 17 s. On CI x64: word cards 3 to 7 s. Work started: the GPU through Vulkan with a self-test (win/gpu), and rows that land one by one with shorter prompts (exp/faster-picks, needs your OK since it changes the Mac too).
+- **Not tested on Windows 10.** CI runs Windows Server 2025 and Windows 11 ARM. The installer allows Windows 10 (`MinVersion=10.0`). Needs a beta tester.
 - **The stats workflow didn't count .exe files.** Fixed on this branch (step 2.7).
 
-## 0. Decisions [you]
+## 0. Decisions
 
-- [ ] **Certificate.** Which kind and from whom. Since June 2023 new OV and EV code-signing keys must live on a hardware token or a cloud signing service, so a plain .pfx in a GitHub secret (what `windows/installer/sign.ps1` expects now) may not be possible. Options:
-  - Azure Trusted Signing (Microsoft's service, monthly fee, signs from CI, identity check required; check whether individuals in your country can use it now).
-  - An OV certificate with cloud signing (SSL.com eSigner, DigiCert KeyLocker, Certum SimplySign) so CI can sign.
-  - EV no longer skips SmartScreen's reputation check, so it buys little here.
-  Validation can take days to weeks: start it first.
-- [ ] **Publisher name.** An individual certificate shows your legal name as the publisher in SmartScreen and in file properties. Decide whether that's acceptable or whether to sign as an organisation.
-- [ ] **Beta version numbers.** Proposed: betas are 0.9.0, 0.9.1, and so on; the release is 1.0.0. The installer and release job only handle plain x.y.z (a tag like `windows-v1.0.0-beta.1` fails the job's file-name check).
-- [ ] **Beta signed or not.** The plan says signed before the *public* release. A beta can go out unsigned (testers follow variant B of the guide) or wait for the certificate.
-- [ ] **How private the beta is.** A GitHub pre-release is public in the Releases list; it's only unannounced. For a closed beta: give testers the CI artifact (needs a GitHub login) or add them as collaborators and keep the release a draft. Pre-release is simplest.
+Made (2026-11-24):
+- [x] Updates install silently (`/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /OPEN=1`) and the app opens again after.
+- [x] Uninstall deletes the app's data without asking.
+- [x] "Open at login" is the wording everywhere.
+- [x] No San Francisco letter widths on Windows (a few wraps differ by a pixel or so).
+- [x] Speed settings: priming on; Vulkan only behind its self-test; prompts and the too-slow rule as they are until the faster-picks results are in.
+- [x] x64 copies on ARM PCs move to the ARM64 build at their next update.
+
+Still open [you]:
+- [ ] **Certificate.** Since June 2023 new OV and EV code-signing keys must live on a hardware token or a cloud signing service, so a plain .pfx in a GitHub secret may not be possible. Recommended: Azure Trusted Signing (about $10 a month, signs from CI, identity check; check that individuals in your country can use it). Other option: an OV certificate with cloud signing (SSL.com eSigner, DigiCert KeyLocker, Certum SimplySign). EV no longer skips SmartScreen's reputation check. Validation can take days to weeks: start it first.
+- [ ] **Publisher name.** An individual certificate shows your legal name as the publisher.
+- [ ] **Beta version numbers.** Proposed: betas 0.9.0, 0.9.1, ...; release 1.0.0. The jobs only handle plain x.y.z.
+- [ ] **Beta signed or not.** A beta can go out unsigned (testers follow variant B of the guide) or wait for the certificate.
+- [ ] **How private the beta is.** A GitHub pre-release is public but unannounced. Simplest.
 - [ ] **Windows 10.** Find a Windows 10 tester before claiming it, or say Windows 11 only.
 - [ ] **Minimum memory.** README draft says 8 GB. Confirm on an 8 GB PC in the beta.
-- [ ] **Where Windows releases are built from.** Tags on shared-core work (windows.yml runs on the tag). README, site and stats.yml changes need main. Decide whether shared-core merges into main first (it changes the Mac's core; the Mac keeps Apple's splitter, per the plan).
-- [ ] **GPU before 1.0?** CPU-only speed may be too slow on older laptops. Decide whether Vulkan (win/speed) is in 1.0 or later.
+- [ ] **Where Windows releases are built from.** Tags on shared-core work. README, site and stats.yml changes need main. shared-core changes the Mac's core too, so before merging it into main: build the Mac app from it and check the evals, the gallery and the bridge cards are unchanged.
+- [ ] **Edge's own selection menu** sits where the eye goes: pick one of the 5 options in notes/windows-parity.md.
+- [ ] **First run:** the "running in the notification area" message (CI can't show it), whether to tell people to pin the tray icon, and what to do with apps running as admin.
+- [ ] **Faster picks** (exp/faster-picks): ship only if the evals hold; it changes the Mac's prompts too.
 
 ## 1. Merge the release branches into shared-core
 
-- [ ] [me] Fix win/installer's failing "Install, upgrade, uninstall" step (run 45201078155), or wait for whoever is on that branch.
-- [ ] [me] Merge win/installer, win/updates and win/arm64 into shared-core. Resolve windows.yml by hand: keep every job (app, ui, sse42, installer, updates, app-arm64, ui-arm64, ui-x64-on-arm64, release).
-- [ ] [me] Add the ARM64 installer: a second call to windows-installer.yml with `arm64-artifact: LongyanReader-windows-arm64` and `runner: windows-11-arm` (test.ps1 installs it, so it needs an ARM runner).
-- [ ] [me] The `release` job (from win/installer) must attach both installers, `needs: [installer, installer-arm64]`. Today it downloads only the x64 one.
-- [ ] [me] The app job must build with the build number on tags: `-p:BuildNumber=$(git rev-list --count HEAD)` with `fetch-depth: 0` (win/updates has this for x64; add it to app-arm64 too). WinSparkle compares this number.
-- [ ] [auto] windows.yml, core.yml and gallery.yml run on the push. All green, including installer and updates.
+- [x] [done] win/installer, win/updates and win/arm64 merged; every job kept (app, ui, sse42, installer, installer-arm64, updates, app-arm64, ui-arm64, ui-x64-on-arm64, speed, vulkan, release).
+- [x] [done] The ARM64 installer is its own job on windows-11-arm, and `release` needs both installers.
+- [ ] [me] The app jobs build with the build number (`-p:BuildNumber=$(git rev-list --count HEAD)` with `fetch-depth: 0`). x64 has it; app-arm64 didn't (fix on win/decisions). WinSparkle compares this number.
+- [ ] [me] Merge win/win11, win/firstrun, win/eye-centre and win/decisions, with all three UI jobs passing.
+- [ ] [auto] windows.yml, core.yml and gallery.yml run on the push. All green.
 
 ## 2. Release plumbing to check and fix
 
