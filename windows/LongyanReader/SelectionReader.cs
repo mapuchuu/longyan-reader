@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Automation;
@@ -104,21 +105,51 @@ static class SelectionReader
     {
         // The shortcut's own keys must be up first, or Ctrl+C arrives as Ctrl+Alt+C.
         for (var i = 0; i < 40 && (Down(VK_MENU) || Down(VK_SHIFT) || Down(VK_LWIN) || Down(VK_RWIN)); i++) await Task.Delay(25);
-        IDataObject? saved = null;
-        try { saved = Clipboard.GetDataObject(); } catch { }
+        // One at a time: two would each save and restore the other's copy.
+        if (Interlocked.Exchange(ref copying, 1) == 1) return null;
+        // The clipboard on a thread of its own: reading what's there makes the app that copied it
+        // render it, and an app that doesn't answer (Windows 11's Notepad, while it waits on the
+        // clipboard itself) held the app's thread for 30 s a format. Given up after 3 s here; the
+        // thread then finishes or gives up on its own.
+        var done = new TaskCompletionSource<string?>();
+        var thread = new Thread(() =>
+        {
+            try { done.TrySetResult(Copy()); }
+            catch { done.TrySetResult(null); }
+            finally { Interlocked.Exchange(ref copying, 0); }
+        }) { IsBackground = true, Name = "Longyan copy" };
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        var finished = await Task.WhenAny(done.Task, Task.Delay(3000)) == done.Task;
+        if (Core.Logging) Core.Log($"{{\"event\":\"copy\",\"ms\":{clock.ElapsedMilliseconds},\"finished\":{(finished ? "true" : "false")}}}");
+        var text = finished ? done.Task.Result : null;
+        if (string.IsNullOrWhiteSpace(text)) return null;
+        return new Selected(text, 0, text.Length, null);
+    }
+
+    static int copying;
+
+    /// Saves what's on the clipboard (its data itself, before anything replaces it), copies,
+    /// reads the copy and puts the saved data back. Waits pump COM, so apps asking for the
+    /// marker meanwhile get an answer.
+    static string? Copy()
+    {
+        DataObject? saved = null;
+        try { if (Clipboard.GetDataObject() is IDataObject current) saved = Private(current); } catch { }
         var marker = "longyan-" + Guid.NewGuid();
         try { Clipboard.SetDataObject(Private(marker), false); } catch { return null; }
         SendCopy();
         string? text = null;
+        using var wait = new ManualResetEvent(false);
         for (var i = 0; i < 20; i++)
         {
-            await Task.Delay(25);
+            wait.WaitOne(25);
             try { text = Clipboard.ContainsText() ? Clipboard.GetText() : null; } catch { }
             if (text != null && text != marker) break;
         }
-        try { if (saved != null) Clipboard.SetDataObject(Private(saved), true); else Clipboard.Clear(); } catch { }
-        if (string.IsNullOrWhiteSpace(text) || text == marker) return null;
-        return new Selected(text, 0, text.Length, null);
+        try { if (saved != null) Clipboard.SetDataObject(saved, true); else Clipboard.Clear(); } catch { }
+        return text == marker ? null : text;
     }
 
     /// Clipboard contents marked to stay out of Win+V history and cloud clipboard sync, so the
