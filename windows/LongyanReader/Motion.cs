@@ -151,6 +151,36 @@ static class Motion
         if (!ticking) { ticking = true; CompositionTarget.Rendering += Tick; }
     }
 
+    sealed class Line
+    {
+        public required DependencyObject Target;
+        public required DependencyProperty Property;
+        public double From, To, Seconds, Start;
+        public bool Ended;
+        public string? Trace;
+        public Action? Done;
+        public System.Collections.Generic.List<(double T, double X)>? Frames;
+    }
+
+    static readonly System.Collections.Generic.Dictionary<(DependencyObject, DependencyProperty), Line> lines = new();
+
+    /// Moves `p` of `e` from `from` to `to` in a straight line over `seconds`, timed from now.
+    /// `done` runs on the frame after the one that drew `to`, so the end is on screen first
+    /// (a window hidden on the last tick never shows its last step).
+    public static void Linear(DependencyObject e, DependencyProperty p, double from, double to, double seconds, Action? done = null, string? trace = null)
+    {
+        Stop(e, p);
+        lines.Remove((e, p));
+        ((IAnimatable)e).BeginAnimation(p, null);
+        var line = new Line { Target = e, Property = p, From = from, To = to, Seconds = seconds, Start = Now, Done = done, Trace = Core.Logging ? trace : null };
+        if (line.Trace != null) line.Frames = new() { (line.Start, from) };
+        lines[(e, p)] = line;
+        e.SetValue(p, from);
+        if (!ticking) { ticking = true; CompositionTarget.Rendering += Tick; }
+    }
+
+    public static void StopLinear(DependencyObject e, DependencyProperty p) => lines.Remove((e, p));
+
     /// Whether a spring under `key` is still moving, and its value now.
     public static bool Moving(string key) => keyed.ContainsKey(key);
     public static bool Running(DependencyObject e, DependencyProperty p) => runs.ContainsKey((e, p));
@@ -184,7 +214,24 @@ static class Motion
             Drop(run, log: true);
             run.Done?.Invoke();
         }
-        if (runs.Count == 0) { ticking = false; CompositionTarget.Rendering -= Tick; }
+        foreach (var line in new System.Collections.Generic.List<Line>(lines.Values))
+        {
+            if (!lines.TryGetValue((line.Target, line.Property), out var l) || l != line) continue;
+            if (line.Ended)
+            {
+                lines.Remove((line.Target, line.Property));
+                if (line.Frames != null)
+                    Core.Log(FormattableString.Invariant($"{{\"event\":\"linear\",\"tag\":\"{line.Trace}\",\"start\":{line.Start * 1000:0.00},\"from\":{line.From:0.0000},\"to\":{line.To:0.0000},\"seconds\":{line.Seconds},\"done\":{now * 1000:0.00},\"frames\":[{string.Join(",", line.Frames.ConvertAll(f => FormattableString.Invariant($"[{f.T * 1000:0.00},{f.X:0.0000}]")))}]}}"));
+                line.Done?.Invoke();
+                continue;
+            }
+            var t = Math.Min(1, (now - line.Start) / line.Seconds);
+            var x = line.From + (line.To - line.From) * t;
+            line.Target.SetValue(line.Property, x);
+            line.Frames?.Add((now, x));
+            if (t >= 1) line.Ended = true;
+        }
+        if (runs.Count == 0 && lines.Count == 0) { ticking = false; CompositionTarget.Rendering -= Tick; }
     }
 
     /// For the UI check: the curve this spring started on, and the value it drew each frame.

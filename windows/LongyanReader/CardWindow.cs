@@ -568,15 +568,26 @@ sealed class CardWindow : Window, ICardActions
         // In place only when it replaces a card at the same spot (PU:429-441): a pinned card
         // opening at its corner with no card there springs in as any card does.
         var inPlace = swapping != null;
-        var fade = new DoubleAnimation(0, 1, new Duration(TimeSpan.FromSeconds(inPlace ? 0.12 : 0.14)));
-        // Once this card is in, the one it replaces goes, with no fade.
-        fade.Completed += (_, _) => DropSwap(fade: false);
-        BeginAnimation(OpacityProperty, fade);
-        if (Motion.Reduced || inPlace) return;
-        Motion.Spring(revealScale, ScaleTransform.ScaleXProperty, 1, Motion.Reveal, from: 0.96);
-        Motion.Spring(revealScale, ScaleTransform.ScaleYProperty, 1, Motion.Reveal, from: 0.96);
-        Motion.Spring(revealShift, TranslateTransform.YProperty, 0, Motion.Reveal, from: below ? -4 : 4);
+        var springs = !Motion.Reduced && !inPlace;
+        // Held at the start until the window's first frame is drawn: a newly shown layered window
+        // takes tens of ms to reach the screen, and a clock started at Show() ran on unseen.
+        Opacity = 0;
+        if (springs) { revealScale.ScaleX = revealScale.ScaleY = 0.96; revealShift.Y = below ? -4 : 4; }
+        void Go()
+        {
+            if (closing) return;
+            // Once this card is in, the one it replaces goes, with no fade.
+            Motion.Linear(this, OpacityProperty, 0, 1, inPlace ? 0.12 : 0.14, () => DropSwap(fade: false), trace: "fade-in");
+            if (!springs) return;
+            Motion.Spring(revealScale, ScaleTransform.ScaleXProperty, 1, Motion.Reveal, from: 0.96, trace: "reveal-scale");
+            Motion.Spring(revealScale, ScaleTransform.ScaleYProperty, 1, Motion.Reveal, from: 0.96);
+            Motion.Spring(revealShift, TranslateTransform.YProperty, 0, Motion.Reveal, from: below ? -4 : 4);
+        }
+        if (firstFrame) Go();
+        else ContentRendered += (_, _) => { firstFrame = true; Go(); };
     }
+
+    bool firstFrame;
 
     /// Sets the card's height for its content: the window grows at once and the card animates
     /// inside it; when it shrinks, the window follows 0.32 s later.
@@ -1137,9 +1148,9 @@ sealed class CardWindow : Window, ICardActions
     {
         if (gone) return;
         if (!IsVisible) { CloseNow(); return; }
-        var a = new DoubleAnimation(Opacity, 0, new Duration(TimeSpan.FromSeconds(0.12)));
-        a.Completed += (_, _) => CloseNow();
-        BeginAnimation(OpacityProperty, a);
+        // The whole 0.12 s, linear, from where it is; the window goes only after 0 is drawn.
+        var from = Opacity;
+        Motion.Linear(this, OpacityProperty, from, 0, 0.12, CloseNow, trace: "fade-out");
     }
 
     void CloseNow()

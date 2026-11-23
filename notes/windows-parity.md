@@ -22,7 +22,7 @@ and live dark mode on every push.
 | Step | Mac | Windows |
 |---|---|---|
 | Hold for the pick | 0.4 s from the lookup (APP:756) | 0.4 s from the lookup (CW Update), Normal-priority timer |
-| Reveal: window fade | 0 to 1, 0.14 s, linear (PU:442) | 0 to 1, 0.14 s, linear (CW Reveal) |
+| Reveal: window fade | 0 to 1, 0.14 s, linear (PU:442) | 0 to 1, 0.14 s, linear (CW Reveal); **fixed**: the fade and the spring now start on the window's first drawn frame (ContentRendered). They started at Show(), and a new layered window takes tens of ms to reach the screen, so a VM film saw the spring 97% done at 131 ms (the spring itself is 82% at 131 ms, 98% at 200 ms) |
 | Reveal: card | scale 0.96 to 1, y −4 (below) / +4 (above) to 0, spring 0.32 / 0.82, anchor top or bottom (PU:446, CC:382) | same values, on the spring driver (MO Spring), run until it settles |
 | Swap in place (pinned, Part of) | fade 0.12 s, no spring (PU:435) | fade 0.12 s, no spring |
 | Every change inside (cardMotion) | spring 0.34 / 1.0; Reduce Motion easeInOut 0.15 s (CC:191) | same, MO Spring with MO Card until it settles; Reduce Motion Bézier (0.42, 0, 0.58, 1) 0.15 s |
@@ -33,7 +33,7 @@ and live dark mode on every push.
 | Parts leaving, text crossfades | opacity on cardMotion | same (was ease-out 0.3 s, **fixed**) |
 | Chevrons | Show All 0° to 180°, phrase row 0° to 90°, cardMotion | same |
 | Pick: checkmark | opacity 0 to 1, scale 0.6 to 1, cardMotion (CC:720) | same |
-| Dismiss | fade to 0, 0.12 s, linear; no motion (PU:727) | same |
+| Dismiss | fade to 0, 0.12 s, linear; no motion (PU:727) | same, **fixed**: a VM film saw it reach about 60% and then vanish at 96 ms. Now the fade runs on the frame clock (MO Linear) over the full 0.12 s, and the window closes on the frame after the one that drew 0. UC 3-fade checks every frame against the straight line |
 | Pin: close badge | opacity 0 to 1, scale 0.7 to 1, spring 0.25 / 0.9 (CC:1006) | same, on the spring driver |
 | Copy, Anki symbols | replace.downUp, filmed: the old symbol shrinks to 0.5 in 0.23 s (speeding up), the new one starts at 0.52 and is full size at 0.46 s (slowing down); no fade | the same curve, from the film (**fixed**: was a grow from 0.5 on cardMotion with a fade) |
 | Pin symbol | replace.downUp with bounce.down, filmed: old one to 0.51 in 0.22 s, new one in at 0.76, up to 1.10 at 0.4 s, back to 1 at 0.62 s | the same curve (**fixed**: had no bounce) |
@@ -137,7 +137,7 @@ and live dark mode on every push.
 | Esc in another app closes, unless pinned | PU:385-388 | CW Hooks (WH_KEYBOARD_LL), Outside | same | 1-close, 6-feel assert |
 | Clicks and Esc in the app's own windows (the eye, History, Settings, tray menu) leave the card | global monitors see other apps only; PU:389-393 | CW Hooks.Tell (window under the click, or in front, by process) | **fixed**: these closed the card | |
 | Typing, switching apps, the shortcut again: typing and switching leave it; the shortcut opens a new card in its place | PU:311-319 | CW Present | same | |
-| Close: window fade to 0 over 0.12 s, no motion; speech stops | PU:717-734 | CW Dismiss, FadeOut, Retire | same | 1-close film |
+| Close: window fade to 0 over 0.12 s, no motion; speech stops | PU:717-734 | CW Dismiss, FadeOut, Retire, MO Linear | **fixed**: closed before the fade ended; now 0 is drawn first | 1-close film, UC 3-fade |
 | Hints close themselves after 1.8 s | APP:888-897 | CW ShowHint | same | |
 | Never takes the focus; first click lands on the control | PU:208-210, PU:258-261 | CW WS_EX_NOACTIVATE, ShowActivated false | same | 6-feel asserts Notepad keeps the focus on open and after a click on a row |
 | One card at a time; a hint beside a pinned card opens in its own window | PU:311-319, APP:890 | CW Present, Hint | same | |

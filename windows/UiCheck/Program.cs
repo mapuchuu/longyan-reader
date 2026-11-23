@@ -129,8 +129,10 @@ static partial class Program
         }
         else failures.Add("2-phrase: no \"to implement\" row to open");
 
+        var fadeSkip = LogLength();
         Keys(VK_ESCAPE);
         Thread.Sleep(800);
+        FadeCheck(fadeSkip);   // MotionFeel.cs
         EyeCheck(window);
         HistoryCheck.Run(exe, app, outDir, failures);
         PointCheck.Run(app, window, log, failures, Shot);
