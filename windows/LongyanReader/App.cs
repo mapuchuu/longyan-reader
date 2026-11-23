@@ -20,6 +20,7 @@ static class Program
     static string? toldAbout;
     static Action? balloonClicked;
     const string AgainEvent = "LongyanReader.Windows.Again";
+    const string QuitEvent = "LongyanReader.Windows.Quit";
 
     [STAThread]
     static int Main(string[] args)
@@ -67,6 +68,10 @@ static class Program
         // Opened again (from Start, or the exe): Settings, as Windows tray apps do.
         ThreadPool.RegisterWaitForSingleObject(openedAgain, (_, _) => app.Dispatcher.BeginInvoke(() => SettingsWindow.Open()),
             null, Timeout.Infinite, false);
+        // The installer and uninstaller (windows/installer) ask it to exit before they replace or remove it.
+        using var quit = new EventWaitHandle(false, EventResetMode.AutoReset, QuitEvent);
+        ThreadPool.RegisterWaitForSingleObject(quit, (_, _) => app.Dispatcher.BeginInvoke(() => Exit("the installer asked", TimeSpan.FromSeconds(4))),
+            null, Timeout.Infinite, true);
         app.SessionEnding += (_, _) => Exit("Windows is shutting down", TimeSpan.FromSeconds(2));
         app.Startup += (_, _) => Start();
         app.Run();
