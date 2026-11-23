@@ -1,6 +1,8 @@
 # Puts a Windows release in the update feed, the way scripts/release.sh writes the Mac's appcast.
-# Run it by hand (Actions > windows-release > Run workflow) once the draft release has both
-# installers, LongyanReader-Setup-<version>-x64.exe and -arm64.exe, and its notes.
+# Run it by hand (Actions > windows-release > Run workflow) once the draft release has the
+# installers, LongyanReader-Setup-<version>-x64.exe and -arm64.exe (windows.yml makes the draft
+# when a windows-v<version> tag is pushed), and what's new as its notes: they're shown in the
+# update window.
 #
 # The feed is appcast-windows.xml on the windows-feed pre-release, a fixed URL the app reads
 # (Windows releases aren't marked latest, so releases/latest can't be used, and the Mac's feed
@@ -56,16 +58,18 @@ jobs:
           set -euo pipefail
           gh release view "$TAG" --json isDraft,targetCommitish,body > release.json
           jq -r .body release.json > notes.md
-          # The build number the installers were built with: the commit count at the release's commit.
+          # The build number the installers were built with: the commit count at the release's tag
+          # (windows.yml makes the draft when the tag is pushed), else at its target.
+          git fetch -q --tags origin
           target=$(jq -r .targetCommitish release.json)
-          git fetch -q origin "$target" 2>/dev/null || true
-          build=$(git rev-list --count "$(git rev-parse --verify "$target^{commit}" 2>/dev/null || git rev-parse --verify "origin/$target^{commit}")")
+          commit=$(git rev-parse -q --verify "refs/tags/$TAG^{commit}" || git rev-parse -q --verify "$target^{commit}" || git rev-parse --verify "origin/$target^{commit}")
+          build=$(git rev-list --count "$commit")
           echo "BUILD=$build" >> "$GITHUB_ENV"
           echo "IS_DRAFT=$(jq -r .isDraft release.json)" >> "$GITHUB_ENV"
           mkdir installers
           gh release download "$TAG" --dir installers --pattern "LongyanReader-Setup-$VERSION-*.exe"
           ls -l installers
-          echo "$TAG: build $build at $target, draft $(jq -r .isDraft release.json)"
+          echo "$TAG: build $build at $commit, draft $(jq -r .isDraft release.json)"
       - name: The live feed
         run: |
           set -euo pipefail
