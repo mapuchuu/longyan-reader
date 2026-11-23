@@ -17,17 +17,33 @@ How it was checked, against the 1.1 release build:
 
 ### 1. The word splitter (the big one)
 
-The segmenter starts from Apple's NLTokenizer and then applies dictionary rules. NLTokenizer is closed and only on Apple's systems. Windows has its own word breaker, but it splits differently, and every difference changes which words a card shows.
+The segmenter starts from Apple's NLTokenizer and then applies dictionary rules. NLTokenizer is closed and only on Apple's systems, so the two apps can only match if both use a splitter of our own.
 
-So the two apps can only match if both use the same splitter. The way to get there is our own splitter in LongyanCore, used on both platforms, measured against NLTokenizer with `scripts/parity.py` and the evals. The Mac would switch only if the evals don't drop. Until then, Windows can't match the Mac exactly.
+What was ruled out (2026-11-23):
 
-A first try (2026-11-23, not on the branch): the dictionary's words, cheaper the higher they rank in `notes/frequency.txt`, cut along the cheapest path. Single characters cost 2.2, dictionary words outside the list 5. Against NLTokenizer:
+- ICU, which Windows ships: the same split as NLTokenizer on 16% of 3,504 sentences, 77% of words. CFStringTokenizer matches NLTokenizer 100%, so it's Apple's engine, not ICU.
+- A table of word costs: NLTokenizer uses the sentence around a phrase. 155 of 3,524 phrases split differently when cut out of their sentence (我等 一下 in a sentence, 我 等 一下 alone).
+- Shipping Apple's tokenizer or its data: not ours to ship.
+- Qwen splitting the text: far too slow for a click, and the model is optional.
 
-- the same split on 897 of 938 sentences (95.6%), 98.3% of one-character clicks, 98.5% of selections
-- its misses are what context fixes: 开 除了, 全 家人, 石 头上, 说明 天
-- evals: words 28/29 (27 now), senses 27/29 (24), phrase 81/95 (83), single 86/90 (85), phrase-notes, notes and real reading the same
+What works: a character tagger trained on NLTokenizer's splits of text the app's Qwen wrote (`~/workspace/longyan-ft/splitter`). It's an averaged perceptron: each character gets begin, middle, end or single, from the characters around it and the CEDICT words that start or end there. No neural network.
 
-So a splitter of our own is about as good, and a better one is within reach. NLTokenizer can be its teacher: any Chinese text split on a Mac is training data, so a small model trained to copy it could agree on nearly everything, and then run the same on both platforms.
+- Size: 1.4 to 2 MB of integer weights, gzipped. Speed: 54 µs a sentence in Swift. Loading: 0.37 s, once.
+- Integer sums, so it gives the same answer on every platform. The Swift decoder matches the Python one on all 216,000 parity lines.
+- Against NLTokenizer on held-out sentences, by amount of training text:
+
+| training text | sentences split exactly alike | words alike | cards alike (parity `segment`) |
+|---|---|---|---|
+| 0.26M characters | 79.3% | 95.2% | 96.7% |
+| 0.57M | 81.9% | 95.9% | 98.1% |
+| 0.98M | 84.3% | 96.4% | |
+| 1.66M | 87.2% | 97.1% | 98.7% |
+
+At 1.66M, one-character clicks and selections match 99.7%. Evals: words, senses, notes, phrase, real-S and real-T the same; single, phrase-notes and real-P one fewer each. Some of the 12 remaining card differences are better than NLTokenizer (收 回扣, "take kickbacks", where it has 收回 扣), some worse (看病 人, 个儿 子). Every doubling of the text still helps, so 4M or more should close most of the gap. Another option is a small neural tagger, which needs PyTorch.
+
+The trade: both apps would use the tagger, so Windows matches the Mac exactly, and the Mac moves off NLTokenizer on about 1 sentence in 80. Adopt it only once the evals match.
+
+Lesson from the port: CEDICT has CRLF line endings, and Swift treats "\r\n" as one Character, so `split(separator: "\n")` reads nothing. Use `split(whereSeparator: \.isNewline)` for files.
 
 ### 2. Part of speech
 
@@ -43,7 +59,9 @@ Streaming from Ollama uses `URLSession.bytes`, which only Apple's Foundation has
 
 ## Still to build for Windows
 
-- llama.cpp for Windows (CPU and Vulkan, maybe CUDA) with our output-tokens patch, and `Package.swift` choosing it there instead of the xcframework. Sparkle and the Mac targets need to be Mac-only in the package.
+- llama.cpp for the app: CI builds it CPU-only and static. Vulkan (and maybe CUDA) for speed, and DLL or static.
+- Fold the Windows fence (patches/llama.cpp-windows.patch) into the output-tokens patch, which needs a Mac llama rebuild. Until then the output table's pages aren't given back on Windows.
+- Run the real model on Windows: load the GGUF, pick a sense, translate, and compare with the Mac.
 - Memory pressure: Windows has its own low-memory signal to call `EmbeddedModel.relieve`.
 - The main actor needs a run loop that drains the main queue alongside the Windows message loop.
 - Reading the selection: UI Automation (text pattern and selection bounds) instead of Accessibility. Coverage will vary by app.
@@ -51,6 +69,13 @@ Streaming from Ollama uses `URLSession.bytes`, which only Apple's Foundation has
 - Updates: WinSparkle reads the same appcast format.
 - Signing: a Windows code-signing certificate, or SmartScreen warns on every download.
 
-## Not checked yet
+## Checked on Windows and Linux
 
-There is no Windows or Linux Swift toolchain on this Mac, so the core hasn't been compiled for Windows. The Apple-only APIs found by reading it are fenced off. A GitHub Actions job on a Windows runner is the next check, once pushing is OK.
+`.github/workflows/core.yml` builds llama.cpp (the same release and patch, CPU only), the core and `longyan-core-check` on Windows and Linux. The check prints the core's answers for a fixed set of words and sentences, plus a hash of every dictionary entry's senses and card wording, with a one-character splitter and no English tagger. Both platforms match the Mac's output (scripts/core-check-expected.txt) exactly.
+
+Fixed on the way:
+
+- `\p{Han}` in `String.range(of:)` means Han's script extensions on the Mac (so 達·芬奇 is one run) and the Han script elsewhere. Now `\p{scx=Han}`, which matches the same characters on the Mac.
+- Saved model states use `VirtualAlloc` on Windows, where there's no `mmap`.
+
+Not exercised yet: the model itself, the Anki connection (FoundationNetworking) and parts of speech, which need the table in section 2.
