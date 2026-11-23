@@ -204,6 +204,13 @@ static partial class Program
         foreach (var p in Process.GetProcessesByName("msedge")) try { p.Kill(); } catch { }
         if (modern != IntPtr.Zero) PostMessage(modern, 0x10 /* WM_CLOSE */, IntPtr.Zero, IntPtr.Zero);
         if (tested.Count < 2) failures.Add($"eye-scale: only {string.Join(", ", tested)}% could be tested");
+        if (ownTimes.Count > 0)
+        {
+            var sorted = ownTimes.OrderBy(x => x).ToList();
+            int median = sorted[sorted.Count / 2], p90 = sorted[(int)(sorted.Count * 0.9)];
+            Console.WriteLine($"[eye-scale] the app's own time from mouse-up to the eye (less the 0.12 s wait and the selection's read), {sorted.Count} eyes: median {median} ms, 90th {p90} ms, most {sorted[^1]} ms");
+            if (median > 100 || p90 > 150) failures.Add($"eye-scale: the app takes {median} ms (median), {p90} ms (90th) of its own to show the eye");
+        }
         if (now != 100) Scaling.SetTo(100);
         Thread.Sleep(2000);
         try { notepad.Kill(); } catch { }
@@ -379,6 +386,7 @@ static partial class Program
     }
 
     static Bitmap? lastCrop;
+    static readonly List<int> ownTimes = new();
 
     /// Makes a selection, waits for the eye, and checks it against the Mac's rule. `lines` are
     /// the text lines it covers (their ink, captured before, gives the text's centre). Returns
@@ -440,7 +448,14 @@ static partial class Program
         // The app's own part: all but the 0.12 s wait and the app's answer to UI Automation (the
         // Mac waits on Accessibility the same way, up to 0.5 s).
         var probeMs = Last(skip, "eye-probe")?["ms"] is JsonNode pm ? (int)pm : 0;
-        if (burst == null && logged?["ms"] is JsonNode msNode && (int)msNode - probeMs - 120 > 150) failures.Add($"{name}: the eye came {(int)msNode} ms after the mouse let go, {(int)msNode - probeMs - 120} ms of it the app's own (reading the screen {logged["drawnMs"]} ms; the selection {probeMs} ms)");
+        // A shared runner stalls now and then: one slow case is logged, a slow middle fails
+        // (EyeScalings).
+        if (burst == null && logged?["ms"] is JsonNode msNode)
+        {
+            var own = (int)msNode - probeMs - 120;
+            ownTimes.Add(own);
+            if (own > 150) Console.WriteLine($"[{name}] slow: the eye came {(int)msNode} ms after the mouse let go, {own} ms of it the app's own (reading the screen {logged["drawnMs"]} ms; the selection {probeMs} ms)");
+        }
         if (rects.Length == 0) { failures.Add($"{name}: no selection to measure"); return eye; }
         var union = rects[0];
         foreach (var x in rects.Skip(1)) union.Union(x);

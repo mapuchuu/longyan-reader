@@ -370,6 +370,18 @@ Consolas line), so UiCheck allows 2 px.
 | Mark size | 13 frame, 12 wide on screen | 13 frame; was 12.6 (11.5 wide) | same | UiCheck `exact` |
 | Scalings | points | device pixels × monitor DPI (per-monitor v2) | same | eye-sheet-100/125/150/175 on CI (the runner offers no 200%); 200% read in the user's VM |
 
+### Reading the selection off the screen
+
+UI Automation's rects are up to a character off the highlight (classic Notepad at 175%: 9 px
+short; at 100%: 3 px long) and up to 2 px off the ink. For a one-line selection SR.Drawn reads
+the rect's pixels (a line wider): the highlight is the commonest colour, its edge the median
+row-end on its middle rows, the ink the rows inside each row's highlight run. Notepad's
+blinking caret (the highlight's inverse, a column) is skipped. White space left out of the rect
+is still highlighted, so the text then ends at the rect. CI (UiCheck `exact`, 128 cases at
+100-175%): the mark within 0.5 points plus half a device pixel of the ink's centre and of 19.5
+after the text's end. At 100% every case is 0 and 19.5; at 125-175% the mark sits on whole
+pixels, so up to 0.4 points under.
+
 ### Edge's selection menu (open, the user's call)
 
 Edge shows its own small menu (Copilot, copy, search) when text is selected. It is a msedge
@@ -384,7 +396,7 @@ selection's end, or no eye while Edge's menu shows. Not chosen yet.
 | Behaviour | Mac | Windows | Status | Evidence |
 |---|---|---|---|---|
 | Trigger | left mouse-up after a drag > 4 pt (Euclidean) or a double-click (CS:51-52) | same; was SM_CXDRAG per axis (IW) | same | 3-eye, 3-eye-drag |
-| Delay | 0.12 s, then read (CS:54) | 0.12 s, then UI Automation within 0.5 s (C.Consider) | same | code |
+| Delay | 0.12 s, then read (CS:54) | 0.12 s, then UI Automation within 0.5 s, then the highlight read off the screen (3-28 ms); the first eye after a start is warmed (C.Warm) | same | UiCheck: the app's own time, less the wait and the app's UI Automation answer, median under 100 ms |
 | Selection kept | trimmed non-empty, has Chinese, ≤ 400 (CS:62) | has Chinese, ≤ 400 trimmed (C.Consider) | same | 3-eye |
 | Unreadable apps | eye with copy on click, unless the focus isn't text (CS:67-71) | double-click only, not terminals, dialogs, Excel, full screen | platform | notes/windows-plan.md |
 | Hidden apps, off switch | hiddenApps, showChip (CS:48-49) | Settings.EyeHiddenIn, ShowEye | same | 4-settings |
@@ -398,11 +410,11 @@ selection's end, or no eye while Edge's menu shows. Not chosen yet.
 | Drawing | surface, 0.5 hairline at 10%, 13 pt mark (CS:233-256) | same (C.Build) | same | gallery eye.png vs mac/eye.png: inside the circle mean 1.8, dark 0.9 of 255 |
 | Shadow | black 18%, radius 5, y 2 (CS:213) | DropShadow blur 16, opacity 0.24, depth 2; was 10 and 0.18 | same | rendered both at 2x over white: RMS 0.6 of 255 (was a far shorter tail) |
 | First appearance | where it settles from the first frame | the window doesn't move after it shows; its circle at about 30 ms is centred where it settles | same | `0-first-eye-30ms.png` and `-settled.png`, both first eyes after a start |
-| Appear | alpha 0 to 1 in 0.12 s linear; scale 0.6 to 1, spring 0.3 / 0.68 (CS:120-123, 228) | same (C.Place, M.EyeAppear) | same | 3-eye-in frames |
-| Hover | 1.08, spring 0.25 / 0.7; mark secondary to primary in the same spring (CS:225, 236) | same; the mark's fade was 0.15 s ease-out | same | 3-eye-hover |
+| Appear | alpha 0 to 1 in 0.12 s linear; scale 0.6 to 1, spring 0.3 / 0.68 (CS:120-123, 228) | same, from the window's first frame (ContentRendered), on the Motion driver (Linear, Spring) | same | 3-eye-in frames |
+| Hover | 1.08, spring 0.25 / 0.7; mark secondary to primary in the same spring (CS:225, 236) | same; a hover or press cut short keeps its speed (Motion.Spring), as SwiftUI's do | same | 3-eye-hover |
 | Press | 0.92, spring 0.2 / 0.7 (CS:226) | same (M.EyePress) | same | code |
-| Spring maths | SwiftUI: mass 1, stiffness (2π/response)², damping ratio as given | M.Spring, run until under 0.1% of the move | same | M:74-96 |
-| Hide | alpha to 0 in 0.1 s on any hide, click included (CS:166-175) | 0.1 s; a click was 0.08 | same | 3-eye-reveal frames |
+| Spring maths | SwiftUI: mass 1, stiffness (2π/response)², damping ratio as given | the Motion driver (Spring.cs) | same | MotionFeel |
+| Hide | alpha to 0 in 0.1 s on any hide, click included (CS:166-175) | 0.1 s Motion.Linear, then the window closes | same | 3-eye-reveal frames |
 | Reduce Motion | not checked by the eye | Windows' animation effects off skips the springs | platform | |
 
 ### Leaving and clicking
