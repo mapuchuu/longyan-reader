@@ -22,7 +22,7 @@ for arch in x64 arm64; do
 done
 [ ${#installers[@]} -gt 0 ] || { echo "no LongyanReader-Setup-$version-x64.exe or -arm64.exe in $dir" >&2; exit 1; }
 extra=()
-[ -n "${INSTALLER_ARGS:-}" ] && extra+=(--installer-args "$INSTALLER_ARGS")
+[ -n "${INSTALLER_ARGS:-}" ] && extra+=("--installer-args=$INSTALLER_ARGS")
 [ "${REQUIRE_SIGNATURE:-}" = 1 ] && extra+=(--require-signature)
 "$py" "$here/windows-feed.py" add "$feed" --version "$version" --build "$build" --notes "$notes" \
   --url-prefix "$prefix" "${installers[@]}" "${extra[@]+"${extra[@]}"}"
