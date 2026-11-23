@@ -713,7 +713,7 @@ extension EmbeddedModel {
     /// in batches of 8 tokens or more) after the first read of each load, which also brings the
     /// model's 2.7 GB in from the disk. Below `slowRead` tokens a second over 300 tokens, the
     /// model is too slow here too. On the model's queue.
-    static let slowRead = 45.0
+    static let slowRead = 10.0
     nonisolated(unsafe) private static var readTokens = 0
     nonisolated(unsafe) private static var readSeconds = 0.0
     nonisolated(unsafe) private static var coldRead = true

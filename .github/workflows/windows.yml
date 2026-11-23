@@ -254,9 +254,9 @@ jobs:
             echo "== $v"
             if [ $v = best ]; then unset LONGYAN_CPU; else export LONGYAN_CPU=$v; fi
             LONGYAN_ALLOW_SLOW=1 LONGYAN_TIMING=1 LONGYAN_CHECK_MINUTES=4 \
-              check-bin/BridgeCheck.exe dist/LongyanReader/Resources speed-lookups.txt "$m" > speed-$v.txt 2> speed-$v-log.txt
-            echo "exit $?"
-            grep -aE "CPU backend|by CPU features|model at|^card [0-9]|timing:|^read:|reads|peak memory" speed-$v-log.txt
+              check-bin/BridgeCheck.exe dist/LongyanReader/Resources speed-lookups.txt "$m" > speed-$v.txt 2> speed-$v-log.txt \
+              && echo "exit 0" || { echo "exit $?"; tail -40 speed-$v-log.txt; }
+            grep -aE "CPU backend|by CPU features|model at|^card [0-9]|timing:|^read:|reads|peak memory" speed-$v-log.txt || true
           done
       - name: Speed by CPU kernels, llama-simple with a longer prompt
         run: |

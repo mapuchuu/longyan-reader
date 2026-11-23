@@ -256,18 +256,28 @@ static class Program
         return System.IO.File.Exists(path) ? new System.Drawing.Icon(path) : System.Drawing.SystemIcons.Application;
     }
 
-    /// The model's state from the core: "ready", "unloadable", "no-memory", or why it can't pick.
+    /// The model's state from the core: "ready", "unloadable", "no-memory", "too-slow" (this PC
+    /// is too slow for it, so it isn't loaded or offered), or why it can't pick.
     static void ModelChanged(string status)
     {
         modelStatus = status;
+        ModelDownload.TooSlow = status == "too-slow";
         UpdateMenu();
+        if (ModelDownload.TooSlow && modelItem != null && !ModelDownload.Running)
+        {
+            modelItem.Text = "Reading model: this PC is too slow for it";
+            modelItem.Enabled = false;
+        }
         if (status == "ready") toldAbout = null;
         // Each problem said once until it's fixed; the menu keeps saying it.
-        if (status == toldAbout || status is not ("unloadable" or "no-memory")) return;
+        if (status == toldAbout || status is not ("unloadable" or "no-memory" or "too-slow")) return;
         toldAbout = status;
-        Balloon(status == "unloadable"
-            ? "The reading model couldn't load, so cards list meanings in dictionary order. Use this icon's menu to download it again."
-            : "There isn't enough free memory for the reading model, so cards list meanings in dictionary order. It tries again in a minute.");
+        Balloon(status switch
+        {
+            "unloadable" => "The reading model couldn't load, so cards list meanings in dictionary order. Use this icon's menu to download it again.",
+            "too-slow" => "This PC is too slow for the reading model. Cards use dictionary order.",
+            _ => "There isn't enough free memory for the reading model, so cards list meanings in dictionary order. It tries again in a minute.",
+        });
     }
 
     static void UpdateMenu()
@@ -285,6 +295,7 @@ static class Program
     {
         if (ModelDownload.Running) { ModelDownload.Stop(); return; }
         if (modelStatus == "ready" || checkingModel) return;
+        if (ModelDownload.TooSlow) { Balloon("This PC is too slow for the reading model. Cards use dictionary order."); return; }
         if (ModelDownload.IsDownloaded)
         {
             // A file that didn't load may still be the right one: check it before 2.7 GB again.

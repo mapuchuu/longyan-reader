@@ -20,12 +20,16 @@ static class ModelDownload
     public static bool Running { get; private set; }
     static CancellationTokenSource? cancel;
 
+    /// The core said this PC is too slow for the model ("too-slow"): no 2.7 GB download then.
+    public static bool TooSlow { get; set; }
+
     public static bool IsDownloaded => File.Exists(Core.ModelPath) && new FileInfo(Core.ModelPath).Length == Size;
 
     /// `progress` gets 0 to 1 while downloading; the task ends with null, or why it failed.
     public static async Task<string?> Run(IProgress<double> progress)
     {
         if (Running) return null;
+        if (TooSlow) return "this PC is too slow for the reading model";
         Running = true;
         cancel = new CancellationTokenSource();
         try
