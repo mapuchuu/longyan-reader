@@ -178,9 +178,6 @@ package final class EmbeddedModel: @unchecked Sendable {
             llama_model_free(m); contextFailedAt = Date(); throw Self.error("couldn't create a context")
         }
         model = m; ctx = c; vocab = llama_model_get_vocab(m)
-        #if os(Windows)
-        Self.loaded()
-        #endif
         // ggml frees its Metal device at exit and asserts nothing still uses it, so the context
         // and model must go first. Exit handlers run newest first, and ggml registers its own
         // when the device is first used (during the load above), so ours is registered after.
@@ -240,10 +237,6 @@ package final class EmbeddedModel: @unchecked Sendable {
     /// Called on the queue after each load and request.
     private func noteUse() {
         lastUse = Date()
-        #if os(Windows)
-        // Found too slow on the first reads: let the model go, and don't load it again.
-        if Self.tooSlow, ctx != nil { free(); return }
-        #endif
         guard Self.idleUnload.isFinite else { return }
         queue.asyncAfter(deadline: .now() + Self.idleUnload + 1) {
             if self.ctx != nil, Date().timeIntervalSince(self.lastUse) >= Self.idleUnload { self.free() }
@@ -534,14 +527,8 @@ package final class EmbeddedModel: @unchecked Sendable {
 
     private func decode(_ tokens: [llama_token], startingAt pos: Int, allLogits: Bool = false) throws {
         guard let ctx, !tokens.isEmpty else { return }
-        #if os(Windows)
-        let started = Date()
-        #endif
         guard decodeRaw(ctx, tokens, at: pos, allLogits: allLogits) else { cached = []; throw Self.error("decode failed") }
         cached += tokens
-        #if os(Windows)
-        Self.timeRead(tokens.count, Date().timeIntervalSince(started))
-        #endif
     }
 
     private func decodeRaw(_ ctx: OpaquePointer, _ tokens: [llama_token], at pos: Int, allLogits: Bool = false) -> Bool {
@@ -699,43 +686,10 @@ extension EmbeddedModel {
     /// Whether this PC is too slow for the model, so it isn't loaded at all and cards use
     /// dictionary order. Without AVX2 and FMA, llama.cpp runs the model's Q4_K weights as plain
     /// code (0.8 tokens a second on SSE 4.2: a card never settles), and AVX alone is still
-    /// too slow (see notes/windows-plan.md). Also too slow when the first reads were.
+    /// too slow.
     package static var tooSlow: Bool {
         if allowSlow || ProcessInfo.processInfo.environment["LONGYAN_ALLOW_SLOW"] == "1" { return false }
-        return cpuTooSlow || measuredSlow.isSet
-    }
-    private static var cpuTooSlow: Bool {
-        cpu.loaded && !(cpu.features.contains("AVX2") && cpu.features.contains("FMA"))
-    }
-    private static let measuredSlow = StopFlag()
-
-    /// The safety net: reading speed, measured on the reads of the first cards (prompts read
-    /// in batches of 8 tokens or more) after the first read of each load, which also brings the
-    /// model's 2.7 GB in from the disk. Below `slowRead` tokens a second over 300 tokens, the
-    /// model is too slow here too. On the model's queue.
-    static let slowRead = 10.0
-    nonisolated(unsafe) private static var readTokens = 0
-    nonisolated(unsafe) private static var readSeconds = 0.0
-    nonisolated(unsafe) private static var coldRead = true
-    nonisolated(unsafe) private static var speedKnown = false
-    fileprivate static func loaded() { coldRead = true }
-    fileprivate static func timeRead(_ count: Int, _ seconds: TimeInterval) {
-        guard count >= 8, seconds > 0 else { return }
-        if ProcessInfo.processInfo.environment["LONGYAN_TIMING"] == "1" {
-            FileHandle.standardError.write(Data(String(format: "read: %d tokens in %.0f ms, %.1f tokens/s%@\n",
-                count, seconds * 1000, Double(count) / seconds, coldRead ? " (first after load)" : "").utf8))
-        }
-        if coldRead { coldRead = false; return }
-        guard !speedKnown else { return }
-        readTokens += count; readSeconds += seconds
-        guard readTokens >= 300 else { return }
-        speedKnown = true
-        let rate = Double(readTokens) / readSeconds
-        log(String(format: "llama.cpp reads %.1f tokens/s (%d tokens)\n", rate, readTokens))
-        guard rate < slowRead, !tooSlow else { return }
-        measuredSlow.set()
-        log("llama.cpp too slow: under \(Int(slowRead)) tokens/s, the model won't be used\n")
-        LocalModel.noteTooSlow()
+        return cpu.loaded && !(cpu.features.contains("AVX2") && cpu.features.contains("FMA"))
     }
 }
 #endif

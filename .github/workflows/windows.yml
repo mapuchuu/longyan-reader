@@ -177,7 +177,6 @@ jobs:
           set -euo pipefail
           cat backend.txt
           grep -q "too slow for the model by CPU features: no" backend.txt
-          ! grep -q "llama.cpp too slow" backend.txt
       - name: CPU kernels used
         if: always()
         run: cat backend.txt || echo "no backend line, so the model didn't load"
@@ -285,7 +284,7 @@ jobs:
           grep -q '"model":"too-slow"' slow-log.txt
           grep -q "model at start: too-slow" slow-log.txt
           grep -q "model at end: too-slow" slow-log.txt
-          grep -q "^card 1: .*Dictionary order" slow-log.txt
+          grep -q "^card 1: .*Dictionary order · this PC is too slow for the reading model" slow-log.txt
           python - <<'PY'
           import re
           log = open("slow-log.txt", encoding="utf-8").read()

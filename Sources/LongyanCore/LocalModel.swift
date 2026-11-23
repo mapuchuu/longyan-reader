@@ -125,12 +125,6 @@ package enum LocalModel {
         if changed { problemChanged?(p) }
     }
 
-    /// The first cards showed the model too slow here: cards stop waiting for it.
-    static func noteTooSlow() {
-        lastCheck = (Date(), false)
-        note(.tooSlow)
-    }
-
     /// A request to the built-in model failed: was it the load?
     private static func note(_ error: Error) {
         let e = error as NSError
