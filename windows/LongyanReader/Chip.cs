@@ -252,7 +252,9 @@ sealed class ChipWindow : Window
     static (EyeButton Button, Ellipse Hit, Rectangle Mark) Build(bool snapshot)
     {
         var surface = new Ellipse { Width = Diameter, Height = Diameter, Fill = Theme.Surface };
-        if (!snapshot) surface.Effect = new DropShadowEffect { BlurRadius = 10, ShadowDepth = 2, Direction = 270, Opacity = 0.18, Color = Colors.Black, RenderingBias = RenderingBias.Quality };
+        // SwiftUI's .shadow(opacity 0.18, radius 5, y 2) has a longer tail than WPF's blur of the
+        // same numbers: these match its pixels (RMS 0.6 of 255 at 2x, over white).
+        if (!snapshot) surface.Effect = new DropShadowEffect { BlurRadius = 16, ShadowDepth = 2, Direction = 270, Opacity = 0.24, Color = Colors.Black, RenderingBias = RenderingBias.Quality };
         // A 0.5 border drawn inside the circle, as strokeBorder does.
         var hairline = new Ellipse { Width = Diameter, Height = Diameter, Stroke = Theme.Hairline, StrokeThickness = 0.5 };
         // SwiftUI puts the image on whole points: half a point right and down of centre.

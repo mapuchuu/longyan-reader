@@ -150,6 +150,7 @@ static partial class Program
         var window = WaitForWindow("longyan-eye", TimeSpan.FromSeconds(20));
         if (window == IntPtr.Zero) { failures.Add("eye-scale: Notepad didn't open"); return; }
         Console.WriteLine($"[eye-scale] Notepad's text box: {DocumentClass(window)}");
+        var modern = ModernNotepad(file);
         var tested = new List<int>();
         foreach (var percent in new[] { 100, 125, 150, 175, 200 })
         {
@@ -165,19 +166,59 @@ static partial class Program
             Focus(window);
             Cases($"eye-{percent}-notepad", window, s, cases, edge: percent == 100);
             SetWindowPos(window, IntPtr.Zero, (int)(40 * s), (int)(30 * s), (int)(560 * s), (int)(240 * s), 0x4);
-            using (var host = new RichEditHost("他得了感冒，吃不了饭。\r\n明朝实行海禁，闭关锁国。\r\n我们研究研究再说吧。\r\n他找到了一个铁饭碗。", (int)(40 * s), (int)(300 * s), (int)(560 * s), (int)(220 * s), (int)(16 * s)))
+            const string text = "他得了感冒，吃不了饭。\r\n明朝实行海禁，闭关锁国。\r\n我们研究研究再说吧。\r\n他找到了一个铁饭碗。";
+            // A page margin as the view's inset, then as space before the first paragraph, which
+            // the box's first line may count (Notepad on Windows 11 counts its margin so).
+            foreach (var spaced in new[] { false, true })
             {
+                using var host = new RichEditHost(text, (int)(40 * s), (int)(300 * s), (int)(560 * s), (int)(220 * s), (int)(16 * s), spaced);
                 Thread.Sleep(800);
-                Console.WriteLine($"[eye-scale] rich edit at {percent}%: {DocumentClass(host.Window)}");
+                var kind = spaced ? "richedit-spaced" : "richedit";
+                Console.WriteLine($"[eye-scale] {kind} at {percent}%: {DocumentClass(host.Window)}");
                 Focus(host.Window);
-                Cases($"eye-{percent}-richedit", host.Window, s, cases, edge: false);
+                Cases($"eye-{percent}-{kind}", host.Window, s, cases, edge: false);
+            }
+            if (modern != IntPtr.Zero)
+            {
+                SetWindowPos(modern, IntPtr.Zero, (int)(620 * s), (int)(30 * s), (int)(560 * s), (int)(300 * s), 0x4);
+                Thread.Sleep(800);
+                Focus(modern);
+                Cases($"eye-{percent}-notepad11", modern, s, cases, edge: false);
             }
             Sheet($"eye-sheet-{percent}", cases);
         }
+        if (modern != IntPtr.Zero) PostMessage(modern, 0x10 /* WM_CLOSE */, IntPtr.Zero, IntPtr.Zero);
         if (tested.Count < 2) failures.Add($"eye-scale: only {string.Join(", ", tested)}% could be tested");
         if (now != 100) Scaling.SetTo(100);
         Thread.Sleep(2000);
         try { notepad.Kill(); } catch { }
+    }
+
+    /// Notepad as Windows 11 has it (a Store app on its rich edit box), installed with winget
+    /// when the runner allows; zero when it can't be had.
+    static IntPtr ModernNotepad(string file)
+    {
+        try
+        {
+            var copy = Path.Combine(Path.GetTempPath(), "longyan-eye-11.txt");
+            File.Copy(file, copy, true);
+            var winget = new ProcessStartInfo("winget", "install --id 9MSMLRH6LZF3 --source msstore --accept-source-agreements --accept-package-agreements --disable-interactivity")
+            { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true };
+            using (var p = Process.Start(winget)!)
+            {
+                var output = p.StandardOutput.ReadToEndAsync();
+                if (!p.WaitForExit(240000)) { try { p.Kill(); } catch { } }
+                var lines = (output.Wait(5000) ? output.Result : "").Split('\n').Select(l => l.Trim()).Where(l => l.Length > 2 && !l.All(c => c is '-' or '\\' or '|' or '/' or ' ' or '█' or '▒')).TakeLast(4);
+                Console.WriteLine($"[eye-scale] winget for Notepad: exit {(p.HasExited ? p.ExitCode : -1)}; {string.Join(" / ", lines)}");
+            }
+            var alias = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Microsoft", "WindowsApps", "Microsoft.WindowsNotepad_8wekyb3d8bbwe", "notepad.exe");
+            if (!File.Exists(alias)) { Console.WriteLine("[eye-scale] Notepad for Windows 11: not available"); return IntPtr.Zero; }
+            Process.Start(new ProcessStartInfo(alias, $"\"{copy}\"") { UseShellExecute = true });
+            var window = WaitForWindow("longyan-eye-11", TimeSpan.FromSeconds(30));
+            Console.WriteLine($"[eye-scale] Notepad for Windows 11: {(window == IntPtr.Zero ? "didn't open" : DocumentClass(window))}");
+            return window;
+        }
+        catch (Exception e) { Console.WriteLine($"[eye-scale] Notepad for Windows 11: {e.Message}"); return IntPtr.Zero; }
     }
 
     static void Cases(string name, IntPtr window, double s, List<(string, Bitmap)> crops, bool edge)
@@ -260,7 +301,8 @@ static partial class Program
         var button = EyeButton(eye);
         Console.WriteLine($"[{name}] scale {s:0.##}; {(beside ? "beside" : "by the pointer")}; selection {Fmt(union)} in {rects.Length} box(es); ink rows {top}..{bottom} (centre {textMid:0.#}, box centre {union.Top + union.Height / 2:0.#}); " +
             $"up {up.X},{up.Y}; eye window {r.Left},{r.Top} to {r.Right},{r.Bottom} (centre {cx:0.#},{cy:0.#}); button {Fmt(button)}; Mac rule centre {predX:0.#},{predY:0.#}; logged {logged?.ToJsonString() ?? "nothing"}");
-        var tolY = 1 + s; var tolX = 1 + s / 2;
+        // Within 2 px of the text's centre, at every scaling (the user saw 17 off at 200%).
+        var tolY = 2.0; var tolX = 1 + s / 2;
         if (Math.Abs(cy - predY) > tolY) failures.Add($"{name}: the eye's centre is at y {cy:0.#}, the Mac's rule puts it at {predY:0.#} ({(beside ? "the text's centre" : "6 above where the mouse let go")}); off by {cy - predY:0.#} px at {s * 100:0}%");
         if (Math.Abs(cx - predX) > tolX) failures.Add($"{name}: the eye's centre is at x {cx:0.#}, the Mac's rule puts it at {predX:0.#}; off by {cx - predX:0.#} px at {s * 100:0}%");
         if (button is System.Windows.Rect br && (Math.Abs(br.Left + br.Width / 2 - cx) > 1 || Math.Abs(br.Top + br.Height / 2 - cy) > 1)) failures.Add($"{name}: the button isn't in the middle of the eye's window ({Fmt(br)})");
@@ -471,6 +513,7 @@ static partial class Program
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern IntPtr FindWindow(string? cls, string? title);
     [DllImport("user32.dll")] static extern bool GetCursorPos(out Point p);
     [DllImport("user32.dll")] static extern uint GetDpiForWindow(IntPtr h);
+    [DllImport("user32.dll")] static extern bool PostMessage(IntPtr h, uint msg, IntPtr w, IntPtr l);
     [DllImport("user32.dll")] static extern IntPtr SetProcessDpiAwarenessContext(IntPtr context);
     [DllImport("user32.dll")] static extern int GetSystemMetrics(int index);
     [DllImport("user32.dll")] static extern IntPtr MonitorFromPoint(Point p, uint flags);
@@ -570,7 +613,7 @@ sealed class RichEditHost : IDisposable
     readonly Thread thread;
     System.Windows.Forms.Form? form;
 
-    public RichEditHost(string text, int x, int y, int w, int h, int margin)
+    public RichEditHost(string text, int x, int y, int w, int h, int margin, bool spaced)
     {
         using var ready = new ManualResetEventSlim();
         thread = new Thread(() =>
@@ -588,8 +631,17 @@ sealed class RichEditHost : IDisposable
                 var font = new Font("Consolas", 11f * GetDpiForWindow(form.Handle) / 96f, GraphicsUnit.Point);
                 SendMessage(edit, 0x30 /* WM_SETFONT */, font.ToHfont(), (IntPtr)1);
                 SetWindowText(edit, text);
-                var rc = new RECT { Left = margin, Top = margin, Right = size.Width - margin, Bottom = size.Height - margin };
+                var rc = new RECT { Left = margin, Top = spaced ? 0 : margin, Right = size.Width - margin, Bottom = size.Height - margin };
                 SendMessage(edit, 0xB3 /* EM_SETRECT */, IntPtr.Zero, ref rc);
+                if (spaced)
+                {
+                    // PARAFORMAT2 with dySpaceBefore (twips) for the first paragraph, where the caret is.
+                    var pf = new byte[188];
+                    BitConverter.GetBytes(188).CopyTo(pf, 0);
+                    BitConverter.GetBytes(0x40 /* PFM_SPACEBEFORE */).CopyTo(pf, 4);
+                    BitConverter.GetBytes(margin * 1440 / (int)GetDpiForWindow(form.Handle)).CopyTo(pf, 156);
+                    SendMessage(edit, 0x447 /* EM_SETPARAFORMAT */, IntPtr.Zero, pf);
+                }
                 Window = form.Handle;
                 ready.Set();
             };
@@ -612,5 +664,6 @@ sealed class RichEditHost : IDisposable
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern bool SetWindowText(IntPtr h, string text);
     [DllImport("user32.dll")] static extern IntPtr SendMessage(IntPtr h, int msg, IntPtr w, IntPtr l);
     [DllImport("user32.dll")] static extern IntPtr SendMessage(IntPtr h, int msg, IntPtr w, ref RECT l);
+    [DllImport("user32.dll")] static extern IntPtr SendMessage(IntPtr h, int msg, IntPtr w, byte[] l);
     [DllImport("user32.dll")] static extern uint GetDpiForWindow(IntPtr h);
 }
