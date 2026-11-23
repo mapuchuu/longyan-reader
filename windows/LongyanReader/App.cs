@@ -15,9 +15,8 @@ static class Program
 {
     static Forms.NotifyIcon? tray;
     static Forms.ToolStripMenuItem? modelItem;
-    static Forms.ToolStripMenuItem? eyeItem, eyeAppsItem;
     static string modelStatus = "";
-    static bool lastRunEndedBadly, reportOffered, exiting, checkingModel, modelVerified;
+    static bool lastRunEndedBadly, reportOffered, exiting, modelVerified;
     static string? toldAbout;
     static Action? balloonClicked;
     const string AgainEvent = "LongyanReader.Windows.Again";
@@ -27,13 +26,15 @@ static class Program
     {
         // --render DIR OUT: draws every DIR/*.json card into OUT, light and dark (gallery.yml).
         if (args.Length == 3 && args[0] == "--render") return RenderGallery(args[1], args[2]);
+        // --render-windows OUT: the welcome and settings windows, light and dark (UiCheck).
+        if (args.Length == 2 && args[0] == "--render-windows") return RenderWindows(args[1]);
         // --check-shortcut: the default shortcut on each installed keyboard layout (UiCheck).
         if (args.Length == 1 && args[0] == "--check-shortcut") return Shortcut.Check();
 
         using var single = new Mutex(true, "LongyanReader.Windows", out var first);
         if (!first)
         {
-            // The running copy says so.
+            // The running copy opens Settings.
             if (EventWaitHandle.TryOpenExisting(AgainEvent, out var again)) { again.Set(); again.Dispose(); }
             return 0;
         }
@@ -57,8 +58,8 @@ static class Program
             Balloon("Something went wrong in Longyan Reader. Click here to report the problem.", Report);
         };
         using var openedAgain = new EventWaitHandle(false, EventResetMode.AutoReset, AgainEvent);
-        ThreadPool.RegisterWaitForSingleObject(openedAgain, (_, _) => app.Dispatcher.BeginInvoke(() =>
-            Balloon("Longyan Reader is already running. Its icon is in the notification area (under the ^ arrow if it's hidden).")),
+        // Opened again (from Start, or the exe): Settings, as Windows tray apps do.
+        ThreadPool.RegisterWaitForSingleObject(openedAgain, (_, _) => app.Dispatcher.BeginInvoke(() => SettingsWindow.Open()),
             null, Timeout.Infinite, false);
         app.SessionEnding += (_, _) => Exit("Windows is shutting down", TimeSpan.FromSeconds(2));
         app.Startup += (_, _) => Start();
@@ -96,8 +97,21 @@ static class Program
             ChipWindow.RenderToFile(System.IO.Path.Combine(output, "eye" + (dark ? "-dark" : "") + ".png"));
         }
         Console.WriteLine("eye");
+        RenderWindows(output);
         return 0;
     }
+
+    static int RenderWindows(string output)
+    {
+        System.IO.Directory.CreateDirectory(output);
+        WelcomeWindow.RenderToFiles(output);
+        SettingsWindow.RenderToFiles(output);
+        Console.WriteLine("welcome, settings");
+        return 0;
+    }
+
+    /// The model's state from the core, for Settings and the welcome window.
+    public static string ModelStatus => modelStatus;
 
     static void Start()
     {
@@ -113,7 +127,8 @@ static class Program
                 reportOffered = true;
                 Balloon("Longyan Reader closed unexpectedly last time. Click here to report the problem.", Report);
             }
-            else if (status != "ready" && !ModelDownload.IsDownloaded) Balloon("Longyan Reader is ready. Download the reading model from this icon's menu to pick meanings and translate.");
+            else if (!Settings.WelcomeShown) WelcomeWindow.Open();
+            else if (status != "ready" && !ModelDownload.IsDownloaded) Balloon("Longyan Reader is ready. Download the reading model in Settings to pick meanings and translate. Click here to open Settings.", () => SettingsWindow.Open());
             else if (Shortcut.Registered) Balloon($"Longyan Reader is ready. Select Chinese text in any app and press {Shortcut.Name}.");
         };
         core.ModelChanged += ModelChanged;
@@ -133,6 +148,7 @@ static class Program
         }
         MakeTray();
         MenuChanged();
+        LoginItem.Refresh();
         Shortcut.Start(LookUp, (text, pick) => { Balloon(text, pick ? ShortcutWindow.Open : null); if (pick) ShortcutWindow.Open(); });
         Chip.Clicked = EyeClicked;
         Chip.Start();
@@ -175,6 +191,9 @@ static class Program
         Present(selected);
     }
 
+    /// The icon's menu, kept short as Windows tray menus are: how to look up, the reading
+    /// model when it needs something, then Settings, Report a problem and Exit. A double-click
+    /// on the icon opens Settings.
     static void MakeTray()
     {
         var menu = new Forms.ContextMenuStrip();
@@ -184,20 +203,20 @@ static class Program
         Hint();
         Shortcut.Changed += Hint;
         menu.Items.Add(hint);
-        modelItem = new Forms.ToolStripMenuItem("Reading model: checking…", null, (_, _) => ModelClicked());
+        modelItem = new Forms.ToolStripMenuItem("Reading model: checking…", null, (_, _) => ModelClicked()) { Visible = false };
         menu.Items.Add(modelItem);
-        eyeItem = new Forms.ToolStripMenuItem("Show the eye when you select text", null, (_, _) => { Settings.ShowEye = !Settings.ShowEye; MenuChanged(); });
-        menu.Items.Add(eyeItem);
-        eyeAppsItem = new Forms.ToolStripMenuItem("Hide the eye in");
-        menu.Items.Add(eyeAppsItem);
-        menu.Items.Add("Change shortcut…", null, (_, _) => ShortcutWindow.Open());
         menu.Items.Add(new Forms.ToolStripSeparator());
+        var settings = new Forms.ToolStripMenuItem("Settings…", null, (_, _) => SettingsWindow.Open());
+        settings.Font = new System.Drawing.Font(settings.Font, System.Drawing.FontStyle.Bold);
+        menu.Items.Add(settings);
         menu.Items.Add("Report a problem", null, (_, _) => Report());
+        menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add("Exit", null, (_, _) => Exit("menu", TimeSpan.FromSeconds(4)));
         tray = new Forms.NotifyIcon
         {
             Icon = LoadIcon(), Text = "Longyan Reader", Visible = true, ContextMenuStrip = menu,
         };
+        tray.MouseDoubleClick += (_, e) => { if (e.Button == Forms.MouseButtons.Left) SettingsWindow.Open(); };
         tray.BalloonTipClicked += (_, _) => { var act = balloonClicked; balloonClicked = null; act?.Invoke(); };
     }
 
@@ -234,20 +253,14 @@ static class Program
         catch (Exception e) { Diagnostics.Write("exit: " + Diagnostics.Describe(e)); }
     }
 
-    static void Report() => Diagnostics.Report(modelStatus.Length == 0 ? "checking"
+    public static void Report() => Diagnostics.Report(modelStatus.Length == 0 ? "checking"
         : modelStatus + (ModelDownload.IsDownloaded ? ", file downloaded" : ", no file"));
 
-    /// The eye's menu items, after a change from the tray or the eye's own right-click menu.
+    /// The eye's settings changed, in Settings or the eye's own right-click menu.
     public static void MenuChanged()
     {
-        if (eyeItem == null || eyeAppsItem == null) return;
         Chip.Enable();
-        eyeItem.Checked = Settings.ShowEye;
-        // Apps the eye is hidden in, ticked (as the Mac's "Hide Eye In"): a click brings it back.
-        eyeAppsItem.DropDownItems.Clear();
-        foreach (var (process, name) in Settings.EyeHiddenApps)
-            eyeAppsItem.DropDownItems.Add(new Forms.ToolStripMenuItem(name, null, (_, _) => { Settings.ShowEyeIn(process); MenuChanged(); }) { Checked = true });
-        eyeAppsItem.Visible = Settings.ShowEye && eyeAppsItem.DropDownItems.Count > 0;
+        SettingsWindow.Refresh();
     }
 
     static System.Drawing.Icon LoadIcon()
@@ -263,11 +276,6 @@ static class Program
         modelStatus = status;
         ModelDownload.TooSlow = status == "too-slow";
         UpdateMenu();
-        if (ModelDownload.TooSlow && modelItem != null && !ModelDownload.Running)
-        {
-            modelItem.Text = "Reading model: this PC is too slow for it";
-            modelItem.Enabled = false;
-        }
         if (status == "ready") toldAbout = null;
         // Each problem said once until it's fixed; the menu keeps saying it.
         if (status == toldAbout || status is not ("unloadable" or "no-memory" or "too-slow")) return;
@@ -280,30 +288,41 @@ static class Program
         });
     }
 
+    /// The tray's model line, shown only when the model needs something or is downloading;
+    /// Settings and the welcome window show the rest.
     static void UpdateMenu()
     {
+        SettingsWindow.Refresh();
+        WelcomeWindow.Refresh();
         if (modelItem == null) return;
-        modelItem.Text = ModelDownload.Running || checkingModel ? modelItem.Text
+        var running = ModelDownload.Running || ModelDownload.Checking;
+        modelItem.Text = running ? modelItem.Text
             : modelStatus == "ready" ? "Reading model: ready"
+            : modelStatus == "too-slow" ? "Reading model: this PC is too slow for it"
             : modelStatus == "no-memory" ? "Reading model: not enough free memory, trying again soon"
             : modelStatus == "unloadable" || ModelDownload.IsDownloaded ? "Reading model: couldn't load it (click to download it again)"
             : $"Download reading model ({ModelDownload.Size / 1_000_000_000.0:0.0} GB)…";
-        modelItem.Enabled = ModelDownload.Running || (!checkingModel && modelStatus != "ready" && modelStatus != "no-memory");
+        modelItem.Enabled = ModelDownload.Running || (!ModelDownload.Checking && modelStatus is not ("ready" or "no-memory" or "too-slow"));
+        modelItem.Visible = running || (modelStatus.Length > 0 && modelStatus != "ready");
     }
 
-    static async void ModelClicked()
+    /// The tray's model line: download, or stop the download.
+    static void ModelClicked()
     {
-        if (ModelDownload.Running) { ModelDownload.Stop(); return; }
-        if (modelStatus == "ready" || checkingModel) return;
+        if (ModelDownload.Running) ModelDownload.Stop(); else GetModel();
+    }
+
+    /// Download, Download again or Resume, from the tray, Settings or the welcome window.
+    public static async void GetModel()
+    {
+        if (ModelDownload.Running || ModelDownload.Checking || modelStatus == "ready") return;
         if (ModelDownload.TooSlow) { Balloon("This PC is too slow for the reading model. Cards use dictionary order."); return; }
         if (ModelDownload.IsDownloaded)
         {
             // A file that didn't load may still be the right one: check it before 2.7 GB again.
-            checkingModel = true;
             if (modelItem != null) { modelItem.Text = "Checking the reading model…"; modelItem.Enabled = false; }
             bool good;
             try { good = await ModelDownload.Verify(); } catch (Exception e) { Diagnostics.Write("couldn't check the model file: " + e.Message); good = false; }
-            checkingModel = false;
             Diagnostics.Write("the model file is " + (good ? "the right one" : "damaged"));
             if (good)
             {
@@ -314,10 +333,13 @@ static class Program
                 return;
             }
         }
-        var progress = new Progress<double>(p => { if (modelItem != null) modelItem.Text = $"Downloading the reading model: {p:P0} (click to stop)"; });
-        var error = await ModelDownload.Run(progress);
+        void Progress() { if (modelItem != null && ModelDownload.Running) modelItem.Text = $"Downloading the reading model: {ModelDownload.Progress:P0} (click to stop)"; }
+        ModelDownload.Changed += Progress;
+        UpdateMenu();
+        var error = await ModelDownload.Run();
+        ModelDownload.Changed -= Progress;
         if (error == null) { toldAbout = null; modelVerified = false; Core.Shared.RefreshModel(); Balloon("The reading model is ready."); }
-        else Balloon("The reading model didn't download: " + error);
+        else if (error != "stopped") Balloon("The reading model didn't download: " + error);
         UpdateMenu();
     }
 

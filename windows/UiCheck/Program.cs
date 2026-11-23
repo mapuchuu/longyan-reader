@@ -38,6 +38,7 @@ static class Program
         Console.WriteLine($"animations {(animates != 0 ? "on" : "off")}");
 
         ShortcutCheck(exe);
+        RenderWindows(exe);
 
         var start = new ProcessStartInfo(exe) { WorkingDirectory = Path.GetDirectoryName(exe)! };
         start.Environment["LONGYAN_CARD_LOG"] = log;
@@ -45,6 +46,7 @@ static class Program
         Thread.Sleep(12000);   // the dictionary and splitter load
         if (app.HasExited) { Console.WriteLine($"the app exited: {app.ExitCode}"); return 1; }
         Shot("0-started");
+        WelcomeCheck(app);
 
         var file = Path.Combine(Path.GetTempPath(), "longyan-ui.txt");
         File.WriteAllText(file, "他得了感冒，吃不了饭。\r\n明朝实行海禁，闭关锁国。\r\n", new UTF8Encoding(true));
@@ -120,6 +122,7 @@ static class Program
         Keys(VK_ESCAPE);
         Thread.Sleep(800);
         EyeCheck(window);
+        SettingsCheck(exe);
 
         try { notepad.Kill(); } catch { }
         try { app.Kill(); } catch { }
@@ -160,6 +163,120 @@ static class Program
         lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
         foreach (var l in lines) Console.WriteLine($"[shortcut {name}] {l}");
         return lines.FirstOrDefault(l => l.StartsWith("default "))?.Substring(8);
+    }
+
+    /// The welcome and settings windows drawn in light and dark (--render-windows), into windows/.
+    static void RenderWindows(string exe)
+    {
+        var dir = Path.Combine(outDir, "windows");
+        var start = new ProcessStartInfo(exe, $"--render-windows \"{dir}\"")
+        {
+            UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, WorkingDirectory = Path.GetDirectoryName(exe)!,
+        };
+        using var p = Process.Start(start)!;
+        var output = p.StandardOutput.ReadToEnd() + p.StandardError.ReadToEnd();
+        p.WaitForExit(60000);
+        Console.WriteLine($"[windows] {output.Trim()}");
+        foreach (var name in new[] { "welcome", "welcome-dark", "settings", "settings-dark" })
+            if (!File.Exists(Path.Combine(dir, name + ".png"))) failures.Add($"windows: no {name}.png drawn");
+    }
+
+    static readonly string settingsFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LongyanReader", "settings.json");
+
+    static JsonObject? SettingsJson()
+    {
+        try { return JsonNode.Parse(File.ReadAllText(settingsFile)) as JsonObject; } catch { return null; }
+    }
+
+    /// The first run's welcome window: it opens, its sample line looks up with the shortcut,
+    /// Done closes it, and it's remembered; Open at login (on) is in the registry.
+    static void WelcomeCheck(Process app)
+    {
+        var window = WaitForWindow("Welcome to Longyan Reader", TimeSpan.FromSeconds(30), exact: true);
+        if (window == IntPtr.Zero) { failures.Add("0-welcome: no welcome window on the first run"); Shot("0-no-welcome"); return; }
+        SetForegroundWindow(window);
+        Thread.Sleep(800);
+        Shot("0-welcome");
+        if ((bool?)SettingsJson()?["welcomeShown"] != true) failures.Add("0-welcome: settings.json doesn't say it was shown");
+        var root = AutomationElement.FromHandle(window);
+        var sample = root.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.AutomationIdProperty, "Sample"));
+        if (sample == null) failures.Add("0-welcome: no sample line");
+        else
+        {
+            // 感冒, selected through the line's text pattern.
+            try
+            {
+                sample.SetFocus();
+                Thread.Sleep(300);
+                ((TextPattern)sample.GetCurrentPattern(TextPattern.Pattern)).DocumentRange.FindText("感冒", false, false)?.Select();
+            }
+            catch (Exception e) { Console.WriteLine("[0-welcome] couldn't select in the sample: " + e.Message); }
+            Thread.Sleep(300);
+            var before = File.Exists(log) ? File.ReadAllLines(log).Length : 0;
+            Keys(VK_CONTROL, VK_MENU, 0x4C);
+            var started = DateTime.Now;
+            JsonObject? card = null;
+            while ((DateTime.Now - started).TotalSeconds < 60 && (card = LastCard(before)) == null) Thread.Sleep(300);
+            Thread.Sleep(1500);
+            Shot("0-welcome-card");
+            if (card == null) failures.Add("0-welcome: the shortcut on the sample line opened no card");
+            else if ((string?)card["copy"] != "感冒") failures.Add($"0-welcome: the sample's card is for {(string?)card["copy"]}, not 感冒");
+            Keys(VK_ESCAPE);
+            Thread.Sleep(800);
+        }
+        if (IsWindowVisible(window))
+        {
+            var done = root.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.AutomationIdProperty, "Done"));
+            if (done?.GetCurrentPattern(InvokePattern.Pattern) is InvokePattern invoke) invoke.Invoke();
+            else failures.Add("0-welcome: no Done button");
+            Thread.Sleep(800);
+        }
+        if (IsWindowVisible(window)) failures.Add("0-welcome: Done didn't close the window");
+        using var run = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run");
+        var command = run?.GetValue("Longyan Reader") as string;
+        Console.WriteLine($"[0-welcome] open at login: {command ?? "off"}");
+        if (command == null || !command.StartsWith("\"") || !command.EndsWith("LongyanReader.exe\"")) failures.Add($"0-welcome: open at login isn't the quoted exe ({command ?? "none"})");
+    }
+
+    /// Settings, by opening the app again: the eye's switch off and on through UI Automation,
+    /// with settings.json following, then the window in dark mode.
+    static void SettingsCheck(string exe)
+    {
+        Process.Start(new ProcessStartInfo(exe) { WorkingDirectory = Path.GetDirectoryName(exe)! })?.WaitForExit(10000);
+        var window = WaitForWindow("Longyan Reader settings", TimeSpan.FromSeconds(10), exact: true);
+        if (window == IntPtr.Zero) { failures.Add("4-settings: opening the app again didn't open Settings"); Shot("4-no-settings"); return; }
+        SetForegroundWindow(window);
+        Thread.Sleep(800);
+        Shot("4-settings");
+        var root = AutomationElement.FromHandle(window);
+        var eye = root.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.AutomationIdProperty, "ShowEye"));
+        if (eye?.GetCurrentPattern(TogglePattern.Pattern) is not TogglePattern toggle) { failures.Add("4-settings: no Show the eye switch"); return; }
+        if (toggle.Current.ToggleState != ToggleState.On) failures.Add("4-settings: Show the eye isn't on");
+        foreach (var want in new[] { false, true })
+        {
+            // The page is drawn again on a change, so find the switch each time.
+            eye = root.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.AutomationIdProperty, "ShowEye"));
+            (eye?.GetCurrentPattern(TogglePattern.Pattern) as TogglePattern)?.Toggle();
+            Thread.Sleep(600);
+            var saved = (bool?)SettingsJson()?["showEye"];
+            Console.WriteLine($"[4-settings] eye switched {(want ? "on" : "off")}: settings.json says {saved?.ToString() ?? "nothing"}");
+            if (saved != want) failures.Add($"4-settings: switching the eye {(want ? "on" : "off")} left showEye {saved?.ToString() ?? "unset"}");
+            if (!want) Shot("4-settings-eye-off");
+        }
+        // Dark mode, as Windows Settings sets it: the page follows.
+        SetAppsTheme(dark: true);
+        Thread.Sleep(2000);
+        Shot("4-settings-dark");
+        SetAppsTheme(dark: false);
+        Thread.Sleep(1000);
+        if (root.GetCurrentPattern(WindowPattern.Pattern) is WindowPattern w) w.Close();
+    }
+
+    static void SetAppsTheme(bool dark)
+    {
+        using (var key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"))
+            key.SetValue("AppsUseLightTheme", dark ? 0 : 1, Microsoft.Win32.RegistryValueKind.DWord);
+        SendMessageTimeout((IntPtr)0xFFFF, 0x001A /* WM_SETTINGCHANGE */, IntPtr.Zero, "ImmersiveColorSet", 2 /* SMTO_ABORTIFHUNG */, 2000, out _);
     }
 
     /// Presses the shortcut, then waits for the card to settle, as the core reports it (the
@@ -483,7 +600,7 @@ static class Program
         bmp.Save(Path.Combine(outDir, name + ".png"), ImageFormat.Png);
     }
 
-    static IntPtr WaitForWindow(string title, TimeSpan timeout)
+    static IntPtr WaitForWindow(string title, TimeSpan timeout, bool exact = false)
     {
         var end = DateTime.Now + timeout;
         while (DateTime.Now < end)
@@ -493,7 +610,7 @@ static class Program
             {
                 var sb = new StringBuilder(256);
                 GetWindowText(h, sb, 256);
-                if (IsWindowVisible(h) && sb.ToString().Contains(title)) { found = h; return false; }
+                if (IsWindowVisible(h) && (exact ? sb.ToString() == title : sb.ToString().Contains(title))) { found = h; return false; }
                 return true;
             }, IntPtr.Zero);
             if (found != IntPtr.Zero) return found;
@@ -561,6 +678,7 @@ static class Program
     [DllImport("user32.dll")] static extern bool EnumWindows(EnumProc f, IntPtr p);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetWindowText(IntPtr h, StringBuilder sb, int n);
     [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr h);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern IntPtr SendMessageTimeout(IntPtr h, uint msg, IntPtr w, string l, uint flags, uint timeout, out IntPtr result);
     const uint KLF_NOTELLSHELL = 0x80;
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern IntPtr LoadKeyboardLayout(string id, uint flags);
     [DllImport("user32.dll")] static extern bool UnloadKeyboardLayout(IntPtr hkl);
