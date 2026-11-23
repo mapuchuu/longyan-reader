@@ -48,14 +48,25 @@ static class Theme
     /// (measured on the gallery's cards). Line heights stay the Mac's.
     public const double LatinScale = 1.04;
     public static double Latin(double size) => size * LatinScale;
-    /// San Francisco's weights look heavier than Segoe's of the same name: Medium is drawn
-    /// Semibold and Semibold Bold, which matches the Mac's stems.
-    public static System.Windows.FontWeight LatinWeight(System.Windows.FontWeight w) => w.ToOpenTypeWeight() switch
+    /// San Francisco's Medium is about as heavy as Segoe's Semibold, which has no Medium.
+    public static System.Windows.FontWeight LatinWeight(System.Windows.FontWeight w) =>
+        w.ToOpenTypeWeight() >= 500 ? System.Windows.FontWeights.SemiBold : w;
+    /// How much wider San Francisco sets a line than Segoe at `LatinScale`, by size: Latin text
+    /// is stretched this much across, so lines are as long, and break, where the Mac's do.
+    /// San Francisco tightens its letters as the size grows, so it's wider at small sizes and a
+    /// little narrower around 16. Measured on the gallery's cards.
+    public static double LatinStretch(double size)
     {
-        >= 600 => System.Windows.FontWeights.Bold,
-        >= 500 => System.Windows.FontWeights.SemiBold,
-        _ => w,
-    };
+        (double Size, double Factor)[] table = { (10, 1.035), (12, 1.035), (13, 1.02), (14, 1.0), (15, 0.99), (16, 0.98), (17, 0.98), (19, 1.0) };
+        if (size <= table[0].Size) return table[0].Factor;
+        for (var i = 1; i < table.Length; i++)
+            if (size <= table[i].Size)
+            {
+                var (a, b) = (table[i - 1], table[i]);
+                return a.Factor + (b.Factor - a.Factor) * (size - a.Size) / (b.Size - a.Size);
+            }
+        return table[^1].Factor;
+    }
     /// San Francisco's line spacing as a multiple of the size.
     public const double LineFactor = 1.2;
     public static readonly FontFamily Icons = new("Segoe Fluent Icons, Segoe MDL2 Assets");

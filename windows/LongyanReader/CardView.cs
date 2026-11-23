@@ -186,7 +186,7 @@ sealed class CardView
         var cell = new Grid { Height = Math.Round(34 * Theme.LineFactor), Margin = new Thickness(0, 0, slot + 8, 0) };
         cell.Children.Add(head);
         two.Children.Add(cell);
-        var py = Lines(new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 0) }, 15);
+        var py = Lines(new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 0), FontFamily = Theme.Text }, 15);
         AddPinyin(py.Inlines, syllables, 15, " ");
         two.Children.Add(py);
         return two;
@@ -279,7 +279,7 @@ sealed class CardView
         var hanzi = Lines(new TextBlock(), 17);
         AddHanzi(hanzi.Inlines, (string?)r["text"] ?? "", syllables, 17, FontWeights.Medium, pending);
         b.Panel.Children.Add(hanzi);
-        var py = Lines(new TextBlock { Margin = new Thickness(0, 1, 0, 0) }, 10.5);
+        var py = Lines(new TextBlock { Margin = new Thickness(0, 1, 0, 0), FontFamily = Theme.Text }, 10.5);
         AddPinyin(py.Inlines, syllables, 10.5, " ");
         b.Panel.Children.Add(pending ? PinyinBars(syllables, py.Margin) : py);
         return b;
@@ -775,6 +775,8 @@ sealed class CardView
     {
         t.LineStackingStrategy = LineStackingStrategy.BlockLineHeight;
         t.LineHeight = LineHeight(size) + extra;
+        // Latin text as wide as the Mac's, so it wraps where the Mac's does.
+        if (t.FontFamily == Theme.Text) t.LayoutTransform = new ScaleTransform(Theme.LatinStretch(size), 1);
         return t;
     }
 
@@ -820,8 +822,11 @@ sealed class CardView
         return line;
     }
 
+    /// A line's width as drawn: Latin text at `size` (already scaled by LatinScale) is
+    /// stretched as `Lines` stretches it.
     static double TextWidth(string text, FontFamily family, double size) =>
-        new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, new Typeface(family, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal), size, Brushes.Black, 1.0).WidthIncludingTrailingWhitespace;
+        new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, new Typeface(family, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal), size, Brushes.Black, 1.0).WidthIncludingTrailingWhitespace
+        * (family == Theme.Text ? Theme.LatinStretch(size / Theme.LatinScale) : 1);
 
     /// A pending gloss as redaction draws it: a bar per line the text would wrap to (two at
     /// most), as wide as that line, 9 tall and 2 above the bottom of the 16 line.
