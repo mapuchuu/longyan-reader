@@ -192,6 +192,10 @@ static class Motion
 
     public static void StopLinear(DependencyObject e, DependencyProperty p) => lines.Remove((e, p));
 
+    /// Whether a timed change of `p` of `e` was asked for and no frame has started it yet: as
+    /// SwiftUI sees it, it's still in the same transaction as anything else asked for now.
+    public static bool Pending(DependencyObject e, DependencyProperty p) => lines.TryGetValue((e, p), out var l) && double.IsNaN(l.Start);
+
     /// Whether a spring under `key` is still moving, and its value now.
     public static bool Moving(string key) => keyed.ContainsKey(key);
     public static bool Running(DependencyObject e, DependencyProperty p) => runs.ContainsKey((e, p));

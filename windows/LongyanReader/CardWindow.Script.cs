@@ -203,8 +203,9 @@ sealed partial class CardWindow
             {
                 var w = current;
                 if (w == null || trace == null) return;
-                string line;
+                string? line;
                 try { line = w.TraceLine(); } catch (Exception) { return; }
+                if (line == null) return;
                 if (line == lastTrace) return;
                 lastTrace = line;
                 trace.WriteLine(FormattableString.Invariant($"{{\"mono\":{mono * 1000:F3},") + line + "}");
@@ -217,8 +218,10 @@ sealed partial class CardWindow
     /// What the trace says of this card now: the window's opacity and frame (DIPs from the primary
     /// screen's top-left, as --show's X and Y), the card's reveal scale, offset and height, and
     /// each part that animates by its name.
-    string TraceLine()
+    string? TraceLine()
     {
+        // Not laid out yet (a card just opened): nothing to say until it has a height.
+        if (double.IsNaN(surface.Height) && surface.ActualHeight == 0) return null;
         var sb = new StringBuilder();
         var s = scale <= 0 ? 1 : scale;
         var frameText = "null";

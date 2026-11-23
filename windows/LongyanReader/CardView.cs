@@ -90,6 +90,9 @@ sealed class CardView
         tracked.Clear();
         before = now; now = new();
         builtAt = Environment.TickCount64;
+        // Rows mid-highlight keep it through the rebuild, as the Mac's rows (never rebuilt) do.
+        var lit = new Dictionary<string, double>();
+        foreach (var (n, t) in Targets) if (RowFill(t) is Brush f && f.Opacity > 0.001) lit[n] = f.Opacity;
         Targets.Clear(); Animated.Clear(); senseRows = phraseRows = 0;
         content.Children.Clear();
         buttons.Children.Clear();
@@ -100,6 +103,13 @@ sealed class CardView
         if (was != null) Slide(was);
         var slid = clock.Elapsed.TotalMilliseconds;
         if (old != null) FadeOut(old);
+        foreach (var (n, v) in lit)
+            if (Targets.TryGetValue(n, out var t) && RowFill(t) is Brush f && f.Opacity == 0)
+            {
+                // Eases off as it was: entering it again (still under the pointer) eases it back.
+                Motion.Set(f, Brush.OpacityProperty, v);
+                Motion.To(f, Brush.OpacityProperty, 0, 0.2);
+            }
         Timing = $"\"build\":{built:0.0},\"layout\":{slid - built:0.0},\"fade\":{clock.Elapsed.TotalMilliseconds - slid:0.0}";
         Rebuilt?.Invoke();
     }
@@ -111,8 +121,8 @@ sealed class CardView
     /// so it takes its highlight at once rather than fading in again.
     long builtAt;
     bool JustBuilt => Environment.TickCount64 - builtAt < 200;
-    /// The pressed row's fill when it was let go, and when (Motion.Now).
-    static double releasedFill, releasedAt = double.NegativeInfinity;
+    /// A row's highlight brush (RowButton), or null for anything else.
+    static Brush? RowFill(UIElement e) => e is Grid g && g.Children.Count > 0 && g.Children[0] is Border h ? h.Background : null;
 
     public void Hint(string message)
     {
@@ -592,9 +602,10 @@ sealed class CardView
         {
             if (JustBuilt)
             {
-                // Rebuilt under the pointer, hovered already; just let go of (a pick), it carries
-                // on easing back from the press, as the Mac's row (which isn't rebuilt) does.
-                if (Motion.Now - releasedAt < 0.2) { Motion.Set(fill, Brush.OpacityProperty, releasedFill); Motion.To(fill, Brush.OpacityProperty, 0.05, 0.08); }
+                // Rebuilt under the pointer, hovered already. One that kept its highlight through
+                // the rebuild (just let go of: a pick) eases back from where it was, as the Mac's
+                // row, which isn't rebuilt, does from the press.
+                if (fill.Opacity > 0.001) Motion.To(fill, Brush.OpacityProperty, 0.05, 0.08);
                 else Motion.Set(fill, Brush.OpacityProperty, 0.05);
             }
             else Motion.To(fill, Brush.OpacityProperty, pressed ? 0.09 : 0.05, 0.08);
@@ -605,7 +616,6 @@ sealed class CardView
         {
             if (!pressed) return;
             pressed = false;
-            releasedFill = fill.Opacity; releasedAt = Motion.Now;
             Motion.To(fill, Brush.OpacityProperty, 0.05, 0.08);
             if (!CardWindow.WasDrag) click();
             e.Handled = true;
@@ -940,7 +950,16 @@ sealed class CardView
             Motion.To(b, UIElement.OpacityProperty, 1, 0.08);
             if (symbols.Contains(symbol)) symbol.To(hovered ? Theme.Secondary : Theme.Tertiary, 0.15);
         };
-        b.MouseLeftButtonDown += (_, e) => { pressed = true; Motion.To(b, UIElement.OpacityProperty, 0.55, 0.08); e.Handled = true; };
+        b.MouseLeftButtonDown += (_, e) =>
+        {
+            pressed = true;
+            Motion.To(b, UIElement.OpacityProperty, 0.55, 0.08);
+            // Hovered and pressed in the same moment (a click from --script, a tap): on the Mac
+            // both changes are one transaction, and the button style's 0.08 s animation, the
+            // innermost, times the hover fill too (CC:963, CC:974).
+            if (Motion.Pending(fill, Brush.OpacityProperty)) Motion.To(fill, Brush.OpacityProperty, 0.07, 0.08);
+            e.Handled = true;
+        };
         b.MouseLeftButtonUp += (_, e) =>
         {
             e.Handled = true;
