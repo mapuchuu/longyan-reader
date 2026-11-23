@@ -125,12 +125,21 @@ static class Chip
         spare = null;
         w.process = app.Process;
         w.path = app.Path;
+        return w;
+    }
+
+    /// Builds the next spare once no eye is on screen. Built while one was coming in (x64 under
+    /// emulation on ARM), the UI thread stopped for 6 s after the eye's second frame: the eye
+    /// stayed at 0.6 of its size and didn't go on the next key.
+    internal static void Restock()
+    {
         Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () =>
         {
-            if (spare != null) return;
+            if (spare != null || shown != null) return;
+            var clock = System.Diagnostics.Stopwatch.StartNew();
             try { spare = new ChipWindow("", ""); spare.Ready(); } catch { spare = null; }
+            Core.Log($"{{\"event\":\"eye-spare\",\"ms\":{clock.ElapsedMilliseconds}}}");
         });
-        return w;
     }
 
     static async Task Read(InputWatch.POINT up, int clicks, bool dragged, ForegroundApp app, int mine, long at)
@@ -451,7 +460,7 @@ sealed class ChipWindow : Window
         leaving = true;
         timer.Stop();
         Chip.Forget(this);
-        Motion.Linear(this, OpacityProperty, Opacity, 0, 0.1, () => { Core.Log("{\"event\":\"eye-closed\"}"); Close(); });
+        Motion.Linear(this, OpacityProperty, Opacity, 0, 0.1, () => { Core.Log("{\"event\":\"eye-closed\"}"); Close(); Chip.Restock(); });
     }
 
     void Hover(bool on)
