@@ -832,7 +832,7 @@ sealed class CardView
             symbol.Ink.Color = ((SolidColorBrush)Theme.Accent).Color;
             symbols.Remove(symbol);
             b.ToolTip = "Copied";
-            var t = new System.Windows.Threading.DispatcherTimer { Interval = left };
+            var t = new System.Windows.Threading.DispatcherTimer(System.Windows.Threading.DispatcherPriority.Normal) { Interval = left };   // Normal: a Background timer ran late on a busy machine
             t.Tick += (_, _) =>
             {
                 t.Stop();

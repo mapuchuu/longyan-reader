@@ -38,7 +38,7 @@ and live dark mode on every push.
 | Copy, Anki symbols | replace.downUp, filmed: the old symbol shrinks to 0.5 in 0.23 s (speeding up), the new one starts at 0.52 and is full size at 0.46 s (slowing down); no fade | the same curve, from the film (**fixed**: was a grow from 0.5 on cardMotion with a fade) |
 | Pin symbol | replace.downUp with bounce.down, filmed: old one to 0.51 in 0.22 s, new one in at 0.76, up to 1.10 at 0.4 s, back to 1 at 0.62 s | the same curve (**fixed**: had no bounce) |
 | Listen while speaking | variableColor.iterative, filmed: steps of 1/3 s; both waves dim to 0.29, inner lights, outer lights as inner dims, outer dims, a step dim; round 4/3 s; each change 0.31 s on a gentle S curve (Bézier 0.3, 0, 0.7, 1 fits to 1%); on stop the round finishes, then both waves are back at once | the same (**fixed**: the waves didn't move) |
-| Copy checkmark | 1.5 s (CC:893) | 1.5 s |
+| Copy checkmark | 1.5 s (CC:893) | 1.5 s (**fixed**: the timer was Background priority and ran late on a busy machine, so the checkmark stayed and then vanished with no animation; now Normal) |
 | Resize, pinch / Ctrl+wheel | no animation while the hand moves (CC:36, CC:365) | no animation |
 | Zoom step | × 1.1 (CC:120) | × 1.1 a wheel notch |
 | Row hover | 0.05, ease-out 0.08 s on, 0.2 s off (CC:688) | same values |
