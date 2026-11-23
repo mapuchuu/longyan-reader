@@ -259,7 +259,7 @@ sealed class SettingsPage
             login.Unchecked += (_, _) => { if (LoginItem.IsEnabled) LoginItem.Set(false); };
         }
         Root.Children.Add(f.CardFrame(f.Row("\uE7E8", "Open at login",
-            available ? "Starts Longyan Reader when you sign in to Windows." : "Extract the zip to a folder first, then open Longyan Reader from there.", login)));
+            available ? "Opens Longyan Reader when you log in to Windows." : "Extract the zip to a folder first, then open Longyan Reader from there.", login)));
         if (preview || Updates.Available) Root.Children.Add(UpdatesCard());
 
         Root.Children.Add(f.Heading("About"));

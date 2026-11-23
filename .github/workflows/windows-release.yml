@@ -11,7 +11,12 @@
 # (scripts/windows-update-key.sh makes it); without the secret the feed is written unsigned
 # and can't be published.
 #
-# Without publish_feed it only writes the feed and attaches it to the draft, to look at. With
+# The installer runs silently and opens the app again (/VERYSILENT /SUPPRESSMSGBOXES /NORESTART
+# /OPEN=1, scripts/windows-feed.py). Beside the feed goes appcast-windows-x64-on-arm64.xml, the
+# same items with the ARM64 installers, which the x64 app reads on an ARM PC so it moves to the
+# native build.
+#
+# Without publish_feed it only writes the feeds and attaches them to the draft, to look at. With
 # publish_feed, after the release itself is published, it replaces the live feed: that is what
 # ships the update to installed copies.
 name: windows-release
@@ -26,7 +31,7 @@ on:
         description: "The release's tag (empty: windows-v<version>)"
         default: ""
       installer_args:
-        description: "Arguments WinSparkle runs the installer with (empty: the installer's normal window)"
+        description: "Arguments WinSparkle runs the installer with (empty: the silent update, /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /OPEN=1)"
         default: ""
       publish_feed:
         description: "Replace the live feed (only after the release is published)"
@@ -85,13 +90,15 @@ jobs:
           [ -n "$WINDOWS_UPDATE_KEY" ] || echo "::warning::WINDOWS_UPDATE_KEY isn't set: the installers aren't signed, and installed copies won't take this update"
           scripts/windows-release-feed.sh feed/appcast-windows.xml "$VERSION" "$BUILD" notes.md \
             "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/" installers
-          cat feed/appcast-windows.xml
+          cat feed/appcast-windows.xml feed/appcast-windows-x64-on-arm64.xml
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: appcast-windows
-          path: feed/appcast-windows.xml
-      - name: Attach it to the release
-        run: gh release upload "$TAG" feed/appcast-windows.xml --clobber
+          path: |
+            feed/appcast-windows.xml
+            feed/appcast-windows-x64-on-arm64.xml
+      - name: Attach them to the release
+        run: gh release upload "$TAG" feed/appcast-windows.xml feed/appcast-windows-x64-on-arm64.xml --clobber
       - name: Publish the feed
         if: inputs.publish_feed
         run: |
@@ -105,8 +112,13 @@ jobs:
             gh release create windows-feed --prerelease --latest=false --title "Windows update feed" \
               --notes "The feed the Windows app checks for updates (appcast-windows.xml). Not a download."
           fi
+          # Both: the x64 app on an ARM PC reads the second.
+          gh release upload windows-feed feed/appcast-windows-x64-on-arm64.xml --clobber
           gh release upload windows-feed feed/appcast-windows.xml --clobber
           # What installed copies now see.
           sleep 5
-          curl -fsSL "https://github.com/$GITHUB_REPOSITORY/releases/download/windows-feed/appcast-windows.xml" -o live.xml
-          cmp live.xml feed/appcast-windows.xml && echo "the live feed now offers $VERSION (build $BUILD)"
+          for f in appcast-windows.xml appcast-windows-x64-on-arm64.xml; do
+            curl -fsSL "https://github.com/$GITHUB_REPOSITORY/releases/download/windows-feed/$f" -o "live-$f"
+            cmp "live-$f" "feed/$f"
+          done
+          echo "the live feeds now offer $VERSION (build $BUILD)"

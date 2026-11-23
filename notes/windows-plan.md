@@ -93,6 +93,16 @@ Streaming from Ollama uses `URLSession.bytes`, which only Apple's Foundation has
 - A normal release that isn't marked latest (it counts in the download total).
 - 1.0 includes History, Anki and pointing at a word without selecting.
 
+## Decisions for launch (2026-11-24)
+
+- Updates install silently. WinSparkle runs the installer with `/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /OPEN=1`, and the app opens again after.
+- Uninstalling always deletes the app's data, with no question: `%LOCALAPPDATA%\LongyanReader` (settings, history, the model, logs) and `HKCU\Software\LongyanReader` (the updater's settings). Nothing else.
+- The wording is "Open at login" everywhere.
+- No letter-by-letter San Francisco widths (notes/windows-parity.md, Fonts).
+- Speed: priming stays on by default; `LONGYAN_PRIME=0` turns it off. The prompts and the too-slow rule stay as they are.
+- Vulkan: `ggml-vulkan.dll` isn't in the app or the installer until it's been tested on a real GPU. CI keeps building it (the `vulkan` job), and the `speed` job keeps checking the CPU fallback with it.
+- The x64 app on an ARM PC moves to the ARM64 build at its next update: it reads `appcast-windows-x64-on-arm64.xml`, the feed's items with the ARM64 installers (DEVELOPMENT.md, Windows updates).
+
 ## Still to build for Windows
 
 - llama.cpp for the app: CI builds it CPU-only as DLLs, with the CPU kernels once per kind of x64 CPU (ggml-cpu-*.dll, SSE 4.2 up to AVX-512); ggml loads the best one at run time, and the UI check also runs on the SSE 4.2 ones. Vulkan (and maybe CUDA) for speed.
@@ -102,19 +112,19 @@ Streaming from Ollama uses `URLSession.bytes`, which only Apple's Foundation has
 - Reading the selection: UI Automation (text pattern and selection bounds) instead of Accessibility. Coverage will vary by app.
 - The card: still missing Add to Anki, History, pointing at a word without selecting. Listen uses a Windows Chinese voice when one is installed.
 - The eye (Chip.cs) is in: Raw Input watches the mouse (no hook), UI Automation reads the selection off the app's thread with a 0.5 s limit, and ly_prepare starts the card's work 0.3 s after the eye appears (cancelled if it goes unclicked). Apps that don't say what's selected get it on a double-click only, in elements that may hold text, never in terminals, dialogs, Excel or full screen. It matches the Mac's drawing (gallery eye.png). CI checks it in Notepad. Needs a real PC: mixed-DPI screens, Chrome and Electron on first use, WeChat, touch and pen.
-- Updates: WinSparkle 0.9.4, with its own feed (appcast-windows.xml on the windows-feed pre-release) and ed25519 signatures. Built and checked in CI (windows.yml's updates job); still needs the real key (scripts/windows-update-key.sh) and the installer. DEVELOPMENT.md has the details.
+- Updates: WinSparkle 0.9.4, with its own feed (appcast-windows.xml on the windows-feed pre-release, and appcast-windows-x64-on-arm64.xml for the x64 app on ARM) and ed25519 signatures. The installer runs silently. Built and checked in CI (windows.yml's updates jobs, x64 and x64 on ARM64); still needs the real key (scripts/windows-update-key.sh). DEVELOPMENT.md has the details.
 - Signing: a Windows code-signing certificate, or SmartScreen warns on every download.
 
 ## Installer (branch win/installer)
 
 - Inno Setup, `windows/installer/LongyanReader.iss`. Chosen over WiX: one script, per-user installs without admin are its normal case, it closes and reopens the running app, and it builds on the CI runners as they are. An MSI adds nothing for a free app installed by people, not IT.
 - Per user, no admin prompt: `%LOCALAPPDATA%\Programs\Longyan Reader`, a Start menu shortcut, an entry in Settings > Apps. Pages: Ready, the progress bar, then Finish with "Open Longyan Reader" ticked.
-- Open at sign-in stays the app's own setting: the welcome window's switch, on by default, writes the same Run value Task Manager lists. The installer doesn't ask too. The uninstaller removes the value when it points at the app it removes.
-- Upgrades: the installer sets the event `LongyanReader.Windows.Quit` and the app exits as from its menu (App.cs). After 10 s, Restart Manager closes it. A silent upgrade opens it again if it was open. The whole app folder is replaced, so files an older version had don't stay.
-- Uninstall asks whether to delete history, settings and the model (`%LOCALAPPDATA%\LongyanReader`); the default is to keep them. A silent uninstall keeps them.
+- Open at login stays the app's own setting: the welcome window's switch, on by default, writes the same Run value Task Manager lists. The installer doesn't ask too. The uninstaller removes the value when it points at the app it removes.
+- Upgrades: the installer sets the event `LongyanReader.Windows.Quit` and the app exits as from its menu (App.cs). After 10 s, Restart Manager closes it. A silent upgrade opens it again if it was open, or always with `/OPEN=1`, which updates pass. The whole app folder is replaced, so files an older version had don't stay.
+- Uninstall deletes the app's data without asking: `%LOCALAPPDATA%\LongyanReader` (history, settings, the model, logs) and `HKCU\Software\LongyanReader`. Only those two. The installer check seeds both, with a folder and a key of a longer name beside them, and checks that the two go and the others stay.
 - The model isn't in the installer. The app downloads it on first run from the welcome window (the same file, hosts and checksum as the Mac, resumed from the `.part` file and its `.pieces` list).
 - The version is `<Version>` in `LongyanReader.csproj`; the installer reads it from the exe.
-- `windows-installer.yml` (called from windows.yml) builds `LongyanReader-Setup-<version>-x64.exe`, `-arm64` or one for both, `-x64-arm64`, then installs, upgrades over the running app and uninstalls on a clean runner (`windows/installer/test.ps1`).
+- `windows-installer.yml` (called from windows.yml) builds `LongyanReader-Setup-<version>-x64.exe`, `-arm64` or one for both, `-x64-arm64`, then installs, upgrades over the running app, updates the way WinSparkle does (the app closed, then `/OPEN=1`) and uninstalls on a clean runner (`windows/installer/test.ps1`).
 - Signing: `windows/installer/sign.ps1` signs the app's files, the setup and the uninstaller when the `WINDOWS_CERT_PFX` secret exists, and does nothing until then.
 - A tag `windows-v<version>` makes a draft release, never marked latest.
 

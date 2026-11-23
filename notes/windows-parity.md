@@ -287,6 +287,9 @@ San Francisco and Segoe differ in shape, so their sizes are matched, not copied:
 - Line heights are SwiftUI's for the system font at each size (CV `LineHeight`), measured on a
   Mac: 10 and 10.5 → 13, 11 → 14, 12 → 15, 13 → 16, 14 → 17, 15 and 16 → 19, 18 → 21,
   19 → 23, 34 → 40.
+- Decided against (2026-11-24): matching San Francisco's widths letter by letter. The stretch
+  by size stays, so a line that ends right at the edge (phrase-ming, word-all) can still break
+  in a different place.
 
 ### Colours
 
