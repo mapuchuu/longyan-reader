@@ -525,6 +525,9 @@ sealed partial class CardWindow : Window, ICardActions
         Resize(animated: false);
         Reveal();
         Announce();
+        // After the reveal's motion (0.5 s), not in its frames: the first pick's parts, built
+        // once off the card.
+        After(0.6, view.Warm);
         // How long it waited after its first content (0.4 s at most for a word's pick, unless the
         // app's thread was held up), and how long showing the window took.
         // And where the card went (device pixels), for the UI check to hold against the selection.
