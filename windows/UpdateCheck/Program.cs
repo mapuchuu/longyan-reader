@@ -88,6 +88,7 @@ static class Program
         Shot("3-installed");
         Check(File.Exists(marker), "Install update ran the installer");
         if (File.Exists(marker)) Console.WriteLine("installer ran: " + File.ReadAllText(marker).Trim());
+        Check(File.Exists(marker) && File.ReadAllText(marker).Contains("--from-update"), "with the feed's sparkle:installerArguments");
         Check(app.HasExited, "the app exited for the installer");
         Check(LogHas("exit (update)"), "the app logged its exit for the update");
         if (!app.HasExited) app.Kill();

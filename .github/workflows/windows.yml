@@ -287,7 +287,7 @@ jobs:
           set -euo pipefail
           printf 'A test update.\n\n**New**\n\n- Updates install from the tray menu.\n' > notes.md
           # 9.9 for both arches, then a newer 9.10 for arm64 only, which the x64 app must pass over.
-          INSTALLER_ARGS=/test scripts/windows-release-feed.sh feed/appcast-windows.xml 9.9 $((BUILD + 1)) notes.md http://127.0.0.1:8743/ feed
+          INSTALLER_ARGS=--from-update scripts/windows-release-feed.sh feed/appcast-windows.xml 9.9 $((BUILD + 1)) notes.md http://127.0.0.1:8743/ feed
           scripts/windows-release-feed.sh feed/appcast-windows.xml 9.10 $((BUILD + 2)) notes.md http://127.0.0.1:8743/ feed
           cat feed/appcast-windows.xml
           [ "$(grep -c 'sparkle:edSignature=' feed/appcast-windows.xml)" = 3 ]
