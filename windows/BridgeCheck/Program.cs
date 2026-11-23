@@ -49,6 +49,13 @@ static class Program
             if (failed) return 1;
             if (model != null)
             {
+                // BRIDGE_WARM=seconds: warm the model up as the app does when the eye shows or
+                // the shortcut is pressed, that long before the first lookup.
+                if (ready && warmAt == null && double.TryParse(Environment.GetEnvironmentVariable("BRIDGE_WARM"), out var w))
+                {
+                    Bridge.ly_warm_up(); warmAt = DateTime.Now.AddSeconds(w);
+                }
+                if (warmAt != null && DateTime.Now < warmAt) continue;
                 if (ready && Next()) break;
                 if ((DateTime.Now - started).TotalMinutes > 30) { Console.Error.WriteLine("timed out"); return 1; }
                 continue;
@@ -95,6 +102,7 @@ static class Program
     }
 
     static int current = -1;
+    static DateTime? warmAt;
     static DateTime askedAt, changedAt;
     static string? seenCard;
     static double firstMs, settledMs;

@@ -76,7 +76,11 @@ package enum LocalModel {
     private static var _lastWarmUp: Date?
     package static func warmUp() {
         guard enabled else { return }
-        if backend == .embedded { EmbeddedModel.shared.warmUp(); checkWarmUp(); return }
+        if backend == .embedded {
+            // A pick's instructions, then a translation's (where prefixes are primed: Windows).
+            EmbeddedModel.shared.warmUp(systems: [chooseAllInstructions, translationInstructions + (promptV2 ? " " + keepWords : "")])
+            checkWarmUp(); return
+        }
         guard ollamaAllowed else { return }
         let due = lock.withLock {
             if let last = _lastWarmUp, Date().timeIntervalSince(last) < 60 { return false }
