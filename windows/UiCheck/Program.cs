@@ -41,6 +41,7 @@ static partial class Program
         RenderWindows(exe);
         ShowCheck(exe);   // ShowCheck.cs
         ScriptCheck(exe);   // ShowCheck.cs
+        FilmChecks(exe);   // ShowCheck.cs
 
         var start = new ProcessStartInfo(exe) { WorkingDirectory = Path.GetDirectoryName(exe)! };
         start.Environment["LONGYAN_CARD_LOG"] = log;

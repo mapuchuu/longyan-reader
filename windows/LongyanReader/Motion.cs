@@ -46,6 +46,7 @@ static class Motion
     {
         if (!Reduced) { Spring(e, p, to, Card, from, key, done); return; }
         Stop(e, p);
+        lines.Remove((e, p));
         var a = new DoubleAnimation(from, to, new Duration(TimeSpan.FromSeconds(0.15))) { EasingFunction = EaseInOut };
         if (done != null) a.Completed += (_, _) => done();
         ((IAnimatable)e).BeginAnimation(p, a);
@@ -63,17 +64,23 @@ static class Motion
         }
     }
 
-    /// Ease-out to `to` over `seconds`, from wherever the value is now.
-    public static void To(Animatable e, DependencyProperty p, double to, double seconds)
-    {
-        Stop(e, p);
-        e.BeginAnimation(p, new DoubleAnimation(to, new Duration(TimeSpan.FromSeconds(seconds))) { EasingFunction = EaseOut });
-    }
+    /// The window's fade in and out: AppKit's default timing for an animator() change
+    /// (NSAnimationContext with no timing function), Core Animation's default curve, the cubic
+    /// Bézier (0.25, 0.1, 0.25, 1). Not linear: the Mac's traced alpha fits it to within 0.01.
+    public static readonly IEasingFunction Fade = new Bezier(0.25, 0.1, 0.25, 1);
 
-    public static void To(UIElement e, DependencyProperty p, double to, double seconds)
+    /// Ease-out to `to` over `seconds`, from wherever the value is now. As SwiftUI's
+    /// .easeOut(duration:), it starts on the next frame drawn, not at the moment it's asked for.
+    public static void To(DependencyObject e, DependencyProperty p, double to, double seconds) =>
+        Linear(e, p, (double)e.GetValue(p), to, seconds, ease: EaseOut);
+
+    /// Sets `p` of `e` at once, stopping anything moving it.
+    public static void Set(DependencyObject e, DependencyProperty p, double value)
     {
         Stop(e, p);
-        e.BeginAnimation(p, new DoubleAnimation(to, new Duration(TimeSpan.FromSeconds(seconds))) { EasingFunction = EaseOut });
+        lines.Remove((e, p));
+        ((IAnimatable)e).BeginAnimation(p, null);
+        e.SetValue(p, value);
     }
 
     /// A CSS-style cubic Bézier timing curve from (0, 0) to (1, 1).
@@ -142,6 +149,7 @@ static class Motion
             track.Retarget(to, spec, now, old.Target == e && old.Property == p ? null : from);
         }
         else track = new SpringTrack(from ?? (double)e.GetValue(p), 0, to, spec, now);
+        lines.Remove((e, p));
         ((IAnimatable)e).BeginAnimation(p, null);
         var run = new Run { Target = e, Property = p, Track = track, Key = key, Trace = Core.Logging ? trace : null, Done = done };
         if (run.Trace != null) run.Frames = new();
@@ -156,6 +164,7 @@ static class Motion
         public required DependencyObject Target;
         public required DependencyProperty Property;
         public double From, To, Seconds, Start;
+        public IEasingFunction? Ease;
         public bool Ended;
         public string? Trace;
         public Action? Done;
@@ -164,16 +173,18 @@ static class Motion
 
     static readonly System.Collections.Generic.Dictionary<(DependencyObject, DependencyProperty), Line> lines = new();
 
-    /// Moves `p` of `e` from `from` to `to` in a straight line over `seconds`, timed from now.
-    /// `done` runs on the frame after the one that drew `to`, so the end is on screen first
-    /// (a window hidden on the last tick never shows its last step).
-    public static void Linear(DependencyObject e, DependencyProperty p, double from, double to, double seconds, Action? done = null, string? trace = null)
+    /// Moves `p` of `e` from `from` to `to` over `seconds` along `ease` (a straight line if none).
+    /// The clock starts on the next frame drawn, as Core Animation's and SwiftUI's do (they begin
+    /// at the commit), so the first frame shows the first step rather than a jump to where the
+    /// curve would be by then; `startNow` when a frame has just been drawn (ContentRendered). `done` runs on the frame after the one that drew `to`, so the end
+    /// is on screen first (a window hidden on the last tick never shows its last step).
+    public static void Linear(DependencyObject e, DependencyProperty p, double from, double to, double seconds, Action? done = null, string? trace = null, IEasingFunction? ease = null, bool startNow = false)
     {
         Stop(e, p);
         lines.Remove((e, p));
         ((IAnimatable)e).BeginAnimation(p, null);
-        var line = new Line { Target = e, Property = p, From = from, To = to, Seconds = seconds, Start = Now, Done = done, Trace = Core.Logging ? trace : null };
-        if (line.Trace != null) line.Frames = new() { (line.Start, from) };
+        var line = new Line { Target = e, Property = p, From = from, To = to, Seconds = seconds, Start = startNow ? Now : double.NaN, Ease = ease, Done = done, Trace = Core.Logging ? trace : null };
+        if (line.Trace != null) line.Frames = new() { (Now, from) };
         lines[(e, p)] = line;
         e.SetValue(p, from);
         if (!ticking) { ticking = true; CompositionTarget.Rendering += Tick; }
@@ -225,8 +236,10 @@ static class Motion
                 line.Done?.Invoke();
                 continue;
             }
-            var t = Math.Min(1, (now - line.Start) / line.Seconds);
-            var x = line.From + (line.To - line.From) * t;
+            // The first frame starts the clock: it is the commit, drawn at the curve's start.
+            if (double.IsNaN(line.Start)) line.Start = now;
+            var t = line.Seconds <= 0 ? 1 : Math.Min(1, (now - line.Start) / line.Seconds);
+            var x = line.From + (line.To - line.From) * (line.Ease?.Ease(t) ?? t);
             line.Target.SetValue(line.Property, x);
             line.Frames?.Add((now, x));
             if (t >= 1) line.Ended = true;
