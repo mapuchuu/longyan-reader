@@ -23,6 +23,7 @@ interface ICardActions
     void OpenPartOf();
     void Copy(string text);
     void Listen(string text);
+    void AddToAnki();
     void TogglePin();
     bool Pinned { get; }
     bool CanListen { get; }
@@ -603,7 +604,7 @@ sealed class CardView
 
     readonly List<Symbol> symbols = new();
 
-    /// The Listen, Copy and Pin buttons; returns the width their slot takes on the first line.
+    /// The Listen, Copy, Anki and Pin buttons; returns the width their slot takes on the first line.
     double AddButtons(string copy, string speech)
     {
         symbols.Clear();
@@ -611,12 +612,15 @@ sealed class CardView
         // Listen is always there, as on the Mac; with no Chinese voice installed it says how to add one.
         buttons.Children.Add(ListenButton(speech)); n++;
         buttons.Children.Add(CopyButton(copy)); n++;
+        if (AnkiState != null) { buttons.Children.Add(AnkiButton(copy)); n++; }
         var pin = actions.Pinned ? new Symbol(Icons.PinFill, ((SolidColorBrush)Theme.Accent).Color, true, dy: 1) : new Symbol(Icons.Pin, Rest, false, dy: 1);
         buttons.Children.Add(ActionButton(pin, actions.Pinned ? "Unpin: close when you click elsewhere" : "Pin: keep the card here for every lookup", _ => actions.TogglePin())); n++;
         buttons.Margin = new Thickness(0, 0, Pad * Zoom - 6 - ButtonGap / 2, 0);
         // The slot they take on the first line, in the content's own (unzoomed) units. The Mac
-        // keeps room for all three even when there's no voice to listen with.
-        return (3 * ButtonW + 2 * ButtonGap - 6) / Zoom;
+        // keeps room for Listen, Copy and Pin even when there's no voice to listen with, and
+        // one more for Anki.
+        var count = AnkiState != null ? 4 : 3;
+        return (count * ButtonW + (count - 1) * ButtonGap - 6) / Zoom;
     }
 
     /// A symbol's colour at rest: tertiary, secondary while the pointer is on the card.
@@ -708,7 +712,7 @@ sealed class CardView
     {
         if (!symbol.Tinted) symbols.Add(symbol);
         var fill = new SolidColorBrush(((SolidColorBrush)Theme.Primary).Color) { Opacity = 0 };
-        var b = new Border { Width = ButtonW, Height = ButtonH, CornerRadius = new CornerRadius(6), Background = fill, Child = symbol.Path, ToolTip = help, Margin = new Thickness(ButtonGap / 2, 0, ButtonGap / 2, 0) };
+        var b = new ActionBorder { Width = ButtonW, Height = ButtonH, CornerRadius = new CornerRadius(6), Background = fill, Child = symbol.Path, ToolTip = help, Margin = new Thickness(ButtonGap / 2, 0, ButtonGap / 2, 0) };
         var pressed = false;
         b.MouseEnter += (_, _) =>
         {
@@ -738,7 +742,82 @@ sealed class CardView
             pressed = false;
             act(b);
         };
+        b.Invoked = () => act(b);
         return b;
+    }
+
+    /// A card button as UI Automation sees it: a button named by its help, which Invoke clicks.
+    sealed class ActionBorder : Border
+    {
+        public Action? Invoked;
+        protected override System.Windows.Automation.Peers.AutomationPeer OnCreateAutomationPeer() => new Peer(this);
+
+        sealed class Peer : System.Windows.Automation.Peers.FrameworkElementAutomationPeer, System.Windows.Automation.Provider.IInvokeProvider
+        {
+            public Peer(ActionBorder owner) : base(owner) { }
+            protected override System.Windows.Automation.Peers.AutomationControlType GetAutomationControlTypeCore() => System.Windows.Automation.Peers.AutomationControlType.Button;
+            protected override string GetClassNameCore() => "Button";
+            protected override string GetNameCore() => ((ActionBorder)Owner).ToolTip as string ?? "";
+            public override object GetPattern(System.Windows.Automation.Peers.PatternInterface p) =>
+                p == System.Windows.Automation.Peers.PatternInterface.Invoke ? this : base.GetPattern(p);
+            public void Invoke() => ((ActionBorder)Owner).Invoked?.Invoke();
+        }
+    }
+
+    // MARK: Anki
+
+    /// Add to Anki's state, as the core reports it (Anki.cs): "ready", "adding", "added" or
+    /// "failed" (AnkiMessage says why); null shows no button, as when Anki isn't open with
+    /// AnkiConnect or the card has nothing to add. The window sets it.
+    public string? AnkiState;
+    public string AnkiMessage = "";
+    Border? ankiButton;
+    Symbol? ankiSymbol;
+    string ankiWord = "";
+
+    /// Adds the card to Anki; once it's there, in the accent, and a click shows the note in
+    /// Anki; when Anki doesn't answer, a warning for a moment, with why in its help.
+    FrameworkElement AnkiButton(string text)
+    {
+        ankiWord = text.Length > 14 ? text[..13] + "…" : text;
+        var symbol = new Symbol(Icons.AnkiAdd, Rest, false);
+        ankiSymbol = symbol;
+        ankiButton = ActionButton(symbol, "", _ => actions.AddToAnki());
+        ShowAnki();
+        return ankiButton;
+    }
+
+    /// The button's state changed: shown in place, without building the card again.
+    public void SetAnki(string? state, string message)
+    {
+        AnkiState = state;
+        AnkiMessage = message;
+        if (state != null && ankiButton != null && buttons.Children.Contains(ankiButton)) ShowAnki();
+    }
+
+    void ShowAnki()
+    {
+        if (ankiSymbol is not Symbol s || ankiButton is not Border b) return;
+        s.Set(AnkiState switch { "added" => Icons.AnkiAdded, "failed" => Icons.Warning, _ => Icons.AnkiAdd });
+        s.Path.Opacity = AnkiState == "adding" ? 0.4 : 1;
+        b.ToolTip = AnkiState switch
+        {
+            "adding" => "Adding to Anki…",
+            "added" => "In Anki · click to show it there",
+            "failed" => AnkiMessage,
+            _ => $"Add “{ankiWord}” to Anki",
+        };
+        s.Ink.BeginAnimation(SolidColorBrush.ColorProperty, null);
+        if (AnkiState == "added")
+        {
+            symbols.Remove(s);
+            s.Ink.Color = ((SolidColorBrush)Theme.Accent).Color;
+        }
+        else
+        {
+            if (!symbols.Contains(s)) symbols.Add(s);
+            s.Ink.Color = b.IsMouseOver ? ((SolidColorBrush)Theme.Primary).Color : Rest;
+        }
     }
 
     /// The symbols brighten while the pointer is anywhere on the card (ease-out 0.2 s).

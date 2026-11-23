@@ -1,7 +1,8 @@
 # Card states for comparing the Windows card with the Mac's (scripts/card-gallery.sh):
 # name, passage, the selected text (a word card when it's one word), the phrase row to open
 # (ALL: Show All; -: none), and a state: reading, translating, pending (before the model
-# answers) or pinned. The row to open can also be PICK:N, which picks a word card's meaning N (0-based).
+# answers), pinned, or anki (with the Anki button, as while Anki is open). The row to open can
+# also be PICK:N, which picks a word card's meaning N (0-based).
 word-ganmao	他得了感冒，吃不了饭。	感冒	
 word-le	他得了感冒，吃不了饭。	了	
 word-partof	这个问题我们研究过了。	研	
@@ -23,3 +24,5 @@ word-lost	奶奶上个月走了，全家人都很难过。	走
 word-picked	在中国，面子很重要。	面子	PICK:0	
 word-measure	他买了三本书。	本	
 phrase-long	在中国，面子很重要。他靠关系找到了工作，大家都知道这件事。明朝实行海禁，闭关锁国，后来慢慢落后了。	在中国，面子很重要。他靠关系找到了工作，大家都知道这件事。明朝实行海禁，闭关锁国，后来慢慢落后了。	
+word-anki	他得了感冒，吃不了饭。	感冒	-	anki
+phrase-anki	他靠关系找到了工作。	他靠关系找到了工作。	-	anki

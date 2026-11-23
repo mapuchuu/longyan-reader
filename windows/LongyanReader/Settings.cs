@@ -92,4 +92,14 @@ static class Settings
         get => Text(data["lookupHistory"]) is "off" or "days30" or "all" ? Text(data["lookupHistory"]) : "all";
         set { data["lookupHistory"] = value; Save(); }
     }
+
+    // Add to Anki (Anki.cs).
+
+    /// The deck Add to Anki puts cards in (the Mac's "ankiDeck"), or null for the default,
+    /// "Longyan Reader". Set it through Anki.Deck, which tells the core too.
+    public static string? AnkiDeck
+    {
+        get => data["ankiDeck"] is JsonValue v && v.TryGetValue<string>(out var d) && d.Length > 0 ? d : null;
+        set { if (value == null) data.Remove("ankiDeck"); else data["ankiDeck"] = value; Save(); }
+    }
 }

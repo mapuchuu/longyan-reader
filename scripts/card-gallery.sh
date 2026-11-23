@@ -60,6 +60,7 @@ card = lambda line: json.loads(line).get("card", json.loads(line))
 for (name, _, _, _, state), done, opening in zip(cases, settled, first):
     c = card(opening) if state in ("reading", "translating", "pending") else card(done)
     if state == "pending": c["translation"] = card(done).get("translation")
+    if state == "anki": c["anki"] = "ready"   # the Windows app draws the Anki button for this key
     json.dump(c, open(f"{sys.argv[4]}/{name}.json", "w", encoding="utf-8"), ensure_ascii=False, indent=1, sort_keys=True)
 PY
 rm -f "$lookups" "$lookups.cards" "$lookups.first"
@@ -70,6 +71,7 @@ while IFS=$'\t' read -r name passage sel expand state; do
     pick=""; [[ "$expand" == PICK:* ]] && { pick=${expand#PICK:}; expand=""; }
     # The bridge's wording and the phrase's text as the bridge trimmed it, for the Mac drawing.
     IFS=$'\x1f' read -r meaning translation text < <(python3 -c 'import json,sys; c=json.load(open(sys.argv[1])); print("\x1f".join(c.get(k) or "" for k in ("back" if "back" in c else "meaning","translation","text")))' "$out/$name.json")
+    anki=$([ "$state" = anki ] && echo 1 || echo 0)   # the Anki button, as while Anki is open
     extra=()
     [ -n "$meaning" ] && extra+=("LONGYAN_RENDER_MEANING=$meaning")   # with a pick, the model's (Back to)
     [ -n "$pick" ] && extra+=("LONGYAN_RENDER_PICK=$pick")
@@ -77,9 +79,9 @@ while IFS=$'\t' read -r name passage sel expand state; do
     for mode in light dark; do
         suffix=$([ $mode = dark ] && echo "-dark" || true)
         if [ "$sel" = "$passage" ]; then
-            env ${extra[@]+"${extra[@]}"} LONGYAN_RENDER_STATE=$state LONGYAN_APPEARANCE=$mode .build/release/LongyanReader --render-phrase "${text:-$passage}" "$out/mac/$name$suffix.png" ${expand:+"$expand"} >/dev/null
+            env ${extra[@]+"${extra[@]}"} LONGYAN_RENDER_ANKI=$anki LONGYAN_RENDER_STATE=$state LONGYAN_APPEARANCE=$mode .build/release/LongyanReader --render-phrase "${text:-$passage}" "$out/mac/$name$suffix.png" ${expand:+"$expand"} >/dev/null
         else
-            env ${extra[@]+"${extra[@]}"} LONGYAN_RENDER_STATE=$state LONGYAN_APPEARANCE=$mode .build/release/LongyanReader --render "$passage" "$sel" "$out/mac/$name$suffix.png" >/dev/null
+            env ${extra[@]+"${extra[@]}"} LONGYAN_RENDER_ANKI=$anki LONGYAN_RENDER_STATE=$state LONGYAN_APPEARANCE=$mode .build/release/LongyanReader --render "$passage" "$sel" "$out/mac/$name$suffix.png" >/dev/null
         fi
     done
     echo "$name"
