@@ -124,6 +124,7 @@ static partial class Program
         EyeCheck(window);
         HistoryCheck.Run(exe, app, outDir, failures);
         PointCheck.Run(app, window, log, failures, Shot);
+        CardFeelCheck.Run(app, window, log, failures, Shot);
         AnkiCheck(app, window);   // AnkiCheck.cs
         SettingsCheck(exe);
 
