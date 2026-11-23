@@ -687,7 +687,7 @@ extension EmbeddedModel {
     /// kernels and is too slow, though the PC isn't. A native ARM64 build would be fast.
     package static let emulated: Bool = {
         var process: USHORT = 0, native: USHORT = 0
-        guard IsWow64Process2(GetCurrentProcess(), &process, &native).boolValue else { return false }
+        guard IsWow64Process2(GetCurrentProcess(), &process, &native) else { return false }
         return native == 0xAA64   // IMAGE_FILE_MACHINE_ARM64
     }()
 
