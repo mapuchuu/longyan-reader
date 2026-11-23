@@ -989,8 +989,8 @@ static class Hooks
         if (code >= 0)
         {
             var m = (int)wParam;
-            if (m is WM_LBUTTONDOWN or WM_RBUTTONDOWN or WM_MOUSEWHEEL)
-                Tell(m == WM_MOUSEWHEEL ? Kind.Scroll : Kind.Click, Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam).pt);
+            if (m is WM_LBUTTONDOWN or WM_RBUTTONDOWN or WM_MOUSEWHEEL or WM_MOUSEHWHEEL)
+                Tell(m is WM_MOUSEWHEEL or WM_MOUSEHWHEEL ? Kind.Scroll : Kind.Click, Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam).pt);
         }
         return CallNextHookEx(IntPtr.Zero, code, wParam, lParam);
     }
@@ -1001,7 +1001,7 @@ static class Hooks
         return CallNextHookEx(IntPtr.Zero, code, wParam, lParam);
     }
 
-    const int WH_KEYBOARD_LL = 13, WH_MOUSE_LL = 14, WM_KEYDOWN = 0x100, WM_LBUTTONDOWN = 0x201, WM_RBUTTONDOWN = 0x204, WM_MOUSEWHEEL = 0x20A;
+    const int WH_KEYBOARD_LL = 13, WH_MOUSE_LL = 14, WM_KEYDOWN = 0x100, WM_LBUTTONDOWN = 0x201, WM_RBUTTONDOWN = 0x204, WM_MOUSEWHEEL = 0x20A, WM_MOUSEHWHEEL = 0x20E;
     delegate IntPtr HookProc(int code, IntPtr wParam, IntPtr lParam);
     [StructLayout(LayoutKind.Sequential)] struct MSLLHOOKSTRUCT { public CardWindow.POINT pt; public uint mouseData, flags, time; public IntPtr extra; }
     [DllImport("user32.dll")] static extern IntPtr SetWindowsHookEx(int id, HookProc proc, IntPtr module, uint thread);
