@@ -449,7 +449,7 @@ sealed class CardView
     FrameworkElement Note(JsonObject note, double top)
     {
         var lost = (string?)note["title"] == "Lost in translation";
-        var box = new Border { Background = Theme.NoteFill, CornerRadius = new CornerRadius(10), Padding = new Thickness(12, 10, 12, 10), Margin = new Thickness(0, top, 0, 0) };
+        var box = new Border { Background = Theme.NoteFill, CornerRadius = new CornerRadius(10), Padding = new Thickness(12, 10, 12, 11), Margin = new Thickness(0, top, 0, 0) };
         var stack = new StackPanel();
         var title = new StackPanel { Orientation = Orientation.Horizontal };
         var icon = lost ? Shape(Translate, 12, 12, Theme.NoteLost, 1.1) : Globe(Theme.NoteCulture);
