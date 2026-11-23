@@ -2,6 +2,8 @@
 // card (or hint) as a JSON line: the Mac's output is scripts/bridge-check-expected.txt, which
 // the Windows build's own run of the same lookups is compared with (scripts/bridge-check.sh,
 // windows/BridgeCheck). Usage: check RESOURCES LOOKUPS [MODEL]
+// A fourth column opens that row after the card goes quiet (-2: Show All). CHECK_FIRST=1
+// prints each lookup's first card instead: the card as it opens, before the model answers.
 #include <dispatch/dispatch.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -11,6 +13,7 @@
 void ly_start(const char *resources, const char *model, void (*cb)(const char *));
 int64_t ly_lookup(const char *passage, int32_t start, int32_t end);
 void ly_toggle_row(int64_t id, int32_t token);
+void ly_toggle_all(int64_t id, int32_t token);
 
 #define MAX 256
 static char *passages[MAX];
@@ -18,6 +21,7 @@ static int starts[MAX], ends[MAX], expands[MAX], count, expanded;
 static int64_t ids[MAX];
 static char *last[MAX];
 static int64_t events, seen;
+static int first;
 
 static int indexOf(const char *json) {
     const char *p = strstr(json, "\"id\":");
@@ -35,6 +39,7 @@ static void quiet(void *ctx) {
         expanded = 1;
         int any = 0;
         for (int i = 0; i < count; i++) if (expands[i] >= 0) { ly_toggle_row(ids[i], expands[i]); any = 1; }
+            else if (expands[i] == -2) { ly_toggle_all(ids[i], -1); any = 1; }
         if (any) { dispatch_after_f(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC), dispatch_get_main_queue(), NULL, quiet); return; }
     }
     for (int i = 0; i < count; i++) printf("%s\n", last[i] ? last[i] : "{\"missing\":true}");
@@ -52,6 +57,7 @@ static void callback(const char *json) {
     if (strstr(json, "\"event\":\"failed\"")) { fprintf(stderr, "%s\n", json); exit(1); }
     int i = indexOf(json);
     if (i < 0) return;
+    if (first && last[i]) return;
     free(last[i]);
     last[i] = strdup(json);
 }
@@ -70,6 +76,7 @@ int main(int argc, char **argv) {
         expands[count] = c ? atoi(c) : -1; count++;
     }
     fclose(f);
+    first = getenv("CHECK_FIRST") != NULL;
     ly_start(argv[1], argc > 3 ? argv[3] : NULL, callback);
     dispatch_main();
 }

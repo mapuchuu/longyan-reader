@@ -1,158 +1,158 @@
 {
-  "copy": "他靠关系找到了工作",
-  "kind": "phrase",
-  "rows": [
+ "copy": "他靠关系找到了工作",
+ "kind": "phrase",
+ "rows": [
+  {
+   "dim": false,
+   "gloss": "he",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": true,
+   "pending": false,
+   "pinyin": [
     {
-      "gloss": "he",
-      "guess": false,
-      "hasNote": false,
-      "open": false,
-      "opens": true,
-      "pending": false,
-      "pinyin": [
-        {
-          "text": "tā",
-          "tone": 1
-        }
-      ],
-      "text": "他",
-      "token": 0,
-      "dim": false
-    },
-    {
-      "gloss": "to depend on",
-      "guess": false,
-      "hasNote": false,
-      "open": false,
-      "opens": true,
-      "pending": false,
-      "pinyin": [
-        {
-          "text": "kào",
-          "tone": 4
-        }
-      ],
-      "text": "靠",
-      "token": 1,
-      "dim": false
-    },
-    {
-      "gloss": "guanxi",
-      "guess": false,
-      "hasNote": true,
-      "note": {
-        "text": "Connections built on favours owed and returned. A job found 靠关系 came through someone calling in a favour.",
-        "title": "Cultural context"
-      },
-      "open": true,
-      "opens": true,
-      "pending": false,
-      "pinyin": [
-        {
-          "text": "guān",
-          "tone": 1
-        },
-        {
-          "text": "xi",
-          "tone": 5
-        }
-      ],
-      "senses": [
-        {
-          "chosen": false,
-          "dimmed": true,
-          "gloss": "relation; relationship; connection",
-          "hasNote": false,
-          "index": 0,
-          "number": 1,
-          "pos": "n.",
-          "tip": "relation; relationship; connection"
-        },
-        {
-          "chosen": false,
-          "dimmed": true,
-          "gloss": "to concern; to involve; to affect",
-          "hasNote": false,
-          "index": 1,
-          "number": 2,
-          "pos": "v.",
-          "tip": "to concern; to involve; to affect"
-        },
-        {
-          "chosen": true,
-          "dimmed": false,
-          "gloss": "guanxi (personal connections)",
-          "hasNote": false,
-          "index": 2,
-          "number": 3,
-          "pos": "n.",
-          "tip": "guanxi (personal connections)"
-        }
-      ],
-      "text": "关系",
-      "token": 2,
-      "dim": false
-    },
-    {
-      "gloss": "to find",
-      "guess": false,
-      "hasNote": false,
-      "open": false,
-      "opens": false,
-      "pending": false,
-      "pinyin": [
-        {
-          "text": "zhǎo",
-          "tone": 3
-        },
-        {
-          "text": "dào",
-          "tone": 4
-        }
-      ],
-      "text": "找到",
-      "token": 3,
-      "dim": false
-    },
-    {
-      "gloss": "action done, or a new situation",
-      "guess": false,
-      "hasNote": false,
-      "open": false,
-      "opens": true,
-      "pending": false,
-      "pinyin": [
-        {
-          "text": "le",
-          "tone": 5
-        }
-      ],
-      "text": "了",
-      "token": 4,
-      "dim": true
-    },
-    {
-      "gloss": "job",
-      "guess": false,
-      "hasNote": false,
-      "open": false,
-      "opens": true,
-      "pending": false,
-      "pinyin": [
-        {
-          "text": "gōng",
-          "tone": 1
-        },
-        {
-          "text": "zuò",
-          "tone": 4
-        }
-      ],
-      "text": "工作",
-      "token": 5,
-      "dim": false
+     "text": "tā",
+     "tone": 1
     }
-  ],
-  "text": "他靠关系找到了工作",
-  "translation": "He got the job through connections."
+   ],
+   "text": "他",
+   "token": 0
+  },
+  {
+   "dim": false,
+   "gloss": "to depend on",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": true,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "kào",
+     "tone": 4
+    }
+   ],
+   "text": "靠",
+   "token": 1
+  },
+  {
+   "dim": false,
+   "gloss": "guanxi",
+   "guess": false,
+   "hasNote": true,
+   "note": {
+    "text": "Connections built on favours owed and returned. A job found 靠关系 came through someone calling in a favour.",
+    "title": "Cultural context"
+   },
+   "open": true,
+   "opens": true,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "guān",
+     "tone": 1
+    },
+    {
+     "text": "xi",
+     "tone": 5
+    }
+   ],
+   "senses": [
+    {
+     "chosen": false,
+     "dimmed": true,
+     "gloss": "relation; relationship; connection",
+     "hasNote": false,
+     "index": 0,
+     "number": 1,
+     "pos": "n.",
+     "tip": "relation; relationship; connection"
+    },
+    {
+     "chosen": false,
+     "dimmed": true,
+     "gloss": "to concern; to involve; to affect",
+     "hasNote": false,
+     "index": 1,
+     "number": 2,
+     "pos": "v.",
+     "tip": "to concern; to involve; to affect"
+    },
+    {
+     "chosen": true,
+     "dimmed": false,
+     "gloss": "guanxi (personal connections)",
+     "hasNote": false,
+     "index": 2,
+     "number": 3,
+     "pos": "n.",
+     "tip": "guanxi (personal connections)"
+    }
+   ],
+   "text": "关系",
+   "token": 2
+  },
+  {
+   "dim": false,
+   "gloss": "to find",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": false,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "zhǎo",
+     "tone": 3
+    },
+    {
+     "text": "dào",
+     "tone": 4
+    }
+   ],
+   "text": "找到",
+   "token": 3
+  },
+  {
+   "dim": true,
+   "gloss": "action done, or a new situation",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": true,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "le",
+     "tone": 5
+    }
+   ],
+   "text": "了",
+   "token": 4
+  },
+  {
+   "dim": false,
+   "gloss": "job",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": true,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "gōng",
+     "tone": 1
+    },
+    {
+     "text": "zuò",
+     "tone": 4
+    }
+   ],
+   "text": "工作",
+   "token": 5
+  }
+ ],
+ "text": "他靠关系找到了工作",
+ "translation": "He got the job through connections."
 }

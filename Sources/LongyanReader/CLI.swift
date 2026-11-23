@@ -706,8 +706,11 @@ enum CLI {
         if click.count == 1 { ctx = Segmenter.context(for: at..<(at + 1), in: Array(passage)) }
         let senses = dict.senses(for: ctx.word)
         let state = LookupState(context: ctx, senses: senses, phase: .choosing)
+        // LONGYAN_RENDER_STATE: "reading" (before the model's pick), "all" (Show All open),
+        // "pinned" (the pin on). For comparing the Windows card's states (scripts/card-gallery.sh).
+        let look = ProcessInfo.processInfo.environment["LONGYAN_RENDER_STATE"] ?? ""
         _ = await LocalModel.isAvailable()
-        if SenseChooser.canChoose, !senses.isEmpty, state.grammar == nil {
+        if look != "reading", SenseChooser.canChoose, !senses.isEmpty, state.grammar == nil {
             state.choice = try await SenseChooser.choose(for: ctx, senses: senses)
             if let wording = ProcessInfo.processInfo.environment["LONGYAN_RENDER_MEANING"] { state.choice?.meaningHere = wording }
             state.phase = .chosen
@@ -718,6 +721,10 @@ enum CLI {
             state.partOf = .init(word: whole.word, pinyin: ws[safe: (c?.senseNumber ?? 1) - 1]?.pinyin ?? "",
                                  meaning: c?.meaningHere ?? ws.first.map { Gloss.short($0.gloss) })
         }
+        if look == "all" { state.showAllSenses = true }
+        let wasPinned = CardPin.shared.isOn
+        if look == "pinned" { CardPin.shared.isOn = true }
+        defer { if look == "pinned" { CardPin.shared.isOn = wasPinned } }
         try await writePNG(CardChrome(layout: renderLayout(.word)) { LookupView(state: state) }, to: url)
         print("wrote \(url.path)")
     }
@@ -864,9 +871,12 @@ enum CLI {
         let passage = Array(text)
         let selection = Selection(passage: passage, range: 0..<passage.count, bounds: nil, source: .accessibility, appName: "Safari")
         let state = PhraseState(selection: selection, dict: dict)
-        state.translation = await LocalModel.isAvailable() ? try? await LocalModel.translate(text) : try? await Translator.translate(text)
+        let look = ProcessInfo.processInfo.environment["LONGYAN_RENDER_STATE"] ?? ""
+        if look != "translating" {
+            state.translation = await LocalModel.isAvailable() ? try? await LocalModel.translate(text) : try? await Translator.translate(text)
+        }
         // LONGYAN_RENDER_PENDING=1 draws the card as it looks while senses are still being chosen.
-        if ProcessInfo.processInfo.environment["LONGYAN_RENDER_PENDING"] == "1" { state.resolving = true }
+        if ProcessInfo.processInfo.environment["LONGYAN_RENDER_PENDING"] == "1" || look == "pending" || look == "translating" { state.resolving = true }
         else { state.apply(await PhraseState.resolve(state.tokens, in: passage, dict: dict)) }
         if let expand, let token = state.tokens.first(where: { $0.text == expand }) {
             state.toggle(token)
