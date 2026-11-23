@@ -241,8 +241,11 @@ sealed class SettingsPage
         Refresh();
     }
 
-    /// Rows for the card's own settings, from other branches; none yet.
-    IEnumerable<FrameworkElement> CardRows() { yield break; }
+    /// Rows for the card's own settings, from other branches.
+    IEnumerable<FrameworkElement> CardRows()
+    {
+        yield return HistorySettings.Card(f, preview);   // History
+    }
 
     public void FocusShortcut()
     {

@@ -30,6 +30,8 @@ static class Program
         if (args.Length == 2 && args[0] == "--render-windows") return RenderWindows(args[1]);
         // --check-shortcut: the default shortcut on each installed keyboard layout (UiCheck).
         if (args.Length == 1 && args[0] == "--check-shortcut") return Shortcut.Check();
+        // History: --render-history OUT (UiCheck), --history (the running copy's window).
+        if (History.Command(args) is int history) return history;
 
         using var single = new Mutex(true, "LongyanReader.Windows", out var first);
         if (!first)
@@ -167,6 +169,7 @@ static class Program
     static void Present(Selected selected)
     {
         Chip.Hide();
+        History.Opening(selected);   // History: the card about to open is for this selection
         CardWindow.Present(selected);
     }
 
@@ -216,6 +219,7 @@ static class Program
         modelItem = new Forms.ToolStripMenuItem("Reading model: checking…", null, (_, _) => ModelClicked()) { Visible = false };
         menu.Items.Add(modelItem);
         menu.Items.Add(new Forms.ToolStripSeparator());
+        menu.Items.Add(History.MenuItem());   // History: "Lookup history…"
         var settings = new Forms.ToolStripMenuItem("Settings…", null, (_, _) => SettingsWindow.Open());
         settings.Font = new System.Drawing.Font(settings.Font, System.Drawing.FontStyle.Bold);
         menu.Items.Add(settings);
