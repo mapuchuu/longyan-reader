@@ -674,8 +674,12 @@ extension EmbeddedModel {
     /// The CPU kernels, loaded once (a few DLLs, no model): what they say decides `tooSlow`.
     private static let cpu: (loaded: Bool, features: Set<String>) = {
         let c = EmbeddedModel.loadCPUBackend()
+        #if arch(x86_64)
         let fast = c.features.contains("AVX2") && c.features.contains("FMA")
         if c.loaded { EmbeddedModel.log("too slow for the model by CPU features: \(fast ? "no" : "yes")\(EmbeddedModel.emulated ? " (x64 emulated on ARM64)" : "")\n") }
+        #else
+        if c.loaded { EmbeddedModel.log("too slow for the model: no (not x64, no CPU feature rule)\n") }
+        #endif
         return c
     }()
 
@@ -692,12 +696,18 @@ extension EmbeddedModel {
     }()
 
     /// Whether this PC is too slow for the model, so it isn't loaded at all and cards use
-    /// dictionary order. Needs AVX2 and FMA. On the CI runner (4 cores), word cards took 15 to
-    /// 17 s on the AVX2 kernels and 28 to 33 s on the AVX-only ones (prompts read at 28 and 13
-    /// tokens a second); on SSE 4.2, 1 token a second, so a card never settles.
+    /// dictionary order. On x64 it needs AVX2 and FMA. On the CI runner (4 cores), word cards
+    /// took 15 to 17 s on the AVX2 kernels and 28 to 33 s on the AVX-only ones (prompts read at
+    /// 28 and 13 tokens a second); on SSE 4.2, 1 token a second, so a card never settles.
     package static var tooSlow: Bool {
         if allowSlow || ProcessInfo.processInfo.environment["LONGYAN_ALLOW_SLOW"] == "1" { return false }
+        #if arch(x86_64)
         return cpu.loaded && !(cpu.features.contains("AVX2") && cpu.features.contains("FMA"))
+        #else
+        // A native ARM64 build: its kernels are NEON, never AVX2, and it is fast enough.
+        _ = cpu
+        return false
+        #endif
     }
 }
 #endif
