@@ -42,6 +42,13 @@ static class Settings
         }
     }
 
+    /// The welcome window was shown (on the first run).
+    public static bool WelcomeShown
+    {
+        get => data["welcomeShown"] is JsonValue v && v.TryGetValue<bool>(out var shown) && shown;
+        set { data["welcomeShown"] = value; Save(); }
+    }
+
     static string Text(JsonNode? n) => n is JsonValue v && v.TryGetValue<string>(out var t) ? t : "";
 
     public static bool EyeHiddenIn(string process) => EyeHiddenApps.Any(a => a.Process == process);
