@@ -43,4 +43,4 @@ If the app closes by itself, it offers to report it the next time it starts. If 
 
 ## Removing it
 
-Settings > Apps > Installed apps > Longyan Reader > Uninstall. It asks whether to delete your history, settings and the reading model; by default they stay, in case you install it again.
+Settings > Apps > Installed apps > Longyan Reader > Uninstall. It removes your history, settings and the reading model too. Export your history first if you want to keep it.

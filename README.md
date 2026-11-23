@@ -115,7 +115,7 @@ Longyan Reader for Windows has the same cards, dictionary, notes and reading mod
 - 8 GB of memory.
 - About 3 GB of free space: 2.7 GB for the reading model and [installed size] for the app.
 
-The model runs on the processor, not the graphics card, so cards take longer than on a Mac: [typical time for a word card and a phrase, from the beta].
+The card comes up at once with the dictionary's meanings; the model's picks and translation follow. They take longer than on a Mac: [typical time for a word card and a phrase, from the beta, with and without the graphics chip].
 
 ### Install
 
@@ -133,7 +133,7 @@ The model runs on the processor, not the graphics card, so cards take longer tha
 3. The welcome window offers the reading model (2.7 GB). Download it, or get it later from the Longyan Reader icon in the notification area.
 4. Select some Chinese in any app and click the eye, or press Ctrl+Alt+L.
 
-Windows doesn't ask for any permission to read the selection. The app opens when you sign in unless you turn that off in the welcome window or in Settings. It checks for updates once a day after you agree to it, and installs them when you say so.
+Windows doesn't ask for any permission to read the selection. Open at login is on unless you turn it off in the welcome window or in Settings. Once you agree to it, the app checks for updates once a day; when you say yes to one, it installs in the background and the app opens again.
 
 ### Using it on Windows
 
@@ -148,7 +148,7 @@ Some things differ:
 
 Your history, settings and the model are in `%LOCALAPPDATA%\LongyanReader`. The app keeps a log in its `logs` folder with timings and errors, never the text you look up. It goes online for the same three things as on the Mac: the model download, update checks, and Report a problem, which opens a pre-filled GitHub issue in your browser and sends nothing until you submit it.
 
-To uninstall, go to Settings > Apps > Installed apps, find Longyan Reader and choose **Uninstall**. It asks whether to delete your history, settings and the model too; by default they stay.
+To uninstall, go to Settings > Apps > Installed apps, find Longyan Reader and choose **Uninstall**. It removes your history, settings and the reading model with the app.
 
 ## Privacy
 
