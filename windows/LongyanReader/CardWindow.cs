@@ -295,6 +295,7 @@ sealed class CardWindow : Window, ICardActions
 
     void Update(JsonObject json)
     {
+        History.Saw(cardID, json);   // History: what the card says, for the lookup history
         if (closing) return;
         last = json;
         if (!revealed)

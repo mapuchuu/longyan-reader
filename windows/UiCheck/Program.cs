@@ -120,6 +120,7 @@ static class Program
         Keys(VK_ESCAPE);
         Thread.Sleep(800);
         EyeCheck(window);
+        HistoryCheck.Run(exe, app, outDir, failures);
 
         try { notepad.Kill(); } catch { }
         try { app.Kill(); } catch { }

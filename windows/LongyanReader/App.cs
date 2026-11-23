@@ -29,6 +29,8 @@ static class Program
         if (args.Length == 3 && args[0] == "--render") return RenderGallery(args[1], args[2]);
         // --check-shortcut: the default shortcut on each installed keyboard layout (UiCheck).
         if (args.Length == 1 && args[0] == "--check-shortcut") return Shortcut.Check();
+        // History: --render-history OUT (UiCheck), --history (the running copy's window).
+        if (History.Command(args) is int history) return history;
 
         using var single = new Mutex(true, "LongyanReader.Windows", out var first);
         if (!first)
@@ -151,6 +153,7 @@ static class Program
     static void Present(Selected selected)
     {
         Chip.Hide();
+        History.Opening(selected);   // History: the card about to open is for this selection
         CardWindow.Present(selected);
     }
 
@@ -190,6 +193,7 @@ static class Program
         menu.Items.Add(eyeItem);
         eyeAppsItem = new Forms.ToolStripMenuItem("Hide the eye in");
         menu.Items.Add(eyeAppsItem);
+        menu.Items.Add(History.MenuItem());   // History: "Lookup history"
         menu.Items.Add("Change shortcut…", null, (_, _) => ShortcutWindow.Open());
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add("Report a problem", null, (_, _) => Report());
