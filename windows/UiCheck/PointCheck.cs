@@ -19,11 +19,11 @@ static class PointCheck
     public static void Run(System.Diagnostics.Process app, IntPtr notepad, string log, List<string> failures, Action<string> shot)
     {
         // Where each is in Notepad's text (the passage starts with it: the file is short).
-        Word(notepad, log, failures, shot, "4-point-start", "感", 3, "感冒");
-        Word(notepad, log, failures, shot, "4-point-middle", "锁", "他得了感冒，吃不了饭。\r\n".Length + 9, "闭关锁国");
+        Word(notepad, log, failures, shot, "5-point-start", "感", 3, "感冒");
+        Word(notepad, log, failures, shot, "5-point-middle", "锁", "他得了感冒，吃不了饭。\r\n".Length + 9, "闭关锁国");
 
         // Well past the end of the first line, on it.
-        const string name = "4-point-empty";
+        const string name = "5-point-empty";
         if (TextIn(notepad, "饭。") is not System.Windows.Rect end) { failures.Add($"{name}: couldn't find the end of the first line"); return; }
         Clear(notepad);
         SetCursorPos((int)(end.Right + 200), (int)(end.Top + end.Height / 2));
