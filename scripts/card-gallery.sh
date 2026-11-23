@@ -67,3 +67,9 @@ while IFS=$'\t' read -r name passage sel expand state; do
     done
     echo "$name"
 done < "$out/cases.tsv"
+# The eye (selection button), drawn by --render-chip.
+for mode in light dark; do
+    suffix=$([ $mode = dark ] && echo "-dark" || true)
+    LONGYAN_APPEARANCE=$mode .build/release/LongyanReader --render-chip "$out/mac/eye$suffix.png" >/dev/null
+done
+echo "eye"

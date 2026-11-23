@@ -157,7 +157,7 @@ static class Chip
 /// 24 circle in the card's style (surface, 0.5 hairline, soft shadow) with the Longyan mark.
 sealed class ChipWindow : Window
 {
-    const double Size = 44, Target = 30, Diameter = 24, Mark = 13;
+    const double Box = 44, Target = 30, Diameter = 24, Mark = 13;
 
     public readonly Selected? Selection;
     readonly string process, appName;
@@ -185,33 +185,13 @@ sealed class ChipWindow : Window
         ShowInTaskbar = false;
         ShowActivated = false;
         Topmost = true;
-        Width = Height = Size;
+        Width = Height = Box;
         Opacity = 0;
         UseLayoutRounding = true;
 
-        var surface = new Ellipse
-        {
-            Width = Diameter, Height = Diameter, Fill = Theme.Surface,
-            Effect = new DropShadowEffect { BlurRadius = 10, ShadowDepth = 2, Direction = 270, Opacity = 0.18, Color = Colors.Black, RenderingBias = RenderingBias.Quality },
-        };
-        // A 0.5 border drawn inside the circle, as strokeBorder does.
-        var hairline = new Ellipse { Width = Diameter, Height = Diameter, Stroke = Theme.Hairline, StrokeThickness = 0.5 };
-        mark = new Rectangle { Width = Mark, Height = Mark, Fill = Theme.Ink(1), OpacityMask = markBrush, Opacity = InkAlpha(false) };
-        RenderOptions.SetBitmapScalingMode(mark, BitmapScalingMode.HighQuality);
-        var hit = new Ellipse { Width = Target, Height = Target, Fill = Brushes.Transparent };
-        var button = new Grid
-        {
-            Width = Target, Height = Target, RenderTransform = scale,
-            HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
-            Cursor = Cursors.Arrow,
-        };
-        button.Children.Add(surface);
-        button.Children.Add(hairline);
-        button.Children.Add(mark);
-        button.Children.Add(hit);
-        AutomationProperties.SetName(button, "Look up");
-        button.ToolTip = "Look up (Ctrl+Alt+L). Right-click for options.";
-        ToolTipService.SetInitialShowDelay(button, 700);
+        var (button, hit, markShape) = Build(snapshot: false);
+        mark = markShape;
+        button.RenderTransform = scale;
         Content = new Grid { Children = { button } };
 
         hit.MouseEnter += (_, _) => Hover(true);
@@ -242,6 +222,50 @@ sealed class ChipWindow : Window
         };
     }
 
+    /// The button: the hit area, and in it the circle (surface, hairline, shadow) and the mark.
+    /// A snapshot (the gallery) leaves out the shadow, as the Mac's --render-chip does.
+    static (Grid Button, Ellipse Hit, Rectangle Mark) Build(bool snapshot)
+    {
+        var surface = new Ellipse { Width = Diameter, Height = Diameter, Fill = Theme.Surface };
+        if (!snapshot) surface.Effect = new DropShadowEffect { BlurRadius = 10, ShadowDepth = 2, Direction = 270, Opacity = 0.18, Color = Colors.Black, RenderingBias = RenderingBias.Quality };
+        // A 0.5 border drawn inside the circle, as strokeBorder does.
+        var hairline = new Ellipse { Width = Diameter, Height = Diameter, Stroke = Theme.Hairline, StrokeThickness = 0.5 };
+        var mark = new Rectangle { Width = Mark, Height = Mark, Fill = Theme.Ink(1), OpacityMask = markBrush, Opacity = InkAlpha(false) };
+        RenderOptions.SetBitmapScalingMode(mark, BitmapScalingMode.HighQuality);
+        var hit = new Ellipse { Width = Target, Height = Target, Fill = Brushes.Transparent };
+        var button = new Grid
+        {
+            Width = Target, Height = Target,
+            HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
+            Cursor = Cursors.Arrow,
+        };
+        button.Children.Add(surface);
+        button.Children.Add(hairline);
+        button.Children.Add(mark);
+        button.Children.Add(hit);
+        AutomationProperties.SetName(button, "Look up");
+        button.ToolTip = "Look up (Ctrl+Alt+L). Right-click for options.";
+        ToolTipService.SetInitialShowDelay(button, 700);
+        return (button, hit, mark);
+    }
+
+    /// Draws the eye at twice the size on the Mac renders' grey with 12 around it, as the Mac's
+    /// --render-chip does (windows/gallery/mac/eye.png).
+    public static void RenderToFile(string path)
+    {
+        var (button, _, _) = Build(snapshot: true);
+        var backdrop = new Border { Background = Theme.Backdrop, Padding = new Thickness(12), Child = button };
+        backdrop.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        backdrop.Arrange(new Rect(backdrop.DesiredSize));
+        backdrop.UpdateLayout();
+        var bmp = new RenderTargetBitmap((int)Math.Ceiling(backdrop.ActualWidth * 2), (int)Math.Ceiling(backdrop.ActualHeight * 2), 192, 192, PixelFormats.Pbgra32);
+        bmp.Render(backdrop);
+        var png = new PngBitmapEncoder();
+        png.Frames.Add(BitmapFrame.Create(bmp));
+        using var f = System.IO.File.Create(path);
+        png.Save(f);
+    }
+
     /// Just after the end of a one-line selection; for longer selections, or with no position,
     /// just above and right of where the mouse let go. Kept on that screen's working area.
     public void Place(InputWatch.POINT up, Rect? selection)
@@ -253,10 +277,10 @@ sealed class ChipWindow : Window
             x = b.Right + 4 * s;
             y = b.Top + b.Height / 2 - Target * s / 2;
         }
-        var inset = (Size - Target) / 2 * s;
+        var inset = (Box - Target) / 2 * s;
         x -= inset; y -= inset;
         var area = System.Windows.Forms.Screen.FromPoint(new System.Drawing.Point(up.X, up.Y)).WorkingArea;
-        var size = Size * s;
+        var size = Box * s;
         left = (int)Math.Round(Math.Clamp(x, area.Left, area.Right - size));
         top = (int)Math.Round(Math.Clamp(y, area.Top, area.Bottom - size));
 
@@ -276,11 +300,11 @@ sealed class ChipWindow : Window
     {
         base.OnDpiChanged(oldDpi, newDpi);
         // Windows moves a window that changes screens; this one stays where it was put.
-        if (hwnd != IntPtr.Zero) SetWindowPos(hwnd, HWND_TOPMOST, left, top, (int)Math.Round(Size * newDpi.DpiScaleX), (int)Math.Round(Size * newDpi.DpiScaleY), SWP_NOACTIVATE);
+        if (hwnd != IntPtr.Zero) SetWindowPos(hwnd, HWND_TOPMOST, left, top, (int)Math.Round(Box * newDpi.DpiScaleX), (int)Math.Round(Box * newDpi.DpiScaleY), SWP_NOACTIVATE);
     }
 
     /// True when `p` (device pixels) is on the eye's window.
-    public bool Contains(InputWatch.POINT p) => !leaving && p.X >= left && p.Y >= top && p.X < left + Size * s && p.Y < top + Size * s;
+    public bool Contains(InputWatch.POINT p) => !leaving && p.X >= left && p.Y >= top && p.X < left + Box * s && p.Y < top + Box * s;
 
     public void Leave(bool quick = false)
     {
@@ -343,8 +367,9 @@ sealed class ChipWindow : Window
     static ImageBrush MakeMark()
     {
         var image = new BitmapImage();
+        using var stream = typeof(ChipWindow).Assembly.GetManifestResourceStream("longyan-mark.png");
         image.BeginInit();
-        image.UriSource = new Uri("pack://application:,,,/longyan-mark.png");
+        image.StreamSource = stream;
         image.CacheOption = BitmapCacheOption.OnLoad;
         image.EndInit();
         image.Freeze();

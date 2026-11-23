@@ -46,6 +46,12 @@ static class Program
             }
             Console.WriteLine(name);
         }
+        foreach (var dark in new[] { false, true })
+        {
+            Theme.Dark = dark;
+            ChipWindow.RenderToFile(System.IO.Path.Combine(output, "eye" + (dark ? "-dark" : "") + ".png"));
+        }
+        Console.WriteLine("eye");
         return 0;
     }
 

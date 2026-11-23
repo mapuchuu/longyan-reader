@@ -26,7 +26,7 @@
   </PropertyGroup>
   <ItemGroup>
     <None Include="LongyanReader.ico" CopyToOutputDirectory="PreserveNewest" />
-    <Resource Include="..\..\Resources\longyan-mark.png" Link="longyan-mark.png" />
+    <EmbeddedResource Include="..\..\Resources\longyan-mark.png" LogicalName="longyan-mark.png" />
     <Reference Include="UIAutomationClient" />
     <Reference Include="UIAutomationTypes" />
     <PackageReference Include="System.Speech" Version="8.0.0" />
