@@ -30,7 +30,7 @@ static partial class Program
         if (TextIn(notepad, "冒") is not System.Windows.Rect word) { failures.Add($"{name}: couldn't find 冒 in Notepad"); return; }
         Focus(notepad);
         Keys(VK_CONTROL, VK_HOME);
-        var placed = Placement(name, notepad, () => DoubleClick(word.Left + word.Width / 2, word.Top + word.Height / 2), new[] { word }, word.Height);
+        var placed = Placement(name, notepad, () => DoubleClick(word.Left + word.Width / 2, word.Top + word.Height / 2), new[] { word }, word.Height, early: true);
         if (placed is not IntPtr eye) return;
         GetWindowRect(eye, out var r);
         double cx = (r.Left + r.Right) / 2.0, cy = (r.Top + r.Bottom) / 2.0;
@@ -185,6 +185,7 @@ static partial class Program
                 Thread.Sleep(1500);
                 Focus(browser);
                 EdgeCases($"eye-{percent}-edge", browser, s, cases);
+                EdgeDrags($"eye-{percent}-edge", browser, s, cases);
             }
             if (modern != IntPtr.Zero)
             {
@@ -240,6 +241,7 @@ static partial class Program
         File.WriteAllText(page, """
             <!doctype html><meta charset="utf-8"><title>longyan-edge</title>
             <body style="margin:24px;background:#fff;color:#000;font-family:'Microsoft YaHei',sans-serif">
+            <h1 style="font-size:32px">明朝实行海禁，闭关锁国。</h1>
             <p style="font-size:13px">他得了感冒，吃不了饭。</p>
             <p style="font-size:16px">明朝实行海禁 policy，闭关锁国。</p>
             <p style="font-size:20px">我们研究研究再说吧。</p>
@@ -281,6 +283,39 @@ static partial class Program
         }
     }
 
+    /// Drags in Edge whose eye the Mac puts beside the text: a 32 px heading (its line is over
+    /// 40 points in Microsoft YaHei), ending on the line, below it, and past its text; and a
+    /// paragraph dragged past its end. Within 1 point of the Mac rule's centre.
+    static void EdgeDrags(string name, IntPtr window, double s, List<(string, Bitmap)> crops)
+    {
+        System.Windows.Rect? Find(string line)
+        {
+            for (var i = 0; i < 20; i++)
+            {
+                try { if (AutomationElement.FromHandle(window).FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, line))?.Current.BoundingRectangle is System.Windows.Rect r && !r.IsEmpty) return r; } catch { }
+                Thread.Sleep(500);
+            }
+            return null;
+        }
+        void Add(string label) { if (lastCrop != null) crops.Add(($"{name} {label}", lastCrop)); lastCrop = null; }
+        const string heading = "明朝实行海禁，闭关锁国。";
+        if (Find(heading) is not System.Windows.Rect h) { failures.Add($"{name}-h1: couldn't find the heading in Edge"); return; }
+        var em = 32 * s; var y = h.Top + h.Height / 2;
+        var from = h.Left + 3 * em + 2 * s;   // 行
+        Console.WriteLine($"[{name}-h1] heading's box {Fmt(h)}");
+        Placement($"{name}-h1-on", window, () => Drag(from, y, (int)(h.Left + 11 * em + 2 * s - from), 0), new[] { h }, h.Height, oneLine: true, tolerance: 1);
+        Add("32 px heading, 行 to just past 国");
+        Placement($"{name}-h1-below", window, () => Drag(from, y, (int)(h.Left + 9.9 * em - from), (int)(h.Bottom + 12 * s - y)), new[] { h }, h.Height, oneLine: true, tolerance: 1);
+        Add("32 px heading, 行 to 锁, let go below the line");
+        Placement($"{name}-h1-past", window, () => Drag(from, y, (int)(h.Left + 12 * em + 90 * s - from), 0), new[] { h }, h.Height, oneLine: true, tolerance: 1);
+        Add("32 px heading, 行 to 90 points past the text");
+        const string para = "我们研究研究再说吧。";
+        if (Find(para) is not System.Windows.Rect p) { failures.Add($"{name}-past: couldn't find the 20 px line in Edge"); return; }
+        var start = p.Left + 2 * 20 * s + 2 * s;   // 研
+        Placement($"{name}-20px-past", window, () => Drag(start, p.Top + p.Height / 2, (int)(p.Left + 10 * 20 * s + 90 * s - start), 0), new[] { p }, p.Height, tolerance: 1);
+        Add("20 px line, 研 to 90 points past the end");
+    }
+
     static List<(IntPtr, RECT)> EdgePopups(IntPtr main)
     {
         var found = new List<(IntPtr, RECT)>();
@@ -312,6 +347,12 @@ static partial class Program
         Add("right-to-left drag 国 to 闭", Placement($"{name}-rtl", window, () => Drag(guo.Right - 2, y2, (int)(bi.Left + 2 - (guo.Right - 2)), 0), new[] { l2 }, l2.Height));
         Add("two lines, 感 to 实", Placement($"{name}-two", window, () => Drag(gan.Left + 2, y1, (int)(shi.Right - 2 - (gan.Left + 2)), (int)(y2 - y1)), new[] { l1, l2 }, l2.Height));
         Add("three lines, 感 to 究", Placement($"{name}-three", window, () => Drag(gan.Left + 2, y1, (int)(jiu.Right - 2 - (gan.Left + 2)), (int)(y3 - y1)), new[] { l1, l2, l3 }, l2.Height));
+        // A drag from inside a line to well past its end (90 points right, same line): the Mac
+        // puts the eye after the line's text.
+        var yan = At("研");
+        Add("first line, 感 to past the end", Placement($"{name}-past1", window, () => Drag(gan.Left + 2, y1, (int)(l1.Right + 90 * s - (gan.Left + 2)), 0), new[] { l1 }, l2.Height));
+        Add("second line, 闭 to past the end", Placement($"{name}-past2", window, () => Drag(bi.Left + 2, y2, (int)(l2.Right + 90 * s - (bi.Left + 2)), 0), new[] { l2 }, l2.Height));
+        if (!yan.IsEmpty) Add("third line, 研 to past the end", Placement($"{name}-past3", window, () => Drag(yan.Left + 2, y3, (int)(l3.Right + 90 * s - (yan.Left + 2)), 0), new[] { l3 }, l2.Height));
         if (edge)
         {
             // The first line's end a few points from the working area's right edge.
@@ -330,7 +371,11 @@ static partial class Program
     /// Makes a selection, waits for the eye, and checks it against the Mac's rule. `lines` are
     /// the text lines it covers (their ink, captured before, gives the text's centre). Returns
     /// the eye's window, or null when none came.
-    static IntPtr? Placement(string name, IntPtr window, Action select, System.Windows.Rect[] lines, double lineHeight, string? burst = null)
+    /// `oneLine`: the selection is on one line, so the eye goes beside it whatever its height.
+    /// `tolerance`: how far from the Mac rule's centre, in points (default 2 px down, 1 + s/2
+    /// across). `early`: also a frame about 30 ms after the eye's window shows, whose circle
+    /// must already be centred where it settles.
+    static IntPtr? Placement(string name, IntPtr window, Action select, System.Windows.Rect[] lines, double lineHeight, string? burst = null, bool oneLine = false, double? tolerance = null, bool early = false)
     {
         // The caret out of the way (at the end), so it isn't taken for ink.
         Keys(VK_CONTROL, VK_END);
@@ -340,9 +385,32 @@ static partial class Program
         var skip = Lines();
         select();
         if (burst != null) Burst(burst, 700);
+        Bitmap? first = null; RECT firstRect = default; double firstMs = 0;
+        if (early)
+        {
+            var clock = Stopwatch.StartNew();
+            IntPtr seen;
+            while ((seen = Eye()) == IntPtr.Zero && clock.ElapsedMilliseconds < 2500) Thread.Sleep(1);
+            if (seen != IntPtr.Zero)
+            {
+                var at = clock.Elapsed.TotalMilliseconds;
+                while (clock.Elapsed.TotalMilliseconds < at + 30) Thread.Sleep(1);
+                GetWindowRect(seen, out firstRect);
+                first = Capture();
+                firstMs = clock.Elapsed.TotalMilliseconds - at;
+            }
+        }
         var eye = WaitForEye(true, 2500);
         GetCursorPos(out var up);
-        if (eye == IntPtr.Zero) { Shot(name); failures.Add($"{name}: no eye"); return null; }
+        if (eye == IntPtr.Zero)
+        {
+            Shot(name);
+            var why = string.Join("; ", new[] { "eye-probe", "eye-skip", "eye-error" }.Select(e => Last(skip, e)?.ToJsonString()).Where(x => x != null));
+            Console.WriteLine($"[{name}] no eye; selection {Fmt(SelectionRects(window) is { Length: > 0 } sr ? sr.Aggregate((a, b) => System.Windows.Rect.Union(a, b)) : null)}; logged {(why.Length > 0 ? why : "nothing")}");
+            failures.Add($"{name}: no eye ({(why.Length > 0 ? why : "nothing logged")})");
+            first?.Dispose();
+            return null;
+        }
         Thread.Sleep(700);   // the spring in settles
         using var after = Capture();
         after.Save(Path.Combine(outDir, name + ".png"), ImageFormat.Png);
@@ -366,7 +434,7 @@ static partial class Program
         }
         if (top == int.MaxValue) { failures.Add($"{name}: no ink found for the selected text"); return eye; }
         var textMid = (top + bottom + 1) / 2.0;
-        var beside = lineHeight * lines.Length < 40 * s;
+        var beside = oneLine || lineHeight * lines.Length < 40 * s;
         double predX, predY;   // the 30-point button's centre
         // The selected text's right edge, white space after it left out (the Mac's double-click
         // takes none).
@@ -380,9 +448,27 @@ static partial class Program
         Console.WriteLine($"[{name}] scale {s:0.##}; {(beside ? "beside" : "by the pointer")}; selection {Fmt(union)} in {rects.Length} box(es); ink rows {top}..{bottom} (centre {textMid:0.#}, box centre {union.Top + union.Height / 2:0.#}); " +
             $"up {up.X},{up.Y}; eye window {r.Left},{r.Top} to {r.Right},{r.Bottom} (centre {cx:0.#},{cy:0.#}); button {Fmt(button)}; Mac rule centre {predX:0.#},{predY:0.#}; logged {logged?.ToJsonString() ?? "nothing"}");
         // Within 2 px of the text's centre, at every scaling (the user saw 17 off at 200%).
-        var tolY = 2.0; var tolX = 1 + s / 2;
+        var tolY = tolerance is double t1 ? t1 * s : 2.0; var tolX = tolerance is double t2 ? t2 * s : 1 + s / 2;
         if (Math.Abs(cy - predY) > tolY) failures.Add($"{name}: the eye's centre is at y {cy:0.#}, the Mac's rule puts it at {predY:0.#} ({(beside ? "the text's centre" : "6 above where the mouse let go")}); off by {cy - predY:0.#} px at {s * 100:0}%");
         if (Math.Abs(cx - predX) > tolX) failures.Add($"{name}: the eye's centre is at x {cx:0.#}, the Mac's rule puts it at {predX:0.#}; off by {cx - predX:0.#} px at {s * 100:0}%");
+        if (first != null)
+        {
+            // The circle's centre in the early frame and once settled, from what changed on
+            // screen inside the window (less its left edge, over the selection's end). The early
+            // one is faint (fading in) and its shadow fainter, so a few points either way.
+            var zone = Rectangle.FromLTRB(Math.Min(r.Left, firstRect.Left) + (int)(4 * s), Math.Min(r.Top, firstRect.Top), Math.Max(r.Right, firstRect.Right), Math.Max(r.Bottom, firstRect.Bottom));
+            var c0 = Circle(before, first, zone, 12); var c1 = Circle(before, after, zone, 12);
+            var same = firstRect.Left == r.Left && firstRect.Top == r.Top && firstRect.Right == r.Right && firstRect.Bottom == r.Bottom;
+            Console.WriteLine($"[{name}] early frame {firstMs:0} ms after the window showed: window {firstRect.Left},{firstRect.Top} to {firstRect.Right},{firstRect.Bottom}; circle centre {(c0 is (double a0, double b0) ? $"{a0:0.#},{b0:0.#}" : "not drawn yet")}; settled {(c1 is (double a1, double b1) ? $"{a1:0.#},{b1:0.#}" : "none")}");
+            if (!same) failures.Add($"{name}: the eye's window moved after it first showed ({firstRect.Left},{firstRect.Top} to {r.Left},{r.Top})");
+            if (c0 is (double x0, double y0) && c1 is (double x1, double y1) && (Math.Abs(x0 - x1) > 1 + s / 2 || Math.Abs(y0 - y1) > 2 + s))
+                failures.Add($"{name}: the eye's circle {firstMs:0} ms in is centred at {x0:0.#},{y0:0.#}, settled at {x1:0.#},{y1:0.#}");
+            var ez = new Rectangle(zone.Left - (int)(40 * s), zone.Top - (int)(20 * s), zone.Width + (int)(60 * s), zone.Height + (int)(40 * s));
+            ez.Intersect(new Rectangle(0, 0, first.Width, first.Height));
+            using (var e0 = first.Clone(ez, first.PixelFormat)) e0.Save(Path.Combine(outDir, $"{name}-{firstMs:0}ms.png"), ImageFormat.Png);
+            using (var e1 = after.Clone(ez, after.PixelFormat)) e1.Save(Path.Combine(outDir, $"{name}-settled.png"), ImageFormat.Png);
+            first.Dispose();
+        }
         if (button is System.Windows.Rect br && (Math.Abs(br.Left + br.Width / 2 - cx) > 1 || Math.Abs(br.Top + br.Height / 2 - cy) > 1)) failures.Add($"{name}: the button isn't in the middle of the eye's window ({Fmt(br)})");
 
         // Evidence: the selection and the eye, with the Mac rule's circle (red) and the text's
@@ -406,6 +492,25 @@ static partial class Program
         }
         lastCrop = img;
         return eye;
+    }
+
+    /// The eye's circle where `shot` differs from `before` inside `zone` by more than `threshold`
+    /// (summed over the channels): its centre across from its left and right edges, down from its
+    /// top edge and half its width. Null when nothing changed.
+    static (double, double)? Circle(Bitmap before, Bitmap shot, Rectangle zone, int threshold)
+    {
+        zone.Intersect(new Rectangle(0, 0, Math.Min(before.Width, shot.Width), Math.Min(before.Height, shot.Height)));
+        int l = int.MaxValue, r = int.MinValue, t = int.MaxValue;
+        for (var y = zone.Top; y < zone.Bottom; y++)
+            for (var x = zone.Left; x < zone.Right; x++)
+            {
+                Color a = before.GetPixel(x, y), b = shot.GetPixel(x, y);
+                if (Math.Abs(a.R - b.R) + Math.Abs(a.G - b.G) + Math.Abs(a.B - b.B) <= threshold) continue;
+                l = Math.Min(l, x); r = Math.Max(r, x); t = Math.Min(t, y);
+            }
+        if (l == int.MaxValue) return null;
+        var w = r - l + 1;
+        return (l + w / 2.0, t + w / 2.0);
     }
 
     static string Fmt(System.Windows.Rect? r) => r is System.Windows.Rect x ? $"{x.Left:0.#},{x.Top:0.#} {x.Width:0.#}x{x.Height:0.#}" : "none";

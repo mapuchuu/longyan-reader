@@ -331,7 +331,7 @@ on the box, 17 px (8.5 points) above the text, and its spring and shadow made it
 still. Read in the user's VM with a UI Automation probe and PrintWindow, no clicks. Windows
 Server's classic Notepad (CI) has no margin in its boxes, and the old check compared the eye
 with the box, not the text, so CI never saw it. Now SR.Bounds cuts a top line that is a
-quarter taller than the next line (or 1.6 times its font) to a line's height from the bottom,
+quarter taller than the next line and 1.6 times its font (no cut when the app gives no font size) to a line's height from the bottom,
 and UiCheck compares the eye with the text's ink.
 
 Checked in the user's VM afterwards, read-only (the app's own Bounds code run on Notepad's
@@ -349,17 +349,27 @@ Consolas line), so UiCheck allows 2 px.
 | Behaviour | Mac | Windows | Status | Evidence |
 |---|---|---|---|---|
 | Which rect | AXBoundsForRange of the whole selection, untrimmed (CS:59-66) | union of the range's GetBoundingRectangles, top-line margin cut (SR.Bounds) | same | eye-sheet-*: first line in Notepad and rich edit |
-| One line or not | bounds height > 0 and < 40 pt (CS:93) | > 0 and < 40 × scale at the pointer (C.Place) | same | `two lines` beside, `three lines` by the pointer |
+| One line or not | bounds height > 0 and < 40 pt (CS:93) | beside when the rects share one line, any height, or the bounds are under 40 × scale (C.Place, SR.Bounds) | same in effect: a 32 px heading's line is under 40 pt in PingFang, 42-44 in Microsoft YaHei, which sent it to the pointer rule | `edge-h1-*` within 1 point; `two lines` beside, `three lines` by the pointer |
 | Beside: horizontal | button box left = maxX + 4 (CS:95); circle starts 7 after | window left = right + 4s − 7s (C.Place) | same | UiCheck x within 1 + s/2 px |
-| Beside: vertical | box centred on bounds midY (CS:95) | window centre on midY of the cut bounds | same | UiCheck y within 1 + s px of the ink centre |
+| Beside: vertical | box centred on bounds midY (CS:95) | window centre on midY of the cut bounds | same | UiCheck y within 2 px of the ink centre, 100-175% |
 | Otherwise | box bottom-left 6 right of, 6 above the mouse-up point (CS:92) | same in device pixels (C.Place) | same | `three lines` cases |
 | Right-to-left drag | rect rule; mouse point only for the fallback | same | same | `rtl` cases |
+| Drag past the line's end | eye after the line's text | same; the probe can no longer fail on odd rects (SR.Bounds never throws, empty rects dropped) and the line break is left out | same | `past1/2/3` in each Notepad and rich edit, `edge-20px-past` |
 | White space at the end | the Mac's double-click takes no space after a word | Chromium's double-click on Windows does (about 4 points further right); left out of the rect (SR.WithoutTrailingSpace) | same | `eye-*-edge-16px-space` cases |
 | Far from the pointer | bounds more than 160 pt from mouse-up are dropped (CS:64) | same, 160 × scale (C.Consider) | same | code |
 | Empty or zero rect | dropped (SelectionReader.checked, width and height ≥ 1) | same (C.Consider) | same | code |
 | Screen edges | clamped to the visible frame of the screen with the pointer (CS:101-105) | clamped to that screen's working area (C.Place) | same | `edge` case at 100% |
 | Box | 44 window, 30 button, 24 circle (CS:79-81, 208) | same (C:184) | same | gallery eye.png |
-| Scalings | points | device pixels × monitor DPI (per-monitor v2) | same | eye-sheet-100/125/150 (and 175/200 where the runner offers them) |
+| Scalings | points | device pixels × monitor DPI (per-monitor v2) | same | eye-sheet-100/125/150/175 on CI (the runner offers no 200%); 200% read in the user's VM |
+
+### Edge's selection menu (open, the user's call)
+
+Edge shows its own small menu (Copilot, copy, search) when text is selected. It is a msedge
+popup about 56 by 168 points, starting about 7 points right of the selection's end and
+reaching above and below the line. The eye, placed by the Mac rule, sits on top of it. The
+Mac has nothing like it in Safari. Options, mocked up from CI shots at 150%: keep it (eye
+over the menu), past the menu on the line, before the selection on the line, under the
+selection's end, or no eye while Edge's menu shows. Not chosen yet.
 
 ### When it appears
 
@@ -379,6 +389,7 @@ Consolas line), so UiCheck allows 2 px.
 |---|---|---|---|---|
 | Drawing | surface, 0.5 hairline at 10%, 13 pt mark (CS:233-256) | same (C.Build) | same | gallery eye.png vs mac/eye.png: inside the circle mean 1.8, dark 0.9 of 255 |
 | Shadow | black 18%, radius 5, y 2 (CS:213) | DropShadow blur 16, opacity 0.24, depth 2; was 10 and 0.18 | same | rendered both at 2x over white: RMS 0.6 of 255 (was a far shorter tail) |
+| First appearance | where it settles from the first frame | the window doesn't move after it shows; its circle at about 30 ms is centred where it settles | same | `0-first-eye-30ms.png` and `-settled.png`, both first eyes after a start |
 | Appear | alpha 0 to 1 in 0.12 s linear; scale 0.6 to 1, spring 0.3 / 0.68 (CS:120-123, 228) | same (C.Place, M.EyeAppear) | same | 3-eye-in frames |
 | Hover | 1.08, spring 0.25 / 0.7; mark secondary to primary in the same spring (CS:225, 236) | same; the mark's fade was 0.15 s ease-out | same | 3-eye-hover |
 | Press | 0.92, spring 0.2 / 0.7 (CS:226) | same (M.EyePress) | same | code |

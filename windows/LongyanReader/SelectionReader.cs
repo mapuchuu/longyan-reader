@@ -9,7 +9,9 @@ using System.Windows.Automation.Text;
 namespace Longyan;
 
 /// What the reader selected, with the text around it so the core can read the sentence.
-record Selected(string Passage, int Start, int End, Rect? Bounds);
+/// `OneLine`: the selection's text is on one line (its rects share a line), so the eye goes
+/// beside it whatever the line's height.
+record Selected(string Passage, int Start, int End, Rect? Bounds, bool OneLine = false);
 
 /// Reads the selection in another app, as the Mac app does with Accessibility: through UI
 /// Automation's text pattern when the app offers one, else by copying (Ctrl+C) and putting
@@ -67,7 +69,8 @@ static class SelectionReader
             {
                 passage = selected; start = 0;
             }
-            return new Probed(Found.Selection, new Selected(passage, start, start + selected.Length, Bounds(selection)), role, area);
+            var (bounds, oneLine) = Bounds(selection);
+            return new Probed(Found.Selection, new Selected(passage, start, start + selected.Length, bounds, oneLine), role, area);
         }
         catch (Exception)
         {
@@ -83,22 +86,30 @@ static class SelectionReader
     /// White space at the selection's end is left out: a double-click in Chromium on Windows
     /// takes the space after the word, and a line's selection its line break, which the Mac's
     /// double-click doesn't, and the eye would sit that much further right.
-    static Rect? Bounds(TextPatternRange selection)
+    /// Also whether its text is on one line: every rect overlaps the first one by more than half
+    /// of the lower of the two (a line break past the end, its rect on the next line, is left
+    /// out with the white space). Never throws: no position is better than no eye.
+    static (Rect?, bool) Bounds(TextPatternRange selection)
     {
-        selection = WithoutTrailingSpace(selection);
-        var rects = selection.GetBoundingRectangles();
-        if (rects.Length == 0) return null;
-        var top = rects.OrderBy(x => x.Top).First();
-        var line = LineHeight(selection, rects, top);
-        if (line > 0 && top.Height > line * 1.25)
+        try
         {
-            var cut = top.Bottom - line;
-            for (var i = 0; i < rects.Length; i++)
-                if (rects[i].Top < cut && rects[i].Bottom > cut) rects[i] = new Rect(rects[i].X, cut, rects[i].Width, rects[i].Bottom - cut);
+            selection = WithoutTrailingSpace(selection);
+            var rects = selection.GetBoundingRectangles().Where(x => !x.IsEmpty && x.Height > 0 && double.IsFinite(x.Left) && double.IsFinite(x.Top)).ToArray();
+            if (rects.Length == 0) return (null, false);
+            var top = rects.OrderBy(x => x.Top).First();
+            var oneLine = rects.All(x => Math.Min(x.Bottom, top.Bottom) - Math.Max(x.Top, top.Top) > Math.Min(x.Height, top.Height) / 2);
+            var line = LineHeight(selection, rects, top);
+            if (line > 0 && top.Height > line * 1.25)
+            {
+                var cut = top.Bottom - line;
+                for (var i = 0; i < rects.Length; i++)
+                    if (rects[i].Top < cut && rects[i].Bottom > cut) rects[i] = new Rect(rects[i].X, cut, rects[i].Width, rects[i].Bottom - cut);
+            }
+            var r = rects[0];
+            foreach (var x in rects.Skip(1)) r.Union(x);
+            return (r, oneLine);
         }
-        var r = rects[0];
-        foreach (var x in rects.Skip(1)) r.Union(x);
-        return r;
+        catch (Exception) { return (null, false); }
     }
 
     static TextPatternRange WithoutTrailingSpace(TextPatternRange selection)
@@ -123,8 +134,9 @@ static class SelectionReader
     static double LineHeight(TextPatternRange selection, Rect[] rects, Rect top)
     {
         // Only worth the extra calls when the top line is taller than its font would make it.
+        // A font size the app doesn't give: no cut (a heading followed by small text isn't a margin).
         var em = Em(selection, top);
-        if (em > 0 && top.Height <= em * 1.6) return 0;
+        if (em <= 0 || top.Height <= em * 1.6) return 0;
         foreach (var x in rects) if (x.Top >= top.Bottom - 1 && x.Height > 0) return x.Height;
         foreach (var step in new[] { 1, -1 })
         {
@@ -140,7 +152,7 @@ static class SelectionReader
             }
             catch (Exception) { }
         }
-        return em > 0 ? Math.Round(em * 1.33) : 0;
+        return Math.Round(em * 1.33);
     }
 
     /// The selection's font size in device pixels where it is, or zero when the app doesn't say.

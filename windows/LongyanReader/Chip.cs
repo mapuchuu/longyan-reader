@@ -70,19 +70,23 @@ static class Chip
     {
         // A plain click never selects text; nor does anything inside our own windows.
         if (ours || !Settings.ShowEye || !(dragged || clicks >= 2)) return;
+        // Why no eye came, for UiCheck (only with the event log on).
+        static void Skip(string why) => Core.Log($"{{\"event\":\"eye-skip\",\"why\":\"{why}\"}}");
         // Not over a full-screen game, video or presentation.
-        if (SHQueryUserNotificationState(out var state) == 0 && state is QUNS_BUSY or QUNS_RUNNING_D3D_FULL_SCREEN or QUNS_PRESENTATION_MODE) return;
-        if (ForegroundApp.Get() is not ForegroundApp app || Settings.EyeHiddenIn(app.Process)) return;
+        if (SHQueryUserNotificationState(out var state) == 0 && state is QUNS_BUSY or QUNS_RUNNING_D3D_FULL_SCREEN or QUNS_PRESENTATION_MODE) { Skip("full screen"); return; }
+        if (ForegroundApp.Get() is not ForegroundApp app || Settings.EyeHiddenIn(app.Process)) { Skip("app"); return; }
         var mine = ++generation;
         // Give the app a moment to update its selection.
         await Task.Delay(120);
         if (mine != generation) return;
+        var clock = System.Diagnostics.Stopwatch.StartNew();
         var probed = await SelectionReader.ProbeAsync();
         if (mine != generation) return;
+        if (Core.Logging) Core.Log($"{{\"event\":\"eye-probe\",\"found\":\"{probed.Found}\",\"ms\":{clock.ElapsedMilliseconds},\"dragged\":{(dragged ? "true" : "false")},\"clicks\":{clicks}}}");
         switch (probed.Found)
         {
             case SelectionReader.Found.Selection when probed.Selection is Selected selection:
-                if (!SelectionReader.HasChinese(selection) || SelectionReader.Length(selection) > 400) return;
+                if (!SelectionReader.HasChinese(selection) || SelectionReader.Length(selection) > 400) { Skip("not Chinese or too long"); return; }
                 // A position far from where the mouse let go isn't where the selection is.
                 // Nor is an empty one (the Mac's SelectionReader.checked).
                 var near = selection.Bounds is Rect b && b.Width >= 1 && b.Height >= 1 && Inflate(b, 160 * ScaleAt(up)).Contains(new Point(up.X, up.Y));
@@ -106,11 +110,11 @@ static class Chip
         Hide();
         Bridge.ly_warm_up();
         var w = new ChipWindow(selection, app.Process, app.Path);
-        var (left, top, size) = w.Place(up, selection?.Bounds);
+        var (left, top, size) = w.Place(up, selection?.Bounds, selection?.OneLine ?? false);
         shown = w;
         // Positions only, in device pixels (UiCheck checks them): never the text.
         var bounds = selection?.Bounds is Rect b ? $"[{b.X:0.#},{b.Y:0.#},{b.Width:0.#},{b.Height:0.#}]" : "null";
-        Core.Log($"{{\"event\":\"eye\",\"readable\":{(selection != null ? "true" : "false")},\"up\":[{up.X},{up.Y}],\"bounds\":{bounds},\"window\":[{left},{top},{size}],\"scale\":{ScaleAt(up):0.##}}}");
+        Core.Log($"{{\"event\":\"eye\",\"readable\":{(selection != null ? "true" : "false")},\"up\":[{up.X},{up.Y}],\"bounds\":{bounds},\"window\":[{left},{top},{size}],\"scale\":{ScaleAt(up):0.##},\"oneLine\":{((selection?.OneLine ?? false) ? "true" : "false")}}}");
         // The card's work starts once the eye has stayed a moment (or on hover): most selections
         // are made to copy, and the model's work costs battery.
         DispatcherTimer? soon = null;
@@ -294,13 +298,15 @@ sealed class ChipWindow : Window
         png.Save(f);
     }
 
-    /// Just after the end of a one-line selection; for longer selections, or with no position,
-    /// just above and right of where the mouse let go. Kept on that screen's working area.
-    public (int Left, int Top, int Size) Place(InputWatch.POINT up, Rect? selection)
+    /// Just after the end of a selection on one line (any height: a 32 px heading's line is over
+    /// 40 points in Microsoft YaHei, under it in PingFang on the Mac) or under 40 points tall;
+    /// for longer selections, or with no position, just above and right of where the mouse let
+    /// go. Kept on that screen's working area.
+    public (int Left, int Top, int Size) Place(InputWatch.POINT up, Rect? selection, bool oneLine = false)
     {
         s = Chip.ScaleAt(up);
         double x = up.X + 6 * s, y = up.Y - 6 * s - Target * s;
-        if (selection is Rect b && b.Height > 0 && b.Height < 40 * s)
+        if (selection is Rect b && b.Height > 0 && (oneLine || b.Height < 40 * s))
         {
             x = b.Right + 4 * s;
             y = b.Top + b.Height / 2 - Target * s / 2;
