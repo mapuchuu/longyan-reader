@@ -38,6 +38,10 @@ static class Theme
     // Latin text in Segoe UI Variable (Segoe UI before Windows 11), Chinese in Microsoft YaHei UI.
     public static readonly FontFamily Text = new("Segoe UI Variable Text, Segoe UI, Microsoft YaHei UI");
     public static readonly FontFamily Chinese = new("Microsoft YaHei UI, Microsoft JhengHei UI, Segoe UI");
+    /// YaHei's characters fill more of the em than PingFang's: this matches their height.
+    public const double ChineseScale = 0.92;
+    /// San Francisco's line spacing as a multiple of the size.
+    public const double LineFactor = 1.2;
     public static readonly FontFamily Icons = new("Segoe Fluent Icons, Segoe MDL2 Assets");
 
     // Tones 1 to 4: brick, sage, slate, violet.

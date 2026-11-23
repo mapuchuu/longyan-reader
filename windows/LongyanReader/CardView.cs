@@ -124,7 +124,7 @@ sealed class CardView
     /// when that doesn't fit.
     FrameworkElement Header(string word, JsonArray syllables, double slot)
     {
-        var line = new TextBlock { TextWrapping = TextWrapping.NoWrap, Margin = new Thickness(0, 0, slot + 8, 0) };
+        var line = Lines(new TextBlock { TextWrapping = TextWrapping.NoWrap, Margin = new Thickness(0, 0, slot + 8, 0) }, 34);
         AddHanzi(line.Inlines, word, syllables, 34, FontWeights.Medium, pending: false);
         line.Inlines.Add(new Run(" ") { FontFamily = Theme.Text, FontSize = 29 });   // 8 wide
         var pinyin = new Span();
@@ -134,10 +134,10 @@ sealed class CardView
         if (line.DesiredSize.Width <= Width - 2 * Pad) return line;
 
         var two = new StackPanel();
-        var head = new TextBlock { TextWrapping = TextWrapping.NoWrap, Margin = new Thickness(0, 0, slot + 8, 0) };
+        var head = Lines(new TextBlock { TextWrapping = TextWrapping.NoWrap, Margin = new Thickness(0, 0, slot + 8, 0) }, 34);
         AddHanzi(head.Inlines, word, syllables, 34, FontWeights.Medium, pending: false);
         two.Children.Add(new Viewbox { Child = head, StretchDirection = StretchDirection.DownOnly, HorizontalAlignment = HorizontalAlignment.Left, MaxWidth = Width - 2 * Pad });
-        var py = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 0) };
+        var py = Lines(new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 0) }, 15);
         AddPinyin(py.Inlines, syllables, 15, " ");
         two.Children.Add(py);
         return two;
@@ -165,18 +165,17 @@ sealed class CardView
         var text = (string?)c["text"] ?? "";
         var slot = Buttons((string?)c["copy"] ?? text, text);
         var top = new StackPanel();
-        var source = new TextBlock
+        var source = Lines(new TextBlock
         {
-            Text = text, FontSize = 14, FontFamily = Theme.Chinese, Foreground = Theme.Secondary, TextWrapping = TextWrapping.Wrap,
-            MaxHeight = 14 * 1.4 * 4, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, 0, slot + 8, 0),
-        };
+            Text = text, FontSize = 14 * Theme.ChineseScale, FontFamily = Theme.Chinese, Foreground = Theme.Secondary, TextWrapping = TextWrapping.Wrap,
+            MaxHeight = Math.Ceiling(14 * Theme.LineFactor) * 4, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, 0, slot + 8, 0),
+        }, 14);
         top.Children.Add(source);
         PlaceButtons(source, 14, Theme.Chinese, FontWeights.Normal, 5);
         if ((string?)c["translation"] is string t)
         {
             var tb = Label(t, 16, Theme.Primary, top: 4);
-            tb.LineStackingStrategy = LineStackingStrategy.BlockLineHeight;
-            tb.LineHeight = 16 * 1.33 + 2;
+            Lines(tb, 16, 2);
             top.Children.Add(Keyed("translation", tb));
         }
         else if ((string?)c["translationError"] is string e) top.Children.Add(Keyed("translationError", Label(e, 11, Theme.Secondary, top: 4)));
@@ -213,10 +212,10 @@ sealed class CardView
         var pending = (bool?)r["pending"] == true;
         var syllables = r["pinyin"]?.AsArray() ?? new JsonArray();
         var b = new Block();
-        var hanzi = new TextBlock();
+        var hanzi = Lines(new TextBlock(), 17);
         AddHanzi(hanzi.Inlines, (string?)r["text"] ?? "", syllables, 17, FontWeights.Medium, pending);
         b.Panel.Children.Add(hanzi);
-        var py = new TextBlock { Margin = new Thickness(0, 1, 0, 0) };
+        var py = Lines(new TextBlock { Margin = new Thickness(0, 1, 0, 0) }, 10.5);
         AddPinyin(py.Inlines, syllables, 10.5, " ");
         b.Panel.Children.Add(pending ? Redacted(py) : py);
         return b;
@@ -253,7 +252,7 @@ sealed class CardView
             Grid.SetColumn(mark, 3);
             grid.Children.Add(mark);
         }
-        var chevron = Icon("", 9, Theme.Tertiary);
+        var chevron = Chevron("", 9, Theme.Tertiary);
         chevron.Margin = new Thickness(12, Baseline(Theme.Chinese, 17, FontWeights.Medium) - 11, 0, 0);
         chevron.Opacity = opens || open ? 1 : 0;
         Rotate(chevron, "chevron:" + token, open ? 90 : 0);
@@ -345,7 +344,7 @@ sealed class CardView
     {
         var line = new StackPanel { Orientation = Orientation.Horizontal };
         line.Children.Add(Label(text, 12, Theme.Accent, FontWeights.Medium));
-        var chevron = Icon("", 9, Theme.Accent);
+        var chevron = Chevron("", 9, Theme.Accent);
         chevron.Margin = new Thickness(4, 1, 0, 0);
         chevron.VerticalAlignment = VerticalAlignment.Center;
         Rotate(chevron, "more:" + scope, text == "Show Fewer" ? 180 : 0);
@@ -381,8 +380,7 @@ sealed class CardView
         title.Children.Add(Label((string?)note["title"] ?? "", 11, Theme.Secondary, FontWeights.SemiBold));
         stack.Children.Add(title);
         var body = Label((string?)note["text"] ?? "", 13, Theme.Primary, top: 4);
-        body.LineStackingStrategy = LineStackingStrategy.BlockLineHeight;
-        body.LineHeight = 13 * 1.33 + 2;
+        Lines(body, 13, 2);
         stack.Children.Add(body);
         box.Child = stack;
         return box;
@@ -462,7 +460,7 @@ sealed class CardView
         var n = 0;
         if (actions.CanListen) { buttons.Children.Add(ActionButton("", $"Listen to “{speech}”", () => actions.Listen(speech))); n++; }
         buttons.Children.Add(CopyButton(copy)); n++;
-        buttons.Children.Add(ActionButton(actions.Pinned ? "" : "", actions.Pinned ? "Unpin: close when you click elsewhere" : "Pin: keep the card here for every lookup",
+        buttons.Children.Add(ActionButton(actions.Pinned ? "\uE842" : "\uE840", actions.Pinned ? "Unpin: close when you click elsewhere" : "Pin: keep the card here for every lookup",
             () => actions.TogglePin(), tint: actions.Pinned)); n++;
         buttons.Margin = new Thickness(0, 0, Pad - 6, 0);
         return n * ButtonW + (n - 1) * ButtonGap - 6;
@@ -516,16 +514,35 @@ sealed class CardView
 
     // MARK: Text
 
-    static TextBlock Label(string text, double size, Brush color, FontWeight? weight = null, double top = 0, double bottom = 0) => new()
+    static TextBlock Label(string text, double size, Brush color, FontWeight? weight = null, double top = 0, double bottom = 0) => Lines(new TextBlock
     {
         Text = text, FontSize = size, Foreground = color, FontWeight = weight ?? FontWeights.Normal,
         TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, top, 0, bottom), FontFamily = Theme.Text,
-    };
+    }, size);
+
+    /// San Francisco's line height (about 1.2 of the size; Segoe's is 1.33), plus `extra`.
+    static TextBlock Lines(TextBlock t, double size, double extra = 0)
+    {
+        t.LineStackingStrategy = LineStackingStrategy.BlockLineHeight;
+        t.LineHeight = Math.Ceiling(size * Theme.LineFactor) + extra;
+        return t;
+    }
 
     static TextBlock Icon(string glyph, double size, Brush color) => new()
     {
         Text = glyph, FontFamily = Theme.Icons, FontSize = size, Foreground = color, RenderTransformOrigin = new Point(0.5, 0.5),
     };
+
+    /// An icon in a square box with the glyph in its middle, so it turns in place.
+    static TextBlock Chevron(string glyph, double size, Brush color)
+    {
+        var t = Icon(glyph, size, color);
+        t.Width = t.Height = size + 2;
+        t.TextAlignment = TextAlignment.Center;
+        t.LineStackingStrategy = LineStackingStrategy.BlockLineHeight;
+        t.LineHeight = size + 2;
+        return t;
+    }
 
     static void AddHanzi(InlineCollection inlines, string word, JsonArray syllables, double size, FontWeight weight, bool pending)
     {
@@ -534,7 +551,7 @@ sealed class CardView
         while (e.MoveNext())
         {
             var tone = i < syllables.Count ? (int?)syllables[i]?["tone"] ?? 5 : 5;
-            inlines.Add(new Run((string)e.Current) { FontFamily = Theme.Chinese, FontSize = size, FontWeight = weight, Foreground = pending ? Theme.Secondary : Theme.Hanzi(tone) });
+            inlines.Add(new Run((string)e.Current) { FontFamily = Theme.Chinese, FontSize = size * Theme.ChineseScale, FontWeight = weight, Foreground = pending ? Theme.Secondary : Theme.Hanzi(tone) });
             i++;
         }
     }
@@ -558,14 +575,16 @@ sealed class CardView
 
     static readonly Dictionary<(string, double, int), double> baselines = new();
 
-    /// How far below the top of a line its baseline sits, for lining up text of two sizes.
+    /// How far below the top of a line its baseline sits, for lining up text of two sizes. Lines
+    /// are `Lines` tall, and WPF keeps the font's own baseline-to-height ratio in them.
     public static double Baseline(FontFamily family, double size, FontWeight weight)
     {
         var key = (family.Source, size, weight.ToOpenTypeWeight());
         if (baselines.TryGetValue(key, out var b)) return b;
-        var ft = new FormattedText("Ag国", CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
-            new Typeface(family, FontStyles.Normal, weight, FontStretches.Normal), size, Brushes.Black, 1.0);
-        return baselines[key] = ft.Baseline;
+        var ft = new FormattedText(family == Theme.Chinese ? "国" : "Ag", CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+            new Typeface(family, FontStyles.Normal, weight, FontStretches.Normal), 100, Brushes.Black, 1.0);
+        var ratio = ft.Baseline / ft.Height;
+        return baselines[key] = Math.Ceiling(size * Theme.LineFactor) * ratio;
     }
 
     // MARK: Transitions
