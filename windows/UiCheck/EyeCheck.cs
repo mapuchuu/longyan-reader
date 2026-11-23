@@ -151,6 +151,7 @@ static partial class Program
         if (window == IntPtr.Zero) { failures.Add("eye-scale: Notepad didn't open"); return; }
         Console.WriteLine($"[eye-scale] Notepad's text box: {DocumentClass(window)}");
         var modern = ModernNotepad(file);
+        var browser = Edge();
         var tested = new List<int>();
         foreach (var percent in new[] { 100, 125, 150, 175, 200 })
         {
@@ -178,6 +179,13 @@ static partial class Program
                 Focus(host.Window);
                 Cases($"eye-{percent}-{kind}", host.Window, s, cases, edge: false);
             }
+            if (browser != IntPtr.Zero)
+            {
+                SetWindowPos(browser, IntPtr.Zero, (int)(40 * s), (int)(30 * s), (int)(900 * s), (int)(560 * s), 0x4);
+                Thread.Sleep(1500);
+                Focus(browser);
+                EdgeCases($"eye-{percent}-edge", browser, s, cases);
+            }
             if (modern != IntPtr.Zero)
             {
                 SetWindowPos(modern, IntPtr.Zero, (int)(620 * s), (int)(30 * s), (int)(560 * s), (int)(300 * s), 0x4);
@@ -187,6 +195,7 @@ static partial class Program
             }
             Sheet($"eye-sheet-{percent}", cases);
         }
+        foreach (var p in Process.GetProcessesByName("msedge")) try { p.Kill(); } catch { }
         if (modern != IntPtr.Zero) PostMessage(modern, 0x10 /* WM_CLOSE */, IntPtr.Zero, IntPtr.Zero);
         if (tested.Count < 2) failures.Add($"eye-scale: only {string.Join(", ", tested)}% could be tested");
         if (now != 100) Scaling.SetTo(100);
@@ -221,22 +230,72 @@ static partial class Program
         catch (Exception e) { Console.WriteLine($"[eye-scale] Notepad for Windows 11: {e.Message}"); return IntPtr.Zero; }
     }
 
+    /// Edge on a page with Chinese at 13, 16 and 20 px, one word followed by a space (Chromium's
+    /// double-click on Windows takes the space too).
+    static IntPtr Edge()
+    {
+        var exe = new[] { @"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe", @"C:\Program Files\Microsoft\Edge\Application\msedge.exe" }.FirstOrDefault(File.Exists);
+        if (exe == null) { Console.WriteLine("[eye-scale] Edge: not installed"); return IntPtr.Zero; }
+        var page = Path.Combine(Path.GetTempPath(), "longyan-edge.html");
+        File.WriteAllText(page, """
+            <!doctype html><meta charset="utf-8"><title>longyan-edge</title>
+            <body style="margin:24px;background:#fff;color:#000;font-family:'Microsoft YaHei',sans-serif">
+            <p style="font-size:13px">他得了感冒，吃不了饭。</p>
+            <p style="font-size:16px">明朝实行海禁 policy，闭关锁国。</p>
+            <p style="font-size:20px">我们研究研究再说吧。</p>
+            <p style="font-size:16px">He found 铁饭碗 at last.</p>
+            """, new UTF8Encoding(false));
+        var profile = Path.Combine(Path.GetTempPath(), "longyan-edge-profile");
+        Process.Start(new ProcessStartInfo(exe, $"--no-first-run --no-default-browser-check --user-data-dir=\"{profile}\" --new-window \"{page}\"") { UseShellExecute = false });
+        var window = WaitForWindow("longyan-edge", TimeSpan.FromSeconds(40));
+        Console.WriteLine($"[eye-scale] Edge: {(window == IntPtr.Zero ? "didn't open" : "open")}");
+        return window;
+    }
+
+    static void EdgeCases(string name, IntPtr window, double s, List<(string, Bitmap)> crops)
+    {
+        foreach (var (label, line, word) in new[] { ("13px", "他得了感冒，吃不了饭。", "冒"), ("16px, a space after", "明朝实行海禁 policy，闭关锁国。", "禁"), ("20px", "我们研究研究再说吧。", "再"), ("16px, in English", "He found 铁饭碗 at last.", "碗") })
+        {
+            var tag = $"{name}-{label.Split(',')[0]}{(label.Contains("space") ? "-space" : label.Contains("English") ? "-en" : "")}";
+            if (TextIn(window, line) is not System.Windows.Rect l || TextIn(window, word) is not System.Windows.Rect w) { failures.Add($"{tag}: couldn't find the text in Edge"); continue; }
+            var eye = Placement(tag, window, () => DoubleClick(w.Left + w.Width / 2, l.Top + l.Height / 2), new[] { l }, l.Height);
+            if (lastCrop != null) { crops.Add(($"{name} {label}, double-click {word}", lastCrop)); lastCrop = null; }
+            // Edge's own menu for a selection, if it came: its windows besides the page's.
+            foreach (var (h, r) in EdgePopups(window)) Console.WriteLine($"[{tag}] Edge popup {h:X}: {r.Left},{r.Top} to {r.Right},{r.Bottom}");
+        }
+    }
+
+    static List<(IntPtr, RECT)> EdgePopups(IntPtr main)
+    {
+        var found = new List<(IntPtr, RECT)>();
+        var ids = Process.GetProcessesByName("msedge").Select(p => (uint)p.Id).ToHashSet();
+        EnumWindows((h, _) =>
+        {
+            if (h != main && IsWindowVisible(h) && GetWindowThreadProcessId(h, out var pid) != 0 && ids.Contains(pid) && GetWindowRect(h, out var r) && r.Right - r.Left < 800 && r.Bottom - r.Top < 800 && r.Right > r.Left)
+                found.Add((h, r));
+            return true;
+        }, IntPtr.Zero);
+        return found;
+    }
+
     static void Cases(string name, IntPtr window, double s, List<(string, Bitmap)> crops, bool edge)
     {
         void Add(string label, IntPtr? eye) { if (lastCrop != null) crops.Add(($"{name} {label}", lastCrop)); lastCrop = null; }
         string[] lines = { "他得了感冒，吃不了饭。", "明朝实行海禁，闭关锁国。", "我们研究研究再说吧。" };
         var r1 = TextIn(window, lines[0]); var r2 = TextIn(window, lines[1]); var r3 = TextIn(window, lines[2]);
         if (r1 is not System.Windows.Rect l1 || r2 is not System.Windows.Rect l2 || r3 is not System.Windows.Rect l3) { failures.Add($"{name}: couldn't find the lines"); return; }
-        var ch1 = l1.Width / lines[0].Length; var ch2 = l2.Width / lines[1].Length; var ch3 = l3.Width / lines[2].Length;
         double Mid(System.Windows.Rect r) => r.Top + r.Height / 2;
         // The UI Automation box of the first line may hold the page margin: the pointer goes on its
-        // text, at the bottom line's height.
+        // text, at the second line's height from the bottom.
         double y1 = l1.Bottom - l2.Height / 2, y2 = Mid(l2), y3 = Mid(l3);
-        Add("first line, double-click 冒", Placement($"{name}-line1", window, () => DoubleClick(l1.Left + ch1 * 4.5, y1), new[] { l1 }, l2.Height));
-        Add("second line, double-click 海", Placement($"{name}-line2", window, () => DoubleClick(l2.Left + ch2 * 4.5, y2), new[] { l2 }, l2.Height));
-        Add("right-to-left drag 闭关锁国", Placement($"{name}-rtl", window, () => Drag(l2.Left + ch2 * 10.9, y2, -(int)(ch2 * 3.7), 0), new[] { l2 }, l2.Height));
-        Add("two lines", Placement($"{name}-two", window, () => Drag(l1.Left + ch1 * 3.2, y1, (int)(ch2 * 1.5), (int)(y2 - y1)), new[] { l1, l2 }, l2.Height));
-        Add("three lines", Placement($"{name}-three", window, () => Drag(l1.Left + ch1 * 3.2, y1, (int)(ch3 * 1.5), (int)(y3 - y1)), new[] { l1, l2, l3 }, l2.Height));
+        System.Windows.Rect At(string c) => TextIn(window, c) ?? System.Windows.Rect.Empty;
+        var mao = At("冒"); var hai = At("海"); var bi = At("闭"); var guo = At("国"); var gan = At("感"); var shi = At("实"); var jiu = At("究");
+        if (new[] { mao, hai, bi, guo, gan, shi, jiu }.Any(r => r.IsEmpty)) { failures.Add($"{name}: couldn't find the characters"); return; }
+        Add("first line, double-click 冒", Placement($"{name}-line1", window, () => DoubleClick(mao.Left + mao.Width / 2, y1), new[] { l1 }, l2.Height));
+        Add("second line, double-click 海", Placement($"{name}-line2", window, () => DoubleClick(hai.Left + hai.Width / 2, y2), new[] { l2 }, l2.Height));
+        Add("right-to-left drag 国 to 闭", Placement($"{name}-rtl", window, () => Drag(guo.Right - 2, y2, (int)(bi.Left + 2 - (guo.Right - 2)), 0), new[] { l2 }, l2.Height));
+        Add("two lines, 感 to 实", Placement($"{name}-two", window, () => Drag(gan.Left + 2, y1, (int)(shi.Right - 2 - (gan.Left + 2)), (int)(y2 - y1)), new[] { l1, l2 }, l2.Height));
+        Add("three lines, 感 to 究", Placement($"{name}-three", window, () => Drag(gan.Left + 2, y1, (int)(jiu.Right - 2 - (gan.Left + 2)), (int)(y3 - y1)), new[] { l1, l2, l3 }, l2.Height));
         if (edge)
         {
             // The first line's end a few points from the working area's right edge.
@@ -245,8 +304,8 @@ static partial class Program
             var dx = (int)(area.Right - 6 * s - l1.Right);
             SetWindowPos(window, IntPtr.Zero, w.Left + dx, w.Top, w.Right - w.Left, w.Bottom - w.Top, 0x4);
             Thread.Sleep(600);
-            if (TextIn(window, lines[0]) is System.Windows.Rect e1)
-                Add("at the screen's edge, double-click 饭", Placement($"{name}-edge", window, () => DoubleClick(e1.Left + ch1 * 9.5, e1.Bottom - l2.Height / 2), new[] { e1 }, l2.Height));
+            if (TextIn(window, lines[0]) is System.Windows.Rect e1 && TextIn(window, "饭") is System.Windows.Rect fan)
+                Add("at the screen's edge, double-click 饭", Placement($"{name}-edge", window, () => DoubleClick(fan.Left + fan.Width / 2, e1.Bottom - l2.Height / 2), new[] { e1 }, l2.Height));
         }
     }
 
@@ -274,6 +333,7 @@ static partial class Program
         GetWindowRect(eye, out var r);
         var s = ScaleOf(eye);
         var rects = SelectionRects(window);
+        var trimmedRight = TrimmedRight(window);
         var logged = Last(skip, "eye");
         if (rects.Length == 0) { failures.Add($"{name}: no selection to measure"); return eye; }
         var union = rects[0];
@@ -292,7 +352,9 @@ static partial class Program
         var textMid = (top + bottom + 1) / 2.0;
         var beside = lineHeight * lines.Length < 40 * s;
         double predX, predY;   // the 30-point button's centre
-        if (beside) { predX = union.Right + 4 * s + 15 * s; predY = textMid; }
+        // The selected text's right edge, white space after it left out (the Mac's double-click
+        // takes none).
+        if (beside) { predX = (trimmedRight ?? union.Right) + 4 * s + 15 * s; predY = textMid; }
         else { predX = up.X + 6 * s + 15 * s; predY = up.Y - 6 * s - 15 * s; }
         var area = WorkArea(up);
         predX = Math.Clamp(predX - 22 * s, area.Left, area.Right - 44 * s) + 22 * s;
@@ -419,6 +481,30 @@ static partial class Program
         return Array.Empty<System.Windows.Rect>();
     }
 
+    /// The right edge of the selection's text without white space at its end: the same text
+    /// found again in the document, so it doesn't lean on the app's own trimming.
+    static double? TrimmedRight(IntPtr hwnd)
+    {
+        try
+        {
+            foreach (AutomationElement e in AutomationElement.FromHandle(hwnd).FindAll(TreeScope.Subtree, Condition.TrueCondition))
+            {
+                if (!e.TryGetCurrentPattern(TextPattern.Pattern, out var p) || p is not TextPattern t) continue;
+                var sel = t.GetSelection().FirstOrDefault();
+                if (sel == null) continue;
+                var text = sel.GetText(-1);
+                if (text.Length == 0) continue;
+                var trimmed = text.TrimEnd();
+                if (trimmed.Length == text.Length) return null;
+                Console.WriteLine($"[selection] ends in white space: {string.Join(" ", text.Substring(trimmed.Length).Select(c => ((int)c).ToString("X4")))}");
+                var again = t.DocumentRange.FindText(trimmed, false, false)?.GetBoundingRectangles();
+                return again is { Length: > 0 } ? again.Max(r => r.Right) : null;
+            }
+        }
+        catch { }
+        return null;
+    }
+
     static string DocumentClass(IntPtr hwnd)
     {
         try
@@ -513,6 +599,7 @@ static partial class Program
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern IntPtr FindWindow(string? cls, string? title);
     [DllImport("user32.dll")] static extern bool GetCursorPos(out Point p);
     [DllImport("user32.dll")] static extern uint GetDpiForWindow(IntPtr h);
+    [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
     [DllImport("user32.dll")] static extern bool PostMessage(IntPtr h, uint msg, IntPtr w, IntPtr l);
     [DllImport("user32.dll")] static extern IntPtr SetProcessDpiAwarenessContext(IntPtr context);
     [DllImport("user32.dll")] static extern int GetSystemMetrics(int index);

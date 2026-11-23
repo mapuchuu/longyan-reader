@@ -80,8 +80,12 @@ static class SelectionReader
     /// as part of the first line, which put the eye that much above the text: a top line taller
     /// than the next line by a quarter, or than its font allows, is cut to a normal line's
     /// height from the bottom, where its text is.
+    /// White space at the selection's end is left out: a double-click in Chromium on Windows
+    /// takes the space after the word, and a line's selection its line break, which the Mac's
+    /// double-click doesn't, and the eye would sit that much further right.
     static Rect? Bounds(TextPatternRange selection)
     {
+        selection = WithoutTrailingSpace(selection);
         var rects = selection.GetBoundingRectangles();
         if (rects.Length == 0) return null;
         var top = rects.OrderBy(x => x.Top).First();
@@ -95,6 +99,22 @@ static class SelectionReader
         var r = rects[0];
         foreach (var x in rects.Skip(1)) r.Union(x);
         return r;
+    }
+
+    static TextPatternRange WithoutTrailingSpace(TextPatternRange selection)
+    {
+        try
+        {
+            var text = selection.GetText(-1);
+            var trimmed = text.TrimEnd();
+            if (trimmed.Length == text.Length || trimmed.Length == 0) return selection;
+            var r = selection.Clone();
+            // One step a character; apps count a line break as one or two, so check as it goes.
+            for (var i = 0; i < 8 && r.GetText(-1).Length > trimmed.Length; i++)
+                if (r.MoveEndpointByUnit(TextPatternRangeEndpoint.End, TextUnit.Character, -1) == 0) break;
+            return r.GetText(-1) == trimmed ? r : selection;
+        }
+        catch (Exception) { return selection; }
     }
 
     /// A normal line's height near the selection's top line: the selection's next line, else

@@ -27,6 +27,16 @@ with the box, not the text, so CI never saw it. Now SR.Bounds cuts a top line th
 quarter taller than the next line (or 1.6 times its font) to a line's height from the bottom,
 and UiCheck compares the eye with the text's ink.
 
+Checked in the user's VM afterwards, read-only (the app's own Bounds code run on Notepad's
+ranges at 200%, against the ink in a PrintWindow capture): 感冒, 他得了感冒 and 吃不了饭 on the
+first line were 16 to 17.5 px above the text's centre and are now 0 to 1.5 px from it; 明朝 and
+闭关锁国 on the second line stay 1.5 to 2 px (their boxes had no margin).
+
+The Mac centres on the line's box too, but its boxes hold no margin: in TextKit the box's
+centre is within 0.4 pt of a CJK line's ink centre (Helvetica 12, system 13, PingFang 14).
+On Windows the box's centre is up to 2 px above the ink (classic Notepad draws CJK low in a
+Consolas line), so UiCheck allows 2 px.
+
 ### Placement
 
 | Behaviour | Mac | Windows | Status | Evidence |
