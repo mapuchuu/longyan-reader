@@ -70,6 +70,15 @@ Streaming from Ollama uses `URLSession.bytes`, which only Apple's Foundation has
 - `scripts/bridge-check.sh` runs 27 lookups through the C interface on the Mac with no model. `.github/workflows/windows.yml` runs the same from C# on Windows and compares the cards.
 - `windows/LongyanReader`: a notification-area icon, Ctrl+Alt+L, the selection from UI Automation (else Ctrl+C and the clipboard put back), the card in a window that never takes the focus, the model download (same file and checksum as the Mac's). The workflow uploads the app folder as an artifact, to try in a VM.
 
+## Step 3: the card, matched to the Mac's
+
+- `notes/card-spec.md` is the Mac card written down: sizes, colours, spacing, motion and behaviour, with the SwiftUI lines each comes from.
+- `windows/LongyanReader/CardView.cs` lays the card out from the core's JSON. `CardWindow.cs` holds it: shadow margin, placement by the selection, the open and close fades, height changes, moving, resizing, zoom (Ctrl and the wheel), pinning, and closing on a click, scroll or Esc elsewhere (low-level hooks, since the card never has the focus).
+- Fonts differ (Segoe UI Variable, Microsoft YaHei UI). To match the Mac's look anyway: lines are 1.2 of the size as in San Francisco, YaHei is set at 0.92 of the size so its characters are as tall as PingFang's, and YaHei Bold stands in for PingFang Medium. SF Symbols are drawn as paths.
+- Motion follows the Mac's springs: changes on cardMotion (response 0.34, no bounce), the reveal on a 0.32/0.82 spring. Parts that stay slide to their new place when others come or go.
+- `gallery.yml` draws the cards in `windows/gallery` (light and dark) to put beside the Mac's drawings of the same cards (`windows/gallery/mac`, from `scripts/card-gallery.sh`). Card heights are within 1 to 3 pt of the Mac's.
+- The UI check in `windows.yml` also films the reveal, a pick, a row opening and Esc, and tries hover and drag.
+
 ## Still to build for Windows
 
 - llama.cpp for the app: CI builds it CPU-only and static. Vulkan (and maybe CUDA) for speed, and DLL or static.
@@ -77,7 +86,7 @@ Streaming from Ollama uses `URLSession.bytes`, which only Apple's Foundation has
 - Run the real model on Windows: load the GGUF, pick a sense, translate, and compare with the Mac.
 - Memory pressure: Windows has its own low-memory signal to call `EmbeddedModel.relieve`.
 - Reading the selection: UI Automation (text pattern and selection bounds) instead of Accessibility. Coverage will vary by app.
-- The card: still missing Listen, Add to Anki, History, zoom and resizing, the chip on selection, pointing at a word without selecting.
+- The card: still missing Add to Anki, History, the chip on selection, pointing at a word without selecting. Listen uses a Windows Chinese voice when one is installed.
 - Updates: WinSparkle reads the same appcast format.
 - Signing: a Windows code-signing certificate, or SmartScreen warns on every download.
 
