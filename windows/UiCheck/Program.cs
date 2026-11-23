@@ -44,6 +44,7 @@ static partial class Program
 
         var start = new ProcessStartInfo(exe) { WorkingDirectory = Path.GetDirectoryName(exe)! };
         start.Environment["LONGYAN_CARD_LOG"] = log;
+        start.Environment["LONGYAN_FAKE_SPEECH"] = "1";   // no Chinese voice here: Listen "speaks" silently (MotionFeel.cs)
         var app = Process.Start(start)!;
         Thread.Sleep(12000);   // the dictionary and splitter load
         if (app.HasExited) { Console.WriteLine($"the app exited: {app.ExitCode}"); return 1; }
@@ -78,6 +79,8 @@ static partial class Program
             Burst("1-pick", 700);
             Thread.Sleep(500);
             Shot("1-picked");
+            ListenFilm(app);    // MotionFeel.cs
+            SymbolFilms(app);
             Drag(cold.Left + 20, cold.Top + cold.Height / 2, 160, 90);
             Thread.Sleep(300);
             Shot("1-moved");
@@ -114,15 +117,24 @@ static partial class Program
             Burst("2-scroll", 600);
             Wheel(240);
             Thread.Sleep(600);
+            BandFilm();         // MotionFeel.cs
             CtrlWheel(-120, 7);
             Thread.Sleep(800);
+            // Found again: after the zoom the row needn't be where it was (it was a sense's row,
+            // so this "shut" picked a meaning instead).
+            if (FindText(app, "to implement") is System.Windows.Rect again) row = again;
             Click(row.Left + 10, row.Top + row.Height / 2);
             Burst("2-shut", 800);
+            Thread.Sleep(1200);
+            if (FindText(app, "to implement") is System.Windows.Rect now) row = now;
+            TwiceCheck(row.Left + 10, row.Top + row.Height / 2);   // MotionFeel.cs
         }
         else failures.Add("2-phrase: no \"to implement\" row to open");
 
+        var fadeSkip = LogLength();
         Keys(VK_ESCAPE);
         Thread.Sleep(800);
+        FadeCheck(fadeSkip);   // MotionFeel.cs
         EyeCheck(window);
         HistoryCheck.Run(exe, app, outDir, failures);
         PointCheck.Run(app, window, log, failures, Shot);

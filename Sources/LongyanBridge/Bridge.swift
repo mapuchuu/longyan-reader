@@ -14,8 +14,11 @@ import Observation
 //   {"event":"card", "id":N, "card":{…}}              a card's contents, again on every change
 //   {"event":"hint", "id":N, "message":"…"}           no card for that selection, and why
 //   {"event":"model", "model":"…"}                    "ready", "unloadable" (the file won't load),
-//                                                     "no-memory", or why the model can't pick: after
-//                                                     ly_refresh, and whenever a load fails or recovers
+//                                                     "no-memory", "too-slow" (this PC is too slow for
+//                                                     it, so it isn't loaded), "needs-arm64" (the same,
+//                                                     on an ARM PC running the x64 app), or why the model can't
+//                                                     pick: after ly_refresh, and whenever a load fails
+//                                                     or recovers
 //
 // Text offsets are UTF-16 code units, as C# strings count them.
 
@@ -68,6 +71,7 @@ public func ly_start(_ resources: UnsafePointer<CChar>, _ model: UnsafePointer<C
         FileManager.default.changeCurrentDirectoryPath(dir.deletingLastPathComponent().path)
         // Only the app's own model file: not one another app put elsewhere on this computer.
         EmbeddedModel.pathOverride = modelPath ?? ""
+        readAllowSlow()
         LocalModel.problemChanged = { _ in onMain { send(["event": "model", "model": modelStatus()]) } }
         Task { @MainActor in
             let loaded = await Task.detached { () -> Result<CEDict, Error> in
@@ -93,6 +97,19 @@ public func ly_start(_ resources: UnsafePointer<CChar>, _ model: UnsafePointer<C
     }
 }
 
+/// "allowSlowModel" in the Windows app's settings (%LOCALAPPDATA%\LongyanReader\settings.json):
+/// use the model even on a PC too slow for it. Read at start and on each ly_refresh.
+private func readAllowSlow() {
+    #if os(Windows)
+    guard let base = ProcessInfo.processInfo.environment["LOCALAPPDATA"],
+          let data = FileManager.default.contents(atPath: base + "\\LongyanReader\\settings.json"),
+          let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+        EmbeddedModel.allowSlow = false; return
+    }
+    EmbeddedModel.allowSlow = json["allowSlowModel"] as? Bool ?? false
+    #endif
+}
+
 @MainActor private func modelStatus() -> String {
     if let p = LocalModel.problem { return p.rawValue }
     return SenseChooser.canChoose ? "ready" : SenseChooser.noPickerReason
@@ -110,6 +127,7 @@ public func ly_refresh(_ model: UnsafePointer<CChar>?) {
     let path = model.map { String(cString: $0) }
     onMain {
         if let path { EmbeddedModel.pathOverride = path }
+        readAllowSlow()
         EmbeddedModel.shared.forgetLoadFailure()
         LocalModel.forgetProblem()
         Task { @MainActor in

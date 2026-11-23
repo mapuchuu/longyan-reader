@@ -10,9 +10,16 @@ namespace Longyan;
 
 /// Runs the lookups in scripts/bridge-check.txt through the bridge and prints each one's last
 /// card (or hint), one JSON line each. Drains the core's main queue from this thread, as the
-/// app does from its message loop. Usage: BridgeCheck RESOURCES LOOKUPS
+/// app does from its message loop. Usage: BridgeCheck RESOURCES LOOKUPS [MODEL]
+///
+/// With MODEL, the reading model is used: the lookups go one at a time, each until its card has
+/// settled (or LONGYAN_CHECK_MINUTES, default 4), and stderr gets the model's status, each
+/// card's times and the peak memory.
 static class Program
 {
+    static string modelStatus = "";
+    static AutoResetEvent? queued;
+
     static readonly List<(string passage, int start, int end)> lookups = new();
     static readonly Dictionary<long, int> byID = new();
     static readonly Dictionary<int, string> last = new();
@@ -30,6 +37,7 @@ static class Program
             lookups.Add((p[0], int.Parse(p[1]), int.Parse(p[2])));
         }
         keep = OnEvent;
+        if (args.Length >= 3) return WithModel(args[0], args[2]);
         Bridge.ly_start(Bridge.Utf8(args[0]), null, keep);
         var handle = Bridge._dispatch_get_main_queue_handle_4CF();
         Console.Error.WriteLine($"main queue handle: {handle}");
@@ -84,6 +92,76 @@ static class Program
         return same == lookups.Count ? 0 : 1;
     }
 
+    static int WithModel(string resources, string model)
+    {
+        Bridge.ly_start(Bridge.Utf8(resources), Bridge.Utf8(model), keep!);
+        var handle = Bridge._dispatch_get_main_queue_handle_4CF();
+        queued = handle == IntPtr.Zero ? null : new AutoResetEvent(false) { SafeWaitHandle = new Microsoft.Win32.SafeHandles.SafeWaitHandle(handle, false) };
+        var limit = TimeSpan.FromMinutes(double.TryParse(Environment.GetEnvironmentVariable("LONGYAN_CHECK_MINUTES"), out var m) ? m : 4);
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        while (!ready)
+        {
+            Pump();
+            if (failed) return 1;
+            if (clock.Elapsed.TotalMinutes > 2) { Console.Error.WriteLine("timed out loading the dictionary"); return 1; }
+        }
+        // A "model" event sent with "ready" comes just after it.
+        clock.Restart();
+        while (clock.Elapsed.TotalSeconds < 1) Pump();
+        Console.Error.WriteLine($"model at start: {modelStatus}");
+        var all = true;
+        for (var i = 0; i < lookups.Count; i++)
+        {
+            // As the app does when the shortcut is pressed.
+            Bridge.ly_warm_up();
+            var t = System.Diagnostics.Stopwatch.StartNew();
+            byID[Bridge.ly_lookup(Bridge.Utf8(lookups[i].passage), lookups[i].start, lookups[i].end)] = i;
+            double? first = null, settled = null;
+            while (t.Elapsed < limit)
+            {
+                Pump();
+                if (!last.TryGetValue(i, out var json)) continue;
+                first ??= t.Elapsed.TotalSeconds;
+                if (Settled(json)) { settled = t.Elapsed.TotalSeconds; break; }
+            }
+            all &= settled != null;
+            Console.Error.WriteLine(FormattableString.Invariant(
+                $"card {i + 1}: first {(first is double f ? f.ToString("F1") + " s" : "never")}, settled {(settled is double s ? s.ToString("F1") + " s" : "not in " + limit.TotalMinutes + " min")}, {Describe(last.GetValueOrDefault(i))}"));
+        }
+        for (var i = 0; i < lookups.Count; i++) Console.WriteLine(last.TryGetValue(i, out var j) ? j : "{\"missing\":true}");
+        Console.Error.WriteLine($"model at end: {modelStatus}");
+        using var me = System.Diagnostics.Process.GetCurrentProcess();
+        Console.Error.WriteLine($"peak memory: {me.PeakWorkingSet64 / 1_000_000} MB");
+        Bridge.ly_shutdown();
+        return all ? 0 : 1;
+    }
+
+    static void Pump()
+    {
+        if (queued != null) queued.WaitOne(20); else Thread.Sleep(20);
+        Bridge._dispatch_main_queue_callback_4CF(IntPtr.Zero);
+    }
+
+    /// The model has nothing more to add: a word card's pick is in (or it isn't waiting for one),
+    /// a phrase card has its translation and every row's meaning.
+    static bool Settled(string json)
+    {
+        if (JsonNode.Parse(json) is not JsonObject e || e["card"] is not JsonObject card) return true;
+        if ((string?)card["kind"] == "word") return (string?)card["status"] != "Reading the sentence…";
+        var rows = card["rows"] as JsonArray ?? new JsonArray();
+        return (card["translation"] != null || card["translationError"] != null)
+            && !rows.OfType<JsonObject>().Any(r => r["pending"] is JsonValue v && v.TryGetValue<bool>(out var p) && p);
+    }
+
+    static string Describe(string? json)
+    {
+        if (json == null || JsonNode.Parse(json) is not JsonObject e) return "no card";
+        if (e["card"] is not JsonObject card) return "hint: " + (string?)e["message"];
+        if ((string?)card["kind"] == "word")
+            return $"word {(string?)card["word"]}: " + ((string?)card["status"] ?? "picked") + (card["meaning"] is JsonNode mm ? $" ({(string?)mm})" : "");
+        return $"phrase: " + ((string?)card["translation"] ?? (string?)card["translationError"] ?? "no translation");
+    }
+
     static string WithoutID(string json)
     {
         if (JsonNode.Parse(json) is not JsonObject e) return json;
@@ -98,7 +176,8 @@ static class Program
         var e = JsonNode.Parse(json) as JsonObject;
         switch ((string?)e?["event"])
         {
-            case "ready": ready = true; Console.Error.WriteLine(json); break;
+            case "ready": ready = true; modelStatus = (string?)e!["model"] ?? ""; Console.Error.WriteLine(json); break;
+            case "model": modelStatus = (string?)e!["model"] ?? ""; Console.Error.WriteLine(json); break;
             case "failed": failed = true; Console.Error.WriteLine(json); break;
             case "card":
             case "hint":

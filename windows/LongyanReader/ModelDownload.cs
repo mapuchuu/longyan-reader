@@ -31,6 +31,9 @@ static class ModelDownload
     static CancellationTokenSource? cancel;
     static (DateTime At, double Progress)? rateStart;
 
+    /// The core said this PC is too slow for the model ("too-slow"): no 2.7 GB download then.
+    public static bool TooSlow { get; set; }
+
     public static bool IsDownloaded => File.Exists(Core.ModelPath) && new FileInfo(Core.ModelPath).Length == Size;
 
     /// Bytes of the model on disk: the file, or what's downloaded of it so far.
@@ -54,6 +57,7 @@ static class ModelDownload
     public static async Task<string?> Run()
     {
         if (Running) return null;
+        if (TooSlow) return "this PC is too slow for the reading model";
         Running = true;
         Progress = (double)OnDisk / Size;
         LastError = null;
