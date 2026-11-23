@@ -125,6 +125,8 @@ public func ly_shutdown() { EmbeddedModel.shared.shutdown() }
 
 /// Opens a card for `passage`'s text from `start` to `end`. Returns the card's id: its
 /// contents arrive as "card" events, or one "hint" event when there's nothing to show.
+/// With `start` equal to `end`, the card is for the word at `start`, as when pointing at a
+/// word without selecting (the Mac's TextCapture).
 @_cdecl("ly_lookup")
 public func ly_lookup(_ passage: UnsafePointer<CChar>, _ start: Int32, _ end: Int32) -> Int64 {
     let text = String(cString: passage)
@@ -133,6 +135,12 @@ public func ly_lookup(_ passage: UnsafePointer<CChar>, _ start: Int32, _ end: In
         @MainActor func hint(_ message: String) { send(["event": "hint", "id": id, "message": message]) }
         guard let dict else {
             hint(startFailure == nil ? "Dictionary still loading…" : "The dictionary didn't load. Exit Longyan Reader and open it again.")
+            return
+        }
+        if start == end {
+            let at = characterRange(text, Int(start), Int(start) + 1).lowerBound
+            guard let context = Segmenter.word(at: at, in: Array(text), dict: dict) else { hint("No Chinese text in the selection"); return }
+            openWord(id, context, alone: false)
             return
         }
         let range = characterRange(text, Int(start), Int(end))

@@ -209,7 +209,7 @@ static class Program
         var menu = new Forms.ContextMenuStrip();
         // Clicking here would take the focus from the app with the selection, so the menu only says how.
         var hint = new Forms.ToolStripMenuItem { Enabled = false };
-        void Hint() => hint.Text = Shortcut.Registered ? $"Select Chinese text, then click the eye or press {Shortcut.Name}" : "Select Chinese text, then click the eye";
+        void Hint() => hint.Text = Shortcut.Registered ? $"Select Chinese text or point at a word, then press {Shortcut.Name}" : "Select Chinese text, then click the eye";
         Hint();
         Shortcut.Changed += Hint;
         menu.Items.Add(hint);
