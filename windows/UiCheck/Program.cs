@@ -123,6 +123,7 @@ static class Program
         Thread.Sleep(800);
         EyeCheck(window);
         HistoryCheck.Run(exe, app, outDir, failures);
+        PointCheck.Run(app, window, log, failures, Shot);
         SettingsCheck(exe);
 
         try { notepad.Kill(); } catch { }
