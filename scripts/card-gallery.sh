@@ -7,7 +7,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 model="$HOME/Library/Application Support/LongyanReader/models/qwen3.5-4b-q4_k_m.gguf"
-swift build -c release --product LongyanReader --product LongyanBridge >/dev/null
+swift build -c release --product LongyanReader >/dev/null
+swift build -c release --product LongyanBridge >/dev/null   # one product per build: a second --product wins
 scripts/bridge-check.sh >/dev/null || true   # builds the check program and stages Resources
 out=windows/gallery
 mkdir -p "$out/mac"

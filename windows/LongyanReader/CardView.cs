@@ -190,7 +190,7 @@ sealed class CardView
             top.Children.Add(Keyed("translation", tb));
         }
         else if ((string?)c["translationError"] is string e) top.Children.Add(Keyed("translationError", Label(e, 11, Theme.Secondary, top: 4)));
-        else top.Children.Add(Keyed("translating", Busy("Translating…", top: 4)));
+        else top.Children.Add(Keyed("translating", Busy("Translating…", top: 4, height: Math.Round(16 * Theme.LineFactor) + 2)));
         content.Children.Add(Track("phraseTop", top));
 
         var rows = c["rows"]?.AsArray() ?? new JsonArray();
@@ -231,7 +231,7 @@ sealed class CardView
         b.Panel.Children.Add(hanzi);
         var py = Lines(new TextBlock { Margin = new Thickness(0, 1, 0, 0) }, 10.5);
         AddPinyin(py.Inlines, syllables, 10.5, " ");
-        b.Panel.Children.Add(pending ? Redacted(py) : py);
+        b.Panel.Children.Add(pending ? PinyinBars(syllables, py.Margin) : py);
         return b;
     }
 
@@ -255,7 +255,7 @@ sealed class CardView
         var gloss = Label(glossText, 13, dim ? Theme.Secondary : Theme.Primary);
         gloss.Margin = new Thickness(0, Baseline(Theme.Chinese, 17, FontWeights.Medium) - Baseline(Theme.Text, 13, FontWeights.Normal), 0, 0);
         if (!open) { gloss.MaxHeight = gloss.LineHeight * 2 + 1; gloss.TextTrimming = TextTrimming.CharacterEllipsis; }
-        FrameworkElement glossView = pending ? Redacted(gloss, 0.6) : Keyed("gloss:" + token, gloss, glossText, crossfade: true);
+        FrameworkElement glossView = pending ? new Bars(glossText, gloss.Margin) : Keyed("gloss:" + token, gloss, glossText, crossfade: true);
         Grid.SetColumn(glossView, 2);
         grid.Children.Add(glossView);
 
@@ -409,30 +409,46 @@ sealed class CardView
         return box;
     }
 
-    FrameworkElement Busy(string text, double top = 4)
+    /// A spinner and a line of status, `height` tall with both centred (the line's own height if 0).
+    FrameworkElement Busy(string text, double top = 4, double height = 0)
     {
         var line = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, top, 0, 0) };
+        if (height > 0) line.Height = height;
         var spinner = Spinner();
         spinner.VerticalAlignment = VerticalAlignment.Center;
-        spinner.Margin = new Thickness(0, 1, 8, 0);
+        spinner.Margin = new Thickness(0, 0, 6, 0);
         line.Children.Add(spinner);
-        line.Children.Add(Label(text, 12, Theme.Secondary));
+        var label = Label(text, 12, Theme.Secondary);
+        label.VerticalAlignment = VerticalAlignment.Center;
+        line.Children.Add(label);
         return line;
     }
 
-    /// The Mac's mini spinner: a 10 px ring with a gap, turning.
+    /// The Mac's small spinner: eight spokes fading round, stepping an eighth of a turn at a time.
     static FrameworkElement Spinner()
     {
-        var arc = new Path
+        const double size = 11, inner = 2.4, outer = 5.0;
+        var canvas = new Canvas { Width = size, Height = size, RenderTransformOrigin = new Point(0.5, 0.5) };
+        var c = size / 2;
+        for (var k = 0; k < 8; k++)
         {
-            Data = Geometry.Parse("M 5,0.75 A 4.25,4.25 0 1 1 0.75,5"),
-            Stroke = Theme.Secondary, StrokeThickness = 1.5, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round,
-            Width = 10, Height = 10, RenderTransformOrigin = new Point(0.5, 0.5),
-        };
+            var a = -Math.PI / 2 - k * Math.PI / 4;   // the brightest spoke on top, fading anticlockwise
+            canvas.Children.Add(new Line
+            {
+                X1 = c + inner * Math.Cos(a), Y1 = c + inner * Math.Sin(a), X2 = c + outer * Math.Cos(a), Y2 = c + outer * Math.Sin(a),
+                Stroke = Theme.Secondary, StrokeThickness = 1.3, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round,
+                Opacity = 1 - k * 0.1,
+            });
+        }
         var spin = new RotateTransform();
-        arc.RenderTransform = spin;
-        spin.BeginAnimation(RotateTransform.AngleProperty, new DoubleAnimation(0, 360, new Duration(TimeSpan.FromSeconds(0.9))) { RepeatBehavior = RepeatBehavior.Forever });
-        return arc;
+        canvas.RenderTransform = spin;
+        if (!Motion.Reduced)
+        {
+            var steps = new DoubleAnimationUsingKeyFrames { Duration = new Duration(TimeSpan.FromSeconds(0.8)), RepeatBehavior = RepeatBehavior.Forever };
+            for (var k = 0; k < 8; k++) steps.KeyFrames.Add(new DiscreteDoubleKeyFrame(k * 45, KeyTime.FromTimeSpan(TimeSpan.FromSeconds(k * 0.1))));
+            spin.BeginAnimation(RotateTransform.AngleProperty, steps);
+        }
+        return canvas;
     }
 
     static FrameworkElement Divider() => new Border { Height = 1, Background = Theme.Divider };
@@ -488,23 +504,55 @@ sealed class CardView
 
     // MARK: Buttons
 
-    readonly List<TextBlock> glyphs = new();
+    /// A button's symbol: SF Symbols' speaker.wave.2, doc.on.doc, pin and pin.fill drawn as
+    /// paths, in a brush whose colour animates.
+    sealed class Symbol
+    {
+        public readonly Path Path;
+        public readonly SolidColorBrush Ink;
+        public readonly bool Tinted;
+        public Symbol(string data, bool filled, Color color, bool tinted)
+        {
+            Ink = new SolidColorBrush(color);
+            Tinted = tinted;
+            Path = new Path
+            {
+                Data = Geometry.Parse(data), Stroke = Ink, StrokeThickness = 1.15, Fill = filled ? Ink : null,
+                StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round, StrokeLineJoin = PenLineJoin.Round,
+                Width = 14, Height = 14, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
+            };
+        }
+        public void To(Brush target, double seconds)
+        {
+            var c = ((SolidColorBrush)target).Color;
+            Ink.BeginAnimation(SolidColorBrush.ColorProperty, new ColorAnimation(c, new Duration(TimeSpan.FromSeconds(seconds))) { EasingFunction = Motion.EaseOut });
+        }
+    }
+
+    const string Speaker = "M 1.6,5.2 H 3.9 L 6.9,2.6 V 11.4 L 3.9,8.8 H 1.6 Z M 9,5 A 2.6,2.6 0 0 1 9,9 M 10.9,3.3 A 5,5 0 0 1 10.9,10.7";
+    const string Copy = "M 3,9.6 V 3 A 1.2,1.2 0 0 1 4.2,1.8 H 8.8 M 6.2,4.4 H 10.6 A 1.2,1.2 0 0 1 11.8,5.6 V 11.6 A 1.2,1.2 0 0 1 10.6,12.8 H 6.2 A 1.2,1.2 0 0 1 5,11.6 V 5.6 A 1.2,1.2 0 0 1 6.2,4.4 Z";
+    const string Pin = "M 4.4,1.6 H 9.6 M 5.3,1.6 V 5.6 L 3.4,8.4 H 10.6 L 8.7,5.6 V 1.6 M 7,8.4 V 12.8";
+    const string PinFill = "M 4.6,1.2 H 9.4 A 0.6,0.6 0 0 1 9.4,2.4 H 8.8 V 5.5 L 10.8,8.3 A 0.4,0.4 0 0 1 10.5,8.9 H 3.5 A 0.4,0.4 0 0 1 3.2,8.3 L 5.2,5.5 V 2.4 H 4.6 A 0.6,0.6 0 0 1 4.6,1.2 Z M 7,8.9 V 12.8";
+    const string Check = "M 3,7.4 L 5.9,10.2 L 11.2,3.6";
+
+    readonly List<Symbol> symbols = new();
 
     /// The Listen, Copy and Pin buttons; returns the width their slot takes on the first line.
     double AddButtons(string copy, string speech)
     {
-        glyphs.Clear();
+        symbols.Clear();
         var n = 0;
-        if (actions.CanListen) { buttons.Children.Add(ActionButton("", $"Listen to “{speech}”", () => actions.Listen(speech))); n++; }
+        if (actions.CanListen) { buttons.Children.Add(ActionButton(new Symbol(Speaker, false, Rest, false), $"Listen to “{speech}”", _ => actions.Listen(speech))); n++; }
         buttons.Children.Add(CopyButton(copy)); n++;
-        var pin = ActionButton(actions.Pinned ? "\uE842" : "\uE840", actions.Pinned ? "Unpin: close when you click elsewhere" : "Pin: keep the card here for every lookup",
-            () => actions.TogglePin(), tint: actions.Pinned);
-        pin.Child.RenderTransform = new RotateTransform(-45);   // Segoe's pin leans; the Mac's stands
-        buttons.Children.Add(pin); n++;
+        var pin = actions.Pinned ? new Symbol(PinFill, true, ((SolidColorBrush)Theme.Accent).Color, true) : new Symbol(Pin, false, Rest, false);
+        buttons.Children.Add(ActionButton(pin, actions.Pinned ? "Unpin: close when you click elsewhere" : "Pin: keep the card here for every lookup", _ => actions.TogglePin())); n++;
         buttons.Margin = new Thickness(0, 0, Pad * Zoom - 6 - ButtonGap / 2, 0);
         // The slot they take on the first line, in the content's own (unzoomed) units.
         return (n * ButtonW + (n - 1) * ButtonGap - 6) / Zoom;
     }
+
+    /// A symbol's colour at rest: tertiary, secondary while the pointer is on the card.
+    Color Rest => ((SolidColorBrush)(hovered ? Theme.Secondary : Theme.Tertiary)).Color;
 
     /// The buttons' centre sits `above` over the first line's baseline.
     void PlaceButtons(FrameworkElement firstLine, double size, FontFamily family, FontWeight weight, double above)
@@ -515,41 +563,65 @@ sealed class CardView
 
     FrameworkElement CopyButton(string text)
     {
+        var label = text.Length > 14 ? text[..13] + "…" : text;
+        var symbol = new Symbol(Copy, false, Rest, false);
         Border? button = null;
-        button = ActionButton("", $"Copy “{(text.Length > 14 ? text[..13] + "…" : text)}”", () =>
+        button = ActionButton(symbol, $"Copy “{label}”", b =>
         {
             actions.Copy(text);
-            var glyph = (TextBlock)button!.Child;
-            glyph.Text = "";
-            glyph.Foreground = Theme.Accent;
-            button.ToolTip = "Copied";
+            // A checkmark in the accent for 1.5 s.
+            symbol.Path.Data = Geometry.Parse(Check);
+            symbol.Path.StrokeThickness = 1.6;
+            symbol.Ink.BeginAnimation(SolidColorBrush.ColorProperty, null);
+            symbol.Ink.Color = ((SolidColorBrush)Theme.Accent).Color;
+            symbols.Remove(symbol);
+            b.ToolTip = "Copied";
             var t = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1.5) };
-            t.Tick += (_, _) => { t.Stop(); glyph.Text = ""; glyph.Foreground = hovered ? Theme.Secondary : Theme.Tertiary; button.ToolTip = $"Copy “{text}”"; };
+            t.Tick += (_, _) =>
+            {
+                t.Stop();
+                symbol.Path.Data = Geometry.Parse(Copy);
+                symbol.Path.StrokeThickness = 1.15;
+                symbol.Ink.Color = b.IsMouseOver ? ((SolidColorBrush)Theme.Primary).Color : Rest;
+                symbols.Add(symbol);
+                b.ToolTip = $"Copy “{label}”";
+            };
             t.Start();
         });
         return button;
     }
 
-    Border ActionButton(string glyph, string help, Action act, bool tint = false)
+    Border ActionButton(Symbol symbol, string help, Action<Border> act)
     {
-        var symbol = Icon(glyph, 12, tint ? Theme.Accent : hovered ? Theme.Secondary : Theme.Tertiary);
-        symbol.HorizontalAlignment = HorizontalAlignment.Center;
-        symbol.VerticalAlignment = VerticalAlignment.Center;
-        symbol.Tag = tint;
-        if (!tint) glyphs.Add(symbol);
+        if (!symbol.Tinted) symbols.Add(symbol);
         var fill = new SolidColorBrush(((SolidColorBrush)Theme.Ink(1)).Color) { Opacity = 0 };
-        var b = new Border { Width = ButtonW, Height = ButtonH, CornerRadius = new CornerRadius(6), Background = fill, Child = symbol, ToolTip = help, Margin = new Thickness(ButtonGap / 2, 0, ButtonGap / 2, 0) };
-        b.MouseEnter += (_, _) => { Motion.To(fill, Brush.OpacityProperty, 0.07, 0.15); if (!tint) symbol.Foreground = Theme.Primary; };
-        b.MouseLeave += (_, _) => { Motion.To(fill, Brush.OpacityProperty, 0, 0.15); b.Opacity = 1; if (!tint) symbol.Foreground = hovered ? Theme.Secondary : Theme.Tertiary; };
-        b.MouseLeftButtonDown += (_, e) => { Motion.To(b, UIElement.OpacityProperty, 0.55, 0.08); e.Handled = true; };
-        b.MouseLeftButtonUp += (_, e) => { Motion.To(b, UIElement.OpacityProperty, 1, 0.08); act(); e.Handled = true; };
+        var b = new Border { Width = ButtonW, Height = ButtonH, CornerRadius = new CornerRadius(6), Background = fill, Child = symbol.Path, ToolTip = help, Margin = new Thickness(ButtonGap / 2, 0, ButtonGap / 2, 0) };
+        var pressed = false;
+        b.MouseEnter += (_, _) => { Motion.To(fill, Brush.OpacityProperty, 0.07, 0.15); if (symbols.Contains(symbol)) symbol.To(Theme.Primary, 0.15); };
+        b.MouseLeave += (_, _) =>
+        {
+            pressed = false;
+            Motion.To(fill, Brush.OpacityProperty, 0, 0.15);
+            Motion.To(b, UIElement.OpacityProperty, 1, 0.08);
+            if (symbols.Contains(symbol)) symbol.To(hovered ? Theme.Secondary : Theme.Tertiary, 0.15);
+        };
+        b.MouseLeftButtonDown += (_, e) => { pressed = true; Motion.To(b, UIElement.OpacityProperty, 0.55, 0.08); e.Handled = true; };
+        b.MouseLeftButtonUp += (_, e) =>
+        {
+            e.Handled = true;
+            Motion.To(b, UIElement.OpacityProperty, 1, 0.08);
+            if (!pressed || CardWindow.WasDrag) return;
+            pressed = false;
+            act(b);
+        };
         return b;
     }
 
-    /// The buttons brighten while the pointer is anywhere on the card.
+    /// The symbols brighten while the pointer is anywhere on the card (ease-out 0.2 s).
     void Recolor()
     {
-        foreach (var g in glyphs) if (!g.IsMouseOver && g.Text != "") g.Foreground = hovered ? Theme.Secondary : Theme.Tertiary;
+        foreach (var s in symbols)
+            if (!((FrameworkElement)s.Path.Parent).IsMouseOver) s.To(hovered ? Theme.Secondary : Theme.Tertiary, 0.2);
     }
 
     // MARK: Text
@@ -594,12 +666,71 @@ sealed class CardView
         }
     }
 
-    /// Text drawn as a grey bar of its size, as SwiftUI's placeholder redaction does.
-    static FrameworkElement Redacted(TextBlock text, double opacity = 1)
+    /// A pending word's pinyin as SwiftUI's placeholder redaction draws it: a bar per syllable,
+    /// 9 tall in the 13 line, in the tone's colour faintly (the neutral tone in grey).
+    static FrameworkElement PinyinBars(JsonArray syllables, Thickness margin)
     {
-        foreach (var run in text.Inlines.OfType<Run>()) run.Foreground = Brushes.Transparent;
-        text.Foreground = Brushes.Transparent;
-        return new Border { Background = Theme.Placeholder, CornerRadius = new CornerRadius(3), Child = text, HorizontalAlignment = HorizontalAlignment.Left, Opacity = opacity, Margin = text.Margin };
+        var line = new StackPanel { Orientation = Orientation.Horizontal, Height = Math.Round(10.5 * Theme.LineFactor), Margin = margin, HorizontalAlignment = HorizontalAlignment.Left };
+        for (var i = 0; i < syllables.Count; i++)
+        {
+            var s = syllables[i] as JsonObject;
+            var tone = (int?)s?["tone"] ?? 5;
+            var color = tone is >= 1 and <= 4 ? ((SolidColorBrush)Theme.PinyinColor(tone)).Color : ((SolidColorBrush)Theme.Ink(1)).Color;
+            var bar = new Border
+            {
+                Width = Math.Ceiling(TextWidth((string?)s?["text"] ?? "", Theme.Text, 10.5)), Height = 9, CornerRadius = new CornerRadius(2.5),
+                Background = new SolidColorBrush(Color.FromArgb((byte)Math.Round((tone is >= 1 and <= 4 ? 0.19 : 0.08) * 255), color.R, color.G, color.B)),
+                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(i > 0 ? 2 : 0, 0, 0, 0),
+            };
+            line.Children.Add(bar);
+        }
+        return line;
+    }
+
+    static double TextWidth(string text, FontFamily family, double size) =>
+        new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, new Typeface(family, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal), size, Brushes.Black, 1.0).WidthIncludingTrailingWhitespace;
+
+    /// A pending gloss as redaction draws it: a bar per line the text would wrap to (two at
+    /// most), as wide as that line, 11 tall in the 16 line.
+    sealed class Bars : FrameworkElement
+    {
+        const double Size = 13, Bar = 11;
+        readonly string[] words;
+        List<double> widths = new();
+        static double LineH => Math.Round(Size * Theme.LineFactor);
+        public Bars(string text, Thickness margin)
+        {
+            words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            Margin = margin;
+            HorizontalAlignment = HorizontalAlignment.Left;
+            VerticalAlignment = VerticalAlignment.Top;
+        }
+        protected override Size MeasureOverride(Size available)
+        {
+            widths = new List<double>();
+            var space = TextWidth(" ", Theme.Text, Size);
+            double line = 0;
+            foreach (var w in words)
+            {
+                var ww = TextWidth(w, Theme.Text, Size);
+                if (line > 0 && line + space + ww > available.Width)
+                {
+                    widths.Add(line);
+                    if (widths.Count == 2) break;
+                    line = ww;
+                }
+                else line = line > 0 ? line + space + ww : ww;
+            }
+            if (widths.Count < 2 && line > 0) widths.Add(Math.Min(line, available.Width));
+            if (widths.Count == 0) widths.Add(40);
+            return new Size(Math.Ceiling(widths.Max()), LineH * widths.Count);
+        }
+        protected override void OnRender(DrawingContext dc)
+        {
+            var fill = Theme.Ink(0.082);
+            for (var i = 0; i < widths.Count; i++)
+                dc.DrawRoundedRectangle(fill, null, new Rect(0, i * LineH + (LineH - Bar) / 2, Math.Ceiling(widths[i]), Bar), 2.5, 2.5);
+        }
     }
 
     static readonly Dictionary<(string, double, int), double> baselines = new();
