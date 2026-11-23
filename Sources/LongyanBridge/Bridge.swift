@@ -15,7 +15,8 @@ import Observation
 //   {"event":"hint", "id":N, "message":"…"}           no card for that selection, and why
 //   {"event":"model", "model":"…"}                    "ready", "unloadable" (the file won't load),
 //                                                     "no-memory", "too-slow" (this PC is too slow for
-//                                                     it, so it isn't loaded), or why the model can't
+//                                                     it, so it isn't loaded), "needs-arm64" (the same,
+//                                                     on an ARM PC running the x64 app), or why the model can't
 //                                                     pick: after ly_refresh, and whenever a load fails
 //                                                     or recovers
 //

@@ -288,16 +288,17 @@ static class Program
     static void ModelChanged(string status)
     {
         modelStatus = status;
-        ModelDownload.TooSlow = status == "too-slow";
+        ModelDownload.TooSlow = status is "too-slow" or "needs-arm64";
         UpdateMenu();
         if (status == "ready") toldAbout = null;
         // Each problem said once until it's fixed; the menu keeps saying it.
-        if (status == toldAbout || status is not ("unloadable" or "no-memory" or "too-slow")) return;
+        if (status == toldAbout || status is not ("unloadable" or "no-memory" or "too-slow" or "needs-arm64")) return;
         toldAbout = status;
         Balloon(status switch
         {
             "unloadable" => "The reading model couldn't load, so cards list meanings in dictionary order. Use this icon's menu to download it again.",
             "too-slow" => "This PC is too slow for the reading model. Cards use dictionary order.",
+            "needs-arm64" => "The reading model needs the ARM version of Longyan Reader. Cards use dictionary order.",
             _ => "There isn't enough free memory for the reading model, so cards list meanings in dictionary order. It tries again in a minute.",
         });
     }
@@ -313,10 +314,11 @@ static class Program
         modelItem.Text = running ? modelItem.Text
             : modelStatus == "ready" ? "Reading model: ready"
             : modelStatus == "too-slow" ? "Reading model: this PC is too slow for it"
+            : modelStatus == "needs-arm64" ? "Reading model: this PC needs the ARM version of Longyan Reader"
             : modelStatus == "no-memory" ? "Reading model: not enough free memory, trying again soon"
             : modelStatus == "unloadable" || ModelDownload.IsDownloaded ? "Reading model: couldn't load it (click to download it again)"
             : $"Download reading model ({ModelDownload.Size / 1_000_000_000.0:0.0} GB)…";
-        modelItem.Enabled = ModelDownload.Running || (!ModelDownload.Checking && modelStatus is not ("ready" or "no-memory" or "too-slow"));
+        modelItem.Enabled = ModelDownload.Running || (!ModelDownload.Checking && modelStatus is not ("ready" or "no-memory" or "too-slow" or "needs-arm64"));
         modelItem.Visible = running || (modelStatus.Length > 0 && modelStatus != "ready");
     }
 
@@ -330,7 +332,12 @@ static class Program
     public static async void GetModel()
     {
         if (ModelDownload.Running || ModelDownload.Checking || modelStatus == "ready") return;
-        if (ModelDownload.TooSlow) { Balloon("This PC is too slow for the reading model. Cards use dictionary order."); return; }
+        if (ModelDownload.TooSlow)
+        {
+            Balloon(modelStatus == "needs-arm64" ? "The reading model needs the ARM version of Longyan Reader. Cards use dictionary order."
+                : "This PC is too slow for the reading model. Cards use dictionary order.");
+            return;
+        }
         if (ModelDownload.IsDownloaded)
         {
             // A file that didn't load may still be the right one: check it before 2.7 GB again.

@@ -675,13 +675,21 @@ extension EmbeddedModel {
     private static let cpu: (loaded: Bool, features: Set<String>) = {
         let c = EmbeddedModel.loadCPUBackend()
         let fast = c.features.contains("AVX2") && c.features.contains("FMA")
-        if c.loaded { EmbeddedModel.log("too slow for the model by CPU features: \(fast ? "no" : "yes")\n") }
+        if c.loaded { EmbeddedModel.log("too slow for the model by CPU features: \(fast ? "no" : "yes")\(EmbeddedModel.emulated ? " (x64 emulated on ARM64)" : "")\n") }
         return c
     }()
 
     /// Set by the app from its settings ("allowSlowModel"): use the model however slow.
     /// LONGYAN_ALLOW_SLOW=1 does the same.
     nonisolated(unsafe) package static var allowSlow = false
+
+    /// This x64 build runs under emulation on an ARM PC (Snapdragon): it gets the SSE 4.2
+    /// kernels and is too slow, though the PC isn't. A native ARM64 build would be fast.
+    package static let emulated: Bool = {
+        var process: USHORT = 0, native: USHORT = 0
+        guard IsWow64Process2(GetCurrentProcess(), &process, &native).boolValue else { return false }
+        return native == 0xAA64   // IMAGE_FILE_MACHINE_ARM64
+    }()
 
     /// Whether this PC is too slow for the model, so it isn't loaded at all and cards use
     /// dictionary order. Needs AVX2 and FMA. On the CI runner (4 cores), word cards took 15 to
@@ -698,5 +706,6 @@ extension EmbeddedModel {
 extension EmbeddedModel {
     /// Only checked on Windows: every Mac the app runs on is fast enough.
     package static var tooSlow: Bool { false }
+    package static var emulated: Bool { false }
 }
 #endif
