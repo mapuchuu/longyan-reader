@@ -25,5 +25,6 @@
     <None Include="LongyanReader.ico" CopyToOutputDirectory="PreserveNewest" />
     <Reference Include="UIAutomationClient" />
     <Reference Include="UIAutomationTypes" />
+    <PackageReference Include="System.Speech" Version="8.0.0" />
   </ItemGroup>
 </Project>

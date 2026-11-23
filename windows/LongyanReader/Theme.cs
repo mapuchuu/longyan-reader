@@ -1,52 +1,56 @@
+using System;
 using System.Windows.Media;
 using Microsoft.Win32;
 
 namespace Longyan;
 
-/// The card's colours, light or dark as Windows is set, and the Mac app's tone colours
-/// (Sources/LongyanReader/ToneColors.swift, the standard scheme).
+/// The card's colours and fonts, as notes/card-spec.md gives the Mac card's: macOS's label
+/// colours (black or white at an alpha), the system blue, and the tone colours
+/// (Sources/LongyanReader/ToneColors.swift, the standard scheme). Light or dark as Windows is set.
 static class Theme
 {
     public static bool Dark = IsDark();
 
-    public static Brush Card => Solid(Dark ? 0x2A2A2C : 0xFCFCFC);
-    public static Brush Edge => Solid(Dark ? 0x3E3E42 : 0xE0E0E0);
-    public static Brush Primary => Solid(Dark ? 0xF2F2F2 : 0x1C1C1E);
-    public static Brush Secondary => Solid(Dark ? 0xA8A8AD : 0x6C6C70);
-    public static Brush Tertiary => Solid(Dark ? 0x7C7C80 : 0x9C9CA0);
-    public static Brush Accent => Solid(Dark ? 0x5AA9FF : 0x0A66D0);
-    public static Brush NoteFill => Solid(Dark ? 0x35353A : 0xF1F1F3);
+    // Label colours: primary, secondary and tertiary text.
+    public static Brush Primary => Ink(Dark ? 0.85 : 0.85);
+    public static Brush Secondary => Ink(Dark ? 0.55 : 0.50);
+    public static Brush Tertiary => Ink(Dark ? 0.25 : 0.26);
+    public static Brush Accent => Solid(Dark ? 0x0A84FF : 0x007AFF);
 
-    /// The Mac renders' backdrop (underPageBackgroundColor).
+    /// Black (light) or white (dark) at `alpha`: the Mac card's Color.primary.opacity(x).
+    public static Brush Ink(double alpha) => Solid(Dark ? 0xFFFFFF : 0x000000, alpha);
+
+    public static Brush Surface => Solid(Dark ? 0x1F1F21 : 0xFFFFFF);
+    public static Brush Hairline => Ink(0.10);
+    public static Brush Divider => Ink(0.08);
+    public static Brush NoteFill => Ink(0.045);
+    public static Brush RowHover => Ink(0.05);
+    public static Brush RowPressed => Ink(0.09);
+    public static Brush ButtonHover => Ink(0.07);
+    public static Brush Placeholder => Ink(0.12);
+
+    public static Brush NoteLost => Solid(Dark ? 0xE6A3C2 : 0xB05C80);
+    public static Brush NoteCulture => Solid(Dark ? 0x94C7C2 : 0x458280);
+
+    /// The Mac renders' backdrop (underPageBackgroundColor), for the gallery.
     public static Brush Backdrop => Solid(Dark ? 0x1E1E1E : 0x8C8C8C);
 
-    public static readonly FontFamily Latin = new("Segoe UI");
+    // Latin text in Segoe UI Variable (Segoe UI before Windows 11), Chinese in Microsoft YaHei UI.
+    public static readonly FontFamily Text = new("Segoe UI Variable Text, Segoe UI, Microsoft YaHei UI");
     public static readonly FontFamily Chinese = new("Microsoft YaHei UI, Microsoft JhengHei UI, Segoe UI");
+    public static readonly FontFamily Icons = new("Segoe Fluent Icons, Segoe MDL2 Assets");
 
     // Tones 1 to 4: brick, sage, slate, violet.
-    static readonly (double r, double g, double b)[] light = { (0.66, 0.33, 0.30), (0.29, 0.53, 0.38), (0.29, 0.45, 0.65), (0.50, 0.38, 0.64) };
-    static readonly (double r, double g, double b)[] dark = { (0.89, 0.62, 0.58), (0.62, 0.80, 0.66), (0.63, 0.74, 0.89), (0.76, 0.67, 0.88) };
-    static Brush[] tones => Enumerate();
+    static readonly int[] lightTones = { 0xA8544C, 0x4A8761, 0x4A73A6, 0x8061A3 };
+    static readonly int[] darkTones = { 0xE39E94, 0x9ECCA8, 0xA1BDE3, 0xC2ABE0 };
 
-    public static Brush Hanzi(int tone) => tone is >= 1 and <= 4 ? tones[tone - 1] : Primary;
-    public static Brush PinyinColor(int tone) => tone is >= 1 and <= 4 ? tones[tone - 1] : Secondary;
+    /// A character's colour: its tone's, or secondary for the neutral tone.
+    public static Brush Hanzi(int tone) => tone is >= 1 and <= 4 ? Solid((Dark ? darkTones : lightTones)[tone - 1]) : Secondary;
+    public static Brush PinyinColor(int tone) => Hanzi(tone);
 
-    static Brush[] Enumerate()
+    static Brush Solid(int rgb, double alpha = 1)
     {
-        var set = Dark ? dark : light;
-        var brushes = new Brush[4];
-        for (var i = 0; i < 4; i++)
-        {
-            var b = new SolidColorBrush(Color.FromRgb((byte)(set[i].r * 255 + 0.5), (byte)(set[i].g * 255 + 0.5), (byte)(set[i].b * 255 + 0.5)));
-            b.Freeze();
-            brushes[i] = b;
-        }
-        return brushes;
-    }
-
-    static Brush Solid(int rgb)
-    {
-        var b = new SolidColorBrush(Color.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb));
+        var b = new SolidColorBrush(Color.FromArgb((byte)Math.Round(alpha * 255), (byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb));
         b.Freeze();
         return b;
     }
