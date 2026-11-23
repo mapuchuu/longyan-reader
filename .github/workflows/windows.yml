@@ -145,6 +145,11 @@ jobs:
           path: |
             bridge-raw.txt
             bridge-windows.txt
+      # BridgeCheck with the native DLLs, for the pick parity step.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bridge-check-bin
+          path: check-bin
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: LongyanReader-windows
@@ -162,28 +167,26 @@ jobs:
       x64-artifact: LongyanReader-windows
     secrets: inherit
 
-  # When win/arm64's app-arm64 job is in this file, the same for its folder (on an ARM runner,
-  # so the test installs the ARM64 build), and add installer-arm64 to the release job's needs:
-  #
-  # installer-arm64:
-  #   needs: app-arm64
-  #   uses: ./.github/workflows/windows-installer.yml
-  #   with:
-  #     arm64-artifact: LongyanReader-windows-arm64
-  #     runner: windows-11-arm
-  #   secrets: inherit
+  # The same for the ARM64 folder, on an ARM runner, so the test installs the ARM64 build.
+  installer-arm64:
+    needs: app-arm64
+    uses: ./.github/workflows/windows-installer.yml
+    with:
+      arm64-artifact: LongyanReader-windows-arm64
+      runner: windows-11-arm
+    secrets: inherit
 
   # A tag windows-v<version> makes a draft release with the installer. It's never marked
   # latest, so the Mac's releases/latest/download link keeps working: publish it with
   # gh release edit <tag> --draft=false --latest=false (or untick "Set as the latest release").
   release:
     if: startsWith(github.ref, 'refs/tags/windows-v')
-    needs: installer
+    needs: [installer, installer-arm64]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      # Every installer this run built: x64, and arm64 once installer-arm64 runs.
+      # Every installer this run built: x64 and arm64.
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: LongyanReader-Setup-*
@@ -198,6 +201,7 @@ jobs:
           rm -f setup/*.log
           ls setup
           test -f "setup/LongyanReader-Setup-$v-x64.exe" || { echo "the tag says $v, but the app's version is in: $(ls setup)"; exit 1; }
+          test -f "setup/LongyanReader-Setup-$v-arm64.exe" || { echo "no arm64 installer for $v in: $(ls setup)"; exit 1; }
           gh release create "$GITHUB_REF_NAME" setup/*.exe --repo "$GITHUB_REPOSITORY" --draft --latest=false \
             --title "Longyan Reader for Windows $v" \
             --notes "Longyan Reader for Windows. Download the installer for your PC (x64 for most, arm64 for Windows on ARM) and open it."
@@ -216,6 +220,10 @@ jobs:
         with:
           name: LongyanReader-windows
           path: dist
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: bridge-check-bin
+          path: check-bin
       - name: Model folder
         run: echo "MODELS=$(cygpath -u "$LOCALAPPDATA")/LongyanReader/models" >> "$GITHUB_ENV"
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -245,11 +253,28 @@ jobs:
       - name: CPU kernels used
         if: always()
         run: cat backend.txt || echo "no backend line, so the model didn't load"
+      # The model's sense pick for every word of the gallery's passages, to compare with the Mac's.
+      - name: Pick parity
+        if: always()
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          b=check-bin/BridgeCheck.exe; r=dist/LongyanReader/Resources
+          python scripts/pick-parity.py phrases windows/gallery/cases.tsv > phrases.txt
+          $b $r phrases.txt > phrases-out.txt 2> /dev/null
+          python scripts/pick-parity.py words windows/gallery/cases.tsv phrases.txt phrases-out.txt > words.txt
+          export LONGYAN_BACKEND_LOG="$(cygpath -w "$PWD/pick-backend.txt")"
+          $b $r words.txt "$(cygpath -w "$MODELS/qwen3.5-4b-q4_k_m.gguf")" > words-out.txt
+          cat pick-backend.txt || true
+          python scripts/pick-parity.py picks words.txt words-out.txt | tee picks.txt
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ui-check
-          path: ui-out
+          path: |
+            ui-out
+            picks.txt
+            words-out.txt
 
   # The kernels a CPU without AVX gets (Celeron, Pentium Silver, Atom): the model on
   # ggml-cpu-sse42.dll alone, then on the ones ggml picks here, for the speed. llama.cpp has no
@@ -449,6 +474,318 @@ jobs:
             update-out
             server.log
             feed/appcast-windows.xml
+
+
+  # The same app for Windows on Arm (Snapdragon X and the like), built natively: an x64 build
+  # runs there under emulation, where ggml only gets the SSE 4.2 kernels and a card takes
+  # minutes. Uploaded as LongyanReader-windows-arm64.
+  app-arm64:
+    runs-on: windows-11-arm
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - run: git config --global core.autocrlf false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: llama
+        with:
+          path: Vendor/llama
+          key: llama-${{ env.LLAMA_TAG }}-windows-arm64-${{ env.LLAMA_CACHE }}-${{ hashFiles('patches/llama.cpp-output-tokens.patch', 'patches/llama.cpp-windows.patch', 'patches/llama.cpp-windows-arm64.patch') }}
+      - name: Build llama.cpp (ARM64, clang, DLLs)
+        if: steps.llama.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          T="$RUNNER_TEMP/llama"; mkdir -p "$T/src"
+          curl -fsSL -o "$T/src.tar.gz" "https://github.com/ggml-org/llama.cpp/archive/refs/tags/$LLAMA_TAG.tar.gz"
+          echo "$LLAMA_TAR_SHA  $T/src.tar.gz" | sha256sum -c
+          (cd "$T" && tar -xzf src.tar.gz -C src --strip-components 1)
+          (cd "$T/src" && git apply -p1 "$GITHUB_WORKSPACE/patches/llama.cpp-output-tokens.patch" \
+                       && git apply -p1 "$GITHUB_WORKSPACE/patches/llama.cpp-windows.patch" \
+                       && git apply -p1 "$GITHUB_WORKSPACE/patches/llama.cpp-windows-arm64.patch")
+          # The ARM64 build environment (headers, libraries, linker) from Visual Studio.
+          vs=$("/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe" -latest -property installationPath | tr -d '\r')
+          printf '@call "%s\\VC\\Auxiliary\\Build\\vcvarsall.bat" arm64 >nul\r\n@set\r\n' "$vs" > "$T/env.bat"
+          cmd //c "$(cygpath -w "$T/env.bat")" | tr -d '\r' > "$T/env.txt"
+          while IFS='=' read -r k v; do
+            case "${k^^}" in
+              PATH) export PATH="$(cygpath -p -u "$v"):$PATH" ;;
+              INCLUDE|LIB|LIBPATH|VCINSTALLDIR|VCTOOLSINSTALLDIR|WINDOWSSDKDIR|WINDOWSSDKVERSION|UCRTVERSION|UNIVERSALCRTSDKDIR) export "$k=$v" ;;
+            esac
+          done < "$T/env.txt"
+          # clang, as llama.cpp builds for Windows on Arm: MSVC can't build the kernels for other
+          # CPUs than this one. No -march here, so llama.dll and ggml-base.dll run on any ARM64
+          # CPU; the kernels are built once per kind of ARM CPU (ggml-cpu-armv8.0_1.dll up to
+          # -armv8.6_1 with i8mm) and ggml loads the best one.
+          CC="C:/Program Files/LLVM/bin/clang.exe"; CXX="C:/Program Files/LLVM/bin/clang++.exe"
+          "$CC" --version
+          arm=(-G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER="$CC" -DCMAKE_CXX_COMPILER="$CXX"
+               -DCMAKE_C_COMPILER_TARGET=arm64-pc-windows-msvc -DCMAKE_CXX_COMPILER_TARGET=arm64-pc-windows-msvc)
+          cmake -S "$T/src" -B "$T/build" "${arm[@]}" -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_LIBDIR=lib \
+            -DGGML_BACKEND_DL=ON -DGGML_CPU_ALL_VARIANTS=ON \
+            -DLLAMA_BUILD_APP=OFF -DLLAMA_BUILD_COMMON=OFF -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TOOLS=OFF \
+            -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_SERVER=OFF -DLLAMA_BUILD_MTMD=OFF -DLLAMA_OPENSSL=OFF -DLLAMA_CURL=OFF \
+            -DGGML_NATIVE=OFF -DGGML_OPENMP=OFF
+          cmake --build "$T/build" -j 4
+          cmake --install "$T/build" --prefix Vendor/llama
+          L=$(cygpath -m "$PWD/Vendor/llama"); S=$(cygpath -m "$T/src")
+          mkdir -p "$T/simple"
+          printf '%s\n' 'cmake_minimum_required(VERSION 3.20)' 'project(simple CXX)' \
+            "add_executable(llama-simple $S/examples/simple/simple.cpp)" \
+            "target_include_directories(llama-simple PRIVATE $L/include)" \
+            "target_link_libraries(llama-simple PRIVATE $L/lib/llama.lib $L/lib/ggml.lib $L/lib/ggml-base.lib)" \
+            'target_compile_features(llama-simple PRIVATE cxx_std_17)' > "$T/simple/CMakeLists.txt"
+          cmake -S "$T/simple" -B "$T/simple/build" "${arm[@]}"
+          cmake --build "$T/simple/build"
+          mkdir -p Vendor/llama/tools; cp "$T/simple/build/llama-simple.exe" Vendor/llama/tools/
+          ls Vendor/llama/bin Vendor/llama/lib
+      - uses: compnerd/gha-setup-swift@9ff1ee4c44888c5817fc14d1b257ac8cabb4935f # v0.5.1
+        with:
+          swift-version: swift-6.3.3-release
+          swift-build: 6.3.3-RELEASE
+          build_arch: arm64
+      - run: swift build -c release --product LongyanBridge
+      - name: Stage the app folder
+        run: |
+          set -euo pipefail
+          out=dist/LongyanReader
+          mkdir -p "$out"
+          ls .build/release/*.dll
+          cp .build/release/LongyanBridge.dll "$out/"
+          cp Vendor/llama/bin/*.dll "$out/"
+          rt=$(cygpath -u "$(where.exe swiftCore.dll | head -1 | tr -d '\r')")
+          echo "Swift runtime: $(dirname "$rt")"
+          cp "$(dirname "$rt")"/*.dll "$out/"
+          # vcruntime140_1.dll is x64 only (for ARM64EC); no ARM64 code loads it.
+          rm -fv "$out/vcruntime140_1.dll"
+          # The ARM64 C++ runtime, from Visual Studio's redistributable folder.
+          vs=$("/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe" -latest -property installationPath | tr -d '\r')
+          crt=$(ls -d "$(cygpath -u "$vs")"/VC/Redist/MSVC/*/arm64/Microsoft.VC*.CRT | grep -v onecore | tail -1)
+          echo "C++ runtime: $crt"; ls "$crt"
+          cp "$crt/vcruntime140.dll" "$crt/msvcp140.dll" "$out/"
+          scripts/stage-windows-resources.sh "$out/Resources"
+          cp LICENSE "$out/LICENSE.txt"
+          mkdir -p "$out/Licenses"
+          cp Resources/licenses/llama.cpp-LICENSE.txt "$out/Licenses/llama.cpp.txt"
+          { sed -n '/^#/p;/^[^#]/q' Resources/cedict_ts.u8; } > "$out/Licenses/CC-CEDICT.txt"
+          du -sh "$out"
+      - name: CPU kernels shipped
+        run: |
+          ls -l dist/LongyanReader/ggml*.dll dist/LongyanReader/llama.dll
+          du -ch dist/LongyanReader/ggml*.dll dist/LongyanReader/llama.dll | tail -1
+      - name: Bridge check
+        run: |
+          set -euo pipefail
+          dotnet build windows/BridgeCheck -c Release -r win-arm64 -o check-bin
+          cp dist/LongyanReader/*.dll check-bin/
+          check-bin/BridgeCheck.exe dist/LongyanReader/Resources scripts/bridge-check.txt > bridge-raw.txt
+          python scripts/bridge-normalize.py < bridge-raw.txt > bridge-windows.txt
+          diff -u --strip-trailing-cr scripts/bridge-check-expected.txt bridge-windows.txt
+      - name: Build the app
+        run: |
+          set -euo pipefail
+          dotnet publish windows/LongyanReader -c Release -r win-arm64 -o publish
+          cp -r publish/* dist/LongyanReader/
+          # Every native DLL and the app itself should be ARM64 (machine type aa64). .NET's
+          # IL-only assemblies run on any CPU.
+          python - dist/LongyanReader/*.dll dist/LongyanReader/LongyanReader.exe <<'PY'
+          import struct, sys
+          bad = []
+          for f in sys.argv[1:]:
+              d = open(f, 'rb').read(4096); o = struct.unpack_from('<I', d, 0x3c)[0]
+              machine = struct.unpack_from('<H', d, o + 4)[0]
+              dirs = o + 24 + (96 if struct.unpack_from('<H', d, o + 24)[0] == 0x10b else 112)
+              il_only = struct.unpack_from('<I', d, dirs + 14 * 8)[0] != 0 and machine == 0x14c
+              if machine != 0xaa64 and not il_only: bad.append(f'{f}: {machine:#x}')
+          print('\n'.join(bad) or 'all native files are ARM64'); sys.exit(1 if bad else 0)
+          PY
+          du -sh dist/LongyanReader
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bridge-check-windows-arm64
+          path: |
+            bridge-raw.txt
+            bridge-windows.txt
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bridge-check-bin-arm64
+          path: check-bin
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: LongyanReader-windows-arm64
+          path: dist
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: llama-simple-arm64
+          path: Vendor/llama/tools/llama-simple.exe
+
+  # The UI check on Windows on Arm, with the model, then llama-simple's speed on the best
+  # kernels and on the plainest (armv8.0_1).
+  ui-arm64:
+    needs: app-arm64
+    runs-on: windows-11-arm
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: LongyanReader-windows-arm64
+          path: dist
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: llama-simple-arm64
+          path: tool
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: bridge-check-bin-arm64
+          path: check-bin
+      - name: Model folder
+        run: echo "MODELS=$(cygpath -u "$LOCALAPPDATA")/LongyanReader/models" >> "$GITHUB_ENV"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: model
+        with:
+          path: ~/AppData/Local/LongyanReader/models
+          key: model-qwen3.5-4b-q4_k_m-00fe7986
+      - name: Download the reading model
+        if: steps.model.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p "$MODELS"
+          curl -fL --retry 3 -o "$MODELS/qwen3.5-4b-q4_k_m.gguf" \
+            "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/e87f176479d0855a907a41277aca2f8ee7a09523/Qwen3.5-4B-Q4_K_M.gguf"
+          echo "00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4  $MODELS/qwen3.5-4b-q4_k_m.gguf" | sha256sum -c
+      - name: The runner
+        run: |
+          powershell -NoProfile -Command "Get-CimInstance Win32_Processor | Select-Object Name,NumberOfCores,NumberOfLogicalProcessors | Format-List"
+          echo "PROCESSOR_ARCHITECTURE=$PROCESSOR_ARCHITECTURE"
+      # This image (Windows 11, not Server) opens on the first-run privacy screen with the Start
+      # menu and a WSL update prompt over the desktop, so the keys the check sends go there.
+      # Close them (nothing is accepted). It also has the Store Notepad; the check is written
+      # for the classic one the x64 runner has, so remove the Store one and notepad.exe is
+      # the classic Notepad again.
+      - name: Clear the desktop
+        shell: pwsh
+        run: |
+          Get-Process | Where-Object MainWindowTitle | Format-Table Id,ProcessName,MainWindowTitle -AutoSize
+          foreach ($n in 'WWAHost','UserOOBEBroker','CloudExperienceHostBroker','wsl','wslhost','StartMenuExperienceHost','SearchHost') {
+            Stop-Process -Name $n -Force -ErrorAction SilentlyContinue
+          }
+          Get-AppxPackage -AllUsers *Microsoft.WindowsNotepad* | Remove-AppxPackage -AllUsers -ErrorAction Continue
+          Start-Sleep 3
+          Get-Process | Where-Object MainWindowTitle | Format-Table Id,ProcessName,MainWindowTitle -AutoSize
+          Get-AppxPackage -AllUsers *Microsoft.WindowsNotepad* | Select-Object Name,Version
+      - run: dotnet build windows/UiCheck -c Release -o uicheck
+      - name: Use the app
+        run: |
+          export LONGYAN_BACKEND_LOG="$(cygpath -w "$PWD/backend.txt")"
+          uicheck/UiCheck.exe "$(cygpath -w "$PWD/dist/LongyanReader/LongyanReader.exe")" ui-out
+      - name: CPU kernels used
+        if: always()
+        run: cat backend.txt || echo "no backend line, so the model didn't load"
+      # The model's sense pick for every word of the gallery's passages, to compare with the Mac's.
+      - name: Pick parity
+        if: always()
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          b=check-bin/BridgeCheck.exe; r=dist/LongyanReader/Resources
+          python scripts/pick-parity.py phrases windows/gallery/cases.tsv > phrases.txt
+          $b $r phrases.txt > phrases-out.txt 2> /dev/null
+          python scripts/pick-parity.py words windows/gallery/cases.tsv phrases.txt phrases-out.txt > words.txt
+          export LONGYAN_BACKEND_LOG="$(cygpath -w "$PWD/pick-backend.txt")"
+          $b $r words.txt "$(cygpath -w "$MODELS/qwen3.5-4b-q4_k_m.gguf")" > words-out.txt
+          cat pick-backend.txt || true
+          python scripts/pick-parity.py picks words.txt words-out.txt | tee picks.txt
+      - name: Kernel speed
+        if: always()
+        run: |
+          set -euo pipefail
+          m="$(cygpath -w "$MODELS/qwen3.5-4b-q4_k_m.gguf")"
+          for v in all armv8.0_1; do
+            d=run-$v; mkdir -p $d
+            cp tool/llama-simple.exe dist/LongyanReader/{llama,ggml,ggml-base}.dll dist/LongyanReader/{vcruntime,msvcp}*.dll $d/
+            if [ $v = all ]; then cp dist/LongyanReader/ggml-cpu-*.dll $d/; else cp dist/LongyanReader/ggml-cpu-$v.dll $d/; fi
+            echo "== $v: $(ls $d | grep ggml-cpu | tr '\n' ' ')"
+            (cd $d && ./llama-simple.exe -m "$m" -n 32 "The capital of France is") > $v.txt 2> $v-log.txt || { cat $v-log.txt; exit 1; }
+            grep -E "loaded CPU backend|decoded|prompt eval time|eval time" $v-log.txt || true
+            echo "text: $(cat $v.txt)"
+          done
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ui-check-arm64
+          path: |
+            ui-out
+            picks.txt
+            words-out.txt
+
+  # The x64 app on the same Windows 11 ARM runner, under emulation (the model counts as too
+  # slow there, so cards come in dictionary order): tells failures of this desktop (Windows 11,
+  # not Server) apart from failures of the ARM64 build. Doesn't fail the workflow.
+  ui-x64-on-arm64:
+    needs: app
+    runs-on: windows-11-arm
+    continue-on-error: true
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: LongyanReader-windows
+          path: dist
+      - name: Model folder
+        run: echo "MODELS=$(cygpath -u "$LOCALAPPDATA")/LongyanReader/models" >> "$GITHUB_ENV"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: model
+        with:
+          path: ~/AppData/Local/LongyanReader/models
+          key: model-qwen3.5-4b-q4_k_m-00fe7986
+      - name: Download the reading model
+        if: steps.model.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p "$MODELS"
+          curl -fL --retry 3 -o "$MODELS/qwen3.5-4b-q4_k_m.gguf" \
+            "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/e87f176479d0855a907a41277aca2f8ee7a09523/Qwen3.5-4B-Q4_K_M.gguf"
+          echo "00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4  $MODELS/qwen3.5-4b-q4_k_m.gguf" | sha256sum -c
+      - name: The runner
+        run: |
+          powershell -NoProfile -Command "Get-CimInstance Win32_Processor | Select-Object Name,NumberOfCores,NumberOfLogicalProcessors | Format-List"
+          echo "PROCESSOR_ARCHITECTURE=$PROCESSOR_ARCHITECTURE"
+      # This image (Windows 11, not Server) opens on the first-run privacy screen with the Start
+      # menu and a WSL update prompt over the desktop, so the keys the check sends go there.
+      # Close them (nothing is accepted). It also has the Store Notepad; the check is written
+      # for the classic one the x64 runner has, so remove the Store one and notepad.exe is
+      # the classic Notepad again.
+      - name: Clear the desktop
+        shell: pwsh
+        run: |
+          Get-Process | Where-Object MainWindowTitle | Format-Table Id,ProcessName,MainWindowTitle -AutoSize
+          foreach ($n in 'WWAHost','UserOOBEBroker','CloudExperienceHostBroker','wsl','wslhost','StartMenuExperienceHost','SearchHost') {
+            Stop-Process -Name $n -Force -ErrorAction SilentlyContinue
+          }
+          Get-AppxPackage -AllUsers *Microsoft.WindowsNotepad* | Remove-AppxPackage -AllUsers -ErrorAction Continue
+          Start-Sleep 3
+          Get-Process | Where-Object MainWindowTitle | Format-Table Id,ProcessName,MainWindowTitle -AutoSize
+          Get-AppxPackage -AllUsers *Microsoft.WindowsNotepad* | Select-Object Name,Version
+      - run: dotnet build windows/UiCheck -c Release -o uicheck
+      - name: Use the app
+        run: |
+          export LONGYAN_BACKEND_LOG="$(cygpath -w "$PWD/backend.txt")"
+          uicheck/UiCheck.exe "$(cygpath -w "$PWD/dist/LongyanReader/LongyanReader.exe")" ui-out
+      - name: CPU kernels used
+        if: always()
+        run: cat backend.txt || echo "no backend line, so the model didn't load"
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ui-check-x64-on-arm64
+          path: ui-out
 
   # A first-time reader on a clean profile, filmed: no settings and no model (no model cache
   # here), the welcome window, a card before the model, the download from the welcome window
