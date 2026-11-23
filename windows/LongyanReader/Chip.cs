@@ -27,7 +27,7 @@ static class Chip
     public static Func<Selected?, Task>? Clicked;
 
     static ChipWindow? shown;
-    static long lag;          // from the button coming up to deciding on the eye (ms), for the log
+    static long lag;          // from the button coming up to considering the eye (ms), for the log
     static int generation;    // any press, key or scroll makes a read still under way stale
 
     public static void Start()
@@ -84,13 +84,13 @@ static class Chip
         if (!Settings.ShowEye) Hide();
     }
 
-    static async void MouseUp(InputWatch.POINT up, int clicks, bool dragged, bool ours)
+    static async void MouseUp(InputWatch.POINT up, int clicks, bool dragged, bool ours, long at)
     {
-        try { await Consider(up, clicks, dragged, ours); }
+        try { await Consider(up, clicks, dragged, ours, at); }
         catch (Exception e) { Core.Log($"{{\"event\":\"eye-error\",\"type\":\"{e.GetType().Name}\"}}"); }
     }
 
-    static async Task Consider(InputWatch.POINT up, int clicks, bool dragged, bool ours)
+    static async Task Consider(InputWatch.POINT up, int clicks, bool dragged, bool ours, long at)
     {
         // A plain click never selects text; nor does anything inside our own windows.
         if (ours || !Settings.ShowEye || !(dragged || clicks >= 2)) return;
@@ -99,24 +99,24 @@ static class Chip
         // Not over a full-screen game, video or presentation.
         if (SHQueryUserNotificationState(out var state) == 0 && state is QUNS_BUSY or QUNS_RUNNING_D3D_FULL_SCREEN or QUNS_PRESENTATION_MODE) { Skip("full screen"); return; }
         if (ForegroundApp.Get() is not ForegroundApp app || Settings.EyeHiddenIn(app.Process)) { Skip("app"); return; }
-        var sinceUp = System.Diagnostics.Stopwatch.StartNew();
-        lag = (long)System.Diagnostics.Stopwatch.GetElapsedTime(InputWatch.LastUp).TotalMilliseconds;
+        lag = (long)System.Diagnostics.Stopwatch.GetElapsedTime(at).TotalMilliseconds;
         var mine = ++generation;
-        // Give the app a moment to update its selection, and build the eye's window meanwhile:
-        // its handle cost 30 to 60 ms after the read, on top of the Mac's 0.12 s.
-        var settle = Task.Delay(120);
+        // Give the app a moment to update its selection, 0.12 s from the button coming up as on
+        // the Mac, and build the eye's window meanwhile: its handle cost 30 to 60 ms after the
+        // read. Task.Delay ends on the system's 15.6 ms ticks (it waited 120 to 160 ms).
+        var settle = Precise.Until(at, 120);
         var spare = new ChipWindow(app.Process, app.Path);
         try
         {
             spare.Ready();
             await settle;
             if (mine != generation) return;
-            await Read(up, clicks, dragged, app, mine, sinceUp, spare);
+            await Read(up, clicks, dragged, app, mine, at, spare);
         }
         finally { if (!spare.Used) spare.Close(); }
     }
 
-    static async Task Read(InputWatch.POINT up, int clicks, bool dragged, ForegroundApp app, int mine, System.Diagnostics.Stopwatch sinceUp, ChipWindow spare)
+    static async Task Read(InputWatch.POINT up, int clicks, bool dragged, ForegroundApp app, int mine, long at, ChipWindow spare)
     {
         static void Skip(string why) => Core.Log($"{{\"event\":\"eye-skip\",\"why\":\"{why}\"}}");
         var clock = System.Diagnostics.Stopwatch.StartNew();
@@ -130,7 +130,7 @@ static class Chip
                 // A position far from where the mouse let go isn't where the selection is.
                 // Nor is an empty one (the Mac's SelectionReader.checked).
                 var near = selection.Bounds is Rect b && b.Width >= 1 && b.Height >= 1 && Inflate(b, 160 * ScaleAt(up)).Contains(new Point(up.X, up.Y));
-                Show(up, near ? selection : selection with { Bounds = null }, app, sinceUp, spare);
+                Show(up, near ? selection : selection with { Bounds = null }, app, at, spare);
                 break;
             case SelectionReader.Found.Unreadable:
                 // The app won't say what's selected: offer the eye and copy on a click. Only for a
@@ -140,12 +140,12 @@ static class Chip
                 // administrator), as the Mac skips lists, rows, buttons and windows.
                 if (clicks < 2 || !app.MayBeText || !MayBeText(probed.Role)) return;
                 if (probed.Area is Rect area && !area.Contains(new Point(up.X, up.Y))) return;
-                Show(up, null, app, sinceUp, spare);
+                Show(up, null, app, at, spare);
                 break;
         }
     }
 
-    static void Show(InputWatch.POINT up, Selected? selection, ForegroundApp app, System.Diagnostics.Stopwatch? sinceUp = null, ChipWindow? spare = null)
+    static void Show(InputWatch.POINT up, Selected? selection, ForegroundApp app, long at = 0, ChipWindow? spare = null)
     {
         var steps = System.Diagnostics.Stopwatch.StartNew();
         Hide();
@@ -167,7 +167,7 @@ static class Chip
         shown = w;
         // Positions only, in device pixels (UiCheck checks them): never the text.
         var bounds = selection?.Bounds is Rect b ? $"[{b.X:0.#},{b.Y:0.#},{b.Width:0.#},{b.Height:0.#}]" : "null";
-        Core.Log($"{{\"event\":\"eye\",\"readable\":{(selection != null ? "true" : "false")},\"up\":[{up.X},{up.Y}],\"bounds\":{bounds},\"window\":[{left},{top},{size}],\"scale\":{ScaleAt(up):0.##},\"oneLine\":{((selection?.OneLine ?? false) ? "true" : "false")},\"drawn\":[{drawn.Right?.ToString("0.#") ?? "null"},{drawn.InkMid?.ToString("0.#") ?? "null"}],\"ms\":{sinceUp?.ElapsedMilliseconds ?? -1},\"drawnMs\":{drawnMs},\"warmMs\":{warmMs},\"buildMs\":{buildMs},\"placeMs\":{placeMs},\"lag\":{lag}}}");
+        Core.Log($"{{\"event\":\"eye\",\"readable\":{(selection != null ? "true" : "false")},\"up\":[{up.X},{up.Y}],\"bounds\":{bounds},\"window\":[{left},{top},{size}],\"scale\":{ScaleAt(up):0.##},\"oneLine\":{((selection?.OneLine ?? false) ? "true" : "false")},\"drawn\":[{drawn.Right?.ToString("0.#") ?? "null"},{drawn.InkMid?.ToString("0.#") ?? "null"}],\"ms\":{(at == 0 ? -1 : (long)System.Diagnostics.Stopwatch.GetElapsedTime(at).TotalMilliseconds)},\"drawnMs\":{drawnMs},\"warmMs\":{warmMs},\"buildMs\":{buildMs},\"placeMs\":{placeMs},\"lag\":{lag}}}");
         // The card's work starts once the eye has stayed a moment (or on hover): most selections
         // are made to copy, and the model's work costs battery.
         DispatcherTimer? soon = null;
