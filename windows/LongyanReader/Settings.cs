@@ -28,6 +28,20 @@ static class Settings
             .Where(a => a.Item1.Length > 0)
             .ToList();
 
+    /// The shortcut the reader picked (RegisterHotKey's modifiers and virtual key), or null to
+    /// use the default (Shortcut.Default).
+    public static (uint Modifiers, uint Key)? ChosenShortcut
+    {
+        get => data["shortcut"] is JsonObject o && o["modifiers"] is JsonValue m && m.TryGetValue<uint>(out var mods)
+            && o["key"] is JsonValue k && k.TryGetValue<uint>(out var key) && key != 0 ? (mods, key) : null;
+        set
+        {
+            if (value is (uint mods, uint key)) data["shortcut"] = new JsonObject { ["modifiers"] = mods, ["key"] = key };
+            else data.Remove("shortcut");
+            Save();
+        }
+    }
+
     static string Text(JsonNode? n) => n is JsonValue v && v.TryGetValue<string>(out var t) ? t : "";
 
     public static bool EyeHiddenIn(string process) => EyeHiddenApps.Any(a => a.Process == process);

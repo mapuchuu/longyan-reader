@@ -22,6 +22,8 @@ static class Program
     {
         // --render DIR OUT: draws every DIR/*.json card into OUT, light and dark (gallery.yml).
         if (args.Length == 3 && args[0] == "--render") return RenderGallery(args[1], args[2]);
+        // --check-shortcut: the default shortcut on each installed keyboard layout (UiCheck).
+        if (args.Length == 1 && args[0] == "--check-shortcut") return Shortcut.Check();
 
         using var single = new Mutex(true, "LongyanReader.Windows", out var first);
         if (!first) return 0;
@@ -64,14 +66,14 @@ static class Program
             UpdateMenu();
             Application.Current.Dispatcher.BeginInvoke(CardWindow.Warm, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
             if (status != "ready" && !ModelDownload.IsDownloaded) Balloon("Longyan Reader is ready. Download the reading model from this icon's menu to pick meanings and translate.");
-            else Balloon("Longyan Reader is ready. Select Chinese text in any app and press Ctrl+Alt+L.");
+            else if (Shortcut.Registered) Balloon($"Longyan Reader is ready. Select Chinese text in any app and press {Shortcut.Name}.");
         };
         core.ModelChanged += status => { modelStatus = status; UpdateMenu(); };
         core.Failed += message => MessageBox.Show("Longyan Reader couldn't start: " + message, "Longyan Reader");
         core.Start();
         MakeTray();
         MenuChanged();
-        HotKey.Register(LookUp);
+        Shortcut.Start(LookUp, (text, pick) => { Balloon(text); if (pick) ShortcutWindow.Open(); });
         Chip.Clicked = EyeClicked;
         Chip.Start();
     }
@@ -103,11 +105,13 @@ static class Program
         var selected = (await SelectionReader.ProbeAsync()).Selection;
         var read = clock.Elapsed.TotalMilliseconds;
         var how = "automation";
+        // Ctrl+C interrupts the program in a terminal (and isn't copy in Emacs or Vim).
+        if (selected == null && ForegroundApp.Get() is { CopyWorks: false }) { CardWindow.Hint("Can't read the selection in this app"); return; }
         if (selected == null) { how = "copy"; selected = await SelectionReader.ReadByCopying(); }
         var done = clock.Elapsed.TotalMilliseconds;
         // Timings only: the selected text never goes in the log.
         Core.Log(FormattableString.Invariant($"{{\"event\":\"selection\",\"how\":\"{(selected == null ? "none" : how)}\",\"warm\":{warm:F1},\"automation\":{read - warm:F1},\"copy\":{done - read:F1}}}"));
-        if (selected == null) { CardWindow.Hint("Highlight Chinese text, then press Ctrl+Alt+L"); return; }
+        if (selected == null) { CardWindow.Hint($"Highlight Chinese text, then press {Shortcut.Name}"); return; }
         Present(selected);
     }
 
@@ -115,13 +119,18 @@ static class Program
     {
         var menu = new Forms.ContextMenuStrip();
         // Clicking here would take the focus from the app with the selection, so the menu only says how.
-        menu.Items.Add(new Forms.ToolStripMenuItem("Select Chinese text, then click the eye or press Ctrl+Alt+L") { Enabled = false });
+        var hint = new Forms.ToolStripMenuItem { Enabled = false };
+        void Hint() => hint.Text = Shortcut.Registered ? $"Select Chinese text, then click the eye or press {Shortcut.Name}" : "Select Chinese text, then click the eye";
+        Hint();
+        Shortcut.Changed += Hint;
+        menu.Items.Add(hint);
         modelItem = new Forms.ToolStripMenuItem("Reading model: checking…", null, (_, _) => ModelClicked());
         menu.Items.Add(modelItem);
         eyeItem = new Forms.ToolStripMenuItem("Show the eye when you select text", null, (_, _) => { Settings.ShowEye = !Settings.ShowEye; MenuChanged(); });
         menu.Items.Add(eyeItem);
         eyeAppsItem = new Forms.ToolStripMenuItem("Hide the eye in");
         menu.Items.Add(eyeAppsItem);
+        menu.Items.Add("Change shortcut…", null, (_, _) => ShortcutWindow.Open());
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add("Quit Longyan Reader", null, (_, _) => { tray!.Visible = false; Application.Current.Shutdown(); });
         tray = new Forms.NotifyIcon
@@ -171,30 +180,4 @@ static class Program
     }
 
     static void Balloon(string text) => tray?.ShowBalloonTip(4000, "Longyan Reader", text, Forms.ToolTipIcon.None);
-}
-
-/// Ctrl+Alt+L anywhere, through a hidden window that receives WM_HOTKEY.
-static class HotKey
-{
-    static HwndSource? source;
-    static Action? pressed;
-
-    public static void Register(Action onPress)
-    {
-        pressed = onPress;
-        source = new HwndSource(new HwndSourceParameters("LongyanReaderHotKey") { Width = 0, Height = 0, WindowStyle = 0 });
-        source.AddHook(Hook);
-        if (!RegisterHotKey(source.Handle, 1, MOD_CONTROL | MOD_ALT | MOD_NOREPEAT, 0x4C))
-            MessageBox.Show("Ctrl+Alt+L is taken by another app, so Longyan Reader can't use it. Quit the app that uses it and open Longyan Reader again.", "Longyan Reader");
-    }
-
-    static IntPtr Hook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
-    {
-        if (msg == WM_HOTKEY) { handled = true; pressed?.Invoke(); }
-        return IntPtr.Zero;
-    }
-
-    const int WM_HOTKEY = 0x0312;
-    const uint MOD_ALT = 1, MOD_CONTROL = 2, MOD_NOREPEAT = 0x4000;
-    [DllImport("user32.dll")] static extern bool RegisterHotKey(IntPtr hwnd, int id, uint modifiers, uint vk);
 }
