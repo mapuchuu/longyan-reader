@@ -133,13 +133,14 @@ sealed class CardWindow : Window, ICardActions
             w.card.Children.Remove(w.layers[0]);
             w.card.Children.Remove(w.layers[1]);
         }
+        else w.layers[0].VerticalAlignment = w.layers[1].VerticalAlignment = VerticalAlignment.Stretch;
         foreach (var b in w.bands) b.Visibility = Visibility.Collapsed;
         w.card.Margin = new Thickness(shadow ? Frame : 0);
         w.card.Width = w.view.Width;
         w.scroller.VerticalScrollBarVisibility = ScrollBarVisibility.Disabled;
         var backdrop = new Border { Background = Theme.Backdrop, Padding = new Thickness(12), Child = w.frame };
         TextOptions.SetTextFormattingMode(backdrop, TextFormattingMode.Ideal);
-        backdrop.Measure(new Size(w.view.Width + 24, double.PositiveInfinity));
+        backdrop.Measure(new Size(w.view.Width + 24 + (shadow ? 2 * Frame : 0), double.PositiveInfinity));
         backdrop.Arrange(new Rect(backdrop.DesiredSize));
         backdrop.UpdateLayout();
         var bmp = new System.Windows.Media.Imaging.RenderTargetBitmap((int)Math.Ceiling(backdrop.ActualWidth * 2), (int)Math.Ceiling(backdrop.ActualHeight * 2), 192, 192, PixelFormats.Pbgra32);

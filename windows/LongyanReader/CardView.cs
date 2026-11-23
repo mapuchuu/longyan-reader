@@ -159,7 +159,7 @@ sealed class CardView
     /// when that doesn't fit.
     FrameworkElement Header(string word, JsonArray syllables, double slot)
     {
-        // YaHei sits 1.5 lower in the line than PingFang: the header moves up by that, keeping
+        // YaHei sits half a point lower in the line than PingFang: the header moves up by that, keeping
         // its height, so the meaning below lines up too.
         var line = Lines(new TextBlock { TextWrapping = TextWrapping.NoWrap, Margin = new Thickness(0, -HeaderLift, slot + 8, HeaderLift) }, 34);
         AddHanzi(line.Inlines, word, syllables, 34, FontWeights.Medium, pending: false);
@@ -193,7 +193,7 @@ sealed class CardView
         return two;
     }
 
-    const double HeaderLift = 1.5;
+    const double HeaderLift = 0.5;
 
     FrameworkElement PartOf(JsonObject part)
     {
@@ -228,7 +228,7 @@ sealed class CardView
         PlaceButtons(source, 14, Theme.Chinese, FontWeights.Normal, 5 - SourceTop);
         if ((string?)c["translation"] is string t)
         {
-            var tb = Label(t, 16, Theme.Primary, top: 4);
+            var tb = Label(t, 16, Theme.Primary, top: 5);   // the spec's 4: Segoe sits higher in the line
             Lines(tb, 16, 2);
             top.Children.Add(Keyed("translation", tb));
         }
@@ -244,12 +244,12 @@ sealed class CardView
 
         var rows = c["rows"]?.AsArray() ?? new JsonArray();
         if (rows.Count == 0) return;
-        // 2 more above the divider and 1 less under the label than the spec's 12 and 8: what
-        // lines the label and rows up with the Mac's, given the fonts' different metrics.
-        var words = new StackPanel { Margin = new Thickness(0, 14, 0, 0) };
+        // The spec's 12, less the 2 the translation's last line adds below it (WPF spaces every
+        // line, SwiftUI only between lines), and less half a point that lines the label up.
+        var words = new StackPanel { Margin = new Thickness(0, 11.5, 0, 0) };
         words.Children.Add(Divider());
         words.Children.Add(Section("Words"));
-        var list = new StackPanel { Margin = new Thickness(0, 7, 0, 0) };
+        var list = new StackPanel { Margin = new Thickness(0, 8.5, 0, 0) };
         // Every gloss starts at the same x: the widest word block's.
         var column = rows.OfType<JsonObject>().Select(r => WordBlock(r).Measure()).DefaultIfEmpty(0).Max();
         foreach (var node in rows)
@@ -463,7 +463,7 @@ sealed class CardView
     FrameworkElement Note(JsonObject note, double top)
     {
         var lost = (string?)note["title"] == "Lost in translation";
-        var box = new Border { Background = Theme.NoteFill, CornerRadius = new CornerRadius(10), Padding = new Thickness(12, 10, 12, 11), Margin = new Thickness(0, top, 0, 0) };
+        var box = new Border { Background = Theme.NoteFill, CornerRadius = new CornerRadius(10), Padding = new Thickness(12, 10, 12, 9.5), Margin = new Thickness(0, top, 0, 0) };
         var stack = new StackPanel();
         var title = new StackPanel { Orientation = Orientation.Horizontal };
         var icon = (lost ? Icons.Translate : Icons.Globe).Shape(lost ? Theme.NoteLost : Theme.NoteCulture);
