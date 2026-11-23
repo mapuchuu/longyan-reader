@@ -637,9 +637,6 @@ jobs:
   ui-arm64:
     needs: app-arm64
     runs-on: windows-11-arm
-    # The pointing and shortcut checks fail on this desktop for the x64 build too
-    # (ui-x64-on-arm64), so they say nothing about ARM64 yet. Doesn't fail the workflow.
-    continue-on-error: true
     defaults:
       run:
         shell: bash
@@ -689,9 +686,20 @@ jobs:
             Stop-Process -Name $n -Force -ErrorAction SilentlyContinue
           }
           Get-AppxPackage -AllUsers *Microsoft.WindowsNotepad* | Remove-AppxPackage -AllUsers -ErrorAction Continue
+          # Something on the image runs "wsl.exe --update --confirm --prompt-before-exit" every
+          # 30 s, each time in a new terminal window that takes the focus mid-check. wsl.exe
+          # starts systray.exe instead (it shows nothing and exits).
+          $ifeo = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\wsl.exe'
+          New-Item -Path $ifeo -Force | Out-Null
+          Set-ItemProperty -Path $ifeo -Name Debugger -Value "$env:windir\System32\systray.exe"
+          "systray.exe there: $(Test-Path "$env:windir\System32\systray.exe")"
           Start-Sleep 3
           Get-Process | Where-Object MainWindowTitle | Format-Table Id,ProcessName,MainWindowTitle -AutoSize
           Get-AppxPackage -AllUsers *Microsoft.WindowsNotepad* | Select-Object Name,Version
+      # Should the WSL prompt still come, it's closed whenever it shows, and logged in ui-out.
+      - name: Keep the WSL prompt closed
+        shell: pwsh
+        run: Start-Process pwsh -WindowStyle Hidden -ArgumentList '-NoProfile', '-File', "$PWD\windows\UiCheck\close-wsl-prompt.ps1", '-Out', "$PWD\ui-out\wsl-prompt.txt"
       - run: dotnet build windows/UiCheck -c Release -o uicheck
       - name: Use the app
         run: |
@@ -739,11 +747,10 @@ jobs:
 
   # The x64 app on the same Windows 11 ARM runner, under emulation (the model counts as too
   # slow there, so cards come in dictionary order): tells failures of this desktop (Windows 11,
-  # not Server) apart from failures of the ARM64 build. Doesn't fail the workflow.
+  # not Server) apart from failures of the ARM64 build.
   ui-x64-on-arm64:
     needs: app
     runs-on: windows-11-arm
-    continue-on-error: true
     defaults:
       run:
         shell: bash
@@ -785,9 +792,20 @@ jobs:
             Stop-Process -Name $n -Force -ErrorAction SilentlyContinue
           }
           Get-AppxPackage -AllUsers *Microsoft.WindowsNotepad* | Remove-AppxPackage -AllUsers -ErrorAction Continue
+          # Something on the image runs "wsl.exe --update --confirm --prompt-before-exit" every
+          # 30 s, each time in a new terminal window that takes the focus mid-check. wsl.exe
+          # starts systray.exe instead (it shows nothing and exits).
+          $ifeo = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\wsl.exe'
+          New-Item -Path $ifeo -Force | Out-Null
+          Set-ItemProperty -Path $ifeo -Name Debugger -Value "$env:windir\System32\systray.exe"
+          "systray.exe there: $(Test-Path "$env:windir\System32\systray.exe")"
           Start-Sleep 3
           Get-Process | Where-Object MainWindowTitle | Format-Table Id,ProcessName,MainWindowTitle -AutoSize
           Get-AppxPackage -AllUsers *Microsoft.WindowsNotepad* | Select-Object Name,Version
+      # Should the WSL prompt still come, it's closed whenever it shows, and logged in ui-out.
+      - name: Keep the WSL prompt closed
+        shell: pwsh
+        run: Start-Process pwsh -WindowStyle Hidden -ArgumentList '-NoProfile', '-File', "$PWD\windows\UiCheck\close-wsl-prompt.ps1", '-Out', "$PWD\ui-out\wsl-prompt.txt"
       - run: dotnet build windows/UiCheck -c Release -o uicheck
       - name: Use the app
         run: |

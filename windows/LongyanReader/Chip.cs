@@ -27,6 +27,7 @@ static class Chip
     public static Func<Selected?, Task>? Clicked;
 
     static ChipWindow? shown;
+    static long lag;          // from the button coming up to considering the eye (ms), for the log
     static int generation;    // any press, key or scroll makes a read still under way stale
 
     public static void Start()
@@ -68,11 +69,13 @@ static class Chip
         {
             try
             {
-                var w = new ChipWindow(null, "", "") { Left = -32000, Top = -32000, ShowInTaskbar = false };
+                var w = new ChipWindow("", "") { Left = -32000, Top = -32000, ShowInTaskbar = false };
                 w.Show();
                 w.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () => w.Close());
             }
             catch { }
+            // The first eye's own window, ready (see Take).
+            try { spare ??= new ChipWindow("", ""); spare.Ready(); } catch { spare = null; }
         });
     }
 
@@ -83,13 +86,13 @@ static class Chip
         if (!Settings.ShowEye) Hide();
     }
 
-    static async void MouseUp(InputWatch.POINT up, int clicks, bool dragged, bool ours)
+    static async void MouseUp(InputWatch.POINT up, int clicks, bool dragged, bool ours, long at)
     {
-        try { await Consider(up, clicks, dragged, ours); }
+        try { await Consider(up, clicks, dragged, ours, at); }
         catch (Exception e) { Core.Log($"{{\"event\":\"eye-error\",\"type\":\"{e.GetType().Name}\"}}"); }
     }
 
-    static async Task Consider(InputWatch.POINT up, int clicks, bool dragged, bool ours)
+    static async Task Consider(InputWatch.POINT up, int clicks, bool dragged, bool ours, long at)
     {
         // A plain click never selects text; nor does anything inside our own windows.
         if (ours || !Settings.ShowEye || !(dragged || clicks >= 2)) return;
@@ -98,25 +101,69 @@ static class Chip
         // Not over a full-screen game, video or presentation.
         if (SHQueryUserNotificationState(out var state) == 0 && state is QUNS_BUSY or QUNS_RUNNING_D3D_FULL_SCREEN or QUNS_PRESENTATION_MODE) { Skip("full screen"); return; }
         if (ForegroundApp.Get() is not ForegroundApp app || Settings.EyeHiddenIn(app.Process)) { Skip("app"); return; }
-        var sinceUp = System.Diagnostics.Stopwatch.StartNew();
+        lag = (long)System.Diagnostics.Stopwatch.GetElapsedTime(at).TotalMilliseconds;
         var mine = ++generation;
-        // Give the app a moment to update its selection.
-        await Task.Delay(120);
+        // Give the app a moment to update its selection, 0.12 s from the button coming up as on
+        // the Mac. Task.Delay ends on the system's 15.6 ms ticks (it waited 120 to 160 ms).
+        await Precise.Until(at, 120);
+        waited = (long)System.Diagnostics.Stopwatch.GetElapsedTime(at).TotalMilliseconds;
         if (mine != generation) return;
+        await Read(up, clicks, dragged, app, mine, at);
+    }
+
+    static long waited;       // from the button coming up to reading the selection (ms), for the log
+
+    /// The next eye's window, built when the app is idle: making its handle cost 30 to 60 ms
+    /// after the read (up to 300 under emulation on ARM), on top of the Mac's 0.12 s.
+    static ChipWindow? spare;
+
+    static ChipWindow Take(ForegroundApp app)
+    {
+        // One built before a switch to dark mode or a new shortcut has the old look or tooltip.
+        if (spare != null && spare.Built != ChipWindow.Look()) { spare.Close(); spare = null; }
+        var w = spare ?? new ChipWindow("", "");
+        spare = null;
+        w.process = app.Process;
+        w.path = app.Path;
+        Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () =>
+        {
+            if (spare != null) return;
+            try { spare = new ChipWindow("", ""); spare.Ready(); } catch { spare = null; }
+        });
+        return w;
+    }
+
+    static async Task Read(InputWatch.POINT up, int clicks, bool dragged, ForegroundApp app, int mine, long at)
+    {
+        static void Skip(string why) => Core.Log($"{{\"event\":\"eye-skip\",\"why\":\"{why}\"}}");
         var clock = System.Diagnostics.Stopwatch.StartNew();
         var probed = await SelectionReader.ProbeAsync();
-        if (mine != generation) return;
-        if (Core.Logging) Core.Log($"{{\"event\":\"eye-probe\",\"found\":\"{probed.Found}\",\"ms\":{clock.ElapsedMilliseconds},\"dragged\":{(dragged ? "true" : "false")},\"clicks\":{clicks}}}");
+        if (mine != generation) { Skip("a press, key or scroll came while reading"); return; }
+        // A position far from where the mouse let go isn't where the selection is.
+        // Nor is an empty one (the Mac's SelectionReader.checked).
+        bool Near(Selected s) => s.Bounds is Rect b && b.Width >= 1 && b.Height >= 1 && Inflate(b, 160 * ScaleAt(up)).Contains(new Point(up.X, up.Y));
+        // Chromium builds its accessibility tree when a reader first asks: the first read in a
+        // new Edge window had the text but no place near the pointer (the eye went by the
+        // pointer, 21 px above the line). Once more, 40 ms later.
+        if (probed is { Found: SelectionReader.Found.Selection, Selection: Selected first } && SelectionReader.HasChinese(first) && !Near(first))
+        {
+            var had = first.Bounds is Rect fb ? $"[{fb.X:0.#},{fb.Y:0.#},{fb.Width:0.#},{fb.Height:0.#}]" : "null";
+            await Precise.Until(System.Diagnostics.Stopwatch.GetTimestamp(), 40);
+            if (mine != generation) return;
+            var again = await SelectionReader.ProbeAsync();
+            if (mine != generation) { Skip("a press, key or scroll came while reading"); return; }
+            var near = again is { Found: SelectionReader.Found.Selection, Selection: Selected second } && Near(second);
+            Core.Log($"{{\"event\":\"eye-reread\",\"had\":{had},\"near\":{(near ? "true" : "false")}}}");
+            if (near) probed = again;
+        }
+        if (Core.Logging) Core.Log($"{{\"event\":\"eye-probe\",\"found\":\"{probed.Found}\",\"why\":\"{probed.Why ?? probed.Role?.ProgrammaticName ?? ""}\",\"ms\":{clock.ElapsedMilliseconds},\"dragged\":{(dragged ? "true" : "false")},\"clicks\":{clicks}}}");
         switch (probed.Found)
         {
             case SelectionReader.Found.Selection when probed.Selection is Selected selection:
-                if (!SelectionReader.HasChinese(selection) || SelectionReader.Length(selection) > 400) { Skip("not Chinese or too long"); return; }
+                if (!SelectionReader.HasChinese(selection) || SelectionReader.Length(selection) > 400) { Skip($"not Chinese or too long ({SelectionReader.Length(selection)} characters)"); return; }
                 // Not in a terminal, even though it says what's selected: a drag there is a copy.
                 if (ForegroundApp.IsTerminal(probed.Process)) { Skip("terminal"); return; }
-                // A position far from where the mouse let go isn't where the selection is.
-                // Nor is an empty one (the Mac's SelectionReader.checked).
-                var near = selection.Bounds is Rect b && b.Width >= 1 && b.Height >= 1 && Inflate(b, 160 * ScaleAt(up)).Contains(new Point(up.X, up.Y));
-                Show(up, near ? selection : selection with { Bounds = null }, app, sinceUp);
+                Show(up, Near(selection) ? selection : selection with { Bounds = null }, app, at);
                 break;
             case SelectionReader.Found.Unreadable:
                 // The app won't say what's selected: offer the eye and copy on a click. Only for a
@@ -126,27 +173,33 @@ static class Chip
                 // administrator), as the Mac skips lists, rows, buttons and windows.
                 if (clicks < 2 || !app.MayBeText || !MayBeText(probed.Role)) return;
                 if (probed.Area is Rect area && !area.Contains(new Point(up.X, up.Y))) return;
-                Show(up, null, app, sinceUp);
+                Show(up, null, app, at);
                 break;
         }
     }
 
-    static void Show(InputWatch.POINT up, Selected? selection, ForegroundApp app, System.Diagnostics.Stopwatch? sinceUp = null)
+    static void Show(InputWatch.POINT up, Selected? selection, ForegroundApp app, long at = 0)
     {
+        var steps = System.Diagnostics.Stopwatch.StartNew();
         Hide();
         Bridge.ly_warm_up();
-        var w = new ChipWindow(selection, app.Process, app.Path);
+        var warmMs = steps.ElapsedMilliseconds;
+        var w = Take(app);
+        w.Selection = selection;
+        var buildMs = steps.ElapsedMilliseconds - warmMs;
         // One line: where its highlight ends and its text's ink is, as drawn (see Drawn).
         var drawnClock = System.Diagnostics.Stopwatch.StartNew();
         var drawn = selection is { Bounds: Rect sb, OneLine: true } ? SelectionReader.Drawn(sb, ScaleAt(up)) : (null, null);
         var drawnMs = drawnClock.ElapsedMilliseconds;
         // White space left out of the rect is still highlighted: the text ends at the rect.
         if (selection is { Trimmed: true, Bounds: Rect tb } && drawn.Right > tb.Right) drawn.Right = tb.Right;
+        var placeClock = System.Diagnostics.Stopwatch.StartNew();
         var (left, top, size) = w.Place(up, selection?.Bounds, selection?.OneLine ?? false, drawn.Right, drawn.InkMid);
+        var placeMs = placeClock.ElapsedMilliseconds;
         shown = w;
         // Positions only, in device pixels (UiCheck checks them): never the text.
         var bounds = selection?.Bounds is Rect b ? $"[{b.X:0.#},{b.Y:0.#},{b.Width:0.#},{b.Height:0.#}]" : "null";
-        Core.Log($"{{\"event\":\"eye\",\"readable\":{(selection != null ? "true" : "false")},\"up\":[{up.X},{up.Y}],\"bounds\":{bounds},\"window\":[{left},{top},{size}],\"scale\":{ScaleAt(up):0.##},\"oneLine\":{((selection?.OneLine ?? false) ? "true" : "false")},\"drawn\":[{drawn.Right?.ToString("0.#") ?? "null"},{drawn.InkMid?.ToString("0.#") ?? "null"}],\"ms\":{sinceUp?.ElapsedMilliseconds ?? -1},\"drawnMs\":{drawnMs}}}");
+        Core.Log($"{{\"event\":\"eye\",\"readable\":{(selection != null ? "true" : "false")},\"up\":[{up.X},{up.Y}],\"bounds\":{bounds},\"window\":[{left},{top},{size}],\"scale\":{ScaleAt(up):0.##},\"oneLine\":{((selection?.OneLine ?? false) ? "true" : "false")},\"drawn\":[{drawn.Right?.ToString("0.#") ?? "null"},{drawn.InkMid?.ToString("0.#") ?? "null"}],\"ms\":{(at == 0 ? -1 : (long)System.Diagnostics.Stopwatch.GetElapsedTime(at).TotalMilliseconds)},\"drawnMs\":{drawnMs},\"warmMs\":{warmMs},\"buildMs\":{buildMs},\"placeMs\":{placeMs},\"lag\":{lag},\"waited\":{waited}}}");
         // The card's work starts once the eye has stayed a moment (or on hover): most selections
         // are made to copy, and the model's work costs battery.
         DispatcherTimer? soon = null;
@@ -221,8 +274,12 @@ sealed class ChipWindow : Window
     /// The mark's frame is 13 on the Mac, its eye 12 wide on screen; 12.6 here drew it 11.5.
     const double Mark = 13;
 
-    public readonly Selected? Selection;
-    readonly string process, path;
+    public Selected? Selection;
+    /// What it was built with (see Look).
+    public readonly string Built = Look();
+    public static string Look() => $"{Theme.Dark} {Shortcut.Registered} {Shortcut.Name}";
+    /// The app the selection is in (its menu's "Hide the eye in …").
+    public string process, path;
     /// Whether the card's work was started for this eye (see Chip.Prepare).
     public bool Prepared;
     readonly ScaleTransform scale = new(0.6, 0.6, Target / 2, Target / 2);
@@ -236,9 +293,8 @@ sealed class ChipWindow : Window
 
     static readonly ImageBrush markBrush = MakeMark();
 
-    public ChipWindow(Selected? selection, string process, string path)
+    public ChipWindow(string process, string path)
     {
-        Selection = selection;
         this.process = process;
         this.path = path;
         Title = "Longyan eye";
@@ -381,6 +437,9 @@ sealed class ChipWindow : Window
         // Windows moves a window that changes screens; this one stays where it was put.
         if (hwnd != IntPtr.Zero) SetWindowPos(hwnd, HWND_TOPMOST, left, top, (int)Math.Round(Box * newDpi.DpiScaleX), (int)Math.Round(Box * newDpi.DpiScaleY), SWP_NOACTIVATE);
     }
+
+    /// Its handle made now, off screen and unseen, so showing it later costs less.
+    public void Ready() => hwnd = new WindowInteropHelper(this).EnsureHandle();
 
     /// True when `p` (device pixels) is on the eye's window.
     public bool Contains(InputWatch.POINT p) => !leaving && p.X >= left && p.Y >= top && p.X < left + Box * s && p.Y < top + Box * s;

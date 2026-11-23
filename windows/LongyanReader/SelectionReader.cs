@@ -27,7 +27,7 @@ static class SelectionReader
     public enum Found { Selection, NothingSelected, Unreadable }
 
     /// What a probe found, the focused element's kind and where it is on screen (device pixels).
-    public sealed record Probed(Found Found, Selected? Selection, ControlType? Role = null, Rect? Area = null, int Process = 0);
+    public sealed record Probed(Found Found, Selected? Selection, ControlType? Role = null, Rect? Area = null, int Process = 0, string? Why = null);
 
     public static Selected? ReadAutomation() => Probe().Selection;
 
@@ -38,9 +38,21 @@ static class SelectionReader
     /// While an earlier probe is still stuck in a hung app, a new one doesn't pile up behind it.
     public static async Task<Probed> ProbeAsync(int timeout = 500)
     {
-        if (pending is { IsCompleted: false }) return new Probed(Found.Unreadable, null);
-        var work = pending = Task.Run(Probe);
-        return await Task.WhenAny(work, Task.Delay(timeout)) == work ? work.Result : new Probed(Found.Unreadable, null);
+        if (pending is { IsCompleted: false }) return new Probed(Found.Unreadable, null, Why: "busy");
+        // When it asked, got a thread and was done, for the log.
+        var asked = System.Diagnostics.Stopwatch.GetTimestamp();
+        long started = 0, done = 0;
+        var work = pending = Task.Run(() =>
+        {
+            started = System.Diagnostics.Stopwatch.GetTimestamp();
+            var probed = Probe();
+            done = System.Diagnostics.Stopwatch.GetTimestamp();
+            return probed;
+        });
+        if (await Task.WhenAny(work, Task.Delay(timeout)) != work) return new Probed(Found.Unreadable, null, Why: "timeout");
+        static long Ms(long from, long to) => (long)System.Diagnostics.Stopwatch.GetElapsedTime(from, to).TotalMilliseconds;
+        var result = work.Result;
+        return result with { Why = $"{result.Why}; waited {Ms(asked, started)} ms for a thread, {Ms(done, System.Diagnostics.Stopwatch.GetTimestamp())} ms to come back" };
     }
 
     /// The focused element's selection; or that it has a text pattern and nothing is selected;
@@ -49,17 +61,19 @@ static class SelectionReader
     {
         try
         {
+            var clock = System.Diagnostics.Stopwatch.StartNew();
             var element = AutomationElement.FocusedElement;
-            if (element == null) return new Probed(Found.Unreadable, null);
+            if (element == null) return new Probed(Found.Unreadable, null, Why: "no focus");
             var info = element.Current;
             var role = info.ControlType;
             Rect? area = info.BoundingRectangle is { IsEmpty: false } r0 ? r0 : null;
             if (info.IsPassword) return new Probed(Found.NothingSelected, null, role, area);
-            if (!element.TryGetCurrentPattern(TextPattern.Pattern, out var p) || p is not TextPattern text) return new Probed(Found.Unreadable, null, role, area);
+            if (!element.TryGetCurrentPattern(TextPattern.Pattern, out var p) || p is not TextPattern text) return new Probed(Found.Unreadable, null, role, area, Why: "no text pattern");
             var selection = text.GetSelection().FirstOrDefault();
             if (selection == null) return new Probed(Found.NothingSelected, null, role, area);
             var selected = selection.GetText(-1);
             if (string.IsNullOrEmpty(selected)) return new Probed(Found.NothingSelected, null, role, area);
+            var readMs = clock.ElapsedMilliseconds;
 
             var wide = selection.Clone();
             wide.MoveEndpointByUnit(TextPatternRangeEndpoint.Start, TextUnit.Character, -Around);
@@ -73,12 +87,15 @@ static class SelectionReader
             {
                 passage = selected; start = 0;
             }
+            var contextMs = clock.ElapsedMilliseconds - readMs;
             var (bounds, oneLine) = Bounds(selection);
-            return new Probed(Found.Selection, new Selected(passage, start, start + selected.Length, bounds, oneLine, selected.TrimEnd().Length < selected.Length), role, area, info.ProcessId);
+            // Where the read's time went, for the log: the selection, the text around it, its place.
+            var parts = $"{readMs}+{contextMs}+{clock.ElapsedMilliseconds - readMs - contextMs} ms";
+            return new Probed(Found.Selection, new Selected(passage, start, start + selected.Length, bounds, oneLine, selected.TrimEnd().Length < selected.Length), role, area, info.ProcessId, parts);
         }
-        catch (Exception)
+        catch (Exception e)
         {
-            return new Probed(Found.Unreadable, null);   // the app went away or doesn't answer
+            return new Probed(Found.Unreadable, null, Why: e.GetType().Name);   // the app went away or doesn't answer
         }
     }
 

@@ -194,7 +194,8 @@ static partial class Program
             }
             if (modern != IntPtr.Zero)
             {
-                SetWindowPos(modern, IntPtr.Zero, (int)(620 * s), (int)(30 * s), (int)(560 * s), (int)(300 * s), 0x4);
+                // Above Edge, which covers its left part at 175% (a click meant for it went to Edge).
+                SetWindowPos(modern, IntPtr.Zero /* HWND_TOP */, (int)(620 * s), (int)(30 * s), (int)(560 * s), (int)(300 * s), 0);
                 Thread.Sleep(800);
                 Focus(modern);
                 Cases($"eye-{percent}-notepad11", modern, s, cases, edge: false);
@@ -430,7 +431,7 @@ static partial class Program
         {
             Shot(name);
             var why = string.Join("; ", new[] { "eye-probe", "eye-skip", "eye-error" }.Select(e => Last(skip, e)?.ToJsonString()).Where(x => x != null));
-            Console.WriteLine($"[{name}] no eye; selection {Fmt(SelectionRects(window) is { Length: > 0 } sr ? sr.Aggregate((a, b) => System.Windows.Rect.Union(a, b)) : null)}; logged {(why.Length > 0 ? why : "nothing")}");
+            Console.WriteLine($"[{name}] no eye; selection {Fmt(SelectionRects(window) is { Length: > 0 } sr ? sr.Aggregate((a, b) => System.Windows.Rect.Union(a, b)) : null)}; logged {(why.Length > 0 ? why : "nothing")}; {NotepadState(window)}");
             failures.Add($"{name}: no eye ({(why.Length > 0 ? why : "nothing logged")})");
             first?.Dispose();
             return null;
