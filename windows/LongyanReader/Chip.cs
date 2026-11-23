@@ -51,6 +51,29 @@ static class Chip
         };
         InputWatch.Up += MouseUp;
         Enable();
+        Warm();
+    }
+
+    /// The first eye after a start came in 0.4 s where the rest take 0.17 to 0.19: UI
+    /// Automation's first call, the first screen read and the first window of its kind (its
+    /// mark, its shadow's shader) all cost once. Paid here instead, off screen and unseen.
+    static void Warm()
+    {
+        Task.Run(() =>
+        {
+            try { SelectionReader.Probe(); } catch { }
+            try { SelectionReader.Drawn(new Rect(0, 0, 16, 16), 1); } catch { }
+        });
+        Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () =>
+        {
+            try
+            {
+                var w = new ChipWindow(null, "", "") { Left = -32000, Top = -32000, ShowInTaskbar = false };
+                w.Show();
+                w.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () => w.Close());
+            }
+            catch { }
+        });
     }
 
     /// Watches the mouse only while the eye is on.

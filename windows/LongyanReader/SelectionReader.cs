@@ -163,10 +163,12 @@ static class SelectionReader
             var page = after.Count > 0 ? after.MaxBy(kv => kv.Value).Key : -1;
             for (var x = 0; x < w; x++)
             {
-                var c0 = px[hTop * w + x];
+                // Its middle rows (its height needn't be the highlight's).
+                int c0y = hTop + (hBottom - hTop) / 4, c1y = hBottom - (hBottom - hTop) / 4;
+                var c0 = px[c0y * w + x];
                 if (Diff(c0, bg) <= 6 || (page >= 0 && Diff(c0, page) <= 6)) continue;
                 var same = true;
-                for (var y = hTop + 1; y <= hBottom && same; y++) same = Diff(px[y * w + x], c0) <= 6;
+                for (var y = c0y + 1; y <= c1y && same; y++) same = Diff(px[y * w + x], c0) <= 6;
                 caret[x] = same;
             }
             // Its right edge: the last column holding it, in its middle rows.
@@ -175,12 +177,17 @@ static class SelectionReader
             for (var y = m0; y <= m1; y++) for (var x = w - 1; x > right; x--) if (Diff(px[y * w + x], bg) <= 6) { right = x; break; }
             if (right >= 0) for (var k = 0; k < 3 && right + 1 < w && caret[right + 1]; k++) right++;
             double? edge = right >= 0 && x0 + right + 1 >= b.Right - b.Height && x0 + right + 1 <= b.Right + b.Height ? x0 + right + 1 : null;
-            // The text's ink: in the highlight's rows, left of its edge, far from its colour.
-            var last = edge is double e ? (int)e - x0 : inside;
+            // The text's ink: far from the highlight's colour, between its first and last pixel on
+            // each row (not the page around it: Chromium's highlight is shorter than the box, and
+            // a highlighted line break may stand taller than the text), within the rect.
+            var last = Math.Min(edge is double e ? (int)e - x0 : inside, inside);
             int top = -1, bottom = -1;
             for (var y = hTop; y <= hBottom; y++)
             {
-                for (var x = 0; x < last; x++)
+                int lo = -1, hi = -1;
+                for (var x = 0; x < w; x++) if (Diff(px[y * w + x], bg) <= 6) { if (lo < 0) lo = x; hi = x; }
+                if (lo < 0) continue;
+                for (var x = lo + 1; x < Math.Min(hi, last); x++)
                 {
                     if (caret[x] || Diff(px[y * w + x], bg) <= 150) continue;
                     if (top < 0) top = y;
