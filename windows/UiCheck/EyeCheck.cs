@@ -269,7 +269,7 @@ static partial class Program
             }
             if (found is not System.Windows.Rect l || l.IsEmpty) { failures.Add($"{tag}: couldn't find the text in Edge"); continue; }
             var x = l.Left + (index + 0.5) * px * s;
-            var eye = Placement(tag, window, () => DoubleClick(x, l.Top + l.Height / 2), new[] { l }, l.Height, exact: true, clear: Deselect(window, s));
+            var eye = Placement(tag, window, () => DoubleClick(x, l.Top + l.Height / 2), new[] { l }, l.Height, exact: true, clear: Deselect(l, s));
             if (lastCrop != null) { crops.Add(($"{name} {label}, double-click {line[index]}", lastCrop)); lastCrop = null; }
             // Edge's own menu for a selection, if it came: its windows besides the page's.
             foreach (var (h, r) in EdgePopups(window)) Console.WriteLine($"[{tag}] Edge popup {h:X}: {r.Left},{r.Top} to {r.Right},{r.Bottom}");
@@ -286,11 +286,10 @@ static partial class Program
     /// Drags in Edge whose eye the Mac puts beside the text: a 32 px heading (its line is over
     /// 40 points in Microsoft YaHei), ending on the line, below it, and past its text; and a
     /// paragraph dragged past its end. Within 1 point of the Mac rule's centre.
-    /// A click on the page's empty lower part: the last selection goes.
-    static Action Deselect(IntPtr window, double s) => () =>
+    /// A click in the page's left margin beside `line`: the last selection goes.
+    static Action Deselect(System.Windows.Rect line, double s) => () =>
     {
-        GetWindowRect(window, out var w);
-        Click(w.Left + 60 * s, w.Bottom - 60 * s);
+        Click(line.Left - 12 * s, line.Top + line.Height / 2);
         Thread.Sleep(300);
     };
 
@@ -311,16 +310,16 @@ static partial class Program
         var em = 32 * s; var y = h.Top + h.Height / 2;
         var from = h.Left + 3 * em + 2 * s;   // 行
         Console.WriteLine($"[{name}-h1] heading's box {Fmt(h)}");
-        Placement($"{name}-h1-on", window, () => Drag(from, y, (int)(h.Left + 11 * em + 2 * s - from), 0), new[] { h }, h.Height, oneLine: true, tolerance: 1, exact: true, clear: Deselect(window, s));
+        Placement($"{name}-h1-on", window, () => Drag(from, y, (int)(h.Left + 11 * em + 2 * s - from), 0), new[] { h }, h.Height, oneLine: true, tolerance: 1, exact: true, clear: Deselect(h, s));
         Add("32 px heading, 行 to just past 国");
-        Placement($"{name}-h1-below", window, () => Drag(from, y, (int)(h.Left + 9.9 * em - from), (int)(h.Bottom + 12 * s - y)), new[] { h }, h.Height, oneLine: true, tolerance: 1, exact: true, clear: Deselect(window, s));
-        Add("32 px heading, 行 to 锁, let go below the line");
-        Placement($"{name}-h1-past", window, () => Drag(from, y, (int)(h.Left + 12 * em + 90 * s - from), 0), new[] { h }, h.Height, oneLine: true, tolerance: 1, exact: true, clear: Deselect(window, s));
+        Placement($"{name}-h1-below", window, () => Drag(from, y, (int)(h.Left + 9.9 * em - from), (int)(h.Bottom - 2 * s - y)), new[] { h }, h.Height, oneLine: true, tolerance: 1, exact: true, clear: Deselect(h, s));
+        Add("32 px heading, 行 to 锁, let go below the text");
+        Placement($"{name}-h1-past", window, () => Drag(from, y, (int)(h.Left + 12 * em + 90 * s - from), 0), new[] { h }, h.Height, oneLine: true, tolerance: 1, exact: true, clear: Deselect(h, s));
         Add("32 px heading, 行 to 90 points past the text");
         const string para = "我们研究研究再说吧。";
         if (Find(para) is not System.Windows.Rect p) { failures.Add($"{name}-past: couldn't find the 20 px line in Edge"); return; }
         var start = p.Left + 2 * 20 * s + 2 * s;   // 研
-        Placement($"{name}-20px-past", window, () => Drag(start, p.Top + p.Height / 2, (int)(p.Left + 10 * 20 * s + 90 * s - start), 0), new[] { p }, p.Height, tolerance: 1, exact: true, clear: Deselect(window, s));
+        Placement($"{name}-20px-past", window, () => Drag(start, p.Top + p.Height / 2, (int)(p.Left + 10 * 20 * s + 90 * s - start), 0), new[] { p }, p.Height, tolerance: 1, exact: true, clear: Deselect(p, s));
         Add("20 px line, 研 to 90 points past the end");
     }
 
@@ -394,6 +393,10 @@ static partial class Program
         using var before = Capture();
         var skip = Lines();
         select();
+        // The highlight as it is when the app reads it (0.12 s after the mouse lets go), before
+        // the eye comes: a rich edit box redraws it a few pixels shorter later on.
+        Bitmap? chosen = null;
+        if (exact && burst == null && !early) { Thread.Sleep(60); chosen = Capture(); }
         if (burst != null) Burst(burst, 700);
         Bitmap? first = null; RECT firstRect = default; double firstMs = 0;
         if (early)
@@ -475,7 +478,8 @@ static partial class Program
         // Exact: the mark itself, against the text as the eye sees it (the Mac measured 0.0
         // from the ink's centre and 19.5 points after the highlight, 12 points wide).
         var clamped = Math.Abs(predX - ((drawnRight ?? trimmedRight ?? union.Right) + 19 * s)) > 1 || r.Right >= area.Right;
-        if (exact && beside && lines.Length == 1 && !clamped) Exact(name, after, r, s, textMid, union, top, bottom, trimmedRight);
+        if (exact && beside && lines.Length == 1 && !clamped) Exact(name, after, r, s, textMid, union, top, bottom, trimmedRight, chosen);
+        chosen?.Dispose();
 
         if (first != null)
         {
@@ -522,7 +526,7 @@ static partial class Program
 
     /// The mark's ink inside the eye's circle (darker or lighter than the circle's surface),
     /// then the eye hidden (Shift) and the highlight's right edge read with nothing over it.
-    static void Exact(string name, Bitmap after, RECT r, double s, double textMid, System.Windows.Rect union, int inkTop, int inkBottom, double? trimmedRight)
+    static void Exact(string name, Bitmap after, RECT r, double s, double textMid, System.Windows.Rect union, int inkTop, int inkBottom, double? trimmedRight, Bitmap? chosen)
     {
         double cx = (r.Left + r.Right) / 2.0, cy = (r.Top + r.Bottom) / 2.0;
         // The circle's surface: the commonest colour on a ring between the mark and the hairline.
@@ -568,10 +572,13 @@ static partial class Program
         // Three frames a blink apart: Notepad's caret, blinking at the selection's end, covers
         // its last column in some.
         double? edge = null;
-        for (var f = 0; f < 3; f++)
+        var edges = new List<string>();
+        for (var f = 0; f < 4; f++)
         {
-            if (f > 0) Thread.Sleep(270);
-            using var selected = Capture();
+            if (f == 3 && chosen == null) break;
+            if (f > 0 && f < 3) Thread.Sleep(270);
+            using var shot = f < 3 ? Capture() : null;
+            var selected = shot ?? chosen!;
             if (f == 0) selected.Save(Path.Combine(outDir, name + "-selected.png"), ImageFormat.Png);
             // The highlight: the commonest colour in the selection's rect on the ink's rows.
             var counts = new Dictionary<int, int>();
@@ -585,8 +592,10 @@ static partial class Program
                     var c = selected.GetPixel(x, y);
                     if (Math.Abs(c.R - hl.R) + Math.Abs(c.G - hl.G) + Math.Abs(c.B - hl.B) <= 6) { right = x; break; }
                 }
+            edges.Add(right >= 0 ? (right + 1).ToString() : "none");
             if (right >= 0 && (edge == null || right + 1 > edge)) edge = right + 1;
         }
+        Console.WriteLine($"[{name}] highlight's right edge, three frames after the eye and one as the app read it: {string.Join(", ", edges)}");
         // White space at the end is highlighted too (a line break, a space), where the Mac has
         // none: there the text ends where its trimmed range does.
         var textEnd = trimmedRight ?? edge;
@@ -598,9 +607,7 @@ static partial class Program
         // Half a point, plus half a device pixel: the mark sits on whole pixels.
         var tol = 0.5 + 0.5 / s;
         if (Math.Abs(dy) > tol) failures.Add($"{name}: the mark's centre is {dy:+0.##;-0.##} points from the text's ink centre (the Mac: 0)");
-        // Our own rich edit box, dragged right to left, draws its highlight 3 px short of where it
-        // drew it while the eye was read (Notepad's own boxes don't): reported, not failed.
-        if (dx is double d && Math.Abs(d - 19.5) > tol && !(name.Contains("richedit") && name.EndsWith("-rtl"))) failures.Add($"{name}: the mark's centre is {d:0.##} points after the text's end (the Mac: 19.5)");
+        if (dx is double d && Math.Abs(d - 19.5) > tol) failures.Add($"{name}: the mark's centre is {d:0.##} points after the text's end (the Mac: 19.5)");
         if (dx == null) failures.Add($"{name}: couldn't find the highlight's right edge");
     }
 
