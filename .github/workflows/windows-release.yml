@@ -1,0 +1,108 @@
+# Puts a Windows release in the update feed, the way scripts/release.sh writes the Mac's appcast.
+# Run it by hand (Actions > windows-release > Run workflow) once the draft release has both
+# installers, LongyanReader-Setup-<version>-x64.exe and -arm64.exe, and its notes.
+#
+# The feed is appcast-windows.xml on the windows-feed pre-release, a fixed URL the app reads
+# (Windows releases aren't marked latest, so releases/latest can't be used, and the Mac's feed
+# can't hold them: generate_appcast rewrites it each release, and WinSparkle would offer the
+# Mac's zip). Each installer is signed with the WINDOWS_UPDATE_KEY secret
+# (scripts/windows-update-key.sh makes it); without the secret the feed is written unsigned
+# and can't be published.
+#
+# Without publish_feed it only writes the feed and attaches it to the draft, to look at. With
+# publish_feed, after the release itself is published, it replaces the live feed: that is what
+# ships the update to installed copies.
+name: windows-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version, as in LongyanReader-Setup-<version>-x64.exe"
+        required: true
+      tag:
+        description: "The release's tag (empty: windows-v<version>)"
+        default: ""
+      installer_args:
+        description: "Arguments WinSparkle runs the installer with (empty: the installer's normal window)"
+        default: ""
+      publish_feed:
+        description: "Replace the live feed (only after the release is published)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-feed
+  cancel-in-progress: false
+
+jobs:
+  feed:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ inputs.version }}
+      TAG: ${{ inputs.tag || format('windows-v{0}', inputs.version) }}
+      INSTALLER_ARGS: ${{ inputs.installer_args }}
+      WINDOWS_UPDATE_KEY: ${{ secrets.WINDOWS_UPDATE_KEY }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: The release and its installers
+        run: |
+          set -euo pipefail
+          gh release view "$TAG" --json isDraft,targetCommitish,body > release.json
+          jq -r .body release.json > notes.md
+          # The build number the installers were built with: the commit count at the release's commit.
+          target=$(jq -r .targetCommitish release.json)
+          git fetch -q origin "$target" 2>/dev/null || true
+          build=$(git rev-list --count "$(git rev-parse --verify "$target^{commit}" 2>/dev/null || git rev-parse --verify "origin/$target^{commit}")")
+          echo "BUILD=$build" >> "$GITHUB_ENV"
+          echo "IS_DRAFT=$(jq -r .isDraft release.json)" >> "$GITHUB_ENV"
+          mkdir installers
+          gh release download "$TAG" --dir installers --pattern "LongyanReader-Setup-$VERSION-*.exe"
+          ls -l installers
+          echo "$TAG: build $build at $target, draft $(jq -r .isDraft release.json)"
+      - name: The live feed
+        run: |
+          set -euo pipefail
+          mkdir feed
+          if gh release view windows-feed >/dev/null 2>&1; then
+            gh release download windows-feed --dir feed --pattern appcast-windows.xml
+          else
+            echo "no windows-feed release yet: starting a new feed"
+          fi
+      - name: Add this version
+        run: |
+          set -euo pipefail
+          [ -n "$WINDOWS_UPDATE_KEY" ] || echo "::warning::WINDOWS_UPDATE_KEY isn't set: the installers aren't signed, and installed copies won't take this update"
+          scripts/windows-release-feed.sh feed/appcast-windows.xml "$VERSION" "$BUILD" notes.md \
+            "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/" installers
+          cat feed/appcast-windows.xml
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: appcast-windows
+          path: feed/appcast-windows.xml
+      - name: Attach it to the release
+        run: gh release upload "$TAG" feed/appcast-windows.xml --clobber
+      - name: Publish the feed
+        if: inputs.publish_feed
+        run: |
+          set -euo pipefail
+          [ -n "$WINDOWS_UPDATE_KEY" ] || { echo "not signed: set WINDOWS_UPDATE_KEY (scripts/windows-update-key.sh)" >&2; exit 1; }
+          [ "$IS_DRAFT" = false ] || { echo "$TAG is still a draft: publish it first (gh release edit $TAG --draft=false --latest=false)" >&2; exit 1; }
+          latest=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)
+          [ "$latest" != "$TAG" ] || { echo "$TAG is marked latest: the Mac's feed is the latest release's, so mark the Mac release latest again" >&2; exit 1; }
+          # The feed's own release: a pre-release, so it's never the latest.
+          if ! gh release view windows-feed >/dev/null 2>&1; then
+            gh release create windows-feed --prerelease --latest=false --title "Windows update feed" \
+              --notes "The feed the Windows app checks for updates (appcast-windows.xml). Not a download."
+          fi
+          gh release upload windows-feed feed/appcast-windows.xml --clobber
+          # What installed copies now see.
+          sleep 5
+          curl -fsSL "https://github.com/$GITHUB_REPOSITORY/releases/download/windows-feed/appcast-windows.xml" -o live.xml
+          cmp live.xml feed/appcast-windows.xml && echo "the live feed now offers $VERSION (build $BUILD)"

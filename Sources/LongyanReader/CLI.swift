@@ -10,6 +10,7 @@ import SwiftUI
 ///   --phrase "<text>"
 ///   --render "<passage>" <word> <out.png>
 ///   --render-phrase "<text>" <out.png> [word-to-expand]
+///   --show <card.json> <x> <y>   (a live card from a saved card JSON, for filming: CardShow.swift)
 ///   --site-json "<sentence>"   (everything longyan.app's demo cards show, as JSON)
 ///   --site-words "<sentence>"  (the same for just its words, for the hero's eye)
 ///   --parts "<sentence>"       (the translation of every run of its words, in the sentence)

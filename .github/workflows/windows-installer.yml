@@ -1,0 +1,94 @@
+# The Windows installer, LongyanReader-Setup-<version>-<arch>.exe (windows/installer), from an
+# app folder windows.yml built in the same run: signed when the certificate secret exists,
+# then installed, upgraded over the running app and uninstalled on a clean runner
+# (windows/installer/test.ps1). Pass x64-artifact, arm64-artifact or both (one installer for
+# both, x64-arm64). Called from windows.yml.
+name: windows-installer
+
+on:
+  workflow_call:
+    inputs:
+      x64-artifact:
+        type: string
+        default: ''
+      arm64-artifact:
+        type: string
+        default: ''
+      runner:
+        type: string
+        default: windows-latest
+    outputs:
+      setup:
+        value: ${{ jobs.installer.outputs.setup }}
+    secrets:
+      WINDOWS_CERT_PFX:
+        required: false
+      WINDOWS_CERT_PASSWORD:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  installer:
+    runs-on: ${{ inputs.runner }}
+    outputs:
+      setup: ${{ steps.build.outputs.setup }}
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      WINDOWS_CERT_PFX: ${{ secrets.WINDOWS_CERT_PFX }}
+      WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - if: inputs.x64-artifact != ''
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ${{ inputs.x64-artifact }}
+          path: app-x64
+      - if: inputs.arm64-artifact != ''
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ${{ inputs.arm64-artifact }}
+          path: app-arm64
+      - name: Inno Setup
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; if ($LASTEXITCODE) { exit 1 } }
+          & $iscc /? | Select-Object -First 1
+          "ISCC=$iscc" >> $env:GITHUB_ENV
+      # The spot for Authenticode: a no-op until the WINDOWS_CERT_PFX secret exists (sign.ps1).
+      - name: Sign the app
+        run: |
+          foreach ($d in 'app-x64', 'app-arm64') { if (Test-Path $d) { windows/installer/sign.ps1 -Folder $d; if ($LASTEXITCODE) { exit 1 } } }
+      - name: Build the installer
+        id: build
+        run: |
+          $images = windows/installer/images.ps1 -Out "$env:RUNNER_TEMP\images"
+          $a = @("/DOutputDir=$PWD\setup", "/DSmallImage=$($images.Small)", "/DLargeImage=$($images.Large)")
+          if (Test-Path app-x64) { $a += "/DSrcX64=$PWD\app-x64\LongyanReader" }
+          if (Test-Path app-arm64) { $a += "/DSrcArm64=$PWD\app-arm64\LongyanReader" }
+          if ($env:WINDOWS_CERT_PFX) {
+            $a += '/DSign'
+            $a += "/Ssign=powershell.exe -NoProfile -ExecutionPolicy Bypass -File `$q$PWD\windows\installer\sign.ps1`$q `$f"
+          }
+          & $env:ISCC @a windows/installer/LongyanReader.iss
+          if ($LASTEXITCODE) { exit 1 }
+          $setup = Get-ChildItem setup\LongyanReader-Setup-*.exe | Select-Object -First 1
+          "{0}: {1:0} MB" -f $setup.Name, ($setup.Length / 1MB)
+          (Get-AuthenticodeSignature $setup.FullName).Status
+          "setup=$($setup.BaseName)" >> $env:GITHUB_OUTPUT
+          "SETUP=$($setup.FullName)" >> $env:GITHUB_ENV
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ steps.build.outputs.setup }}
+          path: setup/*.exe
+          compression-level: 0
+      - name: Install, upgrade, uninstall
+        run: windows/installer/test.ps1 -Setup $env:SETUP -Logs installer-logs
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ steps.build.outputs.setup || 'installer' }}-logs
+          path: installer-logs

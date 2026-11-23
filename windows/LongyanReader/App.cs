@@ -21,6 +21,7 @@ static class Program
     static bool welcomedNow;
     static Action? balloonClicked;
     const string AgainEvent = "LongyanReader.Windows.Again";
+    const string QuitEvent = "LongyanReader.Windows.Quit";
 
     [STAThread]
     static int Main(string[] args)
@@ -33,6 +34,10 @@ static class Program
         if (args.Length == 1 && args[0] == "--check-shortcut") return Shortcut.Check();
         // History: --render-history OUT (UiCheck), --history (the running copy's window).
         if (History.Command(args) is int history) return history;
+        // Dev only: --show CARD.json X Y [--script PLAN|@FILE] [--appearance light|dark]
+        // [--trace FILE], a live card from a saved card JSON, for filming beside the Mac's
+        // (CardWindow.Show, CardWindow.Script.cs). Runs beside the usual copy; quit from its icon's menu.
+        if (args.Length >= 4 && args[0] == "--show") return ShowCard(args);
 
         using var single = new Mutex(true, "LongyanReader.Windows", out var first);
         if (!first)
@@ -64,6 +69,10 @@ static class Program
         // Opened again (from Start, or the exe): Settings, as Windows tray apps do.
         ThreadPool.RegisterWaitForSingleObject(openedAgain, (_, _) => app.Dispatcher.BeginInvoke(() => SettingsWindow.Open()),
             null, Timeout.Infinite, false);
+        // The installer and uninstaller (windows/installer) ask it to exit before they replace or remove it.
+        using var quit = new EventWaitHandle(false, EventResetMode.AutoReset, QuitEvent);
+        ThreadPool.RegisterWaitForSingleObject(quit, (_, _) => app.Dispatcher.BeginInvoke(() => Exit("the installer asked", TimeSpan.FromSeconds(4))),
+            null, Timeout.Infinite, true);
         app.SessionEnding += (_, _) => Exit("Windows is shutting down", TimeSpan.FromSeconds(2));
         app.Startup += (_, _) => Start();
         app.Run();
@@ -101,6 +110,61 @@ static class Program
         }
         Console.WriteLine("eye");
         RenderWindows(output);
+        return 0;
+    }
+
+    static int ShowCard(string[] args)
+    {
+        CardWindow.UseConsole();
+        string file = args[1], xText = args[2], yText = args[3];
+        string? plan = null, appearance = null, tracePath = null;
+        var ok = true;
+        for (var i = 4; i < args.Length; i += 2)
+        {
+            var value = i + 1 < args.Length ? args[i + 1] : null;
+            if (value == null) ok = false;
+            else if (args[i] == "--script") plan = value;
+            else if (args[i] == "--appearance" && value is "light" or "dark") appearance = value;
+            else if (args[i] == "--trace") tracePath = value;
+            else ok = false;
+        }
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        if (!ok || !double.TryParse(xText, System.Globalization.NumberStyles.Float, inv, out var x) ||
+            !double.TryParse(yText, System.Globalization.NumberStyles.Float, inv, out var y) || !System.IO.File.Exists(file))
+        {
+            const string usage = "LongyanReader --show CARD.json X Y [--script \"PLAN\" | --script @FILE] [--appearance light|dark] [--trace FILE]\n\nX and Y in DIPs from the primary screen's top-left.";
+            Console.Error.WriteLine(usage);
+            MessageBox.Show(usage, "Longyan Reader");
+            return 2;
+        }
+        var steps = new System.Collections.Generic.List<CardWindow.Step>();
+        if (plan != null)
+        {
+            if (plan.StartsWith('@'))
+            {
+                var path = plan[1..];
+                if (!System.IO.File.Exists(path)) { Console.Error.WriteLine("error: can't read " + plan); return 2; }
+                plan = string.Join(";", System.IO.File.ReadAllLines(path).Where(l => !l.StartsWith('#')));
+            }
+            var (parsed, error) = CardWindow.ParsePlan(plan);
+            if (error != null) { Console.Error.WriteLine("error: " + error); MessageBox.Show(error, "Longyan Reader"); return 2; }
+            steps = parsed;
+        }
+        // The card's light or dark for the run, whatever Windows is set to (nothing is changed there).
+        if (appearance != null) { Theme.Forced = appearance == "dark"; Theme.Dark = Theme.Forced.Value; }
+        var json = System.IO.File.ReadAllText(file);
+        var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+        app.Startup += (_, _) =>
+        {
+            var menu = new Forms.ContextMenuStrip();
+            menu.Items.Add("Quit card show", null, (_, _) => { tray!.Visible = false; Core.Shared.Stop(); app.Shutdown(); });
+            tray = new Forms.NotifyIcon { Icon = LoadIcon(), Text = "Longyan Reader --show", Visible = true, ContextMenuStrip = menu };
+            Core.Shared.Ready += _ => { CardWindow.Prepare(steps, tracePath); CardWindow.Show(json, x, y); };
+            Core.Shared.Failed += message => MessageBox.Show("The dictionary didn't load: " + message, "Longyan Reader");
+            Core.Shared.Start(withModel: false);
+            Anki.Start();   // as the app does, so the card offers Add to Anki when Anki is open
+        };
+        app.Run();
         return 0;
     }
 
@@ -154,6 +218,7 @@ static class Program
         MakeTray();
         MenuChanged();
         LoginItem.Refresh();
+        Updates.Start();
         Shortcut.Start(LookUp, (text, pick) => { Balloon(text, pick ? ShortcutWindow.Open : null); if (pick) ShortcutWindow.Open(); });
         Chip.Clicked = EyeClicked;
         Chip.Start();
@@ -217,7 +282,7 @@ static class Program
     }
 
     /// The icon's menu, kept short as Windows tray menus are: how to look up, the reading
-    /// model when it needs something, then Settings, Report a problem and Exit. A double-click
+    /// model when it needs something, then Settings, Check for Updates, Report a problem and Exit. A double-click
     /// on the icon opens Settings.
     static void MakeTray()
     {
@@ -235,6 +300,7 @@ static class Program
         var settings = new Forms.ToolStripMenuItem("Settings…", null, (_, _) => SettingsWindow.Open());
         settings.Font = new System.Drawing.Font(settings.Font, System.Drawing.FontStyle.Bold);
         menu.Items.Add(settings);
+        if (Updates.Available) menu.Items.Add("Check for updates…", null, (_, _) => Updates.CheckNow());
         menu.Items.Add("Report a problem", null, (_, _) => Report());
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add("Exit", null, (_, _) => Exit("menu", TimeSpan.FromSeconds(4)));
@@ -261,6 +327,7 @@ static class Program
         Try(Core.Shared.Stop);
         Try(ModelDownload.Stop);
         Try(Speech.Stop);
+        Try(Updates.Stop);
         // The cards' windows, and with them their mouse and keyboard hooks.
         foreach (var w in Application.Current.Windows.Cast<Window>().ToList()) Try(w.Close);
         var stopped = clock.Elapsed.TotalMilliseconds;
@@ -272,6 +339,9 @@ static class Program
         if (!freed) System.Diagnostics.Process.GetCurrentProcess().Kill();
         Application.Current.Shutdown();
     }
+
+    /// WinSparkle has started the new version's installer, which replaces this copy's files.
+    public static void ExitForUpdate() => Exit("update", TimeSpan.FromSeconds(4));
 
     static void Try(Action step)
     {

@@ -117,7 +117,8 @@ static class InputWatch
         if ((flags & RI_MIDDLE_DOWN) != 0) { var ours = Ours(p); Post(() => Down?.Invoke(Button.Middle, p, ours)); }
         if ((flags & primaryUp) != 0)
         {
-            var dragged = Math.Abs(p.X - downAt.X) > GetSystemMetrics(SM_CXDRAG) || Math.Abs(p.Y - downAt.Y) > GetSystemMetrics(SM_CYDRAG);
+            // More than 4 points from where it went down, as the Mac counts a drag.
+            var dragged = Math.Sqrt(Math.Pow(p.X - downAt.X, 2) + Math.Pow(p.Y - downAt.Y, 2)) > 4 * Chip.ScaleAt(downAt);
             int count = clicks; bool ours = downOurs;
             Post(() => Up?.Invoke(p, count, dragged, ours));
         }
@@ -149,7 +150,7 @@ static class InputWatch
     const int WM_INPUT = 0x00FF, RIM_TYPEMOUSE = 0, RIM_TYPEKEYBOARD = 1, GA_ROOT = 2;
     const uint RID_INPUT = 0x10000003, RIDEV_INPUTSINK = 0x100, RIDEV_REMOVE = 0x1;
     const ushort RI_LEFT_DOWN = 0x1, RI_LEFT_UP = 0x2, RI_RIGHT_DOWN = 0x4, RI_RIGHT_UP = 0x8, RI_MIDDLE_DOWN = 0x10, RI_WHEEL = 0x400, RI_HWHEEL = 0x800, RI_KEY_BREAK = 1;
-    const int SM_CXDOUBLECLK = 36, SM_CYDOUBLECLK = 37, SM_CXDRAG = 68, SM_CYDRAG = 69, SM_SWAPBUTTON = 23;
+    const int SM_CXDOUBLECLK = 36, SM_CYDOUBLECLK = 37, SM_SWAPBUTTON = 23;
 
     [DllImport("user32.dll", SetLastError = true)] static extern bool RegisterRawInputDevices(RAWINPUTDEVICE[] devices, uint count, uint size);
     [DllImport("user32.dll")] static extern uint GetRawInputData(IntPtr input, uint command, IntPtr data, ref uint size, uint headerSize);

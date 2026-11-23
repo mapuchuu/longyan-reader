@@ -40,7 +40,7 @@ struct PhraseView: View {
                 CardDivider()
                 SectionLabel(text: "Words")
                 VStack(alignment: .leading, spacing: 0) {
-                    ForEach(state.tokens.prefix(maxRows)) { token in row(token) }
+                    ForEach(Array(state.tokens.prefix(maxRows).enumerated()), id: \.element.id) { k, token in row(token, number: k + 1) }
                     if state.tokens.count > maxRows {
                         Text("\(state.tokens.count - maxRows) more words not shown")
                             .cardFont(TextSize.subheadline).foregroundStyle(.tertiary).padding(.vertical, Space.xs * scale)
@@ -72,7 +72,7 @@ struct PhraseView: View {
         }
     }
 
-    private func row(_ token: PhraseToken) -> some View {
+    private func row(_ token: PhraseToken, number: Int) -> some View {
         let senses = state.senses[token.id] ?? []
         let syllables = Pinyin.syllables(senses[safe: state.shownSense(token) ?? 0]?.pinyin ?? "")
         let isOpen = state.expanded == token.id
@@ -80,7 +80,8 @@ struct PhraseView: View {
         let pending = state.pending(token)
         let opens = state.canOpen(token)
         return VStack(alignment: .leading, spacing: 0) {
-            Button { withAnimation(cardMotion) { state.toggle(token) } } label: {
+            let toggle = { withAnimation(cardMotion) { state.toggle(token) } }
+            Button(action: toggle) {
                 HStack(alignment: .firstTextBaseline, spacing: gutter) {
                     // The word with its pinyin under it, in a column as wide as the widest row's.
                     VStack(alignment: .leading, spacing: 1 * scale) {
@@ -116,14 +117,17 @@ struct PhraseView: View {
                         .cardFont(TextSize.footnote, .semibold)
                         .foregroundStyle(.tertiary)
                         .rotationEffect(.degrees(isOpen ? 90 : 0))
+                        .traceProbe("phrase-row\(number)-chevron", "rotation", isOpen ? 90 : 0)
                         .opacity(opens ? 1 : 0)
+                        .traceProbe("phrase-row\(number)-chevron", "opacity", opens ? 1 : 0)
                 }
             }
             .buttonStyle(CardRowStyle(vertical: Space.xs + 1))
+            .scriptTarget("phrase-row\(number)", action: opens || isOpen ? toggle : {})
             .disabled(!opens && !isOpen)
             if isOpen {
                 detail(token, senses: senses)
-                    .transition(.opacity.combined(with: .offset(y: -6 * scale)))
+                    .transition(.opacity.combined(with: .offset(y: -6 * scale)).traced("detail", slide: -6 * scale))
             }
         }
     }
@@ -147,17 +151,19 @@ struct PhraseView: View {
                         .transition(.opacity)
                 }
                 if state.canUseSuggested(token), let meaning = state.suggestedMeaning(token) {
-                    Button { withAnimation(cardMotion) { state.useSuggested(token) } } label: {
+                    let back = { withAnimation(cardMotion) { state.useSuggested(token) } }
+                    Button(action: back) {
                         Label("Back to “\(meaning)”", systemImage: "arrow.uturn.backward")
                             .cardFont(TextSize.callout)
                             .lineLimit(1)
                     }
                     .buttonStyle(.plain)
+                    .scriptTarget("back", action: back)
                     .foregroundStyle(Color.accentColor)
-                    .transition(.opacity)
+                    .transition(AnyTransition.opacity.traced("back-to"))
                 }
                 if let note = state.note(token) {
-                    NuanceView(note: note).transition(.opacity)
+                    NuanceView(note: note).scriptTarget("note") {}.transition(AnyTransition.opacity.traced("note-box"))
                 }
             }
             let listed = state.grammarEntry(token)?.listed(senses)
@@ -173,7 +179,8 @@ struct PhraseView: View {
                     if showReading && SenseLine.startsReading(shown, at: position) {
                         ReadingHeader(pinyin: sense.pinyin, first: position == 0)
                     }
-                    Button { withAnimation(cardMotion) { state.pick(token, sense: i) } } label: {
+                    let pick = { withAnimation(cardMotion) { state.pick(token, sense: i) } }
+                    Button(action: pick) {
                         HStack(alignment: .center, spacing: Space.s * scale) {
                             SenseLine(number: i + 1, total: senses.count,
                                       gloss: listed?.contains(sense) == true ? Gloss.short(sense.gloss) : Gloss.listed(sense.gloss),
@@ -185,24 +192,28 @@ struct PhraseView: View {
                         }
                     }
                     .buttonStyle(CardRowStyle(bleed: Space.s, vertical: 3))
+                    .scriptTarget("row\(position + 1)", action: pick)
                     .help("Use this meaning")
                     .accessibilityAddTraits(chosen ? .isSelected : [])
                 }
                 if senses.count > collapsed.count {
-                    Button {
+                    let toggleAll = {
                         withAnimation(cardMotion) {
                             if all { state.showingAll.remove(token.id) } else { state.showingAll.insert(token.id) }
                         }
                         state.onLayoutChange()
-                    } label: {
+                    }
+                    Button(action: toggleAll) {
                         HStack(spacing: Space.xs * scale) {
                             Text(all ? "Show Fewer" : "Show All \(senses.count)")
                             Image(systemName: "chevron.down").cardFont(TextSize.footnote, .semibold)
                                 .rotationEffect(.degrees(all ? 180 : 0))
+                                .traceProbe("showall-chevron", "rotation", all ? 180 : 0)
                         }
                         .cardFont(TextSize.callout, .medium).foregroundStyle(Color.accentColor)
                     }
                     .buttonStyle(CardRowStyle(bleed: Space.s, vertical: 3))
+                    .scriptTarget("showall", action: toggleAll)
                 }
             }
             if senses.isEmpty { Text("Not in the dictionary").cardFont(TextSize.callout).foregroundStyle(.secondary) }

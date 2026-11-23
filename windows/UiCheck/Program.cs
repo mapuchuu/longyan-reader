@@ -25,6 +25,8 @@ static partial class Program
 
     static int Main(string[] args)
     {
+        // Device pixels throughout, as the app works in (per-monitor aware), for the scalings.
+        SetProcessDpiAwarenessContext((IntPtr)(-4));
         if (args.Length == 3 && args[0] == "--first-run") return FirstRun(args[1], args[2]);   // FirstRun.cs
         var exe = args[0];
         outDir = Path.GetFullPath(args[1]);
@@ -40,6 +42,8 @@ static partial class Program
 
         ShortcutCheck(exe);
         RenderWindows(exe);
+        ShowCheck(exe);   // ShowCheck.cs
+        ScriptCheck(exe);   // ShowCheck.cs
 
         var start = new ProcessStartInfo(exe) { WorkingDirectory = Path.GetDirectoryName(exe)! };
         start.Environment["LONGYAN_CARD_LOG"] = log;
@@ -48,7 +52,6 @@ static partial class Program
         Thread.Sleep(12000);   // the dictionary and splitter load
         if (app.HasExited) { Console.WriteLine($"the app exited: {app.ExitCode}"); return 1; }
         Shot("0-started");
-        WelcomeCheck(app);
 
         var file = Path.Combine(Path.GetTempPath(), "longyan-ui.txt");
         File.WriteAllText(file, "他得了感冒，吃不了饭。\r\n明朝实行海禁，闭关锁国。\r\n", new UTF8Encoding(true));
@@ -60,6 +63,10 @@ static partial class Program
         // edges show in the frames.
         SetWindowPos(window, IntPtr.Zero, 40, 30, 760, 170, 0x4 /* SWP_NOZORDER */);
         Thread.Sleep(300);
+        Focus(window);
+        // Before anything else: the first eye of a fresh start, clicked once.
+        FirstEye(app, window, "0-first-eye");
+        WelcomeCheck(app);
         Focus(window);
 
         // 感冒: the 4th and 5th characters of the first line.
@@ -140,6 +147,14 @@ static partial class Program
         CardFeelCheck.Run(app, window, log, failures, Shot);
         AnkiCheck(app, window);   // AnkiCheck.cs
         SettingsCheck(exe);
+
+        // Started again, as at login (no welcome now): its first eye, then the scalings.
+        try { app.Kill(); app.WaitForExit(10000); } catch { }
+        app = Process.Start(start)!;
+        Thread.Sleep(12000);
+        Focus(window);
+        FirstEye(app, window, "6-first-eye-again");
+        EyeScalings(app);
 
         try { notepad.Kill(); } catch { }
         try { app.Kill(); } catch { }
@@ -324,136 +339,6 @@ static partial class Program
         Console.WriteLine($"[{name}] card text:\n{text}\n");
         if (card == null || !Settled(card)) failures.Add($"{name}: the card didn't settle");
         foreach (var e in expect) if (!text.Replace('\u00A0', ' ').Contains(e)) failures.Add($"{name}: no \"{e}\" on the card");
-    }
-
-    /// The eye: a plain click shows nothing; a double-click on Chinese text shows it; hovering
-    /// grows it; a click on it opens the card; a drag shows it too; a key press hides it.
-    static void EyeCheck(IntPtr notepad)
-    {
-        if (TextIn(notepad, "海禁") is not System.Windows.Rect word) { failures.Add("3-eye: couldn't find 海禁 in Notepad"); return; }
-        double x = word.Left + word.Width / 2, y = word.Top + word.Height / 2;
-        Click(x, y);
-        Thread.Sleep(800);
-        if (Eye() != IntPtr.Zero) failures.Add("3-eye: a plain click showed the eye");
-        var logBefore = File.Exists(log) ? File.ReadAllLines(log).Length : 0;
-        DoubleClick(x, y);
-        Burst("3-eye-in", 700);
-        var eye = WaitForEye(true, 2500);
-        Shot("3-eye");
-        if (eye == IntPtr.Zero) { failures.Add("3-eye: no eye after a double-click on Chinese text"); return; }
-        // Read through UI Automation, not the copy fallback.
-        if (!LogHas(logBefore, "eye", "readable", "true")) failures.Add("3-eye: the eye didn't read the selection through UI Automation");
-        GetWindowRect(eye, out var r);
-        double cx = (r.Left + r.Right) / 2.0, cy = (r.Top + r.Bottom) / 2.0;
-        var sel = SelectionIn(notepad);
-        Console.WriteLine($"[3-eye] at {r.Left},{r.Top} to {r.Right},{r.Bottom}; the word at {word}; the selection at {sel}");
-        // Just past the end of the selection (4 after it, in a 44 window around a 30 button), on its line.
-        if (sel is System.Windows.Rect sr)
-        {
-            var buttonLeft = r.Left + (r.Right - r.Left) * 7 / 44.0;
-            if (buttonLeft < sr.Right || buttonLeft > sr.Right + 12) failures.Add($"3-eye: not just past the selection (button at {buttonLeft:0}, selection ends at {sr.Right:0})");
-            if (Math.Abs(cy - (sr.Top + sr.Height / 2)) > 3) failures.Add($"3-eye: not on the selection's line (centre {cy:0}, line centre {sr.Top + sr.Height / 2:0})");
-        }
-        MoveTo(cx, cy);
-        Thread.Sleep(600);
-        Shot("3-eye-hover");
-        var before = File.Exists(log) ? File.ReadAllLines(log).Length : 0;
-        Click(cx, cy);
-        Burst("3-eye-reveal", 1500);
-        // The eye never takes the focus: Notepad keeps it, and its selection.
-        if (GetForegroundWindow() != notepad) failures.Add("3-eye: clicking the eye took the focus from Notepad");
-        var started = DateTime.Now;
-        JsonObject? card = null;
-        while ((DateTime.Now - started).TotalSeconds < 60 && (card = LastCard(before)) == null) Thread.Sleep(300);
-        Thread.Sleep(800);
-        Shot("3-eye-card");
-        if (card == null) failures.Add("3-eye: clicking the eye opened no card");
-        Keys(VK_ESCAPE);
-        Thread.Sleep(800);
-
-        Drag(word.Left - word.Width, y, (int)(word.Width * 2), 0);
-        var dragged = WaitForEye(true, 2500);
-        Shot("3-eye-drag");
-        if (dragged == IntPtr.Zero) failures.Add("3-eye: no eye after dragging over Chinese text");
-        Keys(VK_RIGHT);
-        if (WaitForEye(false, 1500) != IntPtr.Zero) failures.Add("3-eye: a key press didn't hide the eye");
-    }
-
-    /// Waits up to `ms` for the eye to be showing (or gone): its window, or zero.
-    static IntPtr WaitForEye(bool showing, int ms)
-    {
-        var end = DateTime.Now.AddMilliseconds(ms);
-        IntPtr eye;
-        while ((eye = Eye()) != IntPtr.Zero != showing && DateTime.Now < end) Thread.Sleep(50);
-        return eye;
-    }
-
-    /// Whether an event after line `skip` of the log has `key` equal to `value`.
-    static bool LogHas(int skip, string name, string key, string value)
-    {
-        if (!File.Exists(log)) return false;
-        foreach (var line in File.ReadAllLines(log).Skip(skip))
-            if (JsonNode.Parse(line) is JsonObject e && (string?)e["event"] == name && e[key]?.ToJsonString() == value) return true;
-        return false;
-    }
-
-    /// Where the selection is in a window's document.
-    static System.Windows.Rect? SelectionIn(IntPtr hwnd)
-    {
-        try
-        {
-            foreach (AutomationElement e in AutomationElement.FromHandle(hwnd).FindAll(TreeScope.Subtree, Condition.TrueCondition))
-            {
-                if (!e.TryGetCurrentPattern(TextPattern.Pattern, out var p) || p is not TextPattern t) continue;
-                var rects = t.GetSelection().FirstOrDefault()?.GetBoundingRectangles();
-                if (rects is not { Length: > 0 }) continue;
-                var u = rects[0];
-                foreach (var x in rects.Skip(1)) u.Union(x);
-                return u;
-            }
-        }
-        catch { }
-        return null;
-    }
-
-    /// The eye's window, when one is showing.
-    static IntPtr Eye()
-    {
-        var found = IntPtr.Zero;
-        EnumWindows((h, _) =>
-        {
-            var sb = new StringBuilder(64);
-            GetWindowText(h, sb, 64);
-            if (IsWindowVisible(h) && sb.ToString() == "Longyan eye") { found = h; return false; }
-            return true;
-        }, IntPtr.Zero);
-        return found;
-    }
-
-    /// Where `text` is in a window's document, through its UI Automation text pattern.
-    static System.Windows.Rect? TextIn(IntPtr hwnd, string text)
-    {
-        try
-        {
-            var root = AutomationElement.FromHandle(hwnd);
-            foreach (AutomationElement e in root.FindAll(TreeScope.Subtree, Condition.TrueCondition))
-            {
-                if (!e.TryGetCurrentPattern(TextPattern.Pattern, out var p) || p is not TextPattern t) continue;
-                var range = t.DocumentRange.FindText(text, false, false);
-                var rects = range?.GetBoundingRectangles();
-                if (rects is { Length: > 0 }) return rects[0];
-            }
-        }
-        catch { }
-        return null;
-    }
-
-    static void DoubleClick(double x, double y)
-    {
-        MoveTo(x, y);
-        Thread.Sleep(60);
-        var clicks4 = new[] { Mouse(MOUSEEVENTF_LEFTDOWN), Mouse(MOUSEEVENTF_LEFTUP), Mouse(MOUSEEVENTF_LEFTDOWN), Mouse(MOUSEEVENTF_LEFTUP) };
-        SendInput(4, clicks4, Marshal.SizeOf<INPUT>());
     }
 
     /// For each click on the card: how long until the core's new card, and until it's drawn.
