@@ -241,9 +241,10 @@ sealed class SettingsPage
         Refresh();
     }
 
-    /// Rows for the card's own settings, from other branches; none yet.
+    /// Rows for the card's own settings, from other branches.
     IEnumerable<FrameworkElement> CardRows()
     {
+        yield return HistorySettings.Card(f, preview);   // History
         yield return new AnkiCard(f, preview).Root;   // Add to Anki (AnkiSettings.cs)
     }
 

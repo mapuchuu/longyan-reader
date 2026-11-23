@@ -86,6 +86,13 @@ static class Settings
         catch { }
     }
 
+    // History (History.cs): "off", "days30" or "all", the Mac's lookupHistory. Kept whole unless changed.
+    public static string HistoryKeep
+    {
+        get => Text(data["lookupHistory"]) is "off" or "days30" or "all" ? Text(data["lookupHistory"]) : "all";
+        set { data["lookupHistory"] = value; Save(); }
+    }
+
     // Add to Anki (Anki.cs).
 
     /// The deck Add to Anki puts cards in (the Mac's "ankiDeck"), or null for the default,

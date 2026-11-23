@@ -122,6 +122,7 @@ static partial class Program
         Keys(VK_ESCAPE);
         Thread.Sleep(800);
         EyeCheck(window);
+        HistoryCheck.Run(exe, app, outDir, failures);
         AnkiCheck(app, window);   // AnkiCheck.cs
         SettingsCheck(exe);
 
