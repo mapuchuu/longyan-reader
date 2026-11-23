@@ -25,13 +25,16 @@ static class Motion
     public static readonly IEasingFunction EyeHover = new Spring(0.25, 0.7, 0.5);
     public static readonly IEasingFunction EyePress = new Spring(0.2, 0.7, 0.4);
 
-    public static readonly IEasingFunction EaseOut = new CubicEase { EasingMode = EasingMode.EaseOut };
+    /// SwiftUI's .easeOut and .easeInOut are Core Animation's curves, cubic Béziers (0, 0, 0.58, 1)
+    /// and (0.42, 0, 0.58, 1). WPF's CubicEase is far steeper at the start (0.875 of the way at
+    /// half time, against 0.69), so hovers and fades snapped on rather than eased.
+    public static readonly IEasingFunction EaseOut = new Bezier(0, 0, 0.58, 1);
 
     /// How the content moves when it changes: cardMotion, or easeInOut 0.15 s with Reduce Motion
     /// (the Mac keeps content transitions then, just short and without slides).
     public static Duration ContentDuration => Reduced ? new Duration(TimeSpan.FromSeconds(0.15)) : CardDuration;
     public static IEasingFunction ContentEase => Reduced ? EaseInOut : Card;
-    static readonly IEasingFunction EaseInOut = new QuadraticEase { EasingMode = EasingMode.EaseInOut };
+    static readonly IEasingFunction EaseInOut = new Bezier(0.42, 0, 0.58, 1);
 
     /// True when Windows' "Animation effects" are off (Reduce Motion on the Mac).
     public static bool Reduced => !SystemParameters.ClientAreaAnimation;
@@ -69,6 +72,35 @@ static class Motion
     public static void To(UIElement e, DependencyProperty p, double to, double seconds)
     {
         e.BeginAnimation(p, new DoubleAnimation(to, new Duration(TimeSpan.FromSeconds(seconds))) { EasingFunction = EaseOut });
+    }
+
+    /// A CSS-style cubic Bézier timing curve from (0, 0) to (1, 1).
+    sealed class Bezier : EasingFunctionBase
+    {
+        readonly double x1, y1, x2, y2;
+        public Bezier(double x1, double y1, double x2, double y2)
+        {
+            this.x1 = x1; this.y1 = y1; this.x2 = x2; this.y2 = y2;
+            EasingMode = EasingMode.EaseIn;
+        }
+
+        static double Curve(double a, double b, double t) => 3 * a * (1 - t) * (1 - t) * t + 3 * b * (1 - t) * t * t + t * t * t;
+
+        protected override double EaseInCore(double x)
+        {
+            if (x <= 0) return 0;
+            if (x >= 1) return 1;
+            // The curve's parameter for this x, by bisection (x rises monotonically with it).
+            double lo = 0, hi = 1, t = x;
+            for (var i = 0; i < 30; i++)
+            {
+                t = (lo + hi) / 2;
+                if (Curve(x1, x2, t) < x) lo = t; else hi = t;
+            }
+            return Curve(y1, y2, t);
+        }
+
+        protected override Freezable CreateInstanceCore() => new Bezier(x1, y1, x2, y2);
     }
 
     /// A damped spring's progress (SwiftUI's model: mass 1, stiffness (2π/response)²), over a

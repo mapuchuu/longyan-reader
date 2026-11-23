@@ -559,10 +559,7 @@ sealed class CardWindow : Window, ICardActions
         if (target > held) SetFrame(target);
         foreach (var l in layers)
         {
-            var a = new DoubleAnimation(from, target, Motion.Reduced ? new Duration(TimeSpan.FromSeconds(0.15)) : Motion.CardDuration)
-            {
-                EasingFunction = Motion.Reduced ? new QuadraticEase { EasingMode = EasingMode.EaseInOut } : Motion.Card,
-            };
+            var a = new DoubleAnimation(from, target, Motion.ContentDuration) { EasingFunction = Motion.ContentEase };
             l.BeginAnimation(HeightProperty, a);
         }
         shownHeight = target;

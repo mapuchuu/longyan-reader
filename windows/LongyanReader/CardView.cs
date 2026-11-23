@@ -976,13 +976,25 @@ sealed class CardView
             ghost.Width = w; ghost.Height = h;
             ghost.Margin = new Thickness(0);
             ghost.RenderTransform = Transform.Identity;
+            // [card feel] Leaving the way it came: the note box and a phrase row's detail go back
+            // up by their slide as they fade (PU:27, PC:126), with cardMotion.
+            if (!Motion.Reduced && slides.TryGetValue(o.Key, out var up))
+            {
+                var t = new TranslateTransform();
+                ghost.RenderTransform = t;
+                Motion.Animate(t, TranslateTransform.YProperty, 0, up, Motion.ContentDuration, Motion.ContentEase);
+            }
             Canvas.SetLeft(ghost, o.At.X); Canvas.SetTop(ghost, o.At.Y);
             ghosts.Children.Add(ghost);
-            var fade = new DoubleAnimation(0, Motion.Reduced ? Motion.ContentDuration : new Duration(TimeSpan.FromSeconds(0.3))) { EasingFunction = Motion.EaseOut };
+            // [card feel] SwiftUI's removal runs on cardMotion, as the insertion does.
+            var fade = new DoubleAnimation(0, Motion.ContentDuration) { EasingFunction = Motion.ContentEase };
             fade.Completed += (_, _) => ghosts.Children.Remove(ghost);
             ghost.BeginAnimation(UIElement.OpacityProperty, fade);
         }
     }
+
+    /// Keys that slide in from above by this much, and leave the same way.
+    readonly Dictionary<string, double> slides = new();
 
     /// Keys whose old copy fades out when their value changes.
     readonly HashSet<string> crossfades = new();
@@ -993,6 +1005,7 @@ sealed class CardView
     {
         now[key] = value;
         if (crossfade) crossfades.Add(key);
+        if (slide != 0) slides[key] = slide;
         if (e is FrameworkElement fe) tracked[key] = fe;
         if (!animate) return e;
         if (!before.TryGetValue(key, out var old)) Motion.FadeIn(e, slide);
