@@ -1,0 +1,68 @@
+{
+ "alternatives": [],
+ "contextual": false,
+ "copy": "本",
+ "kind": "word",
+ "meaning": "measure word for books, periodicals, files",
+ "more": "Show All 9",
+ "note": null,
+ "pinyin": [
+  {
+   "text": "běn",
+   "tone": 3
+  }
+ ],
+ "senses": [
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "originally; initially",
+   "hasNote": false,
+   "index": 0,
+   "number": 1,
+   "pos": "adv.",
+   "tip": "originally; initially"
+  },
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "capital; principal",
+   "hasNote": false,
+   "index": 1,
+   "number": 2,
+   "pos": "adj.",
+   "tip": "capital; principal"
+  },
+  {
+   "chosen": true,
+   "dimmed": false,
+   "gloss": "classifier for books, periodicals, files and so on",
+   "hasNote": false,
+   "index": 2,
+   "number": 3,
+   "pos": "m.w.",
+   "tip": "classifier for books, periodicals, files and so on"
+  },
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "root; stem",
+   "hasNote": false,
+   "index": 3,
+   "number": 4,
+   "pos": "n.",
+   "tip": "root; stem"
+  },
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "origin; source",
+   "hasNote": false,
+   "index": 4,
+   "number": 5,
+   "pos": "n.",
+   "tip": "origin; source"
+  }
+ ],
+ "word": "本"
+}

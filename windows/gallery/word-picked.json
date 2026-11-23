@@ -1,0 +1,54 @@
+{
+ "alternatives": [
+  "面"
+ ],
+ "back": "social prestige",
+ "contextual": false,
+ "copy": "面子",
+ "kind": "word",
+ "meaning": "outer surface",
+ "note": null,
+ "pinyin": [
+  {
+   "text": "miàn",
+   "tone": 4
+  },
+  {
+   "text": "zi",
+   "tone": 5
+  }
+ ],
+ "senses": [
+  {
+   "chosen": true,
+   "dimmed": false,
+   "gloss": "outer surface; the outside of something",
+   "hasNote": false,
+   "index": 0,
+   "number": 1,
+   "pos": "n.",
+   "tip": "outer surface; the outside of something"
+  },
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "social prestige; face",
+   "hasNote": true,
+   "index": 1,
+   "number": 2,
+   "pos": "n.",
+   "tip": "social prestige; face"
+  },
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "(medicinal) powder",
+   "hasNote": false,
+   "index": 2,
+   "number": 3,
+   "pos": "n.",
+   "tip": "(medicinal) powder"
+  }
+ ],
+ "word": "面子"
+}
