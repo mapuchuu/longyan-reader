@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading;
@@ -53,7 +54,41 @@ static class Program
             if ((DateTime.Now - started).TotalMinutes > 5) { Console.Error.WriteLine("timed out"); return 1; }
         }
         for (var i = 0; i < lookups.Count; i++) Console.WriteLine(last.TryGetValue(i, out var j) ? j : "{\"missing\":true}");
-        return 0;
+        return queued == null ? 0 : SignalCheck(queued);
+    }
+
+    /// The app runs the main queue only when its handle is signalled. Checked here, on stderr:
+    /// no signals while idle, the same lookups again answered on signals alone, and how long
+    /// ly_shutdown takes.
+    static int SignalCheck(AutoResetEvent queued)
+    {
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        var idle = 0;
+        while (clock.Elapsed.TotalSeconds < 3) if (queued.WaitOne(100)) { idle++; Bridge._dispatch_main_queue_callback_4CF(IntPtr.Zero); }
+        Console.Error.WriteLine($"signal check: {idle} signals in 3 s idle");
+
+        var first = new Dictionary<int, string>(last);
+        last.Clear();
+        byID.Clear();
+        for (var i = 0; i < lookups.Count; i++) byID[Bridge.ly_lookup(Bridge.Utf8(lookups[i].passage), lookups[i].start, lookups[i].end)] = i;
+        var drains = 0;
+        clock.Restart();
+        // Only on a signal: a missed one shows as a lookup left without its card.
+        while (queued.WaitOne(3000)) { drains++; Bridge._dispatch_main_queue_callback_4CF(IntPtr.Zero); if (clock.Elapsed.TotalMinutes > 2) break; }
+        var same = Enumerable.Range(0, lookups.Count).Count(i => first.TryGetValue(i, out var a) && last.TryGetValue(i, out var b) && WithoutID(a) == WithoutID(b));
+        Console.Error.WriteLine($"signal check: {same} of {lookups.Count} lookups gave the same card on signals alone, {drains} drains");
+
+        clock.Restart();
+        Bridge.ly_shutdown();
+        Console.Error.WriteLine($"signal check: ly_shutdown took {clock.Elapsed.TotalMilliseconds:F1} ms");
+        return same == lookups.Count ? 0 : 1;
+    }
+
+    static string WithoutID(string json)
+    {
+        if (JsonNode.Parse(json) is not JsonObject e) return json;
+        e.Remove("id");
+        return e.ToJsonString();
     }
 
     static void OnEvent(IntPtr p)
