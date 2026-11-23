@@ -1,0 +1,8 @@
+# word-mianzi.json or word-bgsg.json: hover a meaning, pick it, pin and unpin, copy, leave, Esc.
+1.0,hover,row1
+2.5,click,row1
+4.5,click,pin
+5.5,click,pin
+6.5,click,copy
+8.5,unhover
+9.0,esc

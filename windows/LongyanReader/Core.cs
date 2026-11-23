@@ -46,9 +46,10 @@ sealed class Core
     public const string ModelFileName = "qwen3.5-4b-q4_k_m.gguf";
     public static string ModelPath => Path.Combine(ModelsDirectory, ModelFileName);
 
-    public void Start()
+    /// `withModel` false: the dictionary only (--show, which never asks the model).
+    public void Start(bool withModel = true)
     {
-        Bridge.ly_start(Bridge.Utf8(ResourcesDirectory), Bridge.Utf8(ModelPath), callback);
+        Bridge.ly_start(Bridge.Utf8(ResourcesDirectory), withModel ? Bridge.Utf8(ModelPath) : null, callback);
         StartDraining();
     }
 
@@ -88,6 +89,15 @@ sealed class Core
     void Drain()
     {
         if (!stopped) Bridge._dispatch_main_queue_callback_4CF(IntPtr.Zero);
+    }
+
+    /// Runs the core's work for something the card just asked for now, in the same turn of the
+    /// message loop, so its answer is drawn on the next frame. Waiting for the queue's signal
+    /// (a thread-pool wake, then a queued dispatcher call) cost tens of ms before a pick showed.
+    /// A few rounds, for work that queues more work (the state change, then its event).
+    public void DrainNow()
+    {
+        for (var i = 0; i < 3 && !stopped; i++) Drain();
     }
 
     /// The app asked the core for something, or heard from it: keep the backup timer going.
@@ -184,6 +194,17 @@ sealed class Core
     /// Starts a card's work before the reader clicks: call it when the selection button appears.
     public void Prepare(string passage, int start, int end) { Busy(); Bridge.ly_prepare(Bridge.Utf8(passage), start, end); }
     public void CancelPrepare() { Busy(); Bridge.ly_cancel_prepare(); }
+
+    /// Dev only (--show): a card built from a saved card JSON instead of a lookup. It answers
+    /// as a lookup's card does, but never asks the model (Sources/LongyanCore/CardFixture.swift).
+    public long Fixture(string json, Action<JsonObject> onCard, Action<string> onHint)
+    {
+        Busy();
+        var id = Bridge.ly_fixture(Bridge.Utf8(json));
+        cardHandlers[id] = onCard;
+        hintHandlers[id] = onHint;
+        return id;
+    }
 
     public long OpenPartOf(long id, Action<JsonObject> onCard, Action<string> onHint)
     {

@@ -1,0 +1,5 @@
+# The speed job: a word card, a phrase card, then another of each.
+他得了感冒，吃不了饭。	3	5
+明朝实行海禁，闭关锁国。	0	12
+这家饭馆的菜很地道。	7	9
+快递员每天晚上都要上夜班分拣包裹。	0	17

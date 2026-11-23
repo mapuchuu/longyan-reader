@@ -109,6 +109,14 @@ static class Program
         clock.Restart();
         while (clock.Elapsed.TotalSeconds < 1) Pump();
         Console.Error.WriteLine($"model at start: {modelStatus}");
+        // LONGYAN_CHECK_WARM=seconds: warm the model up that long before the first card, as when
+        // the eye shows or an earlier card was looked up.
+        if (double.TryParse(Environment.GetEnvironmentVariable("LONGYAN_CHECK_WARM"), out var warm))
+        {
+            Bridge.ly_warm_up();
+            clock.Restart();
+            while (clock.Elapsed.TotalSeconds < warm) Pump();
+        }
         var all = true;
         for (var i = 0; i < lookups.Count; i++)
         {

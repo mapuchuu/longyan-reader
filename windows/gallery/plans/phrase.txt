@@ -1,0 +1,9 @@
+# phrase-ming.json: open the 明朝 row, pick its first meaning, go back, shut the row, Esc.
+1.0,hover,phrase-row1
+2.0,click,phrase-row1
+3.5,hover,row1
+4.5,click,row1
+6.0,click,back
+7.5,click,phrase-row1
+9.0,unhover
+9.5,esc

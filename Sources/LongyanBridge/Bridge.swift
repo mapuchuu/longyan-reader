@@ -46,8 +46,10 @@ private func onMain(_ body: @escaping @MainActor () -> Void) { Task { @MainActor
 
 @MainActor enum Card {
     case word(LookupState, whole: WordInContext?, tasks: [Task<Void, Never>])
-    case phrase(PhraseState, PhrasePrep, task: Task<Void, Never>)
+    case phrase(PhraseState, PhrasePrep?, task: Task<Void, Never>?)
 }
+/// Cards built by `ly_fixture`, which never ask the model.
+@MainActor private var fixtures: Set<Int64> = []
 
 @MainActor private func send(_ object: [String: Any]) {
     guard let callback, let data = try? JSONSerialization.data(withJSONObject: object, options: [.sortedKeys]),
@@ -270,6 +272,14 @@ public func ly_toggle_row(_ id: Int64, _ token: Int32) {
 public func ly_open_part_of(_ id: Int64) -> Int64 {
     let new = newID()
     onMain {
+        if fixtures.contains(id), case .word(let s, _, _)? = cards[id], let part = s.partOf, let dict {
+            // A built card: the whole word opens still reading the sentence.
+            let state = CardFixture.loading(part.word, dict: dict)
+            fixtures.insert(new)
+            cards[new] = .word(state, whole: nil, tasks: [])
+            observe(new) { wordCard(state) }
+            return
+        }
         guard case .word(_, let whole?, _)? = cards[id] else { send(["event": "hint", "id": new, "message": "Nothing to open"]); return }
         openWord(new, whole, alone: false)
     }
@@ -281,12 +291,40 @@ public func ly_open_part_of(_ id: Int64) -> Int64 {
 public func ly_close(_ id: Int64) {
     onMain {
         let picks = cardPicks.removeValue(forKey: id) ?? []
+        fixtures.remove(id)
         switch cards.removeValue(forKey: id) {
         case .word(_, _, let tasks)?: tasks.forEach { $0.cancel() }; picks.forEach(release)
-        case .phrase(_, let prep, let task)?: prep.cancel(); task.cancel()
+        case .phrase(_, let prep, let task)?: prep?.cancel(); task?.cancel()
         case nil: break
         }
     }
+}
+
+/// Dev only (LongyanReader --show): opens a card built from a saved card JSON, as the bridge
+/// sends cards (windows/gallery/*.json), instead of a lookup. Its contents come as "card"
+/// events and it takes the same calls as any card, but it never asks the model (CardFixture).
+/// A JSON that can't be built gets a "hint" event.
+@_cdecl("ly_fixture")
+public func ly_fixture(_ json: UnsafePointer<CChar>) -> Int64 {
+    let text = String(cString: json)
+    let id = newID()
+    onMain {
+        guard let dict else { send(["event": "hint", "id": id, "message": "Dictionary still loading…"]); return }
+        guard let object = (try? JSONSerialization.jsonObject(with: Data(text.utf8))) as? [String: Any],
+              let (built, warnings) = CardFixture.build(object, dict: dict)
+        else { send(["event": "hint", "id": id, "message": "Not a card JSON"]); return }
+        for w in warnings { FileHandle.standardError.write(Data("fixture: \(w)\n".utf8)) }
+        fixtures.insert(id)
+        switch built {
+        case .word(let state):
+            cards[id] = .word(state, whole: nil, tasks: [])
+            observe(id) { wordCard(state) }
+        case .phrase(let state):
+            cards[id] = .phrase(state, nil, task: nil)
+            observe(id) { phraseCard(state) }
+        }
+    }
+    return id
 }
 
 // MARK: Cards

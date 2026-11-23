@@ -55,6 +55,12 @@ sealed record ForegroundApp(string Process, string Path, bool CopyWorks, bool Ma
         return new ForegroundApp(process, path, copies, copies && !notTextClasses.Contains(cls) && !notTextProcesses.Contains(process));
     }
 
+    /// Whether a process is a terminal's: Windows Terminal, or the console host behind a
+    /// classic console window (by its program's name).
+    public static bool IsTerminal(int pid) =>
+        pid > 0 && ImagePath((uint)pid) is string path && System.IO.Path.GetFileNameWithoutExtension(path).ToLowerInvariant() is var name
+        && (terminalProcesses.Contains(name) || name is "conhost" or "openconsole");
+
     /// The name to show for an app: its program's description ("Microsoft Edge"), else its file name.
     public static string NameOf(string path)
     {
