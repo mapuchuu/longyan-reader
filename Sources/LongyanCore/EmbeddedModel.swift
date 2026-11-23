@@ -684,9 +684,9 @@ extension EmbeddedModel {
     nonisolated(unsafe) package static var allowSlow = false
 
     /// Whether this PC is too slow for the model, so it isn't loaded at all and cards use
-    /// dictionary order. Without AVX2 and FMA, llama.cpp runs the model's Q4_K weights as plain
-    /// code (0.8 tokens a second on SSE 4.2: a card never settles), and AVX alone is still
-    /// too slow.
+    /// dictionary order. Needs AVX2 and FMA. On the CI runner (4 cores), word cards took 15 to
+    /// 17 s on the AVX2 kernels and 28 to 33 s on the AVX-only ones (prompts read at 28 and 13
+    /// tokens a second); on SSE 4.2, 1 token a second, so a card never settles.
     package static var tooSlow: Bool {
         if allowSlow || ProcessInfo.processInfo.environment["LONGYAN_ALLOW_SLOW"] == "1" { return false }
         return cpu.loaded && !(cpu.features.contains("AVX2") && cpu.features.contains("FMA"))

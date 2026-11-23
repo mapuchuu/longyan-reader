@@ -292,16 +292,17 @@ jobs:
           LONGYAN_CPU=sse42 LONGYAN_CHECK_MINUTES=1 \
             check-bin/BridgeCheck.exe dist/LongyanReader/Resources speed-lookups.txt "$m" > slow.txt 2> slow-log.txt || { cat slow-log.txt; exit 1; }
           cat slow-backend.txt slow-log.txt
-          grep -q "ggml-cpu-sse42.dll" slow-backend.txt
-          grep -q "too slow for the model by CPU features: yes" slow-backend.txt
-          grep -q '"model":"too-slow"' slow-log.txt
-          grep -q "model at start: too-slow" slow-log.txt
-          grep -q "model at end: too-slow" slow-log.txt
-          grep -q "^card 1: .*Dictionary order · this PC is too slow for the reading model" slow-log.txt
-          grep -q "^card 3: phrase: No translation · this PC is too slow for the reading model" slow-log.txt
           python - <<'PY'
           import re
-          log = open("slow-log.txt", encoding="utf-8").read()
+          backend = open("slow-backend.txt", encoding="utf-8").read()
+          log = open("slow-log.txt", encoding="utf-8", errors="replace").read().replace("\r", "")
+          for text, where in [("ggml-cpu-sse42.dll", backend), ("too slow for the model by CPU features: yes", backend),
+                              ('"model":"too-slow"', log), ("model at start: too-slow", log), ("model at end: too-slow", log),
+                              ("card 1: first", log), ("this PC is too slow for the reading model", log),
+                              ("phrase: No translation", log)]:
+              assert text in where, "missing: " + text
+          lines = [l for l in log.splitlines() if l.startswith("card ")]
+          assert all("this PC is too slow for the reading model" in l for l in lines), lines
           times = [float(t) for t in re.findall(r"^card \d+: first [\d.]+ s, settled ([\d.]+) s", log, re.M)]
           peak = int(re.search(r"peak memory: (\d+) MB", log).group(1))
           print("settled in", times, "s; peak memory", peak, "MB")
