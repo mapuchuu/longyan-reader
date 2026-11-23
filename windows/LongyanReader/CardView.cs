@@ -84,13 +84,19 @@ sealed class CardView
     public void Show(JsonObject card, bool animate)
     {
         this.animate = animate;
+        var whole = System.Diagnostics.Stopwatch.StartNew();
         var was = animate ? Positions() : null;
         var old = animate ? Snapshot() : null;
+        var before0 = whole.Elapsed.TotalMilliseconds;
         if (!animate) ghosts.Children.Clear();
         tracked.Clear();
         before = now; now = new();
         builtAt = Environment.TickCount64;
+        // Rows mid-highlight keep it through the rebuild, as the Mac's rows (never rebuilt) do.
+        var lit = new Dictionary<string, double>();
+        foreach (var (n, t) in Targets) if (RowFill(t) is Brush f && f.Opacity > 0.001) lit[n] = f.Opacity;
         Targets.Clear(); Animated.Clear(); senseRows = phraseRows = 0;
+        lastParts = parts; parts = new();
         content.Children.Clear();
         buttons.Children.Clear();
         var clock = System.Diagnostics.Stopwatch.StartNew();
@@ -100,7 +106,14 @@ sealed class CardView
         if (was != null) Slide(was);
         var slid = clock.Elapsed.TotalMilliseconds;
         if (old != null) FadeOut(old);
-        Timing = $"\"build\":{built:0.0},\"layout\":{slid - built:0.0},\"fade\":{clock.Elapsed.TotalMilliseconds - slid:0.0}";
+        foreach (var (n, v) in lit)
+            if (Targets.TryGetValue(n, out var t) && RowFill(t) is Brush f && f.Opacity == 0)
+            {
+                // Eases off as it was: entering it again (still under the pointer) eases it back.
+                Motion.Set(f, Brush.OpacityProperty, v);
+                Motion.To(f, Brush.OpacityProperty, 0, 0.2);
+            }
+        Timing = $"\"before\":{before0:0.0},\"clear\":{whole.Elapsed.TotalMilliseconds - before0 - clock.Elapsed.TotalMilliseconds:0.0},\"build\":{built:0.0},\"layout\":{slid - built:0.0},\"fade\":{clock.Elapsed.TotalMilliseconds - slid:0.0}";
         Rebuilt?.Invoke();
     }
 
@@ -111,6 +124,8 @@ sealed class CardView
     /// so it takes its highlight at once rather than fading in again.
     long builtAt;
     bool JustBuilt => Environment.TickCount64 - builtAt < 200;
+    /// A row's highlight brush (RowButton), or null for anything else.
+    static Brush? RowFill(UIElement e) => e is Grid g && g.Children.Count > 0 && g.Children[0] is Border h ? h.Background : null;
 
     public void Hint(string message)
     {
@@ -132,7 +147,7 @@ sealed class CardView
 
         // The top group, 4 apart: header, meaning, Part of, Back to, status.
         var top = new StackPanel();
-        var header = Header(word, syllables, slot);
+        var header = Reuse("header", $"{word}|{syllables.ToJsonString()}|{slot}", () => Header(word, syllables, slot));
         top.Children.Add(Keyed("header", header, string.Join(" ", syllables.Select(x => (string?)x?["text"])), crossfade: true));
         PlaceButtons(header, 34, Theme.Chinese, FontWeights.Medium, 12);
 
@@ -153,7 +168,7 @@ sealed class CardView
         content.Children.Add(Track("top", top));
 
         if (c["note"] is JsonObject note)
-            content.Children.Add(Keyed("note", Note(note, 12), (string?)note["text"] ?? "", slide: -4, crossfade: true));
+            content.Children.Add(Keyed("note", Reuse("note", note.ToJsonString(), () => Note(note, 12)), (string?)note["text"] ?? "", slide: -4, crossfade: true));
 
         // Meanings, 8 apart: divider, label, rows, alternatives.
         var senses = new StackPanel { Margin = new Thickness(0, 12, 0, 0) };
@@ -163,8 +178,12 @@ sealed class CardView
         var all = c["senses"]?.AsArray() ?? new JsonArray();
         var total = Total(all, (string?)c["more"]);
         foreach (var node in all)
-            if (node is JsonObject r) rows.Children.Add(Track($"row:w:{r["index"]}", SenseRow(r, 13, 5, total, "w", noteMarks: true, rows.Children.Count == 0, () => actions.Pick(-1, (int)r["index"]!))));
-        if ((string?)c["more"] is string more) rows.Children.Add(Track("more:w", More(more, 5, () => actions.ToggleAll(-1), "w")));
+            if (node is JsonObject r)
+            {
+                var first = rows.Children.Count == 0;
+                rows.Children.Add(Track($"row:w:{r["index"]}", Reuse($"row:w:{r["index"]}", $"{r.ToJsonString()}|{total}|{first}|{senseRows}", () => SenseRow(r, 13, 5, total, "w", noteMarks: true, first, () => actions.Pick(-1, (int)r["index"]!)))));
+            }
+        if ((string?)c["more"] is string more) rows.Children.Add(Track("more:w", Reuse("more:w", more, () => More(more, 5, () => actions.ToggleAll(-1), "w"))));
         senses.Children.Add(rows);
         var alternatives = c["alternatives"]?.AsArray().Select(x => (string?)x).Where(x => x != null).ToArray() ?? Array.Empty<string?>();
         if (alternatives.Length > 0) senses.Children.Add(Track("alternatives", Label("Other words here: " + string.Join(" · ", alternatives), 11, Theme.Tertiary, top: 8)));
@@ -239,22 +258,27 @@ sealed class CardView
         var source = Lines(new TextBlock
         {
             Text = text, FontSize = 14 * Theme.ChineseScale, FontFamily = Theme.Chinese, Foreground = Theme.Secondary, TextWrapping = TextWrapping.Wrap,
-            MaxHeight = LineHeight(14) * 4, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, SourceTop, slot + 8, 0),
+            MaxHeight = LineHeight(14) * 4, TextTrimming = TextTrimming.CharacterEllipsis,
+            // YaHei is set at 0.92 of PingFang's size, so a line holds more characters: the line
+            // is made as much narrower, so it holds as many as the Mac's and breaks where it does.
+            Margin = new Thickness(0, SourceTop, slot + 8 + (Width - 2 * Pad - slot - 8) * (1 - Theme.ChineseScale), 0),
         }, 14);
-        top.Children.Add(Track("source", source));
+        // The Mac lines the source up with the buttons' slot, which reaches 3 below a single
+        // line: one line is that much taller, more lines aren't.
+        top.Children.Add(new Border { MinHeight = SourceTop + LineHeight(14) + SlotBelow, Child = Track("source", source) });
         PlaceButtons(source, 14, Theme.Chinese, FontWeights.Normal, 5 - SourceTop);
         if ((string?)c["translation"] is string t)
         {
-            var tb = Label(t, 16, Theme.Primary, top: 5);   // the spec's 4: Segoe sits higher in the line
+            var tb = Label(t, 16, Theme.Primary, top: 5 - SlotBelow);   // the spec's 4: Segoe sits higher in the line
             Lines(tb, 16, 2);
             top.Children.Add(Keyed("translation", tb));
         }
-        else if ((string?)c["translationError"] is string e) top.Children.Add(Keyed("translationError", Label(e, 11, Theme.Secondary, top: 4)));
+        else if ((string?)c["translationError"] is string e) top.Children.Add(Keyed("translationError", Label(e, 11, Theme.Secondary, top: 4 - SlotBelow)));
         else
         {
             // Lower than a status line elsewhere: the Mac centres it where the translation will be.
             var busy = Busy("Translating…", top: 9);
-            busy.Margin = new Thickness(0, 9, 0, -2);
+            busy.Margin = new Thickness(0, 9 - SlotBelow, 0, -2);
             top.Children.Add(Keyed("translating", busy));
         }
         content.Children.Add(Track("phraseTop", top));
@@ -268,11 +292,14 @@ sealed class CardView
         words.Children.Add(Section("Words"));
         var list = new StackPanel { Margin = new Thickness(0, 8.5, 0, 0) };
         // Every gloss starts at the same x: the widest word block's.
-        var column = rows.OfType<JsonObject>().Select(r => WordBlock(r).Measure()).DefaultIfEmpty(0).Max();
+        var column = rows.OfType<JsonObject>().Select(BlockWidth).DefaultIfEmpty(0).Max();
         foreach (var node in rows)
         {
             if (node is not JsonObject r) continue;
-            list.Children.Add(Track("prow:" + r["token"], PhraseRow(r, column)));
+            // The row itself without its detail (the detail is reused, or not, on its own).
+            var own = (JsonObject)r.DeepClone();
+            foreach (var k in new[] { "senses", "note", "back", "here", "status", "more" }) own.Remove(k);
+            list.Children.Add(Track("prow:" + r["token"], Reuse("prow:" + r["token"], $"{own.ToJsonString()}|{column}|{phraseRows}", () => PhraseRow(r, column))));
             if ((bool?)r["open"] == true) list.Children.Add(Keyed("detail:" + r["token"], Detail(r), slide: -6));
         }
         if ((string?)c["hidden"] is string hidden) list.Children.Add(Track("hidden", Label(hidden, 11, Theme.Tertiary, top: 4, bottom: 4)));
@@ -282,6 +309,8 @@ sealed class CardView
 
     /// PingFang sets the source text 2 lower in its line than YaHei does.
     const double SourceTop = 2;
+    /// How far the buttons' slot reaches below a one-line source.
+    const double SlotBelow = 3;
 
     sealed class Block
     {
@@ -365,15 +394,19 @@ sealed class CardView
             Add(Keyed("here:" + token, line));
         }
         if ((string?)r["back"] is string back) Add(Keyed("back:" + token, Back(back, token, top: 0)));
-        if (r["note"] is JsonObject note) Add(Keyed("dnote:" + token, Note(note, 0)));
+        if (r["note"] is JsonObject note) Add(Keyed("dnote:" + token, Reuse("dnote:" + token, note.ToJsonString(), () => Note(note, 0))));
         var senses = r["senses"]?.AsArray() ?? new JsonArray();
         if (senses.Count > 0)
         {
             var list = new StackPanel();
             var total = Total(senses, (string?)r["more"]);
             foreach (var node in senses)
-                if (node is JsonObject s) list.Children.Add(Track($"row:p{token}:{s["index"]}", SenseRow(s, 12, 3, total, "p" + token, noteMarks: false, list.Children.Count == 0, () => actions.Pick(token, (int)s["index"]!))));
-            if ((string?)r["more"] is string more) list.Children.Add(Track($"more:p{token}", More(more, 3, () => actions.ToggleAll(token), "p" + token)));
+                if (node is JsonObject s)
+                {
+                    var first = list.Children.Count == 0;
+                    list.Children.Add(Track($"row:p{token}:{s["index"]}", Reuse($"row:p{token}:{s["index"]}", $"{s.ToJsonString()}|{total}|{first}|{senseRows}", () => SenseRow(s, 12, 3, total, "p" + token, noteMarks: false, first, () => actions.Pick(token, (int)s["index"]!)))));
+                }
+            if ((string?)r["more"] is string more) list.Children.Add(Track($"more:p{token}", Reuse($"more:p{token}", more, () => More(more, 3, () => actions.ToggleAll(token), "p" + token))));
             Add(Track("dlist:" + token, list));
         }
         return d;
@@ -455,7 +488,7 @@ sealed class CardView
 
     FrameworkElement Back(string meaning, int token, double top)
     {
-        var line = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, top, 0, 0), Background = Brushes.Transparent, HorizontalAlignment = HorizontalAlignment.Left, Cursor = Cursors.Arrow };
+        var line = new StackPanel { Orientation = Orientation.Horizontal, Background = Brushes.Transparent, HorizontalAlignment = HorizontalAlignment.Left, Cursor = Cursors.Arrow };
         var icon = Icons.UturnBack.Shape(Theme.Accent);
         icon.VerticalAlignment = VerticalAlignment.Center;
         icon.Margin = new Thickness(0, 0, 8.5, 0);   // a SwiftUI Label's gap after its icon, measured
@@ -466,7 +499,9 @@ sealed class CardView
         line.Children.Add(label);
         Pressable(line, () => actions.UseSuggested(token));
         Targets["back"] = line;
-        return line;
+        // The press dims the line; its fading in and out is the holder's, as on the Mac they
+        // are two modifiers (the button style's and the transition's), not one opacity.
+        return new Border { Child = line, Margin = new Thickness(0, top, 0, 0), HorizontalAlignment = HorizontalAlignment.Left };
     }
 
     /// A plain button: dims to 0.55 while pressed (ease-out 0.08 s), acts on a release over it.
@@ -495,7 +530,11 @@ sealed class CardView
         icon.VerticalAlignment = VerticalAlignment.Center;
         icon.Margin = new Thickness(0, 0, 5, 0);   // the spec's 4, and the symbol's own side bearing
         title.Children.Add(icon);
-        title.Children.Add(Label((string?)note["title"] ?? "", 11, Theme.Secondary, FontWeights.SemiBold));
+        // As tall as the Mac's row: its translate symbol is 15 tall, the globe fits the label's 14.
+        title.Height = lost ? 15 : LineHeight(11);
+        var label = Label((string?)note["title"] ?? "", 11, Theme.Secondary, FontWeights.SemiBold);
+        label.VerticalAlignment = VerticalAlignment.Center;
+        title.Children.Add(label);
         stack.Children.Add(title);
         var body = Label((string?)note["text"] ?? "", 13, Theme.Primary, top: 2.5);   // the spec's 4, less what Segoe adds
         Lines(body, 13, 2);
@@ -586,7 +625,14 @@ sealed class CardView
         var pressed = false;
         host.MouseEnter += (_, _) =>
         {
-            if (JustBuilt) { fill.BeginAnimation(Brush.OpacityProperty, null); fill.Opacity = 0.05; }
+            if (JustBuilt)
+            {
+                // Rebuilt under the pointer, hovered already. One that kept its highlight through
+                // the rebuild (just let go of: a pick) eases back from where it was, as the Mac's
+                // row, which isn't rebuilt, does from the press.
+                if (fill.Opacity > 0.001) Motion.To(fill, Brush.OpacityProperty, 0.05, 0.08);
+                else Motion.Set(fill, Brush.OpacityProperty, 0.05);
+            }
             else Motion.To(fill, Brush.OpacityProperty, pressed ? 0.09 : 0.05, 0.08);
         };
         host.MouseLeave += (_, _) => { pressed = false; Motion.To(fill, Brush.OpacityProperty, 0, 0.2); };
@@ -779,6 +825,7 @@ sealed class CardView
         // pin to pin.fill and back: replace.downUp with bounce.down (CC:873-874).
         if (animate && wasPinned is bool was && was != actions.Pinned) pin.Replaced(was ? Icons.PinFill : Icons.Pin, bounce: true);
         wasPinned = actions.Pinned;
+        pinSymbol = pin;
         buttons.Children.Add(ActionButton("pin", pin, actions.Pinned ? "Unpin: close when you click elsewhere" : "Pin: keep the card here for every lookup", _ => actions.TogglePin())); n++;
         buttons.Margin = new Thickness(0, 0, Pad * Zoom - 6 - ButtonGap / 2, 0);
         // The slot they take on the first line, in the content's own (unzoomed) units. The Mac
@@ -789,6 +836,26 @@ sealed class CardView
     }
 
     bool? wasPinned;
+    Symbol? pinSymbol;
+
+    /// Pinned or unpinned: the pin button turns to pin.fill or back in place (replace.downUp with
+    /// bounce.down, CC:873-874), as the Mac changes only that symbol. False when there's no pin
+    /// button to change (the caller builds the card again).
+    public bool PinChanged()
+    {
+        if (pinSymbol is not Symbol pin || !Targets.TryGetValue("pin", out var e) || e is not Border b || wasPinned == actions.Pinned) return false;
+        var on = actions.Pinned;
+        pin.Swap(on ? Icons.PinFill : Icons.Pin, bounce: true);
+        if (on) { symbols.Remove(pin); pin.To(Theme.Accent, 0); }
+        else
+        {
+            if (!symbols.Contains(pin)) symbols.Add(pin);
+            pin.To(Theme.Primary, 0);   // the pointer is on it: it was just clicked
+        }
+        b.ToolTip = on ? "Unpin: close when you click elsewhere" : "Pin: keep the card here for every lookup";
+        wasPinned = on;
+        return true;
+    }
 
     /// A symbol's colour at rest: tertiary, secondary while the pointer is on the card.
     Color Rest => ((SolidColorBrush)(hovered ? Theme.Secondary : Theme.Tertiary)).Color;
@@ -894,7 +961,7 @@ sealed class CardView
             if (JustBuilt)
             {
                 // Rebuilt under the pointer: hovered already.
-                fill.BeginAnimation(Brush.OpacityProperty, null); fill.Opacity = 0.07;
+                Motion.Set(fill, Brush.OpacityProperty, 0.07);
                 if (symbols.Contains(symbol)) { symbol.Ink.BeginAnimation(SolidColorBrush.ColorProperty, null); symbol.Ink.Color = ((SolidColorBrush)Theme.Primary).Color; }
                 return;
             }
@@ -908,7 +975,16 @@ sealed class CardView
             Motion.To(b, UIElement.OpacityProperty, 1, 0.08);
             if (symbols.Contains(symbol)) symbol.To(hovered ? Theme.Secondary : Theme.Tertiary, 0.15);
         };
-        b.MouseLeftButtonDown += (_, e) => { pressed = true; Motion.To(b, UIElement.OpacityProperty, 0.55, 0.08); e.Handled = true; };
+        b.MouseLeftButtonDown += (_, e) =>
+        {
+            pressed = true;
+            Motion.To(b, UIElement.OpacityProperty, 0.55, 0.08);
+            // Hovered and pressed in the same moment (a click from --script, a tap): on the Mac
+            // both changes are one transaction, and the button style's 0.08 s animation, the
+            // innermost, times the hover fill too (CC:963, CC:974).
+            if (Motion.Pending(fill, Brush.OpacityProperty)) Motion.To(fill, Brush.OpacityProperty, 0.07, 0.08);
+            e.Handled = true;
+        };
         b.MouseLeftButtonUp += (_, e) =>
         {
             e.Handled = true;
@@ -1146,6 +1222,86 @@ sealed class CardView
         return baselines[key] = LineHeight(size) * ratio;
     }
 
+    // MARK: Reuse
+
+    /// A part as built, with what building it registered, so a rebuild can put the same part
+    /// back when its contents haven't changed: as SwiftUI keeps a view whose inputs are the
+    /// same, it isn't made, measured and laid out again (a pick changed two rows of many, and
+    /// rebuilding every row held the first frame of its motion back by tens of ms).
+    sealed class Part
+    {
+        public required FrameworkElement Element;
+        public required string Sig;
+        public readonly List<(string, UIElement)> Targets = new(), Animated = new();
+        public readonly List<(string, FrameworkElement)> Tracked = new();
+        public readonly List<(string, string)> Now = new();
+        public readonly List<(string, Part)> Inner = new();
+        public int SenseRows, PhraseRows;
+    }
+
+    Dictionary<string, Part> parts = new(), lastParts = new();
+
+    FrameworkElement Reuse(string key, string sig, Func<FrameworkElement> build)
+    {
+        sig += Theme.Dark ? "|dark" : "|light";
+        sig += "|" + Width.ToString(CultureInfo.InvariantCulture);
+        if (animate && lastParts.TryGetValue(key, out var p) && p.Sig == sig && Detach(p.Element))
+        {
+            Replay(key, p);
+            return p.Element;
+        }
+        var (t0, a0, k0, n0) = (new Dictionary<string, UIElement>(Targets), new Dictionary<string, UIElement>(Animated), new Dictionary<string, FrameworkElement>(tracked), new Dictionary<string, string>(now));
+        var (s0, r0) = (senseRows, phraseRows);
+        // Parts built inside this one are kept with it too, so they come back with it.
+        var outer = parts;
+        parts = new();
+        FrameworkElement e;
+        Dictionary<string, Part> inner;
+        try { e = build(); }
+        finally { inner = parts; parts = outer; foreach (var (k, v) in inner) parts[k] = v; }
+        var made = new Part { Element = e, Sig = sig, SenseRows = senseRows - s0, PhraseRows = phraseRows - r0 };
+        foreach (var (k, v) in Targets) if (!t0.TryGetValue(k, out var o) || o != v) made.Targets.Add((k, v));
+        foreach (var (k, v) in Animated) if (!a0.TryGetValue(k, out var o) || o != v) made.Animated.Add((k, v));
+        foreach (var (k, v) in tracked) if (!k0.TryGetValue(k, out var o) || o != v) made.Tracked.Add((k, v));
+        foreach (var (k, v) in now) if (!n0.TryGetValue(k, out var o) || o != v) made.Now.Add((k, v));
+        foreach (var (k, v) in inner) made.Inner.Add((k, v));
+        parts[key] = made;
+        return e;
+    }
+
+    /// Puts a reused part's registrations back, its own and its inner parts', as building it did.
+    void Replay(string key, Part p)
+    {
+        foreach (var (k, v) in p.Targets) Targets[k] = v;
+        foreach (var (k, v) in p.Animated) Animated[k] = v;
+        foreach (var (k, v) in p.Tracked) tracked[k] = v;
+        foreach (var (k, v) in p.Now) now[k] = v;
+        senseRows += p.SenseRows; phraseRows += p.PhraseRows;
+        parts[key] = p;
+        foreach (var (k, v) in p.Inner) parts[k] = v;
+    }
+
+    /// Takes a part out of the old content, to go into the new.
+    static bool Detach(FrameworkElement e)
+    {
+        switch (VisualTreeHelper.GetParent(e) ?? LogicalTreeHelper.GetParent(e))
+        {
+            case null: return true;
+            case Panel p: p.Children.Remove(e); return true;
+            case Decorator d: d.Child = null; return true;
+            default: return false;
+        }
+    }
+
+    /// A row's word block width, measured once for each word and reading.
+    readonly Dictionary<string, double> blockWidths = new();
+    double BlockWidth(JsonObject r)
+    {
+        var key = $"{r["text"]}|{r["pinyin"]?.ToJsonString()}|{r["pending"]}";
+        if (!blockWidths.TryGetValue(key, out var w)) blockWidths[key] = w = WordBlock(r).Measure();
+        return w;
+    }
+
     // MARK: Transitions
 
     readonly Dictionary<string, FrameworkElement> tracked = new();
@@ -1185,7 +1341,10 @@ sealed class CardView
             var t = e.RenderTransform as TranslateTransform ?? new TranslateTransform();
             e.RenderTransform = t;
             // From where it was drawn, at the speed it was still going if it was sliding already.
-            Motion.Content(t, TranslateTransform.YProperty, dy, 0, key: "slide:" + key);
+            // A part put back as it was (Reuse) still has its own offset, which it keeps too.
+            var from = dy + t.Y;
+            Motion.Stop(t, TranslateTransform.YProperty);
+            Motion.Content(t, TranslateTransform.YProperty, from, 0, key: "slide:" + key);
         }
 
         // Parts that are new and not keyed (rows after Show All, Show Fewer, Other words) fade
@@ -1243,6 +1402,8 @@ sealed class CardView
             }
             Canvas.SetLeft(ghost, o.At.X); Canvas.SetTop(ghost, o.At.Y);
             ghosts.Children.Add(ghost);
+            // A part leaving is traced (--trace) under its name, as the Mac's removal transition is.
+            if (TraceName(o.Key) is string name && !Animated.ContainsKey(name)) Animated[name] = ghost;
             // [card feel] SwiftUI's removal runs on cardMotion, as the insertion does.
             Motion.Content(ghost, UIElement.OpacityProperty, ghost.Opacity, 0, done: () => ghosts.Children.Remove(ghost));
         }
@@ -1274,7 +1435,6 @@ sealed class CardView
     {
         "back" => "back-to",
         "note" => "note-box",
-        "meaning" or "header" or "partOf" or "translation" => key.ToLowerInvariant(),
         _ when key.StartsWith("back:") => "back-to",
         _ when key.StartsWith("dnote:") => "note-box",
         _ when key.StartsWith("detail:") => "detail",

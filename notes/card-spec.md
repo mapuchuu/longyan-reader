@@ -799,7 +799,11 @@ Content around inserted or removed parts slides to its new place with the same m
    `isRevealed` tells the app whether the card is on screen yet, so a late pick animates in
    and an early one does not (PU:410, APP:787).
 4. Reveal (PU:425-448):
-   - Window opacity 0 to 1 over 0.14 s (system default timing).
+   - Window opacity 0 to 1 over 0.14 s on AppKit's default timing for an `animator()` change,
+     which is Core Animation's default curve, the cubic Bézier (0.25, 0.1, 0.25, 1). Not linear:
+     it's half way at about a third of the time and 0.9 at about two thirds. Traced on the Mac
+     (`--show --trace`), the window's alpha fits that curve over 0.14 s to within 0.01. It starts
+     with the window's first frame.
    - At the same time the card goes from scale 0.96 to 1 and from y −4 to 0 (placed below) or
      +4 to 0 (placed above), on a spring with response 0.32 s, damping 0.82. Scale anchor:
      top edge when below, bottom edge when above (CC:382-383).
@@ -814,7 +818,8 @@ Content around inserted or removed parts slides to its new place with the same m
 
 ### 6.5 Disappearing (PU:717-734)
 
-- Window opacity to 0 over 0.12 s, then removed. No scale or slide.
+- Window opacity to 0 over 0.12 s on the same default curve as the reveal (0.25, 0.1, 0.25, 1),
+  starting on the next frame, then removed. No scale or slide.
 - Any speech from that card stops (PU:719).
 - Hints close by themselves after 1.8 s if still on screen (APP:888-897).
 

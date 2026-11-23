@@ -110,11 +110,24 @@ sealed partial class CardWindow
         }
     }
 
+    [DllImport("winmm.dll")] static extern uint timeBeginPeriod(uint ms);
+    static bool fineTimer;
+
+    /// Runs `act` on the app's thread at `mono`, to the millisecond: a DispatcherTimer fires on
+    /// the system's 15.6 ms tick, which made a click's release up to 25 ms late, and the press
+    /// went that much deeper than the Mac's. A thread waits instead (1 ms sleeps, then spins).
     static void At(double mono, Action act)
     {
-        var t = new DispatcherTimer(DispatcherPriority.Normal) { Interval = TimeSpan.FromSeconds(Math.Max(0, mono - Mono)) };
-        t.Tick += (_, _) => { t.Stop(); act(); };
-        t.Start();
+        if (!fineTimer) { fineTimer = true; try { timeBeginPeriod(1); } catch (Exception) { } }
+        var app = Application.Current.Dispatcher;
+        new System.Threading.Thread(() =>
+        {
+            for (var left = mono - Mono; left > 0; left = mono - Mono)
+                if (left > 0.05) System.Threading.Thread.Sleep((int)((left - 0.03) * 1000));
+                else if (left > 0.003) System.Threading.Thread.Sleep(1);
+                else System.Threading.Thread.SpinWait(200);
+            app.BeginInvoke(DispatcherPriority.Send, act);
+        }) { IsBackground = true }.Start();
     }
 
     static void Run(Step step)
@@ -203,8 +216,9 @@ sealed partial class CardWindow
             {
                 var w = current;
                 if (w == null || trace == null) return;
-                string line;
+                string? line;
                 try { line = w.TraceLine(); } catch (Exception) { return; }
+                if (line == null) return;
                 if (line == lastTrace) return;
                 lastTrace = line;
                 trace.WriteLine(FormattableString.Invariant($"{{\"mono\":{mono * 1000:F3},") + line + "}");
@@ -217,8 +231,10 @@ sealed partial class CardWindow
     /// What the trace says of this card now: the window's opacity and frame (DIPs from the primary
     /// screen's top-left, as --show's X and Y), the card's reveal scale, offset and height, and
     /// each part that animates by its name.
-    string TraceLine()
+    string? TraceLine()
     {
+        // Not laid out yet (a card just opened): nothing to say until it has a height.
+        if (double.IsNaN(surface.Height) && surface.ActualHeight == 0) return null;
         var sb = new StringBuilder();
         var s = scale <= 0 ? 1 : scale;
         var frameText = "null";

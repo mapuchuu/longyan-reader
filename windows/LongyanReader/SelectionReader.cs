@@ -182,17 +182,32 @@ static class SelectionReader
             {
                 // Its middle rows (its height needn't be the highlight's).
                 int c0y = hTop + (hBottom - hTop) / 4, c1y = hBottom - (hBottom - hTop) / 4;
-                var c0 = px[c0y * w + x];
-                if (Diff(c0, bg) <= 6 || (page >= 0 && Diff(c0, page) <= 6)) continue;
-                var same = true;
-                for (var y = c0y + 1; y <= c1y && same; y++) same = Diff(px[y * w + x], c0) <= 6;
-                caret[x] = same;
+                // Mostly one colour (over the text's ink it inverts that instead), no highlight in it.
+                var col = new Dictionary<int, int>();
+                var lit = false;
+                for (var y = c0y; y <= c1y && !lit; y++) { var c = px[y * w + x] & 0xFFFFFF; lit = Diff(c, bg) <= 6; col[c] = col.GetValueOrDefault(c) + 1; }
+                if (lit || col.Count == 0) continue;
+                var (c0, k0) = col.MaxBy(kv => kv.Value);
+                if (page >= 0 && Diff(c0, page) <= 6) continue;
+                // The caret inverts what it covers: over the highlight, the highlight's inverse.
+                // (A glyph's stem next to the highlight is the text's colour, not that.)
+                caret[x] = k0 * 10 >= (c1y - c0y + 1) * 6 && Diff(c0, ~bg & 0xFFFFFF) <= 48;
             }
-            // Its right edge: the last column holding it, in its middle rows.
-            var right = -1;
+            // Its right edge: the last column holding it, row by row in its middle rows, the median
+            // (a rich edit box draws some rows of it a few pixels longer than the rest).
+            var ends = new List<int>();
             int m0 = hTop + (hBottom - hTop) / 4, m1 = hBottom - (hBottom - hTop) / 4;
-            for (var y = m0; y <= m1; y++) for (var x = w - 1; x > right; x--) if (Diff(px[y * w + x], bg) <= 6) { right = x; break; }
-            if (right >= 0) for (var k = 0; k < 3 && right + 1 < w && caret[right + 1]; k++) right++;
+            for (var y = m0; y <= m1; y++)
+                for (var x = w - 1; x >= 0; x--)
+                {
+                    if (Diff(px[y * w + x], bg) > 6) continue;
+                    var end = x;
+                    while (end + 1 < w && caret[end + 1] && end - x < 3) end++;
+                    ends.Add(end);
+                    break;
+                }
+            ends.Sort();
+            var right = ends.Count > 0 ? ends[ends.Count / 2] : -1;
             double? edge = right >= 0 && x0 + right + 1 >= b.Right - b.Height && x0 + right + 1 <= b.Right + b.Height ? x0 + right + 1 : null;
             // The text's ink: far from the highlight's colour, between its first and last pixel on
             // each row (not the page around it: Chromium's highlight is shorter than the box, and

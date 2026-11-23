@@ -22,7 +22,7 @@ and live dark mode on every push.
 | Step | Mac | Windows |
 |---|---|---|
 | Hold for the pick | 0.4 s from the lookup (APP:756) | 0.4 s from the lookup (CW Update), Normal-priority timer |
-| Reveal: window fade | 0 to 1, 0.14 s, linear (PU:442) | 0 to 1, 0.14 s, linear (CW Reveal); **fixed**: the fade and the spring now start on the window's first drawn frame (ContentRendered). They started at Show(), and a new layered window takes tens of ms to reach the screen, so a VM film saw the spring 97% done at 131 ms (the spring itself is 82% at 131 ms, 98% at 200 ms) |
+| Reveal: window fade | 0 to 1, 0.14 s, AppKit's default curve, Bézier (0.25, 0.1, 0.25, 1) (PU:442; traced, not linear) | same curve (CW Reveal, MO Fade); **fixed**: it was linear, and a trace showed the Mac's half way at 33 ms against Windows' 72. Before that: the fade and the spring now start on the window's first drawn frame (ContentRendered). They started at Show(), and a new layered window takes tens of ms to reach the screen, so a VM film saw the spring 97% done at 131 ms (the spring itself is 82% at 131 ms, 98% at 200 ms) |
 | Reveal: card | scale 0.96 to 1, y −4 (below) / +4 (above) to 0, spring 0.32 / 0.82, anchor top or bottom (PU:446, CC:382) | same values, on the spring driver (MO Spring), run until it settles |
 | Swap in place (pinned, Part of) | fade 0.12 s, no spring (PU:435) | fade 0.12 s, no spring |
 | Every change inside (cardMotion) | spring 0.34 / 1.0; Reduce Motion easeInOut 0.15 s (CC:191) | same, MO Spring with MO Card until it settles; Reduce Motion Bézier (0.42, 0, 0.58, 1) 0.15 s |
@@ -33,7 +33,7 @@ and live dark mode on every push.
 | Parts leaving, text crossfades | opacity on cardMotion | same (was ease-out 0.3 s, **fixed**) |
 | Chevrons | Show All 0° to 180°, phrase row 0° to 90°, cardMotion | same |
 | Pick: checkmark | opacity 0 to 1, scale 0.6 to 1, cardMotion (CC:720) | same |
-| Dismiss | fade to 0, 0.12 s, linear; no motion (PU:727) | same, **fixed**: a VM film saw it reach about 60% and then vanish at 96 ms. Now the fade runs on the frame clock (MO Linear) over the full 0.12 s, and the window closes on the frame after the one that drew 0. UC 3-fade checks every frame against the straight line |
+| Dismiss | fade to 0, 0.12 s, AppKit's default curve; no motion (PU:727) | same, on MO Fade from the next frame; **fixed**: it was linear. Before that: a VM film saw it reach about 60% and then vanish at 96 ms. Now the fade runs on the frame clock (MO Linear) over the full 0.12 s, and the window closes on the frame after the one that drew 0. UC 3-fade checks every frame against the curve |
 | Pin: close badge | opacity 0 to 1, scale 0.7 to 1, spring 0.25 / 0.9 (CC:1006) | same, on the spring driver |
 | Copy, Anki symbols | replace.downUp, filmed: the old symbol shrinks to 0.5 in 0.23 s (speeding up), the new one starts at 0.52 and is full size at 0.46 s (slowing down); no fade | the same curve, from the film (**fixed**: was a grow from 0.5 on cardMotion with a fade) |
 | Pin symbol | replace.downUp with bounce.down, filmed: old one to 0.51 in 0.22 s, new one in at 0.76, up to 1.10 at 0.4 s, back to 1 at 0.62 s | the same curve (**fixed**: had no bounce) |
@@ -76,7 +76,7 @@ and live dark mode on every push.
 | Word card with the model ready holds up to 0.4 s for the pick | APP:756, PU:371-375 | CW Update | **fixed**: held 0.4 s from the first content on a Background-priority timer, which ran late (CI: the eye's card waited 1413 ms, events.jsonl). Now 0.4 s from the lookup, on a Normal timer | 6-feel logs `opened` and fails over 1 s |
 | Pick in time: applied with no motion, card shows at once | APP:787-794, PU:413-422 | CW Update (`animate: false`, Arrive) | same | |
 | Late pick animates in | APP:787 | CW Update (`animate: true`) | same | 1-pick film |
-| Window fade 0 to 1 over 0.14 s, linear | PU:442-445 | CW Reveal | same | 1-word-reveal: dark band 0.11, 0.45, 1.0 over three drawn frames |
+| Window fade 0 to 1 over 0.14 s, Bézier (0.25, 0.1, 0.25, 1) | PU:442-445 | CW Reveal | same | 1-word-reveal: dark band 0.11, 0.45, 1.0 over three drawn frames |
 | Card scale 0.96 to 1 and y ∓4 to 0, spring response 0.32, damping 0.82, anchored top (below) or bottom (above) | PU:446, CC:382-383 | CW Reveal, MO Reveal (same spring formula, run 0.45 s) | same | |
 | Height doesn't animate on the first frame | CC:364-365 | CW Arrive (`Resize(animated: false)`) | same | |
 | Replacing a card in place (pinned, Part of): fade 0.12 s over the old one, no spring, old one goes after | PU:429-441 | CW Reveal, TakeOver, DropSwap | **fixed**: a pinned card opening at its corner with no card there also skipped the spring; now only a real swap does | |
@@ -217,7 +217,7 @@ windows/gallery/mac (mac); composites are made with the scratch tools described 
 | Dictionary order lines | PU:129-136 | 11 secondary | CV:134 | font only | word-readings |
 | Note box | NV:7-32 | 12/10 padding, radius 10, primary 0.045 | CV:463 `Note` | same | word-mianzi, word-lost: every band within 1 px; fill 245/40 on both |
 | Note symbol | NV:15 | globe.asia.australia.fill / translate, 11 semibold, teal / rose | IC `Globe`, `Translate` | same | symbols.png (own drawings) |
-| Note title | NV:18-21 | 11 semibold secondary, 4 after the symbol | CV:473 | font only | word-mianzi: title starts at the same x |
+| Note title | NV:18-21 | 11 semibold secondary, 4 after the symbol; the row is as tall as the symbol (translate 15, globe 14), the label centred | CV:473 | font only | word-mianzi: title starts at the same x; word-lost: box 71 tall on both (was 0.5 short) |
 | Note text | NV:23-26 | 13 primary, line spacing 2 | CV:475 | font only | word-mianzi: lines wrap the same |
 | Divider | CC:705 | 1 tall, primary 0.08 | CV:524 | same | 238/46 on both |
 | Meanings label | CC:695 | 11 semibold secondary | CV:525 | font only | all word cases: dy 0 to +1 |
@@ -234,17 +234,17 @@ windows/gallery/mac (mac); composites are made with the scratch tools described 
 
 | Element | Mac | Values | Windows | Status | Evidence |
 |---|---|---|---|---|---|
-| Source text | PC:26-34 | 14 secondary, up to 4 lines | CV:222 | font only | phrase-*: dy 0 |
+| Source text | PC:26-34 | 14 secondary, up to 4 lines; the buttons' slot reaches 3 below one line, not below more | CV:222 | font only | phrase-*: dy 0; phrase-long: translation at the same y (was 3 lower). Lines are made 0.92 as wide, so YaHei at 0.92 of the size holds as many characters as PingFang and breaks in the same place |
 | Translation | PC:61-66 | 16, line spacing 2 | CV:229 | font only | phrase-ming: dy 0; same breaks |
 | Translating | PC:69-72 | spinner, 12 secondary | CV:237 | same | phrase-translating: dh 0 |
 | No translation | PC:67 | 11 secondary | CV:235 | font only | code |
 | Words label, divider | PC:39-41 | as on the word card | CV:249-251 | same | phrase-*: dy 0 to +1 |
-| Phrase rows | PC:75-129 | word 17 medium, pinyin 10.5, gloss 13, gutter 12, 5 above and below | CV:289 `PhraseRow` | font only | phrase-trad, phrase-ming-open: dy 0 to +1. "prohibition on entering or leaving by sea" breaks before "by sea" on Windows: Segoe sets that line 3% wider |
+| Phrase rows | PC:75-129 | word 17 medium, pinyin 10.5, gloss 13, gutter 12, 5 above and below | CV:289 `PhraseRow` | font only | phrase-trad, phrase-ming-open: dy 0 to +1. "prohibition on entering or leaving by sea" breaks before "by sea" on Windows (phrase-ming 1 pt taller): no one stretch at 13 fixes it, as at 1.01 and 1.015 "behavior; conduct (Taiwan pronounced xìng)" (word-all) stops breaking. San Francisco and Segoe differ letter by letter, so lines this close to the edge need the Mac's own widths |
 | Word column | PC:4-8 | widest word block | CV:254 | same | gloss x within 1 px |
 | Row chevron | PC:114-120 | chevron.forward 10 semibold tertiary, turns 90 open | CV:322 | same | phrase-ming-open |
 | Row detail | PC:131-213 | 2 above, 8 below, rows 3 above and below | CV:334 `Detail` | font only | phrase-ming-open, phrase-guanxi-open: dh 0 |
 | Pending rows | PC:89, 99, 110 | redacted bars | CV:889, 916 | same | phrase-pending |
-| More words not shown | PC:46-49 | 11 tertiary, 4 above and below | CV:261 | font only | phrase-long (+9 px: one gloss breaks a line earlier, font width) |
+| More words not shown | PC:46-49 | 11 tertiary, 4 above and below | CV:261 | font only | phrase-long (+3 px: one gloss breaks earlier and one later than the Mac's, font width) |
 | Hint | PU:839-844 | 12 secondary | CV:100 `Hint` | open | no gallery case |
 
 ### Buttons and symbols
@@ -370,6 +370,18 @@ Consolas line), so UiCheck allows 2 px.
 | Mark size | 13 frame, 12 wide on screen | 13 frame; was 12.6 (11.5 wide) | same | UiCheck `exact` |
 | Scalings | points | device pixels × monitor DPI (per-monitor v2) | same | eye-sheet-100/125/150/175 on CI (the runner offers no 200%); 200% read in the user's VM |
 
+### Reading the selection off the screen
+
+UI Automation's rects are up to a character off the highlight (classic Notepad at 175%: 9 px
+short; at 100%: 3 px long) and up to 2 px off the ink. For a one-line selection SR.Drawn reads
+the rect's pixels (a line wider): the highlight is the commonest colour, its edge the median
+row-end on its middle rows, the ink the rows inside each row's highlight run. Notepad's
+blinking caret (the highlight's inverse, a column) is skipped. White space left out of the rect
+is still highlighted, so the text then ends at the rect. CI (UiCheck `exact`, 128 cases at
+100-175%): the mark within 0.5 points plus half a device pixel of the ink's centre and of 19.5
+after the text's end. At 100% every case is 0 and 19.5; at 125-175% the mark sits on whole
+pixels, so up to 0.4 points under.
+
 ### Edge's selection menu (open, the user's call)
 
 Edge shows its own small menu (Copilot, copy, search) when text is selected. It is a msedge
@@ -384,7 +396,7 @@ selection's end, or no eye while Edge's menu shows. Not chosen yet.
 | Behaviour | Mac | Windows | Status | Evidence |
 |---|---|---|---|---|
 | Trigger | left mouse-up after a drag > 4 pt (Euclidean) or a double-click (CS:51-52) | same; was SM_CXDRAG per axis (IW) | same | 3-eye, 3-eye-drag |
-| Delay | 0.12 s, then read (CS:54) | 0.12 s, then UI Automation within 0.5 s (C.Consider) | same | code |
+| Delay | 0.12 s, then read (CS:54) | 0.12 s, then UI Automation within 0.5 s, then the highlight read off the screen (3-28 ms); the first eye after a start is warmed (C.Warm) | same | UiCheck: the app's own time, less the wait and the app's UI Automation answer, median under 100 ms |
 | Selection kept | trimmed non-empty, has Chinese, ≤ 400 (CS:62) | has Chinese, ≤ 400 trimmed (C.Consider) | same | 3-eye |
 | Unreadable apps | eye with copy on click, unless the focus isn't text (CS:67-71) | double-click only, not terminals, dialogs, Excel, full screen | platform | notes/windows-plan.md |
 | Hidden apps, off switch | hiddenApps, showChip (CS:48-49) | Settings.EyeHiddenIn, ShowEye | same | 4-settings |
@@ -398,11 +410,11 @@ selection's end, or no eye while Edge's menu shows. Not chosen yet.
 | Drawing | surface, 0.5 hairline at 10%, 13 pt mark (CS:233-256) | same (C.Build) | same | gallery eye.png vs mac/eye.png: inside the circle mean 1.8, dark 0.9 of 255 |
 | Shadow | black 18%, radius 5, y 2 (CS:213) | DropShadow blur 16, opacity 0.24, depth 2; was 10 and 0.18 | same | rendered both at 2x over white: RMS 0.6 of 255 (was a far shorter tail) |
 | First appearance | where it settles from the first frame | the window doesn't move after it shows; its circle at about 30 ms is centred where it settles | same | `0-first-eye-30ms.png` and `-settled.png`, both first eyes after a start |
-| Appear | alpha 0 to 1 in 0.12 s linear; scale 0.6 to 1, spring 0.3 / 0.68 (CS:120-123, 228) | same (C.Place, M.EyeAppear) | same | 3-eye-in frames |
-| Hover | 1.08, spring 0.25 / 0.7; mark secondary to primary in the same spring (CS:225, 236) | same; the mark's fade was 0.15 s ease-out | same | 3-eye-hover |
+| Appear | alpha 0 to 1 in 0.12 s linear; scale 0.6 to 1, spring 0.3 / 0.68 (CS:120-123, 228) | same, from the window's first frame (ContentRendered), on the Motion driver (Linear, Spring) | same | 3-eye-in frames |
+| Hover | 1.08, spring 0.25 / 0.7; mark secondary to primary in the same spring (CS:225, 236) | same; a hover or press cut short keeps its speed (Motion.Spring), as SwiftUI's do | same | 3-eye-hover |
 | Press | 0.92, spring 0.2 / 0.7 (CS:226) | same (M.EyePress) | same | code |
-| Spring maths | SwiftUI: mass 1, stiffness (2π/response)², damping ratio as given | M.Spring, run until under 0.1% of the move | same | M:74-96 |
-| Hide | alpha to 0 in 0.1 s on any hide, click included (CS:166-175) | 0.1 s; a click was 0.08 | same | 3-eye-reveal frames |
+| Spring maths | SwiftUI: mass 1, stiffness (2π/response)², damping ratio as given | the Motion driver (Spring.cs) | same | MotionFeel |
+| Hide | alpha to 0 in 0.1 s on any hide, click included (CS:166-175) | 0.1 s Motion.Linear, then the window closes | same | 3-eye-reveal frames |
 | Reduce Motion | not checked by the eye | Windows' animation effects off skips the springs | platform | |
 
 ### Leaving and clicking

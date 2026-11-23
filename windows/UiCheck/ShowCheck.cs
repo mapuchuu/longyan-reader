@@ -122,6 +122,47 @@ static partial class Program
         for (var i = 1; i < mono.Count; i++) if (mono[i] < mono[i - 1]) { failures.Add("7-script: the trace's times go back"); break; }
     }
 
+    /// The ready plans run whole, in dark, with a trace each, to set beside the Mac's
+    /// (windows/gallery/README.md): film-word.* and film-phrase.* in the output.
+    static void FilmChecks(string exe)
+    {
+        Film(exe, "word-mianzi.json", "word.txt", "film-word", 12.5);
+        Film(exe, "phrase-ming.json", "phrase.txt", "film-phrase", 12.5);
+    }
+
+    static void Film(string exe, string card, string plan, string name, double seconds)
+    {
+        var json = Path.GetFullPath(Path.Combine("windows", "gallery", card));
+        var planPath = Path.GetFullPath(Path.Combine("windows", "gallery", "plans", plan));
+        var tracePath = Path.Combine(outDir, name + ".jsonl");
+        var start = new ProcessStartInfo(exe) { WorkingDirectory = Path.GetDirectoryName(exe)!, RedirectStandardError = true, UseShellExecute = false };
+        foreach (var a in new[] { "--show", json, "200", "150", "--script", "@" + planPath, "--appearance", "dark", "--trace", tracePath }) start.ArgumentList.Add(a);
+        start.Environment["LONGYAN_CARD_LOG"] = Path.Combine(outDir, name + "-events.jsonl");
+        var show = Process.Start(start)!;
+        var err = new System.Text.StringBuilder();
+        show.ErrorDataReceived += (_, e) => { if (e.Data != null) lock (err) err.AppendLine(e.Data); };
+        show.BeginErrorReadLine();
+        try
+        {
+            var waited = Stopwatch.StartNew();
+            bool Revealed() { lock (err) return err.ToString().Contains(" reveal"); }
+            while (waited.Elapsed.TotalSeconds < 40 && !show.HasExited && !Revealed()) Thread.Sleep(100);
+            Thread.Sleep((int)(seconds * 1000));
+        }
+        finally
+        {
+            try { show.Kill(); } catch { }
+        }
+        Thread.Sleep(300);
+        string log;
+        lock (err) log = err.ToString();
+        File.WriteAllText(Path.Combine(outDir, name + ".err"), log);
+        var steps = log.Split('\n').Count(l => l.Contains("script mono=") && l.Contains(" t="));
+        var planSteps = File.ReadAllLines(planPath).Count(l => l.Trim().Length > 0 && !l.StartsWith('#'));
+        Console.WriteLine($"[7-{name}] {steps} steps logged, {(File.Exists(tracePath) ? File.ReadLines(tracePath).Count() : 0)} trace lines");
+        if (steps < planSteps) failures.Add($"7-{name}: {steps} steps logged of the plan's {planSteps} and more");
+    }
+
     static System.Windows.Rect? FindExact(Process app, string text)
     {
         var cond = new PropertyCondition(AutomationElement.ProcessIdProperty, app.Id);

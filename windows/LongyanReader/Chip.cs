@@ -328,7 +328,7 @@ sealed class ChipWindow : Window
         hit.MouseRightButtonUp += (_, e) => { e.Handled = true; Options(); };
 
         // Gone after 6 s, as on the Mac (its menu stops the clock).
-        timer.Tick += (_, _) => { timer.Stop(); Chip.Hide(); };
+        timer.Tick += (_, _) => { timer.Stop(); Core.Log("{\"event\":\"eye-timeout\"}"); Chip.Hide(); };
         SourceInitialized += (_, _) =>
         {
             hwnd = new WindowInteropHelper(this).Handle;
@@ -449,7 +449,7 @@ sealed class ChipWindow : Window
         leaving = true;
         timer.Stop();
         Chip.Forget(this);
-        Motion.Linear(this, OpacityProperty, Opacity, 0, 0.1, Close);
+        Motion.Linear(this, OpacityProperty, Opacity, 0, 0.1, () => { Core.Log("{\"event\":\"eye-closed\"}"); Close(); });
     }
 
     void Hover(bool on)

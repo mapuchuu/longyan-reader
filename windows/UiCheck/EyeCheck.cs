@@ -125,7 +125,12 @@ static partial class Program
             GetWindowRect(again, out r);
             MoveTo((r.Left + r.Right) / 2.0, (r.Top + r.Bottom) / 2.0);
             Thread.Sleep(6200);
-            if (Eye() != IntPtr.Zero) failures.Add("3-eye: still there 6 s after it appeared");
+            if (Eye() != IntPtr.Zero)
+            {
+                var events = File.Exists(log) ? File.ReadAllLines(log).Where(l => l.Contains("\"eye")).TakeLast(6) : Enumerable.Empty<string>();
+                Console.WriteLine($"[3-eye-again] still there; last eye events: {string.Join(" ", events)}");
+                failures.Add("3-eye: still there 6 s after it appeared");
+            }
         }
     }
 
@@ -200,6 +205,13 @@ static partial class Program
         foreach (var p in Process.GetProcessesByName("msedge")) try { p.Kill(); } catch { }
         if (modern != IntPtr.Zero) PostMessage(modern, 0x10 /* WM_CLOSE */, IntPtr.Zero, IntPtr.Zero);
         if (tested.Count < 2) failures.Add($"eye-scale: only {string.Join(", ", tested)}% could be tested");
+        if (ownTimes.Count > 0)
+        {
+            var sorted = ownTimes.OrderBy(x => x).ToList();
+            int median = sorted[sorted.Count / 2], p90 = sorted[(int)(sorted.Count * 0.9)];
+            Console.WriteLine($"[eye-scale] the app's own time from mouse-up to the eye (less the 0.12 s wait and the selection's read), {sorted.Count} eyes: median {median} ms, 90th {p90} ms, most {sorted[^1]} ms");
+            if (median > 100 || p90 > 150) failures.Add($"eye-scale: the app takes {median} ms (median), {p90} ms (90th) of its own to show the eye");
+        }
         if (now != 100) Scaling.SetTo(100);
         Thread.Sleep(2000);
         try { notepad.Kill(); } catch { }
@@ -270,7 +282,7 @@ static partial class Program
             }
             if (found is not System.Windows.Rect l || l.IsEmpty) { failures.Add($"{tag}: couldn't find the text in Edge"); continue; }
             var x = l.Left + (index + 0.5) * px * s;
-            var eye = Placement(tag, window, () => DoubleClick(x, l.Top + l.Height / 2), new[] { l }, l.Height, exact: true);
+            var eye = Placement(tag, window, () => DoubleClick(x, l.Top + l.Height / 2), new[] { l }, l.Height, exact: true, clear: Deselect(l, s));
             if (lastCrop != null) { crops.Add(($"{name} {label}, double-click {line[index]}", lastCrop)); lastCrop = null; }
             // Edge's own menu for a selection, if it came: its windows besides the page's.
             foreach (var (h, r) in EdgePopups(window)) Console.WriteLine($"[{tag}] Edge popup {h:X}: {r.Left},{r.Top} to {r.Right},{r.Bottom}");
@@ -287,6 +299,13 @@ static partial class Program
     /// Drags in Edge whose eye the Mac puts beside the text: a 32 px heading (its line is over
     /// 40 points in Microsoft YaHei), ending on the line, below it, and past its text; and a
     /// paragraph dragged past its end. Within 1 point of the Mac rule's centre.
+    /// A click in the page's left margin beside `line`: the last selection goes.
+    static Action Deselect(System.Windows.Rect line, double s) => () =>
+    {
+        Click(line.Left - 12 * s, line.Top + line.Height / 2);
+        Thread.Sleep(300);
+    };
+
     static void EdgeDrags(string name, IntPtr window, double s, List<(string, Bitmap)> crops)
     {
         System.Windows.Rect? Find(string line)
@@ -304,16 +323,16 @@ static partial class Program
         var em = 32 * s; var y = h.Top + h.Height / 2;
         var from = h.Left + 3 * em + 2 * s;   // 行
         Console.WriteLine($"[{name}-h1] heading's box {Fmt(h)}");
-        Placement($"{name}-h1-on", window, () => Drag(from, y, (int)(h.Left + 11 * em + 2 * s - from), 0), new[] { h }, h.Height, oneLine: true, tolerance: 1, exact: true);
+        Placement($"{name}-h1-on", window, () => Drag(from, y, (int)(h.Left + 11 * em + 2 * s - from), 0), new[] { h }, h.Height, oneLine: true, tolerance: 1, exact: true, clear: Deselect(h, s));
         Add("32 px heading, 行 to just past 国");
-        Placement($"{name}-h1-below", window, () => Drag(from, y, (int)(h.Left + 9.9 * em - from), (int)(h.Bottom + 12 * s - y)), new[] { h }, h.Height, oneLine: true, tolerance: 1, exact: true);
-        Add("32 px heading, 行 to 锁, let go below the line");
-        Placement($"{name}-h1-past", window, () => Drag(from, y, (int)(h.Left + 12 * em + 90 * s - from), 0), new[] { h }, h.Height, oneLine: true, tolerance: 1, exact: true);
+        Placement($"{name}-h1-below", window, () => Drag(from, y, (int)(h.Left + 9.9 * em - from), (int)(h.Bottom - 2 * s - y)), new[] { h }, h.Height, oneLine: true, tolerance: 1, exact: true, clear: Deselect(h, s));
+        Add("32 px heading, 行 to 锁, let go below the text");
+        Placement($"{name}-h1-past", window, () => Drag(from, y, (int)(h.Left + 12 * em + 90 * s - from), 0), new[] { h }, h.Height, oneLine: true, tolerance: 1, exact: true, clear: Deselect(h, s));
         Add("32 px heading, 行 to 90 points past the text");
         const string para = "我们研究研究再说吧。";
         if (Find(para) is not System.Windows.Rect p) { failures.Add($"{name}-past: couldn't find the 20 px line in Edge"); return; }
         var start = p.Left + 2 * 20 * s + 2 * s;   // 研
-        Placement($"{name}-20px-past", window, () => Drag(start, p.Top + p.Height / 2, (int)(p.Left + 10 * 20 * s + 90 * s - start), 0), new[] { p }, p.Height, tolerance: 1, exact: true);
+        Placement($"{name}-20px-past", window, () => Drag(start, p.Top + p.Height / 2, (int)(p.Left + 10 * 20 * s + 90 * s - start), 0), new[] { p }, p.Height, tolerance: 1, exact: true, clear: Deselect(p, s));
         Add("20 px line, 研 to 90 points past the end");
     }
 
@@ -368,6 +387,7 @@ static partial class Program
     }
 
     static Bitmap? lastCrop;
+    static readonly List<int> ownTimes = new();
 
     /// Makes a selection, waits for the eye, and checks it against the Mac's rule. `lines` are
     /// the text lines it covers (their ink, captured before, gives the text's centre). Returns
@@ -376,15 +396,19 @@ static partial class Program
     /// `tolerance`: how far from the Mac rule's centre, in points (default 2 px down, 1 + s/2
     /// across). `early`: also a frame about 30 ms after the eye's window shows, whose circle
     /// must already be centred where it settles.
-    static IntPtr? Placement(string name, IntPtr window, Action select, System.Windows.Rect[] lines, double lineHeight, string? burst = null, bool oneLine = false, double? tolerance = null, bool early = false, bool exact = false)
+    static IntPtr? Placement(string name, IntPtr window, Action select, System.Windows.Rect[] lines, double lineHeight, string? burst = null, bool oneLine = false, double? tolerance = null, bool early = false, bool exact = false, Action? clear = null)
     {
-        // The caret out of the way (at the end), so it isn't taken for ink.
+        // The caret out of the way (at the end), so it isn't taken for ink; and in a page, the
+        // last selection gone (Ctrl+End keeps it there), so its highlight isn't either.
         Keys(VK_CONTROL, VK_END);
+        clear?.Invoke();
         WaitForEye(false, 1000);
         Thread.Sleep(300);
         using var before = Capture();
         var skip = Lines();
         select();
+        // The highlight as it is when the app reads it (0.12 s after the mouse lets go), before
+        // the eye comes: a rich edit box redraws it a few pixels shorter later on.
         if (burst != null) Burst(burst, 700);
         Bitmap? first = null; RECT firstRect = default; double firstMs = 0;
         if (early)
@@ -422,7 +446,17 @@ static partial class Program
         var logged = Last(skip, "eye");
         // Shown 0.12 s after the mouse let go, plus reading the selection (the Mac's 0.12 s, then
         // its Accessibility read): the screen read must not hold it up.
-        if (logged?["ms"] is JsonNode msNode && (int)msNode > 350) failures.Add($"{name}: the eye came {(int)msNode} ms after the mouse let go (reading the screen took {logged["drawnMs"]} ms)");
+        // The app's own part: all but the 0.12 s wait and the app's answer to UI Automation (the
+        // Mac waits on Accessibility the same way, up to 0.5 s).
+        var probeMs = Last(skip, "eye-probe")?["ms"] is JsonNode pm ? (int)pm : 0;
+        // A shared runner stalls now and then: one slow case is logged, a slow middle fails
+        // (EyeScalings).
+        if (burst == null && logged?["ms"] is JsonNode msNode)
+        {
+            var own = (int)msNode - probeMs - 120;
+            ownTimes.Add(own);
+            if (own > 150) Console.WriteLine($"[{name}] slow: the eye came {(int)msNode} ms after the mouse let go, {own} ms of it the app's own (reading the screen {logged["drawnMs"]} ms; the selection {probeMs} ms)");
+        }
         if (rects.Length == 0) { failures.Add($"{name}: no selection to measure"); return eye; }
         var union = rects[0];
         foreach (var x in rects.Skip(1)) union.Union(x);
@@ -559,6 +593,7 @@ static partial class Program
         // Three frames a blink apart: Notepad's caret, blinking at the selection's end, covers
         // its last column in some.
         double? edge = null;
+        var edges = new List<string>();
         for (var f = 0; f < 3; f++)
         {
             if (f > 0) Thread.Sleep(270);
@@ -569,15 +604,21 @@ static partial class Program
             for (var y = inkTop; y <= inkBottom; y++) for (var x = (int)union.Left; x < (int)union.Right; x++) { var c = selected.GetPixel(x, y).ToArgb(); counts[c] = counts.GetValueOrDefault(c) + 1; }
             if (counts.Count == 0) continue;
             var hl = Color.FromArgb(counts.MaxBy(kv => kv.Value).Key);
-            var right = -1;
-            for (var y = (int)textMid - (int)(3 * s); y <= (int)textMid + (int)(3 * s); y++)
-                for (var x = Math.Min(selected.Width - 1, (int)(union.Right + 12 * s)); x > right; x--)
+            // Row by row on the ink's middle half, the median (some rows run a few pixels longer).
+            var ends = new List<int>();
+            int q = (inkBottom - inkTop) / 4;
+            for (var y = inkTop + q; y <= inkBottom - q; y++)
+                for (var x = Math.Min(selected.Width - 1, (int)(union.Right + 12 * s)); x >= (int)union.Left; x--)
                 {
                     var c = selected.GetPixel(x, y);
-                    if (Math.Abs(c.R - hl.R) + Math.Abs(c.G - hl.G) + Math.Abs(c.B - hl.B) <= 6) { right = x; break; }
+                    if (Math.Abs(c.R - hl.R) + Math.Abs(c.G - hl.G) + Math.Abs(c.B - hl.B) <= 6) { ends.Add(x); break; }
                 }
+            ends.Sort();
+            var right = ends.Count > 0 ? ends[ends.Count / 2] : -1;
+            edges.Add(right >= 0 ? (right + 1).ToString() : "none");
             if (right >= 0 && (edge == null || right + 1 > edge)) edge = right + 1;
         }
+        Console.WriteLine($"[{name}] highlight's right edge in three frames a caret blink apart: {string.Join(", ", edges)}");
         // White space at the end is highlighted too (a line break, a space), where the Mac has
         // none: there the text ends where its trimmed range does.
         var textEnd = trimmedRight ?? edge;
@@ -589,9 +630,7 @@ static partial class Program
         // Half a point, plus half a device pixel: the mark sits on whole pixels.
         var tol = 0.5 + 0.5 / s;
         if (Math.Abs(dy) > tol) failures.Add($"{name}: the mark's centre is {dy:+0.##;-0.##} points from the text's ink centre (the Mac: 0)");
-        // Our own rich edit box, dragged right to left, draws its highlight 3 px short of where it
-        // drew it while the eye was read (Notepad's own boxes don't): reported, not failed.
-        if (dx is double d && Math.Abs(d - 19.5) > tol && !(name.Contains("richedit") && name.EndsWith("-rtl"))) failures.Add($"{name}: the mark's centre is {d:0.##} points after the text's end (the Mac: 19.5)");
+        if (dx is double d && Math.Abs(d - 19.5) > tol) failures.Add($"{name}: the mark's centre is {d:0.##} points after the text's end (the Mac: 19.5)");
         if (dx == null) failures.Add($"{name}: couldn't find the highlight's right edge");
     }
 
