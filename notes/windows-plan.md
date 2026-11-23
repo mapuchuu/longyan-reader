@@ -38,8 +38,11 @@ What works: a character tagger trained on NLTokenizer's splits of text the app's
 | 0.57M | 81.9% | 95.9% | 98.1% |
 | 0.98M | 84.3% | 96.4% | |
 | 1.66M | 87.2% | 97.1% | 98.7% |
+| 4.69M | 90.2% | 97.9% | 99.3% |
 
 At 1.66M, one-character clicks and selections match 99.7%. Evals: words, senses, notes, phrase, real-S and real-T the same; single, phrase-notes and real-P one fewer each. Some of the 12 remaining card differences are better than NLTokenizer (收 回扣, "take kickbacks", where it has 收回 扣), some worse (看病 人, 个儿 子). Every doubling of the text still helps, so 4M or more should close most of the gap. Another option is a small neural tagger, which needs PyTorch.
+
+At 4.69M (all of gen-corpus and gen-words), cards match on 99.3% of parity sentences. Dropping weights under 3.0 keeps 99.0% at 3.0 MB, and with that file every eval set scores the same as NLTokenizer, real-P included. That is the file in `Resources/splitter.tsv` now (it was the 6.8 MB, 1.66M one). It fixes 看 病人 and 一共 有 in the bridge check.
 
 The trade: both apps would use the tagger, so Windows matches the Mac exactly, and the Mac moves off NLTokenizer on about 1 sentence in 80. Adopt it only once the evals match.
 
