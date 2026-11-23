@@ -47,6 +47,18 @@ sealed class ModelCard
         Root = f.CardFrame(stack);
     }
 
+    /// The button downloads (Download, Resume, Try again, Download again): the welcome window
+    /// makes it the default then, as the Mac's does.
+    public bool WantsDownload { get; private set; }
+
+    /// The welcome window's default button: accent and Enter.
+    public void SetDefault(bool on)
+    {
+        if (on) button.SetResourceReference(FrameworkElement.StyleProperty, "Accent");
+        else button.ClearValue(FrameworkElement.StyleProperty);
+        button.IsDefault = on;
+    }
+
     public void Show(ModelView m)
     {
         var size = ModelDownload.Gigabytes(ModelDownload.Size);
@@ -91,6 +103,7 @@ sealed class ModelCard
         }
         words.Children.Clear();
         foreach (var l in lines) words.Children.Add(f.Caption(l));
+        WantsDownload = act == Program.GetModel;
         button.Visibility = label == null ? Visibility.Collapsed : Visibility.Visible;
         button.Content = label ?? "";
         button.IsEnabled = enabled;

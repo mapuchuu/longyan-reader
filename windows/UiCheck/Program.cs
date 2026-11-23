@@ -227,7 +227,8 @@ static partial class Program
     {
         var window = WaitForWindow("Welcome to Longyan Reader", TimeSpan.FromSeconds(30), exact: true);
         if (window == IntPtr.Zero) { failures.Add("0-welcome: no welcome window on the first run"); Shot("0-no-welcome"); return; }
-        SetForegroundWindow(window);
+        // In front for real: else the shortcut reads whatever is selected in the window that is (FirstRun.cs).
+        if (!Bring(window)) failures.Add("0-welcome: couldn't bring the welcome window to the front");
         Thread.Sleep(800);
         Shot("0-welcome");
         if ((bool?)SettingsJson()?["welcomeShown"] != true) failures.Add("0-welcome: settings.json doesn't say it was shown");

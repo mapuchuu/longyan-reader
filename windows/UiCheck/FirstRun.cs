@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -49,7 +50,7 @@ static partial class Program
         Console.WriteLine($"[first-run] welcome window after {opened:0.0} s");
         if (window == IntPtr.Zero) { failures.Add("first-run: no welcome window"); Shot("fr-0-no-welcome"); return Finish(app); }
         if (opened > 6) failures.Add($"first-run: the welcome window took {opened:0.0} s to open");
-        SetForegroundWindow(window);
+        if (!Bring(window)) failures.Add("first-run: couldn't bring the welcome window to the front");
         Thread.Sleep(1000);
         Shot("fr-1-welcome");
         var root = AutomationElement.FromHandle(window);
@@ -150,6 +151,25 @@ static partial class Program
         using (var run = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run"))
             if (run?.GetValue("Longyan Reader") is not string) failures.Add("first-run: Open at login isn't on");
         return Finish(app);
+    }
+
+    /// Brings a window to the front. Windows 11 refuses SetForegroundWindow to a process that
+    /// isn't in front (as UiCheck isn't once Notepad is), so then a click on its title bar.
+    /// On the ARM runner the welcome window stayed behind Notepad, and the shortcut looked up
+    /// Notepad's selection (海) instead of the sample's.
+    static bool Bring(IntPtr window)
+    {
+        SetForegroundWindow(window);
+        Thread.Sleep(200);
+        if (GetForegroundWindow() != window)
+        {
+            GetWindowRect(window, out var r);
+            SetCursorPos(r.Left + 120, r.Top + 12);
+            clicks.Add(Environment.TickCount64);
+            SendInput(2, new[] { Mouse(MOUSEEVENTF_LEFTDOWN), Mouse(MOUSEEVENTF_LEFTUP) }, Marshal.SizeOf<INPUT>());
+            Thread.Sleep(500);
+        }
+        return GetForegroundWindow() == window;
     }
 
     static int Finish(Process app)

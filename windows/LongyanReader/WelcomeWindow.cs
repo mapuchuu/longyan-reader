@@ -151,6 +151,7 @@ sealed class WelcomePage
     readonly Button choose;
     readonly FrameworkElement pointRow;
     readonly ToggleButton login;
+    readonly Button doneButton;
 
     public bool OpenAtLogin => login.IsChecked == true;
 
@@ -178,8 +179,9 @@ sealed class WelcomePage
         Grid.SetColumn(login, 1);
         footer.Children.Add(login);
         if (!preview && !LoginItem.Available) { loginLabel.Visibility = Visibility.Collapsed; login.Visibility = Visibility.Collapsed; }
-        var doneButton = f.PushButton("Done", done, accent: true, automationId: "Done");
-        doneButton.IsDefault = true;   // Esc is the window's own (WelcomeWindow), so it can leave a card to close
+        // Esc is the window's own (WelcomeWindow), so it can leave a card to close. Which button
+        // is the default follows the model (RefreshModel).
+        doneButton = f.PushButton("Done", done, automationId: "Done");
         doneButton.MinWidth = 120;
         Grid.SetColumn(doneButton, 3);
         footer.Children.Add(doneButton);
@@ -299,7 +301,17 @@ sealed class WelcomePage
         tryHow.Text = works ? $"Select a word below, then press {name}." : "Choose a shortcut to try it here.";
     }
 
-    public void RefreshModel() => model.Show(fixedModel ?? ModelView.Now());
+    /// While the model still needs downloading, Download is the default button, as on the Mac;
+    /// after that, Done.
+    public void RefreshModel()
+    {
+        model.Show(fixedModel ?? ModelView.Now());
+        var download = model.WantsDownload;
+        model.SetDefault(download);
+        if (download) doneButton.ClearValue(FrameworkElement.StyleProperty);
+        else doneButton.SetResourceReference(FrameworkElement.StyleProperty, "Accent");
+        doneButton.IsDefault = !download;
+    }
 }
 
 /// Windows 11's Mica behind a window: the frame extended over the whole window, the system
