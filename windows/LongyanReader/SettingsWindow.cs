@@ -80,7 +80,8 @@ sealed class ModelCard
             // it isn't sent 2.7 GB.
             enabled = m.Status.Length > 0;
         }
-        else if (m.Status.Length == 0) lines.Add("Loading…");
+        // Downloaded, and the core hasn't looked again yet (it says "unloadable" when it has).
+        else if (m.Status != "unloadable" && m.Error == null) lines.Add("Loading…");
         else
         {
             lines.Add("It couldn't load, so cards list meanings in dictionary order.");
