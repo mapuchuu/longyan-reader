@@ -783,8 +783,7 @@ sealed class CardView
     FrameworkElement AnkiButton(string text)
     {
         ankiWord = text.Length > 14 ? text[..13] + "…" : text;
-        var symbol = new Symbol("M 0,0", true, Rest, false);
-        symbol.Path.StrokeThickness = 0;
+        var symbol = new Symbol("M 0,0", false, Rest, false);
         ankiSymbol = symbol;
         ankiButton = ActionButton(symbol, "", _ => actions.AddToAnki());
         ShowAnki();
@@ -824,34 +823,24 @@ sealed class CardView
         }
     }
 
-    // SF Symbols' rectangle.stack.badge.plus, checkmark.rectangle.stack and
-    // exclamationmark.triangle, traced from the Mac's at the size Copy's is drawn, as filled
-    // outlines: their bars are thinner than a stroke.
-    static readonly Geometry AnkiAdd = Join(
-        Stroked("M 2.65,6.8 V 4.77 A 0.9,0.9 0 0 1 3.55,3.87 H 12.05 A 0.9,0.9 0 0 1 12.95,4.77 V 10.9 A 0.9,0.9 0 0 1 12.05,11.8 H 5.85", 1.05, PenLineCap.Flat),
-        Geometry.Parse("M 3.33,2.5 A 0.85,0.85 0 0 1 4.18,1.65 H 11.43 A 0.85,0.85 0 0 1 12.28,2.5 Z"),
-        Geometry.Parse("M 4.41,0.89 A 0.72,0.72 0 0 1 5.13,0.17 H 10.48 A 0.72,0.72 0 0 1 11.2,0.89 Z"),
-        Geometry.Combine(new EllipseGeometry(new Point(2.67, 10.29), 2.74, 2.74),
-            Stroked("M 1.28,10.29 H 4.06 M 2.67,8.9 V 11.68", 0.7, PenLineCap.Round), GeometryCombineMode.Exclude, null));
-    static readonly Geometry AnkiAdded = Join(
-        Stroked("M 2.86,4.17 H 11.15 A 1,1 0 0 1 12.15,5.17 V 11.11 A 1,1 0 0 1 11.15,12.11 H 2.86 A 1,1 0 0 1 1.86,11.11 V 5.17 A 1,1 0 0 1 2.86,4.17 Z", 1.05, PenLineCap.Flat),
-        Geometry.Parse("M 2.52,2.78 A 0.82,0.82 0 0 1 3.34,1.96 H 10.66 A 0.82,0.82 0 0 1 11.48,2.78 Z"),
-        Geometry.Parse("M 3.61,1.2 A 0.74,0.74 0 0 1 4.35,0.46 H 9.65 A 0.74,0.74 0 0 1 10.39,1.2 Z"),
-        Stroked("M 5,8.48 L 6.41,10.1 L 8.98,6.32", 0.98, PenLineCap.Round));
-    static readonly Geometry Warning = Join(
-        Stroked("M 6.98,2.45 L 12.12,11.6 L 1.84,11.6 Z", 0.98, PenLineCap.Round),
-        Stroked("M 6.98,5.3 V 7.95", 1.0, PenLineCap.Round),
-        new EllipseGeometry(new Point(6.98, 9.63), 0.62, 0.62));
+    // The Anki symbols, drawn for this app on Copy's 14 grid with its stroke: a card with two
+    // more stacked behind it, a plus where its corner would be; the stack with a check on the
+    // card; a warning triangle.
+    static readonly Geometry AnkiAdd = Icon(
+        "M 4,1.8 H 10 M 3,3.6 H 11 " +
+        "M 12.4,8.6 V 6.6 A 1.2,1.2 0 0 0 11.2,5.4 H 2.8 A 1.2,1.2 0 0 0 1.6,6.6 V 11.2 A 1.2,1.2 0 0 0 2.8,12.4 H 8.4 " +
+        "M 11.4,9.6 V 13.2 M 9.6,11.4 H 13.2");
+    static readonly Geometry AnkiAdded = Icon(
+        "M 4,1.8 H 10 M 3,3.6 H 11 " +
+        "M 2.8,5.4 H 11.2 A 1.2,1.2 0 0 1 12.4,6.6 V 11.2 A 1.2,1.2 0 0 1 11.2,12.4 H 2.8 A 1.2,1.2 0 0 1 1.6,11.2 V 6.6 A 1.2,1.2 0 0 1 2.8,5.4 Z " +
+        "M 4.9,8.9 L 6.4,10.3 L 9.2,7.4");
+    static readonly Geometry Warning = Icon("M 7,1.9 L 12.9,12.1 H 1.1 Z M 7,5.6 V 8.4 M 7,10.3 V 10.32");
 
-    static Geometry Stroked(string data, double width, PenLineCap cap) =>
-        Geometry.Parse(data).GetWidenedPathGeometry(new Pen(Brushes.Black, width) { StartLineCap = cap, EndLineCap = cap, LineJoin = PenLineJoin.Round });
-
-    static Geometry Join(params Geometry[] parts)
+    static Geometry Icon(string data)
     {
-        Geometry all = parts[0];
-        foreach (var p in parts.Skip(1)) all = Geometry.Combine(all, p, GeometryCombineMode.Union, null);
-        all.Freeze();
-        return all;
+        var g = Geometry.Parse(data);
+        g.Freeze();
+        return g;
     }
 
     /// The symbols brighten while the pointer is anywhere on the card (ease-out 0.2 s).
