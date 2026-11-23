@@ -107,7 +107,7 @@ static class Program
     {
         var before = File.Exists(log) ? File.ReadAllLines(log).Length : 0;
         Keys(VK_CONTROL, VK_MENU, 0x4C);
-        if (burst) Burst(name + "-reveal", 1200);
+        if (burst) Burst(name + "-reveal", 2000);
         var started = DateTime.Now;
         var shotEarly = false;
         JsonObject? card = null;
@@ -171,7 +171,7 @@ static class Program
         return sb.ToString();
     }
 
-    /// Frames of the screen every ~30 ms for `ms`, kept in memory and saved after, so the
+    /// Frames of the screen as fast as they come for `ms`, kept in memory and saved after, so the
     /// capture doesn't slow itself down: name-00.png, name-01.png, … with the times in name.txt.
     static void Burst(string name, int ms)
     {
@@ -180,14 +180,8 @@ static class Program
         var clock = Stopwatch.StartNew();
         while (clock.ElapsedMilliseconds < ms)
         {
-            var bmp = new Bitmap(b.Width / 2, b.Height / 2);
-            using (var full = new Bitmap(b.Width, b.Height))
-            {
-                using (var g = Graphics.FromImage(full)) g.CopyFromScreen(b.Location, Point.Empty, b.Size);
-                using var h = Graphics.FromImage(bmp);
-                h.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.Bilinear;
-                h.DrawImage(full, 0, 0, bmp.Width, bmp.Height);
-            }
+            var bmp = new Bitmap(b.Width, b.Height);
+            using (var g = Graphics.FromImage(bmp)) g.CopyFromScreen(b.Location, Point.Empty, b.Size);
             frames.Add((clock.Elapsed.TotalMilliseconds, bmp));
             Thread.Sleep(10);
         }

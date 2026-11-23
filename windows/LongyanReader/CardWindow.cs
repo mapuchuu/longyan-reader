@@ -271,6 +271,9 @@ sealed class CardWindow : Window, ICardActions
     /// The content's height as drawn (zoomed), up to the most the card may be.
     double Measure()
     {
+        // Only the content's children changed, so the root has to be told to measure again,
+        // or it answers with its last size.
+        view.Root.InvalidateMeasure();
         view.Root.Measure(new Size(CardWidth, double.PositiveInfinity));
         return Math.Ceiling(Math.Min(view.Root.DesiredSize.Height, MaxHeight()));
     }
@@ -399,6 +402,7 @@ sealed class CardWindow : Window, ICardActions
         if (!placed)
         {
             placed = true;
+            view.Root.InvalidateMeasure();
             view.Root.Measure(new Size(CardWidth, double.PositiveInfinity));
             var content = view.Root.DesiredSize.Height;
             var roomBelow = (area.Bottom - anchor.Bottom) / s - 16;
