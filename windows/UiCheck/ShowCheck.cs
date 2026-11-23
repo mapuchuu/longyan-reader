@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json.Nodes;
 using System.Threading;
+using System.Windows.Automation;
 
 namespace Longyan;
 
@@ -38,6 +39,11 @@ static partial class Program
                     failures.Add($"7-show: card at {revealed["left"]}, {revealed["top"]}; wanted {200 * scale}, {178 * scale}");
             }
             else failures.Add("7-show: no revealed event");
+            // The row's word, not the header (the whole phrase, which has 明朝 in it too).
+            if (FindExact(show, "明朝") is System.Windows.Rect word) r = word;
+            else { failures.Add("7-show: no 明朝 row"); return; }
+            MoveTo(r.Left + 10, r.Top + r.Height / 2);
+            Thread.Sleep(400);
             Click(r.Left + 10, r.Top + r.Height / 2);
             Burst("7-show-open", 800);
             Thread.Sleep(500);
@@ -47,12 +53,21 @@ static partial class Program
             Thread.Sleep(500);
             if (CardOpen(show)) failures.Add("7-show: Esc didn't close the card");
             Thread.Sleep(1500);
-            if (FindText(show, "明朝") == null) failures.Add("7-show: the card didn't open again after Esc");
+            if (FindExact(show, "明朝") == null) failures.Add("7-show: the card didn't open again after Esc");
             Shot("7-show-again");
         }
         finally
         {
             try { show.Kill(); } catch { }
         }
+    }
+
+    static System.Windows.Rect? FindExact(Process app, string text)
+    {
+        var cond = new PropertyCondition(AutomationElement.ProcessIdProperty, app.Id);
+        foreach (AutomationElement w in AutomationElement.RootElement.FindAll(TreeScope.Children, cond))
+            foreach (AutomationElement t in w.FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Text)))
+                if (t.Current.Name.Trim() == text) return t.Current.BoundingRectangle;
+        return null;
     }
 }
