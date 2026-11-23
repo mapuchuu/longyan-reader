@@ -122,7 +122,9 @@ sealed class CardView
         if ((string?)c["meaning"] is string meaning)
         {
             var block = new StackPanel { Margin = new Thickness(0, 4, 0, 0) };
-            block.Children.Add(Keyed("meaning", Label(meaning, 19, Theme.Primary, FontWeights.SemiBold), meaning, crossfade: true));
+            var meaningLine = Label(meaning, 19, Theme.Primary, FontWeights.SemiBold);
+            meaningLine.Margin = new Thickness(0, -HeaderLift, 0, HeaderLift);   // Segoe sits low in the line too
+            block.Children.Add(Keyed("meaning", meaningLine, meaning, crossfade: true));
             if ((bool?)c["contextual"] == true)
                 block.Children.Add(Keyed("contextual", Label("Meaning in this sentence", 11, Theme.Secondary, top: 2)));
             top.Children.Add(Keyed("meaningBlock", block));
