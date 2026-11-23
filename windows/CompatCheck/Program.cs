@@ -139,7 +139,10 @@ static class Program
             ("browser.shell.checkDefaultBrowser", "false"), ("browser.aboutwelcome.enabled", "false"),
             ("datareporting.policy.dataSubmissionEnabled", "false"), ("datareporting.policy.firstRunURL", "\"\""),
             ("browser.startup.homepage_override.mstone", "\"ignore\""), ("toolkit.telemetry.reportingpolicy.firstRun", "false"),
-            ("app.update.disabledForTesting", "true"), ("browser.translations.automaticallyPopup", "false") })
+            ("app.update.disabledForTesting", "true"), ("browser.translations.automaticallyPopup", "false"),
+            ("datareporting.policy.dataSubmissionPolicyBypassNotification", "true"), ("datareporting.policy.dataSubmissionPolicyAcceptedVersion", "2"),
+            ("datareporting.policy.dataSubmissionPolicyNotifiedTime", "\"1700000000000\""), ("startup.homepage_welcome_url", "\"\""),
+            ("startup.homepage_welcome_url.additional", "\"\""), ("browser.startup.firstrunSkipsHomepage", "true") })
             prefs.AppendLine($"user_pref(\"{k}\", {v});");
         if (uia) prefs.AppendLine("user_pref(\"accessibility.uia.enable\", 1);");
         File.WriteAllText(Path.Combine(d, "user.js"), prefs.ToString());
@@ -382,16 +385,25 @@ static class Program
         var px = new byte[data.Stride * b.Height];
         Marshal.Copy(data.Scan0, px, 0, px.Length);
         bmp.UnlockBits(data);
-        int l = int.MaxValue, t = int.MaxValue, r = -1, bt = -1, n = 0;
+        bool Hit(int x, int y) { var i = y * data.Stride + x * 4; int B = px[i], G = px[i + 1], R = px[i + 2]; return R >= 170 && B >= 170 && G <= 110 && Math.Abs(R - B) <= 70; }
+        // Rows with magenta, in bands of touching rows; the band with the most is the line (an
+        // icon in the toolbar, Edge's Copilot, can be magenta too).
+        var count = new int[b.Height];
+        for (var y = 0; y < b.Height; y++) for (var x = 0; x < b.Width; x++) if (Hit(x, y)) count[y]++;
+        int bestTop = -1, bestBottom = -1, best = 0;
         for (var y = 0; y < b.Height; y++)
-            for (var x = 0; x < b.Width; x++)
-            {
-                var i = y * data.Stride + x * 4;
-                int B = px[i], G = px[i + 1], R = px[i + 2];
-                if (R < 170 || B < 170 || G > 110 || Math.Abs(R - B) > 70) continue;
-                n++; l = Math.Min(l, x); r = Math.Max(r, x); t = Math.Min(t, y); bt = Math.Max(bt, y);
-            }
-        if (n < 60 || r - l < 40) return null;
+        {
+            if (count[y] == 0) continue;
+            int y0 = y, sum = 0;
+            // A gap of a few rows still counts as the same line (strokes of a character).
+            for (var gap = 0; y < b.Height && gap <= 3; y++) { if (count[y] > 0) { sum += count[y]; gap = 0; } else gap++; }
+            var y1 = y - 5;
+            if (sum > best) { best = sum; bestTop = y0; bestBottom = y1; }
+        }
+        if (best < 60) return null;
+        int l = int.MaxValue, r = -1, t = bestTop, bt = bestBottom;
+        for (var y = t; y <= bt; y++) for (var x = 0; x < b.Width; x++) if (Hit(x, y)) { l = Math.Min(l, x); r = Math.Max(r, x); }
+        if (r - l < 40) return null;
         return new Rectangle(l + b.Left, t + b.Top, r - l + 1, bt - t + 1);
     }
 
@@ -534,13 +546,24 @@ static class Program
     }
 
     static (int X, int Y) Cursor() { GetCursorPos(out var p); return (p.X, p.Y); }
-    static void MoveTo(double x, double y) => SetCursorPos((int)Math.Round(x), (int)Math.Round(y));
+    /// Moves as a mouse does (an input event, which some apps, Windows Terminal and LibreOffice,
+    /// need to see, where a SetCursorPos isn't enough).
+    static void MoveTo(double x, double y)
+    {
+        var b = System.Windows.Forms.Screen.PrimaryScreen!.Bounds;
+        var input = new INPUT { type = 0, u = new InputUnion { mi = new MOUSEINPUT {
+            dx = (int)Math.Round(x * 65535.0 / (b.Width - 1)), dy = (int)Math.Round(y * 65535.0 / (b.Height - 1)), dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE } } };
+        SendInput(1, new[] { input }, Marshal.SizeOf<INPUT>());
+        SetCursorPos((int)Math.Round(x), (int)Math.Round(y));
+    }
+
+    static void Button(uint flags) => SendInput(1, new[] { Mouse(flags) }, Marshal.SizeOf<INPUT>());
 
     static void Click(double x, double y)
     {
         MoveTo(x, y);
         Thread.Sleep(60);
-        SendInput(2, new[] { Mouse(MOUSEEVENTF_LEFTDOWN), Mouse(MOUSEEVENTF_LEFTUP) }, Marshal.SizeOf<INPUT>());
+        Button(MOUSEEVENTF_LEFTDOWN); Thread.Sleep(30); Button(MOUSEEVENTF_LEFTUP);
         Thread.Sleep(100);
     }
 
@@ -548,17 +571,19 @@ static class Program
     {
         MoveTo(x, y);
         Thread.Sleep(60);
-        SendInput(4, new[] { Mouse(MOUSEEVENTF_LEFTDOWN), Mouse(MOUSEEVENTF_LEFTUP), Mouse(MOUSEEVENTF_LEFTDOWN), Mouse(MOUSEEVENTF_LEFTUP) }, Marshal.SizeOf<INPUT>());
+        Button(MOUSEEVENTF_LEFTDOWN); Thread.Sleep(30); Button(MOUSEEVENTF_LEFTUP); Thread.Sleep(60);
+        Button(MOUSEEVENTF_LEFTDOWN); Thread.Sleep(30); Button(MOUSEEVENTF_LEFTUP);
     }
 
     static void Drag(double x0, double y0, double x1, double y1)
     {
         MoveTo(x0, y0);
         Thread.Sleep(60);
-        SendInput(1, new[] { Mouse(MOUSEEVENTF_LEFTDOWN) }, Marshal.SizeOf<INPUT>());
-        for (var i = 1; i <= 12; i++) { MoveTo(x0 + (x1 - x0) * i / 12.0, y0 + (y1 - y0) * i / 12.0); Thread.Sleep(16); }
+        Button(MOUSEEVENTF_LEFTDOWN);
         Thread.Sleep(60);
-        SendInput(1, new[] { Mouse(MOUSEEVENTF_LEFTUP) }, Marshal.SizeOf<INPUT>());
+        for (var i = 1; i <= 20; i++) { MoveTo(x0 + (x1 - x0) * i / 20.0, y0 + (y1 - y0) * i / 20.0); Thread.Sleep(20); }
+        Thread.Sleep(80);
+        Button(MOUSEEVENTF_LEFTUP);
     }
 
     static void Keys(params int[] vks)
@@ -572,7 +597,7 @@ static class Program
     static INPUT Mouse(uint flags) => new() { type = 0, u = new InputUnion { mi = new MOUSEINPUT { dwFlags = flags } } };
 
     const int VK_CONTROL = 0x11, VK_MENU = 0x12, VK_ESCAPE = 0x1B, SW_RESTORE = 9;
-    const uint MOUSEEVENTF_LEFTDOWN = 2, MOUSEEVENTF_LEFTUP = 4, SWP_NOZORDER = 4, GW_OWNER = 4;
+    const uint MOUSEEVENTF_MOVE = 1, MOUSEEVENTF_ABSOLUTE = 0x8000, MOUSEEVENTF_LEFTDOWN = 2, MOUSEEVENTF_LEFTUP = 4, SWP_NOZORDER = 4, GW_OWNER = 4;
 
     [StructLayout(LayoutKind.Sequential)] struct INPUT { public uint type; public InputUnion u; }
     [StructLayout(LayoutKind.Explicit)] struct InputUnion { [FieldOffset(0)] public MOUSEINPUT mi; [FieldOffset(0)] public KEYBDINPUT ki; }
