@@ -100,18 +100,18 @@ sealed class Fluent
     /// text boxes, progress bars, scroll bars and links.
     public ResourceDictionary Styles()
     {
-        var xaml = $$"""
+        var xaml = $$$"""
             <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
               <Style x:Key="Focus">
                 <Setter Property="Control.Template"><Setter.Value><ControlTemplate>
-                  <Border Margin="-3" CornerRadius="7" BorderThickness="2" BorderBrush="{{H(Text)}}"/>
+                  <Border Margin="-3" CornerRadius="7" BorderThickness="2" BorderBrush="{{{H(Text)}}}"/>
                 </ControlTemplate></Setter.Value></Setter>
               </Style>
               <Style TargetType="Button">
-                <Setter Property="Foreground" Value="{{H(Text)}}"/>
-                <Setter Property="Background" Value="{{H(ControlFill)}}"/>
-                <Setter Property="BorderBrush" Value="{{H(ControlStroke)}}"/>
+                <Setter Property="Foreground" Value="{{{H(Text)}}}"/>
+                <Setter Property="Background" Value="{{{H(ControlFill)}}}"/>
+                <Setter Property="BorderBrush" Value="{{{H(ControlStroke)}}}"/>
                 <Setter Property="Padding" Value="11,5,11,6"/>
                 <Setter Property="MinHeight" Value="32"/>
                 <Setter Property="MinWidth" Value="80"/>
@@ -122,72 +122,72 @@ sealed class Fluent
                     <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True"/>
                   </Border>
                   <ControlTemplate.Triggers>
-                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="{{H(ControlHover)}}"/></Trigger>
-                    <Trigger Property="IsPressed" Value="True"><Setter TargetName="b" Property="Background" Value="{{H(ControlPressed)}}"/><Setter Property="Foreground" Value="{{H(TextSecondary)}}"/></Trigger>
-                    <Trigger Property="IsEnabled" Value="False"><Setter Property="Foreground" Value="{{H(TextDisabled)}}"/></Trigger>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="{{{H(ControlHover)}}}"/></Trigger>
+                    <Trigger Property="IsPressed" Value="True"><Setter TargetName="b" Property="Background" Value="{{{H(ControlPressed)}}}"/><Setter Property="Foreground" Value="{{{H(TextSecondary)}}}"/></Trigger>
+                    <Trigger Property="IsEnabled" Value="False"><Setter Property="Foreground" Value="{{{H(TextDisabled)}}}"/></Trigger>
                   </ControlTemplate.Triggers>
                 </ControlTemplate></Setter.Value></Setter>
               </Style>
               <Style x:Key="Accent" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                <Setter Property="Foreground" Value="{{H(OnAccent)}}"/>
-                <Setter Property="Background" Value="{{H(Accent)}}"/>
-                <Setter Property="BorderBrush" Value="{{H(Accent)}}"/>
+                <Setter Property="Foreground" Value="{{{H(OnAccent)}}}"/>
+                <Setter Property="Background" Value="{{{H(Accent)}}}"/>
+                <Setter Property="BorderBrush" Value="{{{H(Accent)}}}"/>
                 <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
                   <Border x:Name="b" CornerRadius="4" Background="{TemplateBinding Background}" BorderThickness="0" SnapsToDevicePixels="True">
                     <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True"/>
                   </Border>
                   <ControlTemplate.Triggers>
-                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="{{H(Fade(Accent, 0.9))}}"/></Trigger>
-                    <Trigger Property="IsPressed" Value="True"><Setter TargetName="b" Property="Background" Value="{{H(Fade(Accent, 0.8))}}"/></Trigger>
-                    <Trigger Property="IsEnabled" Value="False"><Setter TargetName="b" Property="Background" Value="{{H(TextDisabled)}}"/></Trigger>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="{{{H(Fade(Accent, 0.9))}}}"/></Trigger>
+                    <Trigger Property="IsPressed" Value="True"><Setter TargetName="b" Property="Background" Value="{{{H(Fade(Accent, 0.8))}}}"/></Trigger>
+                    <Trigger Property="IsEnabled" Value="False"><Setter TargetName="b" Property="Background" Value="{{{H(TextDisabled)}}}"/></Trigger>
                   </ControlTemplate.Triggers>
                 </ControlTemplate></Setter.Value></Setter>
               </Style>
               <Style TargetType="ToggleButton">
-                <Setter Property="Foreground" Value="{{H(Text)}}"/>
+                <Setter Property="Foreground" Value="{{{H(Text)}}}"/>
                 <Setter Property="FontSize" Value="14"/>
                 <Setter Property="FocusVisualStyle" Value="{StaticResource Focus}"/>
                 <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToggleButton">
                   <Grid Background="Transparent">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                     <TextBlock x:Name="label" Text="Off" VerticalAlignment="Center" Margin="0,0,12,1" Foreground="{TemplateBinding Foreground}"/>
-                    <Border x:Name="track" Grid.Column="1" Width="40" Height="20" CornerRadius="10" BorderThickness="1" BorderBrush="{{H(StrongStroke)}}" Background="{{H(ToggleOffFill)}}" SnapsToDevicePixels="True">
-                      <Ellipse x:Name="knob" Width="12" Height="12" Fill="{{H(TextSecondary)}}" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="3,0,0,0"/>
+                    <Border x:Name="track" Grid.Column="1" Width="40" Height="20" CornerRadius="10" BorderThickness="1" BorderBrush="{{{H(StrongStroke)}}}" Background="{{{H(ToggleOffFill)}}}" SnapsToDevicePixels="True">
+                      <Ellipse x:Name="knob" Width="12" Height="12" Fill="{{{H(TextSecondary)}}}" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="3,0,0,0"/>
                     </Border>
                   </Grid>
                   <ControlTemplate.Triggers>
                     <Trigger Property="IsMouseOver" Value="True">
-                      <Setter TargetName="track" Property="Background" Value="{{H(ToggleOffHover)}}"/>
+                      <Setter TargetName="track" Property="Background" Value="{{{H(ToggleOffHover)}}}"/>
                       <Setter TargetName="knob" Property="Width" Value="14"/><Setter TargetName="knob" Property="Height" Value="14"/>
                       <Setter TargetName="knob" Property="Margin" Value="2,0,2,0"/>
                     </Trigger>
                     <Trigger Property="IsChecked" Value="True">
                       <Setter TargetName="label" Property="Text" Value="On"/>
-                      <Setter TargetName="track" Property="Background" Value="{{H(Accent)}}"/>
-                      <Setter TargetName="track" Property="BorderBrush" Value="{{H(Accent)}}"/>
-                      <Setter TargetName="knob" Property="Fill" Value="{{H(OnAccent)}}"/>
+                      <Setter TargetName="track" Property="Background" Value="{{{H(Accent)}}}"/>
+                      <Setter TargetName="track" Property="BorderBrush" Value="{{{H(Accent)}}}"/>
+                      <Setter TargetName="knob" Property="Fill" Value="{{{H(OnAccent)}}}"/>
                       <Setter TargetName="knob" Property="HorizontalAlignment" Value="Right"/>
                       <Setter TargetName="knob" Property="Margin" Value="0,0,3,0"/>
                     </Trigger>
                     <MultiTrigger>
                       <MultiTrigger.Conditions><Condition Property="IsChecked" Value="True"/><Condition Property="IsMouseOver" Value="True"/></MultiTrigger.Conditions>
-                      <Setter TargetName="track" Property="Background" Value="{{H(Fade(Accent, 0.9))}}"/>
+                      <Setter TargetName="track" Property="Background" Value="{{{H(Fade(Accent, 0.9))}}}"/>
                       <Setter TargetName="knob" Property="Margin" Value="0,0,2,0"/>
                     </MultiTrigger>
                     <Trigger Property="IsEnabled" Value="False">
-                      <Setter TargetName="label" Property="Foreground" Value="{{H(TextDisabled)}}"/>
-                      <Setter TargetName="track" Property="BorderBrush" Value="{{H(TextDisabled)}}"/>
-                      <Setter TargetName="knob" Property="Fill" Value="{{H(TextDisabled)}}"/>
+                      <Setter TargetName="label" Property="Foreground" Value="{{{H(TextDisabled)}}}"/>
+                      <Setter TargetName="track" Property="BorderBrush" Value="{{{H(TextDisabled)}}}"/>
+                      <Setter TargetName="knob" Property="Fill" Value="{{{H(TextDisabled)}}}"/>
                     </Trigger>
                   </ControlTemplate.Triggers>
                 </ControlTemplate></Setter.Value></Setter>
               </Style>
               <Style TargetType="TextBox">
-                <Setter Property="Foreground" Value="{{H(Text)}}"/>
-                <Setter Property="Background" Value="{{H(ControlFill)}}"/>
-                <Setter Property="BorderBrush" Value="{{H(ControlStroke)}}"/>
-                <Setter Property="CaretBrush" Value="{{H(Text)}}"/>
-                <Setter Property="SelectionBrush" Value="{{H(Accent)}}"/>
+                <Setter Property="Foreground" Value="{{{H(Text)}}}"/>
+                <Setter Property="Background" Value="{{{H(ControlFill)}}}"/>
+                <Setter Property="BorderBrush" Value="{{{H(ControlStroke)}}}"/>
+                <Setter Property="CaretBrush" Value="{{{H(Text)}}}"/>
+                <Setter Property="SelectionBrush" Value="{{{H(Accent)}}}"/>
                 <Setter Property="FontSize" Value="14"/>
                 <Setter Property="Padding" Value="10,0,10,1"/>
                 <Setter Property="MinHeight" Value="32"/>
@@ -196,15 +196,15 @@ sealed class Fluent
                 <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox">
                   <Grid>
                     <Border x:Name="b" CornerRadius="4" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" SnapsToDevicePixels="True"/>
-                    <Border x:Name="u" Height="1" VerticalAlignment="Bottom" Margin="1,0,1,0" Background="{{H(StrongStroke)}}" SnapsToDevicePixels="True"/>
+                    <Border x:Name="u" Height="1" VerticalAlignment="Bottom" Margin="1,0,1,0" Background="{{{H(StrongStroke)}}}" SnapsToDevicePixels="True"/>
                     <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" Focusable="False"/>
                   </Grid>
                   <ControlTemplate.Triggers>
-                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="{{H(ControlHover)}}"/></Trigger>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="{{{H(ControlHover)}}}"/></Trigger>
                     <Trigger Property="IsKeyboardFocused" Value="True">
-                      <Setter TargetName="b" Property="Background" Value="{{H(InputFocused)}}"/>
+                      <Setter TargetName="b" Property="Background" Value="{{{H(InputFocused)}}}"/>
                       <Setter TargetName="u" Property="Height" Value="2"/>
-                      <Setter TargetName="u" Property="Background" Value="{{H(Accent)}}"/>
+                      <Setter TargetName="u" Property="Background" Value="{{{H(Accent)}}}"/>
                     </Trigger>
                   </ControlTemplate.Triggers>
                 </ControlTemplate></Setter.Value></Setter>
@@ -213,8 +213,8 @@ sealed class Fluent
                 <Setter Property="Height" Value="3"/>
                 <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ProgressBar">
                   <Grid>
-                    <Border x:Name="PART_Track" Height="1" VerticalAlignment="Center" Background="{{H(StrongStroke)}}"/>
-                    <Border x:Name="PART_Indicator" HorizontalAlignment="Left" CornerRadius="1.5" Background="{{H(Accent)}}"/>
+                    <Border x:Name="PART_Track" Height="1" VerticalAlignment="Center" Background="{{{H(StrongStroke)}}}"/>
+                    <Border x:Name="PART_Indicator" HorizontalAlignment="Left" CornerRadius="1.5" Background="{{{H(Accent)}}}"/>
                   </Grid>
                 </ControlTemplate></Setter.Value></Setter>
               </Style>
@@ -224,13 +224,13 @@ sealed class Fluent
                 <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ScrollBar">
                   <Track x:Name="PART_Track" Orientation="Vertical" IsDirectionReversed="True">
                     <Track.Thumb><Thumb><Thumb.Template><ControlTemplate TargetType="Thumb">
-                      <Border Width="4" CornerRadius="2" Margin="0,2,0,2" Background="{{H(TextSecondary)}}" Opacity="0.7"/>
+                      <Border Width="4" CornerRadius="2" Margin="0,2,0,2" Background="{{{H(TextSecondary)}}}" Opacity="0.7"/>
                     </ControlTemplate></Thumb.Template></Thumb></Track.Thumb>
                   </Track>
                 </ControlTemplate></Setter.Value></Setter>
               </Style>
               <Style TargetType="Hyperlink">
-                <Setter Property="Foreground" Value="{{H(AccentText)}}"/>
+                <Setter Property="Foreground" Value="{{{H(AccentText)}}}"/>
                 <Setter Property="TextDecorations" Value="{x:Null}"/>
                 <Style.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="TextDecorations" Value="Underline"/></Trigger></Style.Triggers>
               </Style>
