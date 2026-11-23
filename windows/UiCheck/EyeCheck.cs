@@ -402,7 +402,15 @@ static partial class Program
         // last selection gone (Ctrl+End keeps it there), so its highlight isn't either.
         Keys(VK_CONTROL, VK_END);
         clear?.Invoke();
-        WaitForEye(false, 1000);
+        // The last case's eye goes on that key, as on the Mac; one still there would be taken
+        // for this case's.
+        var stale = WaitForEye(false, 1000);
+        if (stale != IntPtr.Zero)
+        {
+            Console.WriteLine($"[{name}] the last eye is still on screen 1 s after Ctrl+End");
+            failures.Add($"{name}: the last eye didn't go on a key press");
+            WaitForEye(false, 8000);
+        }
         Thread.Sleep(300);
         using var before = Capture();
         var skip = Lines();
@@ -439,7 +447,14 @@ static partial class Program
         Thread.Sleep(700);   // the spring in settles
         using var after = Capture();
         after.Save(Path.Combine(outDir, name + ".png"), ImageFormat.Png);
-        GetWindowRect(eye, out var r);
+        if (!GetWindowRect(eye, out var r) || r.Right <= r.Left || r.Bottom <= r.Top)
+        {
+            Shot(name);
+            Console.WriteLine($"[{name}] the eye's window was gone 0.7 s after it showed; logged {Last(skip, "eye")?.ToJsonString() ?? "nothing"}");
+            failures.Add($"{name}: the eye went before it could be measured");
+            first?.Dispose();
+            return null;
+        }
         var s = ScaleOf(eye);
         var rects = SelectionRects(window);
         var trimmedRight = TrimmedRight(window);
@@ -610,8 +625,7 @@ static partial class Program
             for (var y = inkTop + q; y <= inkBottom - q; y++)
                 for (var x = Math.Min(selected.Width - 1, (int)(union.Right + 12 * s)); x >= (int)union.Left; x--)
                 {
-                    var c = selected.GetPixel(x, y);
-                    if (Math.Abs(c.R - hl.R) + Math.Abs(c.G - hl.G) + Math.Abs(c.B - hl.B) <= 6) { ends.Add(x); break; }
+                    if (Highlight(selected.GetPixel(x, y), hl)) { ends.Add(x); break; }
                 }
             ends.Sort();
             var right = ends.Count > 0 ? ends[ends.Count / 2] : -1;
@@ -632,6 +646,17 @@ static partial class Program
         if (Math.Abs(dy) > tol) failures.Add($"{name}: the mark's centre is {dy:+0.##;-0.##} points from the text's ink centre (the Mac: 0)");
         if (dx is double d && Math.Abs(d - 19.5) > tol) failures.Add($"{name}: the mark's centre is {d:0.##} points after the text's end (the Mac: 19.5)");
         if (dx == null) failures.Add($"{name}: couldn't find the highlight's right edge");
+    }
+
+    /// The highlight's colour, or that colour under a shadow (Edge's search button over a
+    /// double-clicked word shades its end a few per cent darker): each channel darker by one
+    /// factor. Not for a grey highlight, where text's anti-aliasing over the page would pass.
+    static bool Highlight(Color c, Color hl)
+    {
+        if (Math.Abs(c.R - hl.R) + Math.Abs(c.G - hl.G) + Math.Abs(c.B - hl.B) <= 6) return true;
+        if (Math.Max(hl.R, Math.Max(hl.G, hl.B)) - Math.Min(hl.R, Math.Min(hl.G, hl.B)) < 40) return false;
+        var k = (double)(c.R + c.G + c.B) / (hl.R + hl.G + hl.B);
+        return k is >= 0.85 and < 1 && Math.Abs(c.R - k * hl.R) <= 3 && Math.Abs(c.G - k * hl.G) <= 3 && Math.Abs(c.B - k * hl.B) <= 3;
     }
 
     /// The eye's circle where `shot` differs from `before` inside `zone` by more than `threshold`
