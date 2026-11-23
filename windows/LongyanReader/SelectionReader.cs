@@ -38,8 +38,20 @@ static class SelectionReader
     public static async Task<Probed> ProbeAsync(int timeout = 500)
     {
         if (pending is { IsCompleted: false }) return new Probed(Found.Unreadable, null, Why: "busy");
-        var work = pending = Task.Run(Probe);
-        return await Task.WhenAny(work, Task.Delay(timeout)) == work ? work.Result : new Probed(Found.Unreadable, null, Why: "timeout");
+        // When it asked, got a thread and was done, for the log.
+        var asked = System.Diagnostics.Stopwatch.GetTimestamp();
+        long started = 0, done = 0;
+        var work = pending = Task.Run(() =>
+        {
+            started = System.Diagnostics.Stopwatch.GetTimestamp();
+            var probed = Probe();
+            done = System.Diagnostics.Stopwatch.GetTimestamp();
+            return probed;
+        });
+        if (await Task.WhenAny(work, Task.Delay(timeout)) != work) return new Probed(Found.Unreadable, null, Why: "timeout");
+        static long Ms(long from, long to) => (long)System.Diagnostics.Stopwatch.GetElapsedTime(from, to).TotalMilliseconds;
+        var result = work.Result;
+        return result with { Why = $"{result.Why}; waited {Ms(asked, started)} ms for a thread, {Ms(done, System.Diagnostics.Stopwatch.GetTimestamp())} ms to come back" };
     }
 
     /// The focused element's selection; or that it has a text pattern and nothing is selected;
