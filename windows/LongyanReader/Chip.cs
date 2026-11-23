@@ -75,6 +75,7 @@ static class Chip
         // Not over a full-screen game, video or presentation.
         if (SHQueryUserNotificationState(out var state) == 0 && state is QUNS_BUSY or QUNS_RUNNING_D3D_FULL_SCREEN or QUNS_PRESENTATION_MODE) { Skip("full screen"); return; }
         if (ForegroundApp.Get() is not ForegroundApp app || Settings.EyeHiddenIn(app.Process)) { Skip("app"); return; }
+        var sinceUp = System.Diagnostics.Stopwatch.StartNew();
         var mine = ++generation;
         // Give the app a moment to update its selection.
         await Task.Delay(120);
@@ -90,7 +91,7 @@ static class Chip
                 // A position far from where the mouse let go isn't where the selection is.
                 // Nor is an empty one (the Mac's SelectionReader.checked).
                 var near = selection.Bounds is Rect b && b.Width >= 1 && b.Height >= 1 && Inflate(b, 160 * ScaleAt(up)).Contains(new Point(up.X, up.Y));
-                Show(up, near ? selection : selection with { Bounds = null }, app);
+                Show(up, near ? selection : selection with { Bounds = null }, app, sinceUp);
                 break;
             case SelectionReader.Found.Unreadable:
                 // The app won't say what's selected: offer the eye and copy on a click. Only for a
@@ -100,25 +101,27 @@ static class Chip
                 // administrator), as the Mac skips lists, rows, buttons and windows.
                 if (clicks < 2 || !app.MayBeText || !MayBeText(probed.Role)) return;
                 if (probed.Area is Rect area && !area.Contains(new Point(up.X, up.Y))) return;
-                Show(up, null, app);
+                Show(up, null, app, sinceUp);
                 break;
         }
     }
 
-    static void Show(InputWatch.POINT up, Selected? selection, ForegroundApp app)
+    static void Show(InputWatch.POINT up, Selected? selection, ForegroundApp app, System.Diagnostics.Stopwatch? sinceUp = null)
     {
         Hide();
         Bridge.ly_warm_up();
         var w = new ChipWindow(selection, app.Process, app.Path);
         // One line: where its highlight ends and its text's ink is, as drawn (see Drawn).
+        var drawnClock = System.Diagnostics.Stopwatch.StartNew();
         var drawn = selection is { Bounds: Rect sb, OneLine: true } ? SelectionReader.Drawn(sb, ScaleAt(up)) : (null, null);
+        var drawnMs = drawnClock.ElapsedMilliseconds;
         // White space left out of the rect is still highlighted: the text ends at the rect.
         if (selection is { Trimmed: true, Bounds: Rect tb } && drawn.Right > tb.Right) drawn.Right = tb.Right;
         var (left, top, size) = w.Place(up, selection?.Bounds, selection?.OneLine ?? false, drawn.Right, drawn.InkMid);
         shown = w;
         // Positions only, in device pixels (UiCheck checks them): never the text.
         var bounds = selection?.Bounds is Rect b ? $"[{b.X:0.#},{b.Y:0.#},{b.Width:0.#},{b.Height:0.#}]" : "null";
-        Core.Log($"{{\"event\":\"eye\",\"readable\":{(selection != null ? "true" : "false")},\"up\":[{up.X},{up.Y}],\"bounds\":{bounds},\"window\":[{left},{top},{size}],\"scale\":{ScaleAt(up):0.##},\"oneLine\":{((selection?.OneLine ?? false) ? "true" : "false")},\"drawn\":[{drawn.Right?.ToString("0.#") ?? "null"},{drawn.InkMid?.ToString("0.#") ?? "null"}]}}");
+        Core.Log($"{{\"event\":\"eye\",\"readable\":{(selection != null ? "true" : "false")},\"up\":[{up.X},{up.Y}],\"bounds\":{bounds},\"window\":[{left},{top},{size}],\"scale\":{ScaleAt(up):0.##},\"oneLine\":{((selection?.OneLine ?? false) ? "true" : "false")},\"drawn\":[{drawn.Right?.ToString("0.#") ?? "null"},{drawn.InkMid?.ToString("0.#") ?? "null"}],\"ms\":{sinceUp?.ElapsedMilliseconds ?? -1},\"drawnMs\":{drawnMs}}}");
         // The card's work starts once the eye has stayed a moment (or on hover): most selections
         // are made to copy, and the model's work costs battery.
         DispatcherTimer? soon = null;
@@ -265,7 +268,7 @@ sealed class ChipWindow : Window
         // A 0.5 border drawn inside the circle, as strokeBorder does.
         var hairline = new Ellipse { Width = Diameter, Height = Diameter, Stroke = Theme.Hairline, StrokeThickness = 0.5 };
         // SwiftUI puts the image on whole points: half a point right and down of centre.
-        var mark = new Rectangle { Width = Mark, Height = Mark, Fill = Theme.Ink(1), OpacityMask = markBrush, Opacity = InkAlpha(false), RenderTransform = new TranslateTransform(0.5, 0.5) };
+        var mark = new Rectangle { Width = Mark, Height = Mark, Fill = Theme.Ink(1), OpacityMask = markBrush, Opacity = InkAlpha(false), RenderTransform = new TranslateTransform(0.5, 0.5), UseLayoutRounding = false };
         RenderOptions.SetBitmapScalingMode(mark, BitmapScalingMode.HighQuality);
         // Not quite transparent: a layered window lets clicks through where it has no alpha.
         var hit = new Ellipse { Width = Target, Height = Target, Fill = new SolidColorBrush(Color.FromArgb(1, 0, 0, 0)) };
@@ -321,8 +324,12 @@ sealed class ChipWindow : Window
         x -= inset; y -= inset;
         var area = System.Windows.Forms.Screen.FromPoint(new System.Drawing.Point(up.X, up.Y)).WorkingArea;
         var size = Box * s;
-        left = (int)Math.Round(Math.Clamp(x, area.Left, area.Right - size));
-        top = (int)Math.Round(Math.Clamp(y, area.Top, area.Bottom - size));
+        double cx = Math.Clamp(x, area.Left, area.Right - size), cy = Math.Clamp(y, area.Top, area.Bottom - size);
+        left = (int)Math.Round(cx);
+        top = (int)Math.Round(cy);
+        // The window snaps to whole pixels; the mark takes up what that rounding moved, so it
+        // lands where the rule puts it (the circle keeps its whole pixels).
+        if (mark.RenderTransform is TranslateTransform shift) { shift.X = 0.5 + (cx - left) / s; shift.Y = 0.5 + (cy - top) / s; }
 
         hwnd = new WindowInteropHelper(this).EnsureHandle();
         SetWindowPos(hwnd, HWND_TOPMOST, left, top, (int)Math.Round(size), (int)Math.Round(size), SWP_NOACTIVATE);

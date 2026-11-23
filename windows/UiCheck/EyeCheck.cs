@@ -419,6 +419,9 @@ static partial class Program
         var rects = SelectionRects(window);
         var trimmedRight = TrimmedRight(window);
         var logged = Last(skip, "eye");
+        // Shown 0.12 s after the mouse let go, plus reading the selection (the Mac's 0.12 s, then
+        // its Accessibility read): the screen read must not hold it up.
+        if (logged?["ms"] is JsonNode msNode && (int)msNode > 300) failures.Add($"{name}: the eye came {(int)msNode} ms after the mouse let go (reading the screen took {logged["drawnMs"]} ms)");
         if (rects.Length == 0) { failures.Add($"{name}: no selection to measure"); return eye; }
         var union = rects[0];
         foreach (var x in rects.Skip(1)) union.Union(x);
@@ -443,7 +446,10 @@ static partial class Program
         double predX, predY;   // the 30-point button's centre
         // The selected text's right edge, white space after it left out (the Mac's double-click
         // takes none).
-        if (beside) { predX = (trimmedRight ?? union.Right) + 4 * s + 15 * s; predY = textMid; }
+        // Across, from the highlight's right edge as the app read it off the screen (the `exact`
+        // cases check that edge against the screen themselves).
+        var drawnRight = logged?["drawn"] is JsonArray da && da.Count == 2 && da[0] is JsonNode dr ? (double?)dr : null;
+        if (beside) { predX = (drawnRight ?? trimmedRight ?? union.Right) + 4 * s + 15 * s; predY = textMid; }
         else { predX = up.X + 6 * s + 15 * s; predY = up.Y - 6 * s - 15 * s; }
         var area = WorkArea(up);
         predX = Math.Clamp(predX - 22 * s, area.Left, area.Right - 44 * s) + 22 * s;
@@ -458,7 +464,7 @@ static partial class Program
         if (Math.Abs(cx - predX) > tolX) failures.Add($"{name}: the eye's centre is at x {cx:0.#}, the Mac's rule puts it at {predX:0.#}; off by {cx - predX:0.#} px at {s * 100:0}%");
         // Exact: the mark itself, against the text as the eye sees it (the Mac measured 0.0
         // from the ink's centre and 19.5 points after the highlight, 12 points wide).
-        var clamped = Math.Abs(predX - ((trimmedRight ?? union.Right) + 19 * s)) > 1 || r.Right >= area.Right;
+        var clamped = Math.Abs(predX - ((drawnRight ?? trimmedRight ?? union.Right) + 19 * s)) > 1 || r.Right >= area.Right;
         if (exact && beside && lines.Length == 1 && !clamped) Exact(name, after, r, s, textMid, union, top, bottom);
 
         if (first != null)
