@@ -179,10 +179,10 @@ sealed class CardView
         var source = Lines(new TextBlock
         {
             Text = text, FontSize = 14 * Theme.ChineseScale, FontFamily = Theme.Chinese, Foreground = Theme.Secondary, TextWrapping = TextWrapping.Wrap,
-            MaxHeight = Math.Round(14 * Theme.LineFactor) * 4, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, 0, slot + 8, 0),
+            MaxHeight = Math.Round(14 * Theme.LineFactor) * 4, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, SourceTop, slot + 8, 0),
         }, 14);
         top.Children.Add(Track("source", source));
-        PlaceButtons(source, 14, Theme.Chinese, FontWeights.Normal, 5);
+        PlaceButtons(source, 14, Theme.Chinese, FontWeights.Normal, 5 - SourceTop);
         if ((string?)c["translation"] is string t)
         {
             var tb = Label(t, 16, Theme.Primary, top: 4);
@@ -211,6 +211,9 @@ sealed class CardView
         words.Children.Add(list);
         content.Children.Add(Track("words", words));
     }
+
+    /// PingFang sets the source text 2 lower in its line than YaHei does.
+    const double SourceTop = 2;
 
     sealed class Block
     {
