@@ -92,12 +92,18 @@ static class Program
             Burst("2-open", 800);
             Thread.Sleep(1500);
             Shot("2-opened");
-            // The opened card scrolls: two notches down glide, then back up.
+            // Ctrl and the wheel zoom in until the card scrolls; two notches down glide, then
+            // back up and back to the usual size.
             MoveTo(row.Left + 10, row.Top + row.Height / 2);
+            CtrlWheel(120, 4);
+            Thread.Sleep(800);
+            Shot("2-zoomed");
             Wheel(-240);
             Burst("2-scroll", 600);
             Wheel(240);
             Thread.Sleep(600);
+            CtrlWheel(-120, 4);
+            Thread.Sleep(800);
             Click(row.Left + 10, row.Top + row.Height / 2);
             Burst("2-shut", 800);
         }
@@ -333,6 +339,13 @@ static class Program
     };
     static bool Extended(int vk) => vk is VK_HOME or VK_END or VK_RIGHT or VK_DOWN;
     static INPUT Mouse(uint flags, int data = 0) => new() { type = 0, u = new InputUnion { mi = new MOUSEINPUT { dwFlags = flags, mouseData = unchecked((uint)data) } } };
+
+    static void CtrlWheel(int delta, int times)
+    {
+        SendInput(1, new[] { Key(VK_CONTROL, false) }, Marshal.SizeOf<INPUT>());
+        for (var i = 0; i < times; i++) { Wheel(delta); Thread.Sleep(80); }
+        SendInput(1, new[] { Key(VK_CONTROL, true) }, Marshal.SizeOf<INPUT>());
+    }
 
     static void Wheel(int delta) => SendInput(1, new[] { Mouse(MOUSEEVENTF_WHEEL, delta) }, Marshal.SizeOf<INPUT>());
 
