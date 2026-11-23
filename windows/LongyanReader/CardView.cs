@@ -531,7 +531,8 @@ sealed class CardView
     static FrameworkElement Globe(Brush color)
     {
         var disc = new EllipseGeometry(new Point(6, 6), 5.5, 5.5);
-        var land = Geometry.Parse("M 3.2,2.6 C 4.6,1.9 6.4,2.2 6.6,3.2 C 6.8,4.1 5.4,4.2 5.2,5.2 C 5,6.1 3.6,6.4 2.8,5.6 C 2.1,4.9 2.3,3.1 3.2,2.6 Z M 6.9,6.6 C 8,6.2 9.6,6.8 9.4,8.1 C 9.2,9.3 7.7,9.8 6.9,9.1 C 6.3,8.5 6.2,6.9 6.9,6.6 Z M 8.4,2.6 C 9.2,2.8 9.8,3.6 9.6,4.2 C 9.2,4.4 8.5,3.6 8.4,2.6 Z");
+        // Asia across the middle from the top right, Australia below it to the right.
+        var land = Geometry.Parse("M 9.6,2.6 C 10.4,3.4 10.6,4.4 10.2,4.9 C 9.6,5.5 8.6,5 8,5.6 C 7.3,6.3 7.9,7.2 7.1,7.8 C 6.3,8.4 5.2,7.8 4.6,8.6 C 4.1,9.3 4.4,10.4 3.6,10.4 C 2.6,9.7 1.4,8.2 1.2,6.6 C 1.9,6.1 2.8,6.6 3.4,6 C 4,5.4 3.4,4.4 4.2,3.8 C 5,3.2 6,3.9 6.6,3.2 C 7.1,2.6 6.8,1.4 7.4,1.1 C 8.2,1.3 9,1.9 9.6,2.6 Z M 8.2,8.4 C 9,8 10,8.3 10,9 C 9.7,9.8 8.8,10.4 8.2,10.2 C 7.6,9.9 7.6,8.8 8.2,8.4 Z");
         return new Path { Data = new CombinedGeometry(GeometryCombineMode.Exclude, disc, land), Fill = color, Width = 12, Height = 12, Stretch = Stretch.None };
     }
     const string Bubble = "M 2.5,1 H 10.5 A 1.8,1.8 0 0 1 12.3,2.8 V 7.4 A 1.8,1.8 0 0 1 10.5,9.2 H 6 L 3.4,11.2 V 9.2 H 2.5 A 1.8,1.8 0 0 1 0.7,7.4 V 2.8 A 1.8,1.8 0 0 1 2.5,1 Z M 3.6,4 H 9.4 M 3.6,6.2 H 7.6";
@@ -610,7 +611,8 @@ sealed class CardView
     }
 
     const string Speaker = "M 1.6,5.2 H 3.9 L 6.9,2.6 V 11.4 L 3.9,8.8 H 1.6 Z M 9,5 A 2.6,2.6 0 0 1 9,9 M 10.9,3.3 A 5,5 0 0 1 10.9,10.7";
-    const string Copy = "M 3,9.6 V 3 A 1.2,1.2 0 0 1 4.2,1.8 H 8.8 M 6.2,4.4 H 10.6 A 1.2,1.2 0 0 1 11.8,5.6 V 11.6 A 1.2,1.2 0 0 1 10.6,12.8 H 6.2 A 1.2,1.2 0 0 1 5,11.6 V 5.6 A 1.2,1.2 0 0 1 6.2,4.4 Z";
+    // doc.on.doc: two pages with folded corners, the back one up and to the right.
+    const string Copy = "M 2.2,5.6 A 1,1 0 0 1 3.2,4.6 H 6.9 L 9.4,7.1 V 12 A 1,1 0 0 1 8.4,13 H 3.2 A 1,1 0 0 1 2.2,12 Z M 6.9,4.6 V 7.1 H 9.4 M 5,4.4 V 2.3 A 1,1 0 0 1 6,1.3 H 9.7 L 12.2,3.8 V 8.8 A 1,1 0 0 1 11.2,9.8 H 9.6 M 9.7,1.3 V 3.8 H 12.2";
     const string Pin = "M 4.4,1.6 H 9.6 M 5.3,1.6 V 5.6 L 3.4,8.4 H 10.6 L 8.7,5.6 V 1.6 M 7,8.4 V 12.8";
     const string PinFill = "M 4.6,1.2 H 9.4 A 0.6,0.6 0 0 1 9.4,2.4 H 8.8 V 5.5 L 10.8,8.3 A 0.4,0.4 0 0 1 10.5,8.9 H 3.5 A 0.4,0.4 0 0 1 3.2,8.3 L 5.2,5.5 V 2.4 H 4.6 A 0.6,0.6 0 0 1 4.6,1.2 Z M 7,8.9 V 12.8";
     const string Check = "M 3,7.4 L 5.9,10.2 L 11.2,3.6";
@@ -669,7 +671,7 @@ sealed class CardView
     {
         var label = text.Length > 14 ? text[..13] + "…" : text;
         var help = $"Copy “{label}”";
-        var symbol = new Symbol(Copy, false, Rest, false, scale: 1.22);
+        var symbol = new Symbol(Copy, false, Rest, false);
         void Checked(Border b, TimeSpan left)
         {
             // A checkmark in the accent, then back to the copy symbol.
