@@ -235,7 +235,12 @@ static class ModelDownload
         {
             if (File.Exists(Ledger))
             {
-                foreach (var line in File.ReadAllLines(Ledger))
+                // Shared for delete: the download replaces the file while Settings or the
+                // welcome window reads it (a plain read made the replace fail).
+                string text;
+                using (var stream = new FileStream(Ledger, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+                using (var reader = new StreamReader(stream)) text = reader.ReadToEnd();
+                foreach (var line in text.Split('\n'))
                 {
                     var f = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                     if (f.Length == 0 || !int.TryParse(f[0], out var i) || i < 0 || i >= PieceCount) continue;
@@ -572,7 +577,13 @@ static class ModelDownload
                 {
                     var temp = Ledger + ".new";
                     File.WriteAllText(temp, string.Join("\n", lines));
-                    File.Move(temp, Ledger, true);
+                    // A reader in another process (a virus scanner) can hold it a moment.
+                    for (var attempt = 0; ; attempt++)
+                    {
+                        try { File.Move(temp, Ledger, true); break; }
+                        catch (UnauthorizedAccessException) when (attempt < 5) { Thread.Sleep(50); }
+                        catch (IOException) when (attempt < 5) { Thread.Sleep(50); }
+                    }
                 }
                 catch (Exception e) { Diagnostics.Write("model download: couldn't save the list of pieces: " + e.Message); }
             }
