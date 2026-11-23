@@ -199,6 +199,7 @@ Consolas line), so UiCheck allows 2 px.
 | Beside: vertical | box centred on bounds midY (CS:95) | window centre on midY of the cut bounds | same | UiCheck y within 1 + s px of the ink centre |
 | Otherwise | box bottom-left 6 right of, 6 above the mouse-up point (CS:92) | same in device pixels (C.Place) | same | `three lines` cases |
 | Right-to-left drag | rect rule; mouse point only for the fallback | same | same | `rtl` cases |
+| White space at the end | the Mac's double-click takes no space after a word | Chromium's double-click on Windows does (about 4 points further right); left out of the rect (SR.WithoutTrailingSpace) | same | `eye-*-edge-16px-space` cases |
 | Far from the pointer | bounds more than 160 pt from mouse-up are dropped (CS:64) | same, 160 × scale (C.Consider) | same | code |
 | Empty or zero rect | dropped (SelectionReader.checked, width and height ≥ 1) | same (C.Consider) | same | code |
 | Screen edges | clamped to the visible frame of the screen with the pointer (CS:101-105) | clamped to that screen's working area (C.Place) | same | `edge` case at 100% |

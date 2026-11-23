@@ -243,7 +243,7 @@ static partial class Program
             <p style="font-size:13px">他得了感冒，吃不了饭。</p>
             <p style="font-size:16px">明朝实行海禁 policy，闭关锁国。</p>
             <p style="font-size:20px">我们研究研究再说吧。</p>
-            <p style="font-size:16px">He found 铁饭碗 at last.</p>
+            <p style="font-size:16px">铁饭碗 at last.</p>
             """, new UTF8Encoding(false));
         var profile = Path.Combine(Path.GetTempPath(), "longyan-edge-profile");
         Process.Start(new ProcessStartInfo(exe, $"--no-first-run --no-default-browser-check --user-data-dir=\"{profile}\" --new-window \"{page}\"") { UseShellExecute = false });
@@ -254,12 +254,21 @@ static partial class Program
 
     static void EdgeCases(string name, IntPtr window, double s, List<(string, Bitmap)> crops)
     {
-        foreach (var (label, line, word) in new[] { ("13px", "他得了感冒，吃不了饭。", "冒"), ("16px, a space after", "明朝实行海禁 policy，闭关锁国。", "禁"), ("20px", "我们研究研究再说吧。", "再"), ("16px, in English", "He found 铁饭碗 at last.", "碗") })
+        // Where each line is comes from its text element: Chromium's FindText is off by a
+        // character for each paragraph before the match. The characters are 1 em wide.
+        foreach (var (label, line, index, px) in new[] { ("13px", "他得了感冒，吃不了饭。", 4, 13), ("16px, a space after", "明朝实行海禁 policy，闭关锁国。", 5, 16), ("20px", "我们研究研究再说吧。", 6, 20), ("16px, a space after, line start", "铁饭碗 at last.", 2, 16) })
         {
-            var tag = $"{name}-{label.Split(',')[0]}{(label.Contains("space") ? "-space" : label.Contains("English") ? "-en" : "")}";
-            if (TextIn(window, line) is not System.Windows.Rect l || TextIn(window, word) is not System.Windows.Rect w) { failures.Add($"{tag}: couldn't find the text in Edge"); continue; }
-            var eye = Placement(tag, window, () => DoubleClick(w.Left + w.Width / 2, l.Top + l.Height / 2), new[] { l }, l.Height);
-            if (lastCrop != null) { crops.Add(($"{name} {label}, double-click {word}", lastCrop)); lastCrop = null; }
+            var tag = $"{name}-{px}px{(label.Contains("line start") ? "-start" : label.Contains("space") ? "-space" : "")}";
+            System.Windows.Rect? found = null;
+            for (var i = 0; i < 20 && found == null; i++)
+            {
+                try { found = AutomationElement.FromHandle(window).FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, line))?.Current.BoundingRectangle; } catch { }
+                if (found == null) Thread.Sleep(500);
+            }
+            if (found is not System.Windows.Rect l || l.IsEmpty) { failures.Add($"{tag}: couldn't find the text in Edge"); continue; }
+            var x = l.Left + (index + 0.5) * px * s;
+            var eye = Placement(tag, window, () => DoubleClick(x, l.Top + l.Height / 2), new[] { l }, l.Height);
+            if (lastCrop != null) { crops.Add(($"{name} {label}, double-click {line[index]}", lastCrop)); lastCrop = null; }
             // Edge's own menu for a selection, if it came: its windows besides the page's.
             foreach (var (h, r) in EdgePopups(window)) Console.WriteLine($"[{tag}] Edge popup {h:X}: {r.Left},{r.Top} to {r.Right},{r.Bottom}");
             // The same once the eye has gone by itself, for drawing where else it could go.
@@ -488,8 +497,7 @@ static partial class Program
         return Array.Empty<System.Windows.Rect>();
     }
 
-    /// The right edge of the selection's text without white space at its end: the same text
-    /// found again in the document, so it doesn't lean on the app's own trimming.
+    /// The right edge of the selection's text without white space at its end.
     static double? TrimmedRight(IntPtr hwnd)
     {
         try
@@ -504,8 +512,12 @@ static partial class Program
                 var trimmed = text.TrimEnd();
                 if (trimmed.Length == text.Length) return null;
                 Console.WriteLine($"[selection] ends in white space: {string.Join(" ", text.Substring(trimmed.Length).Select(c => ((int)c).ToString("X4")))}");
-                var again = t.DocumentRange.FindText(trimmed, false, false)?.GetBoundingRectangles();
-                return again is { Length: > 0 } ? again.Max(r => r.Right) : null;
+                // The selection's own range, its end moved back (Chromium's FindText is off by
+                // a character a paragraph, so the text can't be found again).
+                var r = sel.Clone();
+                for (var i = 0; i < 8 && r.GetText(-1).Length > trimmed.Length; i++) r.MoveEndpointByUnit(TextPatternRangeEndpoint.End, TextUnit.Character, -1);
+                var again = r.GetBoundingRectangles();
+                return again is { Length: > 0 } ? again.Max(x => x.Right) : null;
             }
         }
         catch { }
@@ -722,7 +734,8 @@ sealed class RichEditHost : IDisposable
             {
                 var size = form.ClientSize;
                 var edit = CreateWindowEx(0, "RICHEDIT50W", "", 0x40000000 | 0x10000000 | 0x4 /* WS_CHILD | WS_VISIBLE | ES_MULTILINE */, 0, 0, size.Width, size.Height, form.Handle, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
-                var font = new Font("Consolas", 11f * GetDpiForWindow(form.Handle) / 96f, GraphicsUnit.Point);
+                // 11 pt as the box reports it (GDI+ here is at 96 dpi): text a real app draws larger.
+                var font = new Font("Consolas", 11f, GraphicsUnit.Point);
                 SendMessage(edit, 0x30 /* WM_SETFONT */, font.ToHfont(), (IntPtr)1);
                 SetWindowText(edit, text);
                 var rc = new RECT { Left = margin, Top = spaced ? 0 : margin, Right = size.Width - margin, Bottom = size.Height - margin };
