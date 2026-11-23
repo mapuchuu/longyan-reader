@@ -129,7 +129,7 @@ Name: "{autoprograms}\Longyan Reader"; Filename: "{app}\LongyanReader.exe"
 
 [Run]
 Filename: "{app}\LongyanReader.exe"; Description: "Open Longyan Reader"; Flags: nowait postinstall skipifsilent
-; A silent upgrade (as an update would run it) opens the app again if it was open.
+; A silent upgrade opens the app again if it was open, or with /OPEN=1.
 Filename: "{app}\LongyanReader.exe"; Flags: nowait; Check: ReopenSilently
 
 [Code]
@@ -161,9 +161,10 @@ begin
   Result := FileExists(ExpandConstant('{app}\LongyanReader.exe'));
 end;
 
+{ /OPEN=1: open it afterwards anyway, for an updater that closes the app before it runs this. }
 function ReopenSilently: Boolean;
 begin
-  Result := WizardSilent and WasRunning;
+  Result := WizardSilent and (WasRunning or (ExpandConstant('{param:OPEN|0}') = '1'));
 end;
 
 { The copy in this folder only: a copy elsewhere, from a zip, keeps running. Stop: end it;
@@ -233,6 +234,7 @@ end;
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var
   Data, Question: String;
+  Code: Integer;
 begin
   if CurUninstallStep = usUninstall then
   begin
@@ -241,6 +243,10 @@ begin
   end;
   if CurUninstallStep = usPostUninstall then
   begin
+    { The folder itself, once the uninstaller has deleted itself from it (rd only removes an
+      empty folder). Inno Setup's own try can come too early and leave it. }
+    Exec(ExpandConstant('{cmd}'), '/c ping -n 4 127.0.0.1 >nul & rd "' + ExpandConstant('{app}') + '"',
+      ExpandConstant('{sys}'), SW_HIDE, ewNoWait, Code);
     { History, settings, logs and the model. Kept unless the reader says to delete them; a
       silent uninstall keeps them. }
     Data := ExpandConstant('{localappdata}\LongyanReader');

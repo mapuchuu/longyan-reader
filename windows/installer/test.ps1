@@ -89,7 +89,8 @@ while ((Test-Path $app) -and (Get-Date) -lt $until) { Start-Sleep -Milliseconds 
 if (Test-Path $app) {
     Get-ChildItem $app -Recurse -Force | ForEach-Object FullName
     Get-Process | Where-Object { $_.Path -like "$app\*" -or $_.Path -like '*_unins*' } | Format-Table Id, Path
-    Fail 'the app folder is still there'
+    Remove-Item $app -ErrorAction Continue
+    Fail "the app folder is still there (deleting it now: $(if (Test-Path $app) { 'failed' } else { 'worked' }))"
 }
 Ok 'the app folder is gone'
 Wait { -not (Test-Path $entry) } 30 'the Settings > Apps entry is gone'

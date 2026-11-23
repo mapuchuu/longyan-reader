@@ -148,6 +148,17 @@ jobs:
       x64-artifact: LongyanReader-windows
     secrets: inherit
 
+  # When win/arm64's app-arm64 job is in this file, the same for its folder (on an ARM runner,
+  # so the test installs the ARM64 build), and add installer-arm64 to the release job's needs:
+  #
+  # installer-arm64:
+  #   needs: app-arm64
+  #   uses: ./.github/workflows/windows-installer.yml
+  #   with:
+  #     arm64-artifact: LongyanReader-windows-arm64
+  #     runner: windows-11-arm
+  #   secrets: inherit
+
   # A tag windows-v<version> makes a draft release with the installer. It's never marked
   # latest, so the Mac's releases/latest/download link keeps working: publish it with
   # gh release edit <tag> --draft=false --latest=false (or untick "Set as the latest release").
@@ -158,21 +169,24 @@ jobs:
     permissions:
       contents: write
     steps:
+      # Every installer this run built: x64, and arm64 once installer-arm64 runs.
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: ${{ needs.installer.outputs.setup }}
+          pattern: LongyanReader-Setup-*
           path: setup
+          merge-multiple: true
       - name: Draft release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           v=${GITHUB_REF_NAME#windows-v}
+          rm -f setup/*.log
           ls setup
           test -f "setup/LongyanReader-Setup-$v-x64.exe" || { echo "the tag says $v, but the app's version is in: $(ls setup)"; exit 1; }
           gh release create "$GITHUB_REF_NAME" setup/*.exe --repo "$GITHUB_REPOSITORY" --draft --latest=false \
             --title "Longyan Reader for Windows $v" \
-            --notes "Longyan Reader for Windows. Download LongyanReader-Setup-$v-x64.exe and open it."
+            --notes "Longyan Reader for Windows. Download the installer for your PC (x64 for most, arm64 for Windows on ARM) and open it."
 
   # The app on a real desktop, with the reading model: Notepad, a selection, Ctrl+Alt+L, then
   # screenshots and the card's text as UI Automation reads it.
