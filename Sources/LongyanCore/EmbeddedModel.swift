@@ -130,6 +130,7 @@ package final class EmbeddedModel: @unchecked Sendable {
             llama_backend_init()
             backendReady = true
         }
+        let loadStarted = Date()
         var mp = llama_model_default_params()
         mp.n_gpu_layers = 99
         #if os(Windows)
@@ -149,6 +150,7 @@ package final class EmbeddedModel: @unchecked Sendable {
                 mp.tensor_buft_overrides = UnsafePointer(o.baseAddress)
                 mp.use_extra_bufts = false   // else the CPU side repacks the whole table into a copy of its own
             }
+            if let r = ProcessInfo.processInfo.environment["LONGYAN_REPACK"] { mp.use_extra_bufts = r == "1" }
             return llama_model_load_from_file(path, mp)
         }
         guard let m = loaded else {
@@ -156,6 +158,7 @@ package final class EmbeddedModel: @unchecked Sendable {
             Self.brokenFlag.set()
             loadError = Self.error("couldn't load \(path)"); throw loadError!
         }
+        let modelMs = Date().timeIntervalSince(loadStarted) * 1000
         if let ids = Self.outputTokens {
             let ok = ids.withUnsafeBufferPointer { llama_model_set_output_tokens(m, $0.baseAddress, Int32($0.count)) }
             if ProcessInfo.processInfo.environment["LONGYAN_TIMING"] == "1" {
@@ -172,9 +175,16 @@ package final class EmbeddedModel: @unchecked Sendable {
         cp.n_threads_batch = cp.n_threads
         let env = ProcessInfo.processInfo.environment
         if let t = env["LONGYAN_THREADS"].flatMap(Int32.init) { cp.n_threads = t; cp.n_threads_batch = t }
+        if let t = env["LONGYAN_THREADS_BATCH"].flatMap(Int32.init) { cp.n_threads_batch = t }
+        if let u = env["LONGYAN_UBATCH"].flatMap(UInt32.init) { cp.n_ubatch = u }
         if let f = env["LONGYAN_FA"].flatMap(Int32.init) { cp.flash_attn_type = llama_flash_attn_type(rawValue: f) }
         guard let c = llama_init_from_model(m, cp) else {
             llama_model_free(m); contextFailedAt = Date(); throw Self.error("couldn't create a context")
+        }
+        if env["LONGYAN_TIMING"] == "1" {
+            FileHandle.standardError.write(Data(String(format: "timing: load %.0f ms (model %.0f ms), threads %d/%d, ubatch %d, repack %@, flash attention %d, %d logical CPUs\n",
+                Date().timeIntervalSince(loadStarted) * 1000, modelMs, cp.n_threads, cp.n_threads_batch, cp.n_ubatch,
+                mp.use_extra_bufts ? "on" : "off", cp.flash_attn_type.rawValue, ProcessInfo.processInfo.activeProcessorCount).utf8))
         }
         model = m; ctx = c; vocab = llama_model_get_vocab(m)
         // ggml frees its Metal device at exit and asserts nothing still uses it, so the context
@@ -299,6 +309,8 @@ package final class EmbeddedModel: @unchecked Sendable {
     /// for what comes after its last token. Returns how many tokens were reused.
 
     private var imStart: llama_token { tokenize("<|im_start|>").first ?? -1 }
+    /// The shortest fixed start worth keeping a state for.
+    private static let prefixMin: Int = ProcessInfo.processInfo.environment["LONGYAN_PREFIX_MIN"].flatMap(Int.init) ?? 64
 
     private func read(_ tokens: [llama_token]) throws -> Int {
         guard let ctx, let model else { throw Self.error("not loaded") }
@@ -331,13 +343,13 @@ package final class EmbeddedModel: @unchecked Sendable {
                 // too, and a new passage reads only its own turn.
                 let starts = body.indices.filter { body[$0] == imStart }
                 let cut = starts.count >= 2 ? starts[starts.count - 2] : 0
-                if cut >= 64, let i = prefixes.firstIndex(where: { $0.tokens.count == cut && body.starts(with: $0.tokens) }),
+                if cut >= Self.prefixMin, let i = prefixes.firstIndex(where: { $0.tokens.count == cut && body.starts(with: $0.tokens) }),
                    restore(prefixes[i]) {
                     prefixes.append(prefixes.remove(at: i))
                     cached = prefixes.last!.tokens
                     keep = cut
                     if timing { FileHandle.standardError.write(Data("prefix hit: \(cut) tokens\n".utf8)) }
-                } else if cut >= 64 {
+                } else if cut >= Self.prefixMin {
                     llama_memory_clear(memory, true)
                     try decode(Array(body[..<cut]), startingAt: 0)
                     if let p = save(Array(body[..<cut])) {
@@ -470,6 +482,7 @@ package final class EmbeddedModel: @unchecked Sendable {
                     let stepTokens = steps.dropFirst().reduce(2 * steps.count) { $0 + self.tokenize($1.text).count }
                     guard tokens.count + stepTokens < Int(Self.contextSize) else { throw Self.error("prompt too long (\(tokens.count) tokens)") }
                     let keep = try self.read(tokens)
+                    let promptMs = Date().timeIntervalSince(started) * 1000
                     var pending: [llama_token] = []
                     for (i, step) in steps.enumerated() {
                         if stop.isSet || Self.exiting.isSet { throw CancellationError() }
@@ -479,8 +492,8 @@ package final class EmbeddedModel: @unchecked Sendable {
                         continuation.yield(pick)
                     }
                     if ProcessInfo.processInfo.environment["LONGYAN_TIMING"] == "1" {
-                        FileHandle.standardError.write(Data(String(format: "timing: pick, prompt %d tok (%d new), %d numbers, %.0f ms\n",
-                            tokens.count, tokens.count - keep, steps.count, Date().timeIntervalSince(started) * 1000).utf8))
+                        FileHandle.standardError.write(Data(String(format: "timing: pick, prompt %d tok (%d new) %.0f ms, %d numbers, %.0f ms\n",
+                            tokens.count, tokens.count - keep, promptMs, steps.count, Date().timeIntervalSince(started) * 1000).utf8))
                     }
                     self.noteUse()
                     continuation.finish()
