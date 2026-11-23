@@ -251,22 +251,27 @@ sealed class CardView
         var source = Lines(new TextBlock
         {
             Text = text, FontSize = 14 * Theme.ChineseScale, FontFamily = Theme.Chinese, Foreground = Theme.Secondary, TextWrapping = TextWrapping.Wrap,
-            MaxHeight = LineHeight(14) * 4, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, SourceTop, slot + 8, 0),
+            MaxHeight = LineHeight(14) * 4, TextTrimming = TextTrimming.CharacterEllipsis,
+            // YaHei is set at 0.92 of PingFang's size, so a line holds more characters: the line
+            // is made as much narrower, so it holds as many as the Mac's and breaks where it does.
+            Margin = new Thickness(0, SourceTop, slot + 8 + (Width - 2 * Pad - slot - 8) * (1 - Theme.ChineseScale), 0),
         }, 14);
-        top.Children.Add(Track("source", source));
+        // The Mac lines the source up with the buttons' slot, which reaches 3 below a single
+        // line: one line is that much taller, more lines aren't.
+        top.Children.Add(new Border { MinHeight = SourceTop + LineHeight(14) + SlotBelow, Child = Track("source", source) });
         PlaceButtons(source, 14, Theme.Chinese, FontWeights.Normal, 5 - SourceTop);
         if ((string?)c["translation"] is string t)
         {
-            var tb = Label(t, 16, Theme.Primary, top: 5);   // the spec's 4: Segoe sits higher in the line
+            var tb = Label(t, 16, Theme.Primary, top: 5 - SlotBelow);   // the spec's 4: Segoe sits higher in the line
             Lines(tb, 16, 2);
             top.Children.Add(Keyed("translation", tb));
         }
-        else if ((string?)c["translationError"] is string e) top.Children.Add(Keyed("translationError", Label(e, 11, Theme.Secondary, top: 4)));
+        else if ((string?)c["translationError"] is string e) top.Children.Add(Keyed("translationError", Label(e, 11, Theme.Secondary, top: 4 - SlotBelow)));
         else
         {
             // Lower than a status line elsewhere: the Mac centres it where the translation will be.
             var busy = Busy("Translating…", top: 9);
-            busy.Margin = new Thickness(0, 9, 0, -2);
+            busy.Margin = new Thickness(0, 9 - SlotBelow, 0, -2);
             top.Children.Add(Keyed("translating", busy));
         }
         content.Children.Add(Track("phraseTop", top));
@@ -294,6 +299,8 @@ sealed class CardView
 
     /// PingFang sets the source text 2 lower in its line than YaHei does.
     const double SourceTop = 2;
+    /// How far the buttons' slot reaches below a one-line source.
+    const double SlotBelow = 3;
 
     sealed class Block
     {
@@ -509,7 +516,11 @@ sealed class CardView
         icon.VerticalAlignment = VerticalAlignment.Center;
         icon.Margin = new Thickness(0, 0, 5, 0);   // the spec's 4, and the symbol's own side bearing
         title.Children.Add(icon);
-        title.Children.Add(Label((string?)note["title"] ?? "", 11, Theme.Secondary, FontWeights.SemiBold));
+        // As tall as the Mac's row: its translate symbol is 15 tall, the globe fits the label's 14.
+        title.Height = lost ? 15 : LineHeight(11);
+        var label = Label((string?)note["title"] ?? "", 11, Theme.Secondary, FontWeights.SemiBold);
+        label.VerticalAlignment = VerticalAlignment.Center;
+        title.Children.Add(label);
         stack.Children.Add(title);
         var body = Label((string?)note["text"] ?? "", 13, Theme.Primary, top: 2.5);   // the spec's 4, less what Segoe adds
         Lines(body, 13, 2);
