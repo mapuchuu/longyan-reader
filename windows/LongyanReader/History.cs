@@ -326,7 +326,7 @@ static class History
         showEvent ??= new EventWaitHandle(false, EventResetMode.AutoReset, ShowEvent);
         ThreadPool.RegisterWaitForSingleObject(showEvent, (_, _) => app.BeginInvoke(new Action(HistoryWindow.Open)), null, Timeout.Infinite, false);
         if (showWhenStarted) app.BeginInvoke(new Action(HistoryWindow.Open));
-        return new System.Windows.Forms.ToolStripMenuItem("Lookup history", null, (_, _) => HistoryWindow.Open());
+        return new System.Windows.Forms.ToolStripMenuItem("Lookup history…", null, (_, _) => HistoryWindow.Open());
     }
 
     [DllImport("user32.dll")] static extern bool AllowSetForegroundWindow(int pid);

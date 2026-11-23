@@ -685,6 +685,13 @@ sealed class HistoryWindow : Window
         catch (Exception e) { Diagnostics.Write("history: couldn't open the window: " + Diagnostics.Describe(e)); }
     }
 
+    /// Settings' Clear: the window, asking first.
+    public static void OpenToClear()
+    {
+        Open();
+        shown?.view.ConfirmClear();
+    }
+
     /// Read off the main thread: a long history takes a while to parse.
     void Reload()
     {
