@@ -531,8 +531,9 @@ sealed class CardView
     static FrameworkElement Globe(Brush color)
     {
         var disc = new EllipseGeometry(new Point(6, 6), 5.5, 5.5);
-        // Asia across the middle from the top right, Australia below it to the right.
-        var land = Geometry.Parse("M 9.6,2.6 C 10.4,3.4 10.6,4.4 10.2,4.9 C 9.6,5.5 8.6,5 8,5.6 C 7.3,6.3 7.9,7.2 7.1,7.8 C 6.3,8.4 5.2,7.8 4.6,8.6 C 4.1,9.3 4.4,10.4 3.6,10.4 C 2.6,9.7 1.4,8.2 1.2,6.6 C 1.9,6.1 2.8,6.6 3.4,6 C 4,5.4 3.4,4.4 4.2,3.8 C 5,3.2 6,3.9 6.6,3.2 C 7.1,2.6 6.8,1.4 7.4,1.1 C 8.2,1.3 9,1.9 9.6,2.6 Z M 8.2,8.4 C 9,8 10,8.3 10,9 C 9.7,9.8 8.8,10.4 8.2,10.2 C 7.6,9.9 7.6,8.8 8.2,8.4 Z");
+        // The land as the symbol shows it at this size: a large mass low on the left, a smaller
+        // one high on the right.
+        var land = Geometry.Parse("M 1.6,6.6 C 2.8,5.6 4.8,5.9 6,7 C 7,7.9 6.9,9.6 5.9,10.6 C 4.6,11.1 2.8,10.5 1.9,9.2 C 1.4,8.4 1.2,7.1 1.6,6.6 Z M 7.2,2.2 C 8.4,1.8 10,2.6 10.6,4 C 10.9,4.9 10.1,5.6 9.2,5.3 C 8.3,5 7.4,4.8 7,3.8 C 6.8,3.1 6.8,2.5 7.2,2.2 Z");
         return new Path { Data = new CombinedGeometry(GeometryCombineMode.Exclude, disc, land), Fill = color, Width = 12, Height = 12, Stretch = Stretch.None };
     }
     const string Bubble = "M 2.5,1 H 10.5 A 1.8,1.8 0 0 1 12.3,2.8 V 7.4 A 1.8,1.8 0 0 1 10.5,9.2 H 6 L 3.4,11.2 V 9.2 H 2.5 A 1.8,1.8 0 0 1 0.7,7.4 V 2.8 A 1.8,1.8 0 0 1 2.5,1 Z M 3.6,4 H 9.4 M 3.6,6.2 H 7.6";
