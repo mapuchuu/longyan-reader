@@ -1157,6 +1157,17 @@ footer a { color: #a1a1a6; }
   .motion .statement-pin { padding-top: max(76px, calc(50svh - 270px)); }
   .lit-demo { width: 100%; max-width: 444px; }
 }
+/* Short phones: the line, the card and the light/dark switch have to fit in one screen while
+   the section is pinned, or the switch sits below the fold and the next section slides over
+   it. The pin also grows with its content, so anything that still doesn't fit scrolls into
+   view instead of being covered. */
+.motion .statement-pin { min-height: 100svh; }
+@media (max-width: 600px) { .motion .statement-pin { height: auto; } }
+@media (max-width: 600px) and (max-height: 760px) {
+  .motion .statement-pin { padding-top: 56px; }
+  .motion .statement .wrap { gap: 22px; }
+  .appearance { margin-top: 10px; }
+}
 /* Phones and upright tablets: the eye on top, the headline under it (hero.js lays the eye
    out by the same rule). */
 @media (max-width: 900px), (max-width: 1100px) and (orientation: portrait) {
