@@ -154,7 +154,8 @@ static class Program
         CardWindow.Present(selected);
     }
 
-    /// The shortcut: read the selection, else copy it, then open its card.
+    /// The shortcut: read the selection, else the word under the pointer (as on the Mac), else
+    /// copy the selection, then open its card.
     static async void LookUp()
     {
         if (!Core.Shared.IsReady) { CardWindow.Hint("Dictionary still loading…"); return; }
@@ -165,13 +166,21 @@ static class Program
         var selected = (await SelectionReader.ProbeAsync()).Selection;
         var read = clock.Elapsed.TotalMilliseconds;
         var how = "automation";
+        // Nothing readable with Chinese in it is selected: the word under the pointer.
+        if (selected == null || !SelectionReader.HasChinese(selected))
+        {
+            var pointed = await PointReader.ReadAsync();
+            Core.Log($"{{\"event\":\"point\",\"found\":\"{PointReader.Found}\"}}");
+            if (pointed != null) { how = "point"; selected = pointed; }
+        }
+        var point = clock.Elapsed.TotalMilliseconds;
         // Ctrl+C interrupts the program in a terminal (and isn't copy in Emacs or Vim).
         if (selected == null && ForegroundApp.Get() is { CopyWorks: false }) { CardWindow.Hint("Can't read the selection in this app"); return; }
         if (selected == null) { how = "copy"; selected = await SelectionReader.ReadByCopying(); }
         var done = clock.Elapsed.TotalMilliseconds;
         // Timings only: the selected text never goes in the log.
-        Core.Log(FormattableString.Invariant($"{{\"event\":\"selection\",\"how\":\"{(selected == null ? "none" : how)}\",\"warm\":{warm:F1},\"automation\":{read - warm:F1},\"copy\":{done - read:F1}}}"));
-        if (selected == null) { CardWindow.Hint($"Highlight Chinese text, then press {Shortcut.Name}"); return; }
+        Core.Log(FormattableString.Invariant($"{{\"event\":\"selection\",\"how\":\"{(selected == null ? "none" : how)}\",\"warm\":{warm:F1},\"automation\":{read - warm:F1},\"point\":{point - read:F1},\"copy\":{done - point:F1}}}"));
+        if (selected == null) { CardWindow.Hint($"Highlight Chinese text, or point at a word and press {Shortcut.Name}"); return; }
         Present(selected);
     }
 
