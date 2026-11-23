@@ -96,6 +96,7 @@ sealed class CardView
         var lit = new Dictionary<string, double>();
         foreach (var (n, t) in Targets) if (RowFill(t) is Brush f && f.Opacity > 0.001) lit[n] = f.Opacity;
         Targets.Clear(); Animated.Clear(); senseRows = phraseRows = 0;
+        lastParts = parts; parts = new();
         content.Children.Clear();
         buttons.Children.Clear();
         var clock = System.Diagnostics.Stopwatch.StartNew();
@@ -146,7 +147,7 @@ sealed class CardView
 
         // The top group, 4 apart: header, meaning, Part of, Back to, status.
         var top = new StackPanel();
-        var header = Header(word, syllables, slot);
+        var header = Reuse("header", $"{word}|{syllables.ToJsonString()}|{slot}", () => Header(word, syllables, slot));
         top.Children.Add(Keyed("header", header, string.Join(" ", syllables.Select(x => (string?)x?["text"])), crossfade: true));
         PlaceButtons(header, 34, Theme.Chinese, FontWeights.Medium, 12);
 
@@ -167,7 +168,7 @@ sealed class CardView
         content.Children.Add(Track("top", top));
 
         if (c["note"] is JsonObject note)
-            content.Children.Add(Keyed("note", Note(note, 12), (string?)note["text"] ?? "", slide: -4, crossfade: true));
+            content.Children.Add(Keyed("note", Reuse("note", note.ToJsonString(), () => Note(note, 12)), (string?)note["text"] ?? "", slide: -4, crossfade: true));
 
         // Meanings, 8 apart: divider, label, rows, alternatives.
         var senses = new StackPanel { Margin = new Thickness(0, 12, 0, 0) };
@@ -177,8 +178,12 @@ sealed class CardView
         var all = c["senses"]?.AsArray() ?? new JsonArray();
         var total = Total(all, (string?)c["more"]);
         foreach (var node in all)
-            if (node is JsonObject r) rows.Children.Add(Track($"row:w:{r["index"]}", SenseRow(r, 13, 5, total, "w", noteMarks: true, rows.Children.Count == 0, () => actions.Pick(-1, (int)r["index"]!))));
-        if ((string?)c["more"] is string more) rows.Children.Add(Track("more:w", More(more, 5, () => actions.ToggleAll(-1), "w")));
+            if (node is JsonObject r)
+            {
+                var first = rows.Children.Count == 0;
+                rows.Children.Add(Track($"row:w:{r["index"]}", Reuse($"row:w:{r["index"]}", $"{r.ToJsonString()}|{total}|{first}|{senseRows}", () => SenseRow(r, 13, 5, total, "w", noteMarks: true, first, () => actions.Pick(-1, (int)r["index"]!)))));
+            }
+        if ((string?)c["more"] is string more) rows.Children.Add(Track("more:w", Reuse("more:w", more, () => More(more, 5, () => actions.ToggleAll(-1), "w"))));
         senses.Children.Add(rows);
         var alternatives = c["alternatives"]?.AsArray().Select(x => (string?)x).Where(x => x != null).ToArray() ?? Array.Empty<string?>();
         if (alternatives.Length > 0) senses.Children.Add(Track("alternatives", Label("Other words here: " + string.Join(" · ", alternatives), 11, Theme.Tertiary, top: 8)));
@@ -287,11 +292,14 @@ sealed class CardView
         words.Children.Add(Section("Words"));
         var list = new StackPanel { Margin = new Thickness(0, 8.5, 0, 0) };
         // Every gloss starts at the same x: the widest word block's.
-        var column = rows.OfType<JsonObject>().Select(r => WordBlock(r).Measure()).DefaultIfEmpty(0).Max();
+        var column = rows.OfType<JsonObject>().Select(BlockWidth).DefaultIfEmpty(0).Max();
         foreach (var node in rows)
         {
             if (node is not JsonObject r) continue;
-            list.Children.Add(Track("prow:" + r["token"], PhraseRow(r, column)));
+            // The row itself without its detail (the detail is reused, or not, on its own).
+            var own = (JsonObject)r.DeepClone();
+            foreach (var k in new[] { "senses", "note", "back", "here", "status", "more" }) own.Remove(k);
+            list.Children.Add(Track("prow:" + r["token"], Reuse("prow:" + r["token"], $"{own.ToJsonString()}|{column}|{phraseRows}", () => PhraseRow(r, column))));
             if ((bool?)r["open"] == true) list.Children.Add(Keyed("detail:" + r["token"], Detail(r), slide: -6));
         }
         if ((string?)c["hidden"] is string hidden) list.Children.Add(Track("hidden", Label(hidden, 11, Theme.Tertiary, top: 4, bottom: 4)));
@@ -386,15 +394,19 @@ sealed class CardView
             Add(Keyed("here:" + token, line));
         }
         if ((string?)r["back"] is string back) Add(Keyed("back:" + token, Back(back, token, top: 0)));
-        if (r["note"] is JsonObject note) Add(Keyed("dnote:" + token, Note(note, 0)));
+        if (r["note"] is JsonObject note) Add(Keyed("dnote:" + token, Reuse("dnote:" + token, note.ToJsonString(), () => Note(note, 0))));
         var senses = r["senses"]?.AsArray() ?? new JsonArray();
         if (senses.Count > 0)
         {
             var list = new StackPanel();
             var total = Total(senses, (string?)r["more"]);
             foreach (var node in senses)
-                if (node is JsonObject s) list.Children.Add(Track($"row:p{token}:{s["index"]}", SenseRow(s, 12, 3, total, "p" + token, noteMarks: false, list.Children.Count == 0, () => actions.Pick(token, (int)s["index"]!))));
-            if ((string?)r["more"] is string more) list.Children.Add(Track($"more:p{token}", More(more, 3, () => actions.ToggleAll(token), "p" + token)));
+                if (node is JsonObject s)
+                {
+                    var first = list.Children.Count == 0;
+                    list.Children.Add(Track($"row:p{token}:{s["index"]}", Reuse($"row:p{token}:{s["index"]}", $"{s.ToJsonString()}|{total}|{first}|{senseRows}", () => SenseRow(s, 12, 3, total, "p" + token, noteMarks: false, first, () => actions.Pick(token, (int)s["index"]!)))));
+                }
+            if ((string?)r["more"] is string more) list.Children.Add(Track($"more:p{token}", Reuse($"more:p{token}", more, () => More(more, 3, () => actions.ToggleAll(token), "p" + token))));
             Add(Track("dlist:" + token, list));
         }
         return d;
@@ -1210,6 +1222,86 @@ sealed class CardView
         return baselines[key] = LineHeight(size) * ratio;
     }
 
+    // MARK: Reuse
+
+    /// A part as built, with what building it registered, so a rebuild can put the same part
+    /// back when its contents haven't changed: as SwiftUI keeps a view whose inputs are the
+    /// same, it isn't made, measured and laid out again (a pick changed two rows of many, and
+    /// rebuilding every row held the first frame of its motion back by tens of ms).
+    sealed class Part
+    {
+        public required FrameworkElement Element;
+        public required string Sig;
+        public readonly List<(string, UIElement)> Targets = new(), Animated = new();
+        public readonly List<(string, FrameworkElement)> Tracked = new();
+        public readonly List<(string, string)> Now = new();
+        public readonly List<(string, Part)> Inner = new();
+        public int SenseRows, PhraseRows;
+    }
+
+    Dictionary<string, Part> parts = new(), lastParts = new();
+
+    FrameworkElement Reuse(string key, string sig, Func<FrameworkElement> build)
+    {
+        sig += Theme.Dark ? "|dark" : "|light";
+        sig += "|" + Width.ToString(CultureInfo.InvariantCulture);
+        if (animate && lastParts.TryGetValue(key, out var p) && p.Sig == sig && Detach(p.Element))
+        {
+            Replay(key, p);
+            return p.Element;
+        }
+        var (t0, a0, k0, n0) = (new Dictionary<string, UIElement>(Targets), new Dictionary<string, UIElement>(Animated), new Dictionary<string, FrameworkElement>(tracked), new Dictionary<string, string>(now));
+        var (s0, r0) = (senseRows, phraseRows);
+        // Parts built inside this one are kept with it too, so they come back with it.
+        var outer = parts;
+        parts = new();
+        FrameworkElement e;
+        Dictionary<string, Part> inner;
+        try { e = build(); }
+        finally { inner = parts; parts = outer; foreach (var (k, v) in inner) parts[k] = v; }
+        var made = new Part { Element = e, Sig = sig, SenseRows = senseRows - s0, PhraseRows = phraseRows - r0 };
+        foreach (var (k, v) in Targets) if (!t0.TryGetValue(k, out var o) || o != v) made.Targets.Add((k, v));
+        foreach (var (k, v) in Animated) if (!a0.TryGetValue(k, out var o) || o != v) made.Animated.Add((k, v));
+        foreach (var (k, v) in tracked) if (!k0.TryGetValue(k, out var o) || o != v) made.Tracked.Add((k, v));
+        foreach (var (k, v) in now) if (!n0.TryGetValue(k, out var o) || o != v) made.Now.Add((k, v));
+        foreach (var (k, v) in inner) made.Inner.Add((k, v));
+        parts[key] = made;
+        return e;
+    }
+
+    /// Puts a reused part's registrations back, its own and its inner parts', as building it did.
+    void Replay(string key, Part p)
+    {
+        foreach (var (k, v) in p.Targets) Targets[k] = v;
+        foreach (var (k, v) in p.Animated) Animated[k] = v;
+        foreach (var (k, v) in p.Tracked) tracked[k] = v;
+        foreach (var (k, v) in p.Now) now[k] = v;
+        senseRows += p.SenseRows; phraseRows += p.PhraseRows;
+        parts[key] = p;
+        foreach (var (k, v) in p.Inner) parts[k] = v;
+    }
+
+    /// Takes a part out of the old content, to go into the new.
+    static bool Detach(FrameworkElement e)
+    {
+        switch (VisualTreeHelper.GetParent(e) ?? LogicalTreeHelper.GetParent(e))
+        {
+            case null: return true;
+            case Panel p: p.Children.Remove(e); return true;
+            case Decorator d: d.Child = null; return true;
+            default: return false;
+        }
+    }
+
+    /// A row's word block width, measured once for each word and reading.
+    readonly Dictionary<string, double> blockWidths = new();
+    double BlockWidth(JsonObject r)
+    {
+        var key = $"{r["text"]}|{r["pinyin"]?.ToJsonString()}|{r["pending"]}";
+        if (!blockWidths.TryGetValue(key, out var w)) blockWidths[key] = w = WordBlock(r).Measure();
+        return w;
+    }
+
     // MARK: Transitions
 
     readonly Dictionary<string, FrameworkElement> tracked = new();
@@ -1249,7 +1341,10 @@ sealed class CardView
             var t = e.RenderTransform as TranslateTransform ?? new TranslateTransform();
             e.RenderTransform = t;
             // From where it was drawn, at the speed it was still going if it was sliding already.
-            Motion.Content(t, TranslateTransform.YProperty, dy, 0, key: "slide:" + key);
+            // A part put back as it was (Reuse) still has its own offset, which it keeps too.
+            var from = dy + t.Y;
+            Motion.Stop(t, TranslateTransform.YProperty);
+            Motion.Content(t, TranslateTransform.YProperty, from, 0, key: "slide:" + key);
         }
 
         // Parts that are new and not keyed (rows after Show All, Show Fewer, Other words) fade
