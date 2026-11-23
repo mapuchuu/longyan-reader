@@ -339,11 +339,12 @@ jobs:
           rt=$(cygpath -u "$(where.exe swiftCore.dll | head -1 | tr -d '\r')")
           echo "Swift runtime: $(dirname "$rt")"
           cp "$(dirname "$rt")"/*.dll "$out/"
+          # vcruntime140_1.dll is x64 only (for ARM64EC); no ARM64 code loads it.
+          rm -fv "$out/vcruntime140_1.dll"
           # The ARM64 C++ runtime, from Visual Studio's redistributable folder.
           vs=$("/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe" -latest -property installationPath | tr -d '\r')
           crt=$(ls -d "$(cygpath -u "$vs")"/VC/Redist/MSVC/*/arm64/Microsoft.VC*.CRT | grep -v onecore | tail -1)
           echo "C++ runtime: $crt"; ls "$crt"
-          # (Its vcruntime140_1.dll is x64, for ARM64EC; ARM64 code doesn't use it.)
           cp "$crt/vcruntime140.dll" "$crt/msvcp140.dll" "$out/"
           scripts/stage-windows-resources.sh "$out/Resources"
           cp LICENSE "$out/LICENSE.txt"
