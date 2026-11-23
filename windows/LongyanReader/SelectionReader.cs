@@ -165,11 +165,14 @@ static class SelectionReader
             {
                 // Its middle rows (its height needn't be the highlight's).
                 int c0y = hTop + (hBottom - hTop) / 4, c1y = hBottom - (hBottom - hTop) / 4;
-                var c0 = px[c0y * w + x];
-                if (Diff(c0, bg) <= 6 || (page >= 0 && Diff(c0, page) <= 6)) continue;
-                var same = true;
-                for (var y = c0y + 1; y <= c1y && same; y++) same = Diff(px[y * w + x], c0) <= 6;
-                caret[x] = same;
+                // Mostly one colour (XOR over the text's ink gives another), no highlight in it.
+                var col = new Dictionary<int, int>();
+                var lit = false;
+                for (var y = c0y; y <= c1y && !lit; y++) { var c = px[y * w + x] & 0xFFFFFF; lit = Diff(c, bg) <= 6; col[c] = col.GetValueOrDefault(c) + 1; }
+                if (lit || col.Count == 0) continue;
+                var (c0, k0) = col.MaxBy(kv => kv.Value);
+                if (page >= 0 && Diff(c0, page) <= 6) continue;
+                caret[x] = k0 * 10 >= (c1y - c0y + 1) * 6;
             }
             // Its right edge: the last column holding it, in its middle rows.
             var right = -1;

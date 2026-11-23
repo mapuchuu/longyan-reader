@@ -269,7 +269,7 @@ static partial class Program
             }
             if (found is not System.Windows.Rect l || l.IsEmpty) { failures.Add($"{tag}: couldn't find the text in Edge"); continue; }
             var x = l.Left + (index + 0.5) * px * s;
-            var eye = Placement(tag, window, () => DoubleClick(x, l.Top + l.Height / 2), new[] { l }, l.Height, exact: true);
+            var eye = Placement(tag, window, () => DoubleClick(x, l.Top + l.Height / 2), new[] { l }, l.Height, exact: true, clear: Deselect(window, s));
             if (lastCrop != null) { crops.Add(($"{name} {label}, double-click {line[index]}", lastCrop)); lastCrop = null; }
             // Edge's own menu for a selection, if it came: its windows besides the page's.
             foreach (var (h, r) in EdgePopups(window)) Console.WriteLine($"[{tag}] Edge popup {h:X}: {r.Left},{r.Top} to {r.Right},{r.Bottom}");
@@ -286,6 +286,14 @@ static partial class Program
     /// Drags in Edge whose eye the Mac puts beside the text: a 32 px heading (its line is over
     /// 40 points in Microsoft YaHei), ending on the line, below it, and past its text; and a
     /// paragraph dragged past its end. Within 1 point of the Mac rule's centre.
+    /// A click on the page's empty lower part: the last selection goes.
+    static Action Deselect(IntPtr window, double s) => () =>
+    {
+        GetWindowRect(window, out var w);
+        Click(w.Left + 60 * s, w.Bottom - 60 * s);
+        Thread.Sleep(300);
+    };
+
     static void EdgeDrags(string name, IntPtr window, double s, List<(string, Bitmap)> crops)
     {
         System.Windows.Rect? Find(string line)
@@ -303,16 +311,16 @@ static partial class Program
         var em = 32 * s; var y = h.Top + h.Height / 2;
         var from = h.Left + 3 * em + 2 * s;   // 行
         Console.WriteLine($"[{name}-h1] heading's box {Fmt(h)}");
-        Placement($"{name}-h1-on", window, () => Drag(from, y, (int)(h.Left + 11 * em + 2 * s - from), 0), new[] { h }, h.Height, oneLine: true, tolerance: 1, exact: true);
+        Placement($"{name}-h1-on", window, () => Drag(from, y, (int)(h.Left + 11 * em + 2 * s - from), 0), new[] { h }, h.Height, oneLine: true, tolerance: 1, exact: true, clear: Deselect(window, s));
         Add("32 px heading, 行 to just past 国");
-        Placement($"{name}-h1-below", window, () => Drag(from, y, (int)(h.Left + 9.9 * em - from), (int)(h.Bottom + 12 * s - y)), new[] { h }, h.Height, oneLine: true, tolerance: 1, exact: true);
+        Placement($"{name}-h1-below", window, () => Drag(from, y, (int)(h.Left + 9.9 * em - from), (int)(h.Bottom + 12 * s - y)), new[] { h }, h.Height, oneLine: true, tolerance: 1, exact: true, clear: Deselect(window, s));
         Add("32 px heading, 行 to 锁, let go below the line");
-        Placement($"{name}-h1-past", window, () => Drag(from, y, (int)(h.Left + 12 * em + 90 * s - from), 0), new[] { h }, h.Height, oneLine: true, tolerance: 1, exact: true);
+        Placement($"{name}-h1-past", window, () => Drag(from, y, (int)(h.Left + 12 * em + 90 * s - from), 0), new[] { h }, h.Height, oneLine: true, tolerance: 1, exact: true, clear: Deselect(window, s));
         Add("32 px heading, 行 to 90 points past the text");
         const string para = "我们研究研究再说吧。";
         if (Find(para) is not System.Windows.Rect p) { failures.Add($"{name}-past: couldn't find the 20 px line in Edge"); return; }
         var start = p.Left + 2 * 20 * s + 2 * s;   // 研
-        Placement($"{name}-20px-past", window, () => Drag(start, p.Top + p.Height / 2, (int)(p.Left + 10 * 20 * s + 90 * s - start), 0), new[] { p }, p.Height, tolerance: 1, exact: true);
+        Placement($"{name}-20px-past", window, () => Drag(start, p.Top + p.Height / 2, (int)(p.Left + 10 * 20 * s + 90 * s - start), 0), new[] { p }, p.Height, tolerance: 1, exact: true, clear: Deselect(window, s));
         Add("20 px line, 研 to 90 points past the end");
     }
 
@@ -375,10 +383,12 @@ static partial class Program
     /// `tolerance`: how far from the Mac rule's centre, in points (default 2 px down, 1 + s/2
     /// across). `early`: also a frame about 30 ms after the eye's window shows, whose circle
     /// must already be centred where it settles.
-    static IntPtr? Placement(string name, IntPtr window, Action select, System.Windows.Rect[] lines, double lineHeight, string? burst = null, bool oneLine = false, double? tolerance = null, bool early = false, bool exact = false)
+    static IntPtr? Placement(string name, IntPtr window, Action select, System.Windows.Rect[] lines, double lineHeight, string? burst = null, bool oneLine = false, double? tolerance = null, bool early = false, bool exact = false, Action? clear = null)
     {
-        // The caret out of the way (at the end), so it isn't taken for ink.
+        // The caret out of the way (at the end), so it isn't taken for ink; and in a page, the
+        // last selection gone (Ctrl+End keeps it there), so its highlight isn't either.
         Keys(VK_CONTROL, VK_END);
+        clear?.Invoke();
         WaitForEye(false, 1000);
         Thread.Sleep(300);
         using var before = Capture();
