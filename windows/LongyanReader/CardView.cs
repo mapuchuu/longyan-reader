@@ -321,7 +321,7 @@ sealed class CardView
         }
         var chevron = Icons.ChevronForward.Shape(Theme.Tertiary);
         chevron.VerticalAlignment = VerticalAlignment.Top;
-        chevron.Margin = new Thickness(12, gloss.Margin.Top + Baseline(Theme.Text, 13, FontWeights.Normal) - ChevronBaseline, 0, 0);
+        chevron.Margin = new Thickness(12, gloss.Margin.Top + Baseline(Theme.Text, 13, FontWeights.Normal) - ChevronBaseline, 1, 0);   // the symbol's side bearing
         chevron.Opacity = opens || open ? 1 : 0;
         Rotate(chevron, "chevron:" + token, open ? 90 : 0);
         Grid.SetColumn(chevron, 4);
@@ -434,7 +434,7 @@ sealed class CardView
         var line = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, top, 0, 0), Background = Brushes.Transparent, HorizontalAlignment = HorizontalAlignment.Left, Cursor = Cursors.Arrow };
         var icon = Icons.UturnBack.Shape(Theme.Accent);
         icon.VerticalAlignment = VerticalAlignment.Center;
-        icon.Margin = new Thickness(0, 0, 4, 0);
+        icon.Margin = new Thickness(0, 0, 8.5, 0);   // a SwiftUI Label's gap after its icon, measured
         line.Children.Add(icon);
         var label = Label($"Back to “{meaning}”", 12, Theme.Accent);
         label.TextWrapping = TextWrapping.NoWrap;
@@ -468,7 +468,7 @@ sealed class CardView
         var title = new StackPanel { Orientation = Orientation.Horizontal };
         var icon = (lost ? Icons.Translate : Icons.Globe).Shape(lost ? Theme.NoteLost : Theme.NoteCulture);
         icon.VerticalAlignment = VerticalAlignment.Center;
-        icon.Margin = new Thickness(0, 0, 4, 0);
+        icon.Margin = new Thickness(0, 0, 5, 0);   // the spec's 4, and the symbol's own side bearing
         title.Children.Add(icon);
         title.Children.Add(Label((string?)note["title"] ?? "", 11, Theme.Secondary, FontWeights.SemiBold));
         stack.Children.Add(title);
