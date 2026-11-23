@@ -91,7 +91,8 @@ Streaming from Ollama uses `URLSession.bytes`, which only Apple's Foundation has
 - Run the real model on Windows: load the GGUF, pick a sense, translate, and compare with the Mac.
 - Memory pressure: Windows has its own low-memory signal to call `EmbeddedModel.relieve`.
 - Reading the selection: UI Automation (text pattern and selection bounds) instead of Accessibility. Coverage will vary by app.
-- The card: still missing Add to Anki, History, the chip on selection, pointing at a word without selecting. Listen uses a Windows Chinese voice when one is installed.
+- The card: still missing Add to Anki, History, pointing at a word without selecting. Listen uses a Windows Chinese voice when one is installed.
+- The eye (Chip.cs) is in: Raw Input watches the mouse (no hook), UI Automation reads the selection off the app's thread with a 0.5 s limit, and ly_prepare starts the card's work 0.3 s after the eye appears (cancelled if it goes unclicked). Apps that don't say what's selected get it on a double-click only, in elements that may hold text, never in terminals, dialogs, Excel or full screen. It matches the Mac's drawing (gallery eye.png). CI checks it in Notepad. Needs a real PC: mixed-DPI screens, Chrome and Electron on first use, WeChat, touch and pen.
 - Updates: WinSparkle reads the same appcast format.
 - Signing: a Windows code-signing certificate, or SmartScreen warns on every download.
 
