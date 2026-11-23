@@ -11,10 +11,15 @@ namespace Longyan;
 /// Runs the lookups in scripts/bridge-check.txt through the bridge and prints each one's last
 /// card (or hint), one JSON line each. Drains the core's main queue from this thread, as the
 /// app does from its message loop. Usage: BridgeCheck RESOURCES LOOKUPS [MODEL]
-/// With MODEL, the lookups go one at a time, each once its card has settled (the pick parity
-/// step in windows.yml), and the signal check is skipped.
+///
+/// With MODEL, the reading model is used: the lookups go one at a time, each until its card has
+/// settled (or LONGYAN_CHECK_MINUTES, default 4), and stderr gets the model's status, each
+/// card's times and the peak memory.
 static class Program
 {
+    static string modelStatus = "";
+    static AutoResetEvent? queued;
+
     static readonly List<(string passage, int start, int end)> lookups = new();
     static readonly Dictionary<long, int> byID = new();
     static readonly Dictionary<int, string> last = new();
@@ -32,8 +37,8 @@ static class Program
             lookups.Add((p[0], int.Parse(p[1]), int.Parse(p[2])));
         }
         keep = OnEvent;
-        var model = args.Length > 2 ? args[2] : null;
-        Bridge.ly_start(Bridge.Utf8(args[0]), model == null ? null : Bridge.Utf8(model), keep);
+        if (args.Length >= 3) return WithModel(args[0], args[2]);
+        Bridge.ly_start(Bridge.Utf8(args[0]), null, keep);
         var handle = Bridge._dispatch_get_main_queue_handle_4CF();
         Console.Error.WriteLine($"main queue handle: {handle}");
         using var queued = handle == IntPtr.Zero ? null : new AutoResetEvent(false) { SafeWaitHandle = new Microsoft.Win32.SafeHandles.SafeWaitHandle(handle, false) };
@@ -47,19 +52,6 @@ static class Program
             queued?.WaitOne(20);
             Bridge._dispatch_main_queue_callback_4CF(IntPtr.Zero);
             if (failed) return 1;
-            if (model != null)
-            {
-                // BRIDGE_WARM=seconds: warm the model up as the app does when the eye shows or
-                // the shortcut is pressed, that long before the first lookup.
-                if (ready && warmAt == null && double.TryParse(Environment.GetEnvironmentVariable("BRIDGE_WARM"), out var w))
-                {
-                    Bridge.ly_warm_up(); warmAt = DateTime.Now.AddSeconds(w);
-                }
-                if (warmAt != null && DateTime.Now < warmAt) continue;
-                if (ready && Next()) break;
-                if ((DateTime.Now - started).TotalMinutes > 30) { Console.Error.WriteLine("timed out"); return 1; }
-                continue;
-            }
             if (ready && !asked)
             {
                 for (var i = 0; i < lookups.Count; i++) byID[Bridge.ly_lookup(Bridge.Utf8(lookups[i].passage), lookups[i].start, lookups[i].end)] = i;
@@ -70,7 +62,6 @@ static class Program
             if ((DateTime.Now - started).TotalMinutes > 5) { Console.Error.WriteLine("timed out"); return 1; }
         }
         for (var i = 0; i < lookups.Count; i++) Console.WriteLine(last.TryGetValue(i, out var j) ? j : "{\"missing\":true}");
-        if (model != null) return 0;
         return queued == null ? 0 : SignalCheck(queued);
     }
 
@@ -101,54 +92,82 @@ static class Program
         return same == lookups.Count ? 0 : 1;
     }
 
-    static int current = -1;
-    static DateTime? warmAt;
-    static DateTime askedAt, changedAt;
-    static string? seenCard;
-    static double firstMs, settledMs;
-
-    /// Model mode: asks for the next lookup once the current card has stayed settled a while
-    /// (or after 3 minutes). True when all are done.
-    static bool Next()
+    static int WithModel(string resources, string model)
     {
-        if (current >= 0)
+        Bridge.ly_start(Bridge.Utf8(resources), Bridge.Utf8(model), keep!);
+        var handle = Bridge._dispatch_get_main_queue_handle_4CF();
+        queued = handle == IntPtr.Zero ? null : new AutoResetEvent(false) { SafeWaitHandle = new Microsoft.Win32.SafeHandles.SafeWaitHandle(handle, false) };
+        var limit = TimeSpan.FromMinutes(double.TryParse(Environment.GetEnvironmentVariable("LONGYAN_CHECK_MINUTES"), out var m) ? m : 4);
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        while (!ready)
         {
-            last.TryGetValue(current, out var json);
-            if (json != seenCard) { seenCard = json; changedAt = DateTime.Now; }
-            var c = json == null ? null : JsonNode.Parse(json)?["card"] as JsonObject;
-            var settled = c != null && Settled(c);
-            // When the card first showed, and when it last changed into a settled card.
-            if (json != null && firstMs < 0) firstMs = (DateTime.Now - askedAt).TotalMilliseconds;
-            if (!settled) settledMs = -1; else if (settledMs < 0) settledMs = (changedAt - askedAt).TotalMilliseconds;
-            // A word card without a meaning yet may not have started its pick: wait longer.
-            double quiet = c?["meaning"] != null || (string?)c?["kind"] == "phrase" ? 2 : 10;
-            // BRIDGE_QUIET=seconds: a shorter wait, for long runs (the speed job's evals).
-            if (double.TryParse(Environment.GetEnvironmentVariable("BRIDGE_QUIET"), out var q)) quiet = q;
-            var waited = (DateTime.Now - askedAt).TotalSeconds;
-            if (!(settled && (DateTime.Now - changedAt).TotalSeconds > quiet) && waited < 180) return false;
-            Console.Error.WriteLine($"lookup {current}: {(settled ? "settled" : "NOT settled")} after {waited:0.0} s");
-            Console.Error.WriteLine($"time: lookup {current} {(string?)c?["kind"]} first {firstMs:0} ms, settled {settledMs:0} ms");
+            Pump();
+            if (failed) return 1;
+            if (clock.Elapsed.TotalMinutes > 2) { Console.Error.WriteLine("timed out loading the dictionary"); return 1; }
         }
-        // The card goes, as Esc closes it in the app, so its leftover work doesn't hold up the next.
-        foreach (var (id, i) in byID) if (i == current) Bridge.ly_close(id);
-        if (++current >= lookups.Count) return true;
-        var (passage, start, end) = lookups[current];
-        askedAt = changedAt = DateTime.Now; seenCard = null; firstMs = settledMs = -1;
-        byID[Bridge.ly_lookup(Bridge.Utf8(passage), start, end)] = current;
-        return false;
+        // A "model" event sent with "ready" comes just after it.
+        clock.Restart();
+        while (clock.Elapsed.TotalSeconds < 1) Pump();
+        Console.Error.WriteLine($"model at start: {modelStatus}");
+        // LONGYAN_CHECK_WARM=seconds: warm the model up that long before the first card, as when
+        // the eye shows or an earlier card was looked up.
+        if (double.TryParse(Environment.GetEnvironmentVariable("LONGYAN_CHECK_WARM"), out var warm))
+        {
+            Bridge.ly_warm_up();
+            clock.Restart();
+            while (clock.Elapsed.TotalSeconds < warm) Pump();
+        }
+        var all = true;
+        for (var i = 0; i < lookups.Count; i++)
+        {
+            // As the app does when the shortcut is pressed.
+            Bridge.ly_warm_up();
+            var t = System.Diagnostics.Stopwatch.StartNew();
+            byID[Bridge.ly_lookup(Bridge.Utf8(lookups[i].passage), lookups[i].start, lookups[i].end)] = i;
+            double? first = null, settled = null;
+            while (t.Elapsed < limit)
+            {
+                Pump();
+                if (!last.TryGetValue(i, out var json)) continue;
+                first ??= t.Elapsed.TotalSeconds;
+                if (Settled(json)) { settled = t.Elapsed.TotalSeconds; break; }
+            }
+            all &= settled != null;
+            Console.Error.WriteLine(FormattableString.Invariant(
+                $"card {i + 1}: first {(first is double f ? f.ToString("F1") + " s" : "never")}, settled {(settled is double s ? s.ToString("F1") + " s" : "not in " + limit.TotalMinutes + " min")}, {Describe(last.GetValueOrDefault(i))}"));
+        }
+        for (var i = 0; i < lookups.Count; i++) Console.WriteLine(last.TryGetValue(i, out var j) ? j : "{\"missing\":true}");
+        Console.Error.WriteLine($"model at end: {modelStatus}");
+        using var me = System.Diagnostics.Process.GetCurrentProcess();
+        Console.Error.WriteLine($"peak memory: {me.PeakWorkingSet64 / 1_000_000} MB");
+        Bridge.ly_shutdown();
+        return all ? 0 : 1;
     }
 
-    /// As UiCheck's: the model's pick in, and for a phrase its translation.
-    static bool Settled(JsonObject card)
+    static void Pump()
     {
-        if ((string?)card["kind"] == "phrase")
-        {
-            if (card["translation"] == null && card["translationError"] == null) return false;
-            foreach (var r in card["rows"]?.AsArray() ?? new JsonArray())
-                if ((bool?)r?["pending"] == true || ((string?)r?["status"])?.StartsWith("Reading") == true) return false;
-            return true;
-        }
-        return (string?)card["status"] != "Reading the sentence…";
+        if (queued != null) queued.WaitOne(20); else Thread.Sleep(20);
+        Bridge._dispatch_main_queue_callback_4CF(IntPtr.Zero);
+    }
+
+    /// The model has nothing more to add: a word card's pick is in (or it isn't waiting for one),
+    /// a phrase card has its translation and every row's meaning.
+    static bool Settled(string json)
+    {
+        if (JsonNode.Parse(json) is not JsonObject e || e["card"] is not JsonObject card) return true;
+        if ((string?)card["kind"] == "word") return (string?)card["status"] != "Reading the sentence…";
+        var rows = card["rows"] as JsonArray ?? new JsonArray();
+        return (card["translation"] != null || card["translationError"] != null)
+            && !rows.OfType<JsonObject>().Any(r => r["pending"] is JsonValue v && v.TryGetValue<bool>(out var p) && p);
+    }
+
+    static string Describe(string? json)
+    {
+        if (json == null || JsonNode.Parse(json) is not JsonObject e) return "no card";
+        if (e["card"] is not JsonObject card) return "hint: " + (string?)e["message"];
+        if ((string?)card["kind"] == "word")
+            return $"word {(string?)card["word"]}: " + ((string?)card["status"] ?? "picked") + (card["meaning"] is JsonNode mm ? $" ({(string?)mm})" : "");
+        return $"phrase: " + ((string?)card["translation"] ?? (string?)card["translationError"] ?? "no translation");
     }
 
     static string WithoutID(string json)
@@ -165,7 +184,8 @@ static class Program
         var e = JsonNode.Parse(json) as JsonObject;
         switch ((string?)e?["event"])
         {
-            case "ready": ready = true; Console.Error.WriteLine(json); break;
+            case "ready": ready = true; modelStatus = (string?)e!["model"] ?? ""; Console.Error.WriteLine(json); break;
+            case "model": modelStatus = (string?)e!["model"] ?? ""; Console.Error.WriteLine(json); break;
             case "failed": failed = true; Console.Error.WriteLine(json); break;
             case "card":
             case "hint":

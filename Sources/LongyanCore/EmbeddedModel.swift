@@ -167,10 +167,11 @@ package final class EmbeddedModel: @unchecked Sendable {
         // not on every selection: each try reads the whole 2.7 GB file.
         if let at = contextFailedAt, Date().timeIntervalSince(at) < 60 { throw Self.error("couldn't create a context") }
         guard let path = Self.modelPath else { throw Self.error("no model file") }
+        #if os(Windows)
+        _ = Self.cpu
+        if Self.tooSlow { throw Self.error("too slow on this CPU") }
+        #endif
         if !backendReady {
-            #if os(Windows)
-            Self.loadCPUBackend()
-            #endif
             if ProcessInfo.processInfo.environment["LONGYAN_LLAMA_LOG"] != "1" { llama_log_set({ _, _, _ in }, nil) }
             llama_backend_init()
             backendReady = true
@@ -719,7 +720,7 @@ extension EmbeddedModel {
     /// gets the SSE 4.2 kernels instead of an illegal instruction. LONGYAN_CPU=sse42 (or another
     /// variant's name) loads that one instead, if this CPU can run it. LONGYAN_BACKEND_LOG=file
     /// adds a line there saying what was loaded.
-    fileprivate static func loadCPUBackend() {
+    fileprivate static func loadCPUBackend() -> (loaded: Bool, features: Set<String>) {
         let env = ProcessInfo.processInfo.environment
         backendLog = ""
         llama_log_set({ _, text, _ in
@@ -750,6 +751,13 @@ extension EmbeddedModel {
         let cpu = ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_CPU).flatMap { ggml_backend_dev_description($0) }
             .map { String(cString: $0) } ?? "?"
         let line = "llama.cpp CPU backend: \(from) (\(features.joined(separator: " "))) on \(cpu)\n"
+        log(line)
+        return (from != "none", Set(features))
+    }
+
+    /// A line for LONGYAN_BACKEND_LOG's file (and stderr with LONGYAN_TIMING=1).
+    fileprivate static func log(_ line: String) {
+        let env = ProcessInfo.processInfo.environment
         if env["LONGYAN_TIMING"] == "1" { FileHandle.standardError.write(Data(line.utf8)) }
         if let path = env["LONGYAN_BACKEND_LOG"], let h = FileHandle(forWritingAtPath: path) ?? {
             FileManager.default.createFile(atPath: path, contents: nil) ? FileHandle(forWritingAtPath: path) : nil
@@ -757,5 +765,54 @@ extension EmbeddedModel {
             h.seekToEndOfFile(); h.write(Data(line.utf8)); h.closeFile()
         }
     }
+
+    // MARK: Too slow for the model
+
+    /// The CPU kernels, loaded once (a few DLLs, no model): what they say decides `tooSlow`.
+    private static let cpu: (loaded: Bool, features: Set<String>) = {
+        let c = EmbeddedModel.loadCPUBackend()
+        #if arch(x86_64)
+        let fast = c.features.contains("AVX2") && c.features.contains("FMA")
+        if c.loaded { EmbeddedModel.log("too slow for the model by CPU features: \(fast ? "no" : "yes")\(EmbeddedModel.emulated ? " (x64 emulated on ARM64)" : "")\n") }
+        #else
+        if c.loaded { EmbeddedModel.log("too slow for the model: no (not x64, no CPU feature rule)\n") }
+        #endif
+        return c
+    }()
+
+    /// Set by the app from its settings ("allowSlowModel"): use the model however slow.
+    /// LONGYAN_ALLOW_SLOW=1 does the same.
+    nonisolated(unsafe) package static var allowSlow = false
+
+    /// This x64 build runs under emulation on an ARM PC (Snapdragon): it gets the SSE 4.2
+    /// kernels and is too slow, though the PC isn't. A native ARM64 build would be fast.
+    package static let emulated: Bool = {
+        var process: USHORT = 0, native: USHORT = 0
+        guard IsWow64Process2(GetCurrentProcess(), &process, &native) else { return false }
+        return native == 0xAA64   // IMAGE_FILE_MACHINE_ARM64
+    }()
+
+    /// Whether this PC is too slow for the model, so it isn't loaded at all and cards use
+    /// dictionary order. On x64 it needs AVX2 and FMA. On the CI runner (4 cores), word cards
+    /// took 15 to 17 s on the AVX2 kernels and 28 to 33 s on the AVX-only ones (prompts read at
+    /// 28 and 13 tokens a second); on SSE 4.2, 1 token a second, so a card never settles.
+    package static var tooSlow: Bool {
+        if allowSlow || ProcessInfo.processInfo.environment["LONGYAN_ALLOW_SLOW"] == "1" { return false }
+        #if arch(x86_64)
+        return cpu.loaded && !(cpu.features.contains("AVX2") && cpu.features.contains("FMA"))
+        #else
+        // A native ARM64 build: its kernels are NEON, never AVX2, and it is fast enough.
+        _ = cpu
+        return false
+        #endif
+    }
+}
+#endif
+
+#if !os(Windows)
+extension EmbeddedModel {
+    /// Only checked on Windows: every Mac the app runs on is fast enough.
+    package static var tooSlow: Bool { false }
+    package static var emulated: Bool { false }
 }
 #endif

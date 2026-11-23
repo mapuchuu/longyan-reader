@@ -48,6 +48,10 @@ package enum LocalModel {
 
     package static func isAvailable() async -> Bool {
         guard enabled else { return false }
+        // Too slow (Windows only): as if there were no model, without loading it.
+        if !ollamaAllowed && EmbeddedModel.tooSlow {
+            lastCheck = (Date(), false); note(EmbeddedModel.emulated ? .needsArm64 : .tooSlow); return false
+        }
         if backend == .ollama && !ollamaAllowed { lastCheck = (Date(), false); return false }
         if backend == .embedded {
             let ok = !EmbeddedModel.fileUnloadable
@@ -76,6 +80,7 @@ package enum LocalModel {
     private static var _lastWarmUp: Date?
     package static func warmUp() {
         guard enabled else { return }
+        guard ollamaAllowed || !EmbeddedModel.tooSlow else { return }
         if backend == .embedded {
             // A pick's instructions, then a translation's (where prefixes are primed: Windows).
             EmbeddedModel.shared.warmUp(systems: [chooseAllInstructions, translationInstructions + (promptV2 ? " " + keepWords : "")])
@@ -104,8 +109,19 @@ package enum LocalModel {
 
     /// Why the built-in model can't run, as last seen: its file wouldn't load, or there was no
     /// memory for a context (the model tries again a minute later). Nil when it worked or
-    /// hasn't been tried.
-    package enum Problem: String, Sendable { case unloadable, noMemory = "no-memory" }
+    /// hasn't been tried. Or this PC is too slow for it (Windows only), so it's never loaded;
+    /// or it's an ARM PC running the x64 app, which needs the ARM version for the model.
+    package enum Problem: String, Sendable {
+        case unloadable, noMemory = "no-memory", tooSlow = "too-slow", needsArm64 = "needs-arm64"
+        /// Why cards use dictionary order, when it's the PC.
+        package var reason: String? {
+            switch self {
+            case .tooSlow: return "this PC is too slow for the reading model"
+            case .needsArm64: return "the reading model needs the ARM version of Longyan Reader"
+            default: return nil
+            }
+        }
+    }
     private static var _problem: Problem?
     package static var problem: Problem? { lock.withLock { _problem } }
     /// Told of each change of `problem`, on any thread. Set by the Windows bridge.
@@ -148,6 +164,7 @@ package enum LocalModel {
             let loaded = EmbeddedModel.shared.memoryState().loaded
             lock.withLock { checkingWarmUp = false }
             if loaded { note(nil) }
+            else if EmbeddedModel.tooSlow { note(EmbeddedModel.emulated ? .needsArm64 : .tooSlow) }
             else if EmbeddedModel.fileUnloadable { note(.unloadable) }
             else if EmbeddedModel.modelPath != nil { note(.noMemory) }
         }
