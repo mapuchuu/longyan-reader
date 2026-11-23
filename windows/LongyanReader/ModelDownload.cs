@@ -79,6 +79,9 @@ static class ModelDownload
         if (done != Size) throw new IOException("the download stopped early");
     }
 
+    /// Whether the downloaded file is the right one: a file that won't load may just be damaged.
+    public static Task<bool> Verify() => Matches(Core.ModelPath);
+
     static async Task<bool> Matches(string path)
     {
         using var stream = File.OpenRead(path);
