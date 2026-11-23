@@ -75,7 +75,8 @@ static class PointReader
         // the text: it must really be under the pointer.
         var rects = at.GetBoundingRectangles().Where(r => !r.IsEmpty && r.Width > 0).ToArray();
         if (rects.Length == 0) return new Read(null, "no character bounds");
-        if (!rects.Any(r => { r.Inflate(3, 3); return r.Contains(point); })) return new Read(null, "not under the pointer");
+        if (!rects.Any(r => { r.Inflate(3, 3); return r.Contains(point); }))
+            return new Read(null, FormattableString.Invariant($"not under the pointer: {point.X:0},{point.Y:0} and {rects[0].X:0},{rects[0].Y:0} {rects[0].Width:0}x{rects[0].Height:0}"));
 
         var wide = at.Clone();
         wide.MoveEndpointByUnit(TextPatternRangeEndpoint.Start, TextUnit.Character, -Around);
