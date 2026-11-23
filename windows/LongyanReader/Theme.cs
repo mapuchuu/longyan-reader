@@ -40,6 +40,9 @@ static class Theme
     public static readonly FontFamily Chinese = new("Microsoft YaHei UI, Microsoft JhengHei UI, Segoe UI");
     /// YaHei's characters fill more of the em than PingFang's: this matches their height.
     public const double ChineseScale = 0.92;
+    /// PingFang Medium is heavier than YaHei's Regular, and YaHei has no Medium: Bold stands in.
+    public static System.Windows.FontWeight ChineseWeight(System.Windows.FontWeight w) =>
+        w.ToOpenTypeWeight() >= 500 ? System.Windows.FontWeights.Bold : w;
     /// San Francisco's line spacing as a multiple of the size.
     public const double LineFactor = 1.2;
     public static readonly FontFamily Icons = new("Segoe Fluent Icons, Segoe MDL2 Assets");

@@ -154,7 +154,7 @@ sealed class CardView
         line.Inlines.Add(new Run("") { FontFamily = Theme.Icons, FontSize = 8, Foreground = Theme.Tertiary, BaselineAlignment = BaselineAlignment.Center });
         var row = RowButton(line, bleed: 4, vertical: 2, () => actions.OpenPartOf(), hug: true);
         row.ToolTip = $"Look up {part["word"]}";
-        row.Margin = new Thickness(-4, 4, 0, 0);
+        row.Margin = new Thickness(0, 4, 0, 0);
         return row;
     }
 
@@ -565,7 +565,7 @@ sealed class CardView
         while (e.MoveNext())
         {
             var tone = i < syllables.Count ? (int?)syllables[i]?["tone"] ?? 5 : 5;
-            inlines.Add(new Run((string)e.Current) { FontFamily = Theme.Chinese, FontSize = size * Theme.ChineseScale, FontWeight = weight, Foreground = pending ? Theme.Secondary : Theme.Hanzi(tone) });
+            inlines.Add(new Run((string)e.Current) { FontFamily = Theme.Chinese, FontSize = size * Theme.ChineseScale, FontWeight = Theme.ChineseWeight(weight), Foreground = pending ? Theme.Secondary : Theme.Hanzi(tone) });
             i++;
         }
     }

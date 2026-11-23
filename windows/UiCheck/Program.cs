@@ -50,9 +50,28 @@ static class Program
         Keys(VK_CONTROL, VK_HOME);
         for (var i = 0; i < 3; i++) Keys(VK_RIGHT);
         for (var i = 0; i < 2; i++) Keys(VK_SHIFT, VK_RIGHT);
-        Check("1-word", app, new[] { "感冒", "MEANINGS" });
+        Check("1-word", app, new[] { "感冒", "Meanings" }, burst: true);
+
+        // Feel: hover a meaning, pick it, drag the card, then Esc.
+        if (FindText(app, "(common) cold") is System.Windows.Rect cold)
+        {
+            MoveTo(cold.Left + 20, cold.Top + cold.Height / 2);
+            Thread.Sleep(400);
+            Shot("1-hover");
+            Click(cold.Left + 20, cold.Top + cold.Height / 2);
+            Burst("1-pick", 700);
+            Thread.Sleep(500);
+            Shot("1-picked");
+            Drag(cold.Left + 20, cold.Top + cold.Height / 2, 160, 90);
+            Thread.Sleep(300);
+            Shot("1-moved");
+        }
+        else failures.Add("1-word: no \"(common) cold\" row to hover");
 
         Keys(VK_ESCAPE);
+        Burst("1-close", 300);
+        Thread.Sleep(300);
+        if (CardOpen(app)) failures.Add("1-word: Esc didn't close the card");
         Thread.Sleep(800);
         Focus(window);
         // The whole second line: a phrase card.
@@ -60,7 +79,19 @@ static class Program
         Keys(VK_DOWN);
         Keys(VK_HOME);
         Keys(VK_SHIFT, VK_END);
-        Check("2-phrase", app, new[] { "明朝", "WORDS" });
+        Check("2-phrase", app, new[] { "明朝", "Words" }, burst: true);
+
+        // Open a row: the card grows and the detail slides in.
+        if (FindText(app, "to implement") is System.Windows.Rect row)
+        {
+            Click(row.Left + 10, row.Top + row.Height / 2);
+            Burst("2-open", 800);
+            Thread.Sleep(1500);
+            Shot("2-opened");
+            Click(row.Left + 10, row.Top + row.Height / 2);
+            Burst("2-shut", 800);
+        }
+        else failures.Add("2-phrase: no \"to implement\" row to open");
 
         Keys(VK_ESCAPE);
         try { notepad.Kill(); } catch { }
@@ -72,10 +103,11 @@ static class Program
     /// Presses the shortcut, then waits for the card to settle, as the core reports it (the
     /// app's event log): the model's pick in, the translation in and no row still waiting.
     /// Three minutes at most.
-    static void Check(string name, Process app, string[] expect)
+    static void Check(string name, Process app, string[] expect, bool burst = false)
     {
         var before = File.Exists(log) ? File.ReadAllLines(log).Length : 0;
         Keys(VK_CONTROL, VK_MENU, 0x4C);
+        if (burst) Burst(name + "-reveal", 1200);
         var started = DateTime.Now;
         var shotEarly = false;
         JsonObject? card = null;
@@ -137,6 +169,77 @@ static class Program
             }
         }
         return sb.ToString();
+    }
+
+    /// Frames of the screen every ~30 ms for `ms`, kept in memory and saved after, so the
+    /// capture doesn't slow itself down: name-00.png, name-01.png, … with the times in name.txt.
+    static void Burst(string name, int ms)
+    {
+        var b = System.Windows.Forms.Screen.PrimaryScreen!.Bounds;
+        var frames = new List<(double t, Bitmap bmp)>();
+        var clock = Stopwatch.StartNew();
+        while (clock.ElapsedMilliseconds < ms)
+        {
+            var bmp = new Bitmap(b.Width / 2, b.Height / 2);
+            using (var full = new Bitmap(b.Width, b.Height))
+            {
+                using (var g = Graphics.FromImage(full)) g.CopyFromScreen(b.Location, Point.Empty, b.Size);
+                using var h = Graphics.FromImage(bmp);
+                h.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.Bilinear;
+                h.DrawImage(full, 0, 0, bmp.Width, bmp.Height);
+            }
+            frames.Add((clock.Elapsed.TotalMilliseconds, bmp));
+            Thread.Sleep(10);
+        }
+        var dir = Path.Combine(outDir, name);
+        Directory.CreateDirectory(dir);
+        var times = new StringBuilder();
+        for (var i = 0; i < frames.Count; i++)
+        {
+            frames[i].bmp.Save(Path.Combine(dir, $"{i:00}.png"), ImageFormat.Png);
+            frames[i].bmp.Dispose();
+            times.AppendLine($"{i:00}\t{frames[i].t:0}");
+        }
+        File.WriteAllText(Path.Combine(dir, "times.txt"), times.ToString());
+        Console.WriteLine($"[{name}] {frames.Count} frames in {ms} ms");
+    }
+
+    /// Where a piece of the card's text is on screen (pixels), through UI Automation.
+    static System.Windows.Rect? FindText(Process app, string contains)
+    {
+        var cond = new PropertyCondition(AutomationElement.ProcessIdProperty, app.Id);
+        foreach (AutomationElement w in AutomationElement.RootElement.FindAll(TreeScope.Children, cond))
+            foreach (AutomationElement t in w.FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Text)))
+                if (t.Current.Name.Contains(contains)) return t.Current.BoundingRectangle;
+        return null;
+    }
+
+    static bool CardOpen(Process app)
+    {
+        var cond = new PropertyCondition(AutomationElement.ProcessIdProperty, app.Id);
+        foreach (AutomationElement w in AutomationElement.RootElement.FindAll(TreeScope.Children, cond))
+            if (!w.Current.IsOffscreen && w.Current.BoundingRectangle.Width > 0 && w.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Text)) != null) return true;
+        return false;
+    }
+
+    static void MoveTo(double x, double y) => SetCursorPos((int)x, (int)y);
+
+    static void Click(double x, double y)
+    {
+        MoveTo(x, y);
+        Thread.Sleep(60);
+        var click = new[] { Mouse(MOUSEEVENTF_LEFTDOWN), Mouse(MOUSEEVENTF_LEFTUP) };
+        SendInput(2, click, Marshal.SizeOf<INPUT>());
+    }
+
+    /// Presses at (x, y), moves by (dx, dy) in steps, and lets go.
+    static void Drag(double x, double y, int dx, int dy)
+    {
+        MoveTo(x, y);
+        Thread.Sleep(60);
+        SendInput(1, new[] { Mouse(MOUSEEVENTF_LEFTDOWN) }, Marshal.SizeOf<INPUT>());
+        for (var i = 1; i <= 12; i++) { MoveTo(x + dx * i / 12.0, y + dy * i / 12.0); Thread.Sleep(16); }
+        SendInput(1, new[] { Mouse(MOUSEEVENTF_LEFTUP) }, Marshal.SizeOf<INPUT>());
     }
 
     static void Shot(string name)
