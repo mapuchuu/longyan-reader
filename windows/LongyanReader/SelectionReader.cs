@@ -48,6 +48,7 @@ static class SelectionReader
     {
         try
         {
+            var clock = System.Diagnostics.Stopwatch.StartNew();
             var element = AutomationElement.FocusedElement;
             if (element == null) return new Probed(Found.Unreadable, null, Why: "no focus");
             var info = element.Current;
@@ -59,6 +60,7 @@ static class SelectionReader
             if (selection == null) return new Probed(Found.NothingSelected, null, role, area);
             var selected = selection.GetText(-1);
             if (string.IsNullOrEmpty(selected)) return new Probed(Found.NothingSelected, null, role, area);
+            var readMs = clock.ElapsedMilliseconds;
 
             var wide = selection.Clone();
             wide.MoveEndpointByUnit(TextPatternRangeEndpoint.Start, TextUnit.Character, -Around);
@@ -72,8 +74,11 @@ static class SelectionReader
             {
                 passage = selected; start = 0;
             }
+            var contextMs = clock.ElapsedMilliseconds - readMs;
             var (bounds, oneLine) = Bounds(selection);
-            return new Probed(Found.Selection, new Selected(passage, start, start + selected.Length, bounds, oneLine, selected.TrimEnd().Length < selected.Length), role, area);
+            // Where the read's time went, for the log: the selection, the text around it, its place.
+            var parts = $"{readMs}+{contextMs}+{clock.ElapsedMilliseconds - readMs - contextMs} ms";
+            return new Probed(Found.Selection, new Selected(passage, start, start + selected.Length, bounds, oneLine, selected.TrimEnd().Length < selected.Length), role, area, parts);
         }
         catch (Exception e)
         {
