@@ -18,6 +18,7 @@ static class Program
     static string modelStatus = "";
     static bool lastRunEndedBadly, reportOffered, exiting, modelVerified;
     static string? toldAbout;
+    static bool welcomedNow;
     static Action? balloonClicked;
     const string AgainEvent = "LongyanReader.Windows.Again";
     const string QuitEvent = "LongyanReader.Windows.Quit";
@@ -185,6 +186,7 @@ static class Program
         core.Ready += status =>
         {
             modelStatus = status;
+            ModelDownload.TooSlow = status is "too-slow" or "needs-arm64";
             UpdateMenu();
             Application.Current.Dispatcher.BeginInvoke(CardWindow.Warm, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
             if (lastRunEndedBadly)
@@ -194,6 +196,7 @@ static class Program
                 Balloon("Longyan Reader closed unexpectedly last time. Click here to report the problem.", Report);
             }
             else if (!Settings.WelcomeShown) WelcomeWindow.Open();
+            else if (welcomedNow) { }   // the welcome window says it all
             else if (status != "ready" && !ModelDownload.IsDownloaded) Balloon("Longyan Reader is ready. Download the reading model in Settings to pick meanings and translate. Click here to open Settings.", () => SettingsWindow.Open());
             else if (Shortcut.Registered) Balloon($"Longyan Reader is ready. Select Chinese text in any app and press {Shortcut.Name}.");
         };
@@ -220,6 +223,15 @@ static class Program
         Chip.Clicked = EyeClicked;
         Chip.Start();
         AccessibilityWake.Start();
+        // The first run: the welcome window at once, while the dictionary loads (first-run work,
+        // win/firstrun). When it closes, the icon says where the app went.
+        WelcomeWindow.Finished += () =>
+        {
+            if (exiting) return;
+            Balloon($"Longyan Reader is running in the notification area. Select Chinese text in any app, then press {Shortcut.Name}."
+                + (ModelDownload.Running ? " The reading model keeps downloading." : ""));
+        };
+        if (!Settings.WelcomeShown && !lastRunEndedBadly) { welcomedNow = true; WelcomeWindow.Open(); }
     }
 
     /// The eye: the selection read when it appeared, else copy it now (the eye never took the
@@ -431,8 +443,8 @@ static class Program
         UpdateMenu();
         var error = await ModelDownload.Run();
         ModelDownload.Changed -= Progress;
-        if (error == null) { toldAbout = null; modelVerified = false; Core.Shared.RefreshModel(); Balloon("The reading model is ready."); }
-        else if (error != "stopped") Balloon("The reading model didn't download: " + error);
+        if (error == null) { toldAbout = null; modelVerified = false; Core.Shared.RefreshModel(); if (!WelcomeWindow.IsOpen) Balloon("The reading model is ready."); }
+        else if (error != "stopped" && !WelcomeWindow.IsOpen) Balloon("The reading model didn't download: " + error);
         UpdateMenu();
     }
 

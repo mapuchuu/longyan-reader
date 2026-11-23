@@ -9,15 +9,17 @@ using System.Windows.Documents;
 namespace Longyan;
 
 /// What the reading model's card shows: as it is now, or fixed for --render-windows.
-sealed record ModelView(string Status, bool Downloaded, bool Running, bool Checking, double Progress, string? TimeLeft, string? Error, long OnDisk)
+sealed record ModelView(string Status, bool Downloaded, bool Running, bool Checking, double Progress, string? TimeLeft, string? Error, long OnDisk,
+    bool Waiting = false, string? Space = null)
 {
     public static ModelView Now() => new(Program.ModelStatus, ModelDownload.IsDownloaded, ModelDownload.Running, ModelDownload.Checking,
-        ModelDownload.Progress, ModelDownload.TimeLeft, ModelDownload.LastError, ModelDownload.OnDisk);
+        ModelDownload.Progress, ModelDownload.TimeLeft, ModelDownload.LastError, ModelDownload.OnDisk,
+        ModelDownload.WaitingForNetwork, ModelDownload.SpaceShort);
 }
 
 /// The reading model's card, in Settings and the welcome window: what state it's in, and
-/// Download, Cancel or Download again. Updated in place, so the button stays put while the
-/// download runs.
+/// Download, Stop, Resume or Try again, worded as the Mac's welcome window words them.
+/// Updated in place, so the button stays put while the download runs.
 sealed class ModelCard
 {
     public const string TooSlow = "This PC is too slow for the reading model. Cards use dictionary order.";
@@ -40,8 +42,21 @@ sealed class ModelCard
         var stack = new StackPanel();
         stack.Children.Add(f.Row(welcome ? null : "\uE8C1", "Reading model", words, button, minHeight: 48));
         bar.Margin = new Thickness(welcome ? 0 : 36, 10, 0, 4);
+        System.Windows.Automation.AutomationProperties.SetName(bar, "Download progress");
         stack.Children.Add(bar);
         Root = f.CardFrame(stack);
+    }
+
+    /// The button downloads (Download, Resume, Try again, Download again): the welcome window
+    /// makes it the default then, as the Mac's does.
+    public bool WantsDownload { get; private set; }
+
+    /// The welcome window's default button: accent and Enter.
+    public void SetDefault(bool on)
+    {
+        if (on) button.SetResourceReference(FrameworkElement.StyleProperty, "Accent");
+        else button.ClearValue(FrameworkElement.StyleProperty);
+        button.IsDefault = on;
     }
 
     public void Show(ModelView m)
@@ -49,39 +64,52 @@ sealed class ModelCard
         var size = ModelDownload.Gigabytes(ModelDownload.Size);
         var lines = new List<string>();
         string? label = null;
+        var enabled = true;
         act = null;
+        // "1.2 of 2.7 GB", as the Mac shows it.
+        string Of(double part) => $"{part * ModelDownload.Size / 1e9:0.0} of {ModelDownload.Size / 1e9:0.0} GB";
         if (m.Running && !m.Checking)
         {
-            var got = ModelDownload.Gigabytes((long)(m.Progress * ModelDownload.Size));
-            lines.Add($"Downloading: {got} of {size}" + (m.TimeLeft != null ? " · " + m.TimeLeft : ""));
-            label = "Cancel"; act = ModelDownload.Stop;
+            lines.Add(m.Waiting ? $"Waiting for the internet connection. {Of(m.Progress)} so far."
+                : $"Downloading: {Of(m.Progress)}" + (m.TimeLeft != null ? " · " + m.TimeLeft : ""));
+            label = "Stop"; act = ModelDownload.Stop;
         }
         else if (m.Checking) lines.Add("Checking the download…");
         else if (m.Status == "ready")
             lines.Add(welcome ? "Ready. " + What : $"Ready. {What} Uses {size} on this PC.");
         else if (m.Status == "too-slow") lines.Add(TooSlow);
+        else if (m.Status == "needs-arm64") lines.Add("The reading model needs the ARM version of Longyan Reader. Cards use dictionary order.");
         else if (m.Status == "no-memory") lines.Add("There isn't enough free memory for the reading model now, so cards use dictionary order. It tries again in a minute.");
         else if (!m.Downloaded)
         {
             lines.Add($"Recommended. {What} It's a {size} download and runs on this PC.");
-            if (m.Error is string e && e != "stopped") lines.Add($"The last download didn't finish: {e.TrimEnd('.')}.");
+            if (m.Space is string space) lines.Add($"Not enough disk space. The download {space}.");
+            else if (m.Error is string e && e != "stopped") lines.Add($"Download failed: {e.TrimEnd('.')}.");
             else if (m.OnDisk > 0) lines.Add($"{ModelDownload.Gigabytes(m.OnDisk)} is downloaded so far.");
-            label = m.OnDisk > 0 ? "Resume" : "Download"; act = Program.GetModel;
+            label = m.Space != null || (m.Error != null && m.Error != "stopped") ? "Try again" : m.OnDisk > 0 ? "Resume" : "Download";
+            act = Program.GetModel;
+            // Until the core has said whether this PC can run the model, so a PC too slow for
+            // it isn't sent 2.7 GB.
+            enabled = m.Status.Length > 0;
         }
-        else if (m.Status.Length == 0) lines.Add("Loading…");
+        // Downloaded, and the core hasn't looked again yet (it says "unloadable" when it has).
+        else if (m.Status != "unloadable" && m.Error == null) lines.Add("Loading…");
         else
         {
             lines.Add("It couldn't load, so cards list meanings in dictionary order.");
             if (!welcome) lines.Add($"Uses {ModelDownload.Gigabytes(m.OnDisk)} on this PC.");
-            if (m.Error is string e && e != "stopped") lines.Add($"The last download didn't finish: {e.TrimEnd('.')}.");
+            if (m.Error is string e && e != "stopped") lines.Add($"Download failed: {e.TrimEnd('.')}.");
             label = "Download again"; act = Program.GetModel;
         }
         words.Children.Clear();
         foreach (var l in lines) words.Children.Add(f.Caption(l));
+        WantsDownload = act == Program.GetModel;
         button.Visibility = label == null ? Visibility.Collapsed : Visibility.Visible;
         button.Content = label ?? "";
-        bar.Visibility = m.Running && !m.Checking ? Visibility.Visible : Visibility.Collapsed;
-        bar.Value = m.Progress;
+        button.IsEnabled = enabled;
+        System.Windows.Automation.AutomationProperties.SetName(button, label ?? "");
+        bar.Visibility = m.Running ? Visibility.Visible : Visibility.Collapsed;
+        bar.Value = m.Checking ? 1 : m.Progress;
     }
 }
 
