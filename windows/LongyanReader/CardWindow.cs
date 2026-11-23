@@ -134,10 +134,10 @@ sealed class CardWindow : Window, ICardActions
         ((Border)layers[0]).Background = Theme.Surface;
         ((Border)layers[1]).Background = Theme.Surface;
         hairline.BorderBrush = Theme.Hairline;
-        foreach (Line l in grip.Children) l.Stroke = Theme.Ink(resizing ? 0.45 : 0.22);
-        grabber.Background = Theme.Ink(resizing ? 0.40 : 0.20);
+        foreach (Line l in grip.Children) l.Stroke = Theme.Fill(resizing ? 0.45 : 0.22);
+        grabber.Background = Theme.Fill(resizing ? 0.40 : 0.20);
         badgeCircle.Background = Theme.Surface;
-        badgeCircle.BorderBrush = Theme.Ink(0.12);
+        badgeCircle.BorderBrush = Theme.Fill(0.12);
         badgeX.Stroke = badge.IsMouseOver ? Theme.Primary : Theme.Secondary;
     }
 
@@ -209,15 +209,21 @@ sealed class CardWindow : Window, ICardActions
         w.view.AnkiState = (string?)json["anki"];   // the gallery's cards say which Anki state to draw
         w.view.Show(json, animate: false);
         w.Content = null;
-        w.card.Children.Remove(w.layers[0]);
-        w.card.Children.Remove(w.layers[1]);
+        // "shadow": true keeps the shadow, with the window's margin around it (gallery shadow.json).
+        var shadow = json["shadow"]?.GetValue<bool>() == true;
+        if (!shadow)
+        {
+            w.card.Children.Remove(w.layers[0]);
+            w.card.Children.Remove(w.layers[1]);
+        }
+        else w.layers[0].VerticalAlignment = w.layers[1].VerticalAlignment = VerticalAlignment.Stretch;
         foreach (var b in w.bands) b.Visibility = Visibility.Collapsed;
-        w.card.Margin = new Thickness(0);
+        w.card.Margin = new Thickness(shadow ? Frame : 0);
         w.card.Width = w.view.Width;
         w.scroller.VerticalScrollBarVisibility = ScrollBarVisibility.Disabled;
         var backdrop = new Border { Background = Theme.Backdrop, Padding = new Thickness(12), Child = w.frame };
         TextOptions.SetTextFormattingMode(backdrop, TextFormattingMode.Ideal);
-        backdrop.Measure(new Size(w.view.Width + 24, double.PositiveInfinity));
+        backdrop.Measure(new Size(w.view.Width + 24 + (shadow ? 2 * Frame : 0), double.PositiveInfinity));
         backdrop.Arrange(new Rect(backdrop.DesiredSize));
         backdrop.UpdateLayout();
         var bmp = new System.Windows.Media.Imaging.RenderTargetBitmap((int)Math.Ceiling(backdrop.ActualWidth * 2), (int)Math.Ceiling(backdrop.ActualHeight * 2), 192, 192, PixelFormats.Pbgra32);
@@ -267,9 +273,9 @@ sealed class CardWindow : Window, ICardActions
         for (var i = 0; i < 3; i++)
         {
             var inset = i * 3.5 + 2;
-            grip.Children.Add(new Line { X1 = 11, Y1 = inset, X2 = inset, Y2 = 11, StrokeThickness = 1, Stroke = Theme.Ink(0.22) });
+            grip.Children.Add(new Line { X1 = 11, Y1 = inset, X2 = inset, Y2 = 11, StrokeThickness = 1, Stroke = Theme.Fill(0.22) });
         }
-        grabber.Background = Theme.Ink(0.20);
+        grabber.Background = Theme.Fill(0.20);
         overlay.Children.Add(scroller);
         overlay.Children.Add(view.Buttons);
         overlay.Children.Add(grip);
@@ -286,7 +292,8 @@ sealed class CardWindow : Window, ICardActions
         };
 
         // The shadow: two layers cast by copies of the card's outline behind it.
-        layers = new FrameworkElement[] { Shadow(32, 8, 0.16), Shadow(3, 0.5, 0.08), surface };
+        // WPF's blur radius is three of the Gaussian's sigma; the Mac's shadow radius is one.
+        layers = new FrameworkElement[] { Shadow(48, 8, 0.16), Shadow(4.5, 0.5, 0.08), surface };
         foreach (var l in layers) card.Children.Add(l);
         Bands();
         Badge();
@@ -885,8 +892,8 @@ sealed class CardWindow : Window, ICardActions
             start = CardRect();
             startZoom = zoom;
             startWidth = CardWidth;
-            foreach (Line l in grip.Children) l.Stroke = Theme.Ink(0.45);
-            grabber.Background = Theme.Ink(0.40);
+            foreach (Line l in grip.Children) l.Stroke = Theme.Fill(0.45);
+            grabber.Background = Theme.Fill(0.40);
         };
         band.MouseMove += (_, e) =>
         {
@@ -925,8 +932,8 @@ sealed class CardWindow : Window, ICardActions
             if (!resizing) return;
             resizing = false;
             band.ReleaseMouseCapture();
-            foreach (Line l in grip.Children) l.Stroke = Theme.Ink(0.22);
-            grabber.Background = Theme.Ink(0.20);
+            foreach (Line l in grip.Children) l.Stroke = Theme.Fill(0.22);
+            grabber.Background = Theme.Fill(0.20);
             // From here the card hangs from its top, so later growth goes down.
             var tl = CardTopLeft();
             below = true;

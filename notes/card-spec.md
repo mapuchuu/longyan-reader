@@ -52,7 +52,7 @@ to match the Mac exactly.
 | Note icon, "Lost in translation" | #B05C80 | #E6A3C2 | NV:38 |
 | Note icon, "Cultural context" | #458280 | #94C7C2 | NV:39 |
 
-The Mac card on screen reads darker in dark mode than #1F1F21: its 0.78 surface over the material comes out near #171719 (sampled from the renders). Windows has no material, so it uses #171719 opaque.
+The #171719 once sampled from the renders was the Generic RGB file's raw value; in sRGB it is #1F1F21. Windows has no material, so it uses #1F1F21 opaque, as the Mac's snapshots do. `Color.primary` is black or white at 0.85, so every `Color.primary.opacity(x)` below is 0.85 × x.
 
 Tone schemes (TC:5-12, TC:61-72):
 - **Standard** (default): tones 1-4 = brick, sage, slate, violet.
@@ -95,7 +95,7 @@ All × s (CC:395-397):
 - Liquid Glass style (macOS 26 only, a menu option): radius 20 (CC:353). The Windows port can
   skip Glass and build only Classic.
 - Border: 0.5 pt hairline, inside the edge, `Color.primary` at 0.10 alpha (CC:489).
-  In WPF use a 1 px border at about 0.07 alpha, or 0.5 DIP on high-DPI screens.
+  In WPF: a 0.5 DIP border at 0.085 (0.85 × 0.10).
 - Background, classic style, two layers (CC:477-488):
   1. The system popover material: `NSVisualEffectView`, material `.popover`, blending
      `.behindWindow`, state always active (CC:295-301). It blurs whatever is behind the window.
@@ -257,8 +257,13 @@ it is a 40 × 20 box centred on the pointer (APP:656-659).
 ## 2. Typography
 
 Font: the system font (SF Pro) at every size (CC:221-231). Chinese falls back to the system's
-CJK font (PingFang SC on the Mac). Windows suggestion: Segoe UI Variable for Latin and
-Microsoft YaHei UI for Chinese, as a WPF font fallback chain.
+CJK font (PingFang SC on the Mac). Windows: Segoe UI Variable for Latin and Microsoft YaHei UI
+for Chinese, matched to the Mac's size, width, weight and line height as notes/windows-parity.md
+("Fonts") describes.
+
+Line heights (SwiftUI, system font, measured): 10 and 10.5 → 13, 11 → 14, 12 → 15, 13 → 16,
+14 → 17, 15 and 16 → 19, 18 → 21, 19 → 23, 34 → 40. A text's `lineSpacing` adds between lines
+only, not after the last.
 
 Monospaced digits: only the sense number (CC:749). In WPF use
 `Typography.NumeralAlignment="Tabular"`.
@@ -496,8 +501,9 @@ Symbol effects:
 - Pin: a small downward bounce when toggled (CC:874). Drawn 1 pt lower than centre, to look
   level with the others (CC:875-877).
 
-Windows suggestions (Segoe Fluent Icons): Listen E767 (Volume), Copy E8C8, checkmark E73E,
-Pin E718, Pinned E840, warning E7BA. Anki: draw a stack-with-plus or use E710 (Add).
+Windows: every symbol is our own vector drawing in windows/LongyanReader/Icons.cs (not Segoe
+Fluent Icons, which look different), sized to the Mac symbol's frame and weight. They are drawn
+for this app, not traced from SF Symbols. Compared in notes/windows-parity.md.
 
 ### 4.3 Meaning line (PU:76-90)
 
