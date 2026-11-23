@@ -1,12 +1,12 @@
 # Counts app downloads for the README badge: every zip of every release (the website's
 # LongyanReader.zip and the versioned zips Sparkle updates fetch). The appcast and the
 # site-media videos aren't counted. Writes downloads.json to the stats branch, which
-# shields.io reads as an endpoint badge.
+# shields.io reads as an endpoint badge. Runs hourly.
 name: Download stats
 
 on:
   schedule:
-    - cron: "17 3 * * *"
+    - cron: "17 * * * *"
   workflow_dispatch:
 
 permissions:
