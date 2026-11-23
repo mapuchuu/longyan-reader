@@ -117,48 +117,6 @@ sealed class CardView
         Rebuilt?.Invoke();
     }
 
-    static bool warmed;
-
-    /// Once a process, when the first card is in: builds and measures, off the card, the parts
-    /// a first pick or row opening makes (a row's detail, its meanings, note and Back to), so
-    /// the code and the text sizes they use are ready. Cold, the first of those took twice as
-    /// long as later ones and held its motion back. Nothing it builds is kept.
-    public void Warm()
-    {
-        if (warmed) return;
-        warmed = true;
-        var saved = (animate, Targets: new Dictionary<string, UIElement>(Targets), Animated: new Dictionary<string, UIElement>(Animated),
-            tracked: new Dictionary<string, FrameworkElement>(tracked), now: new Dictionary<string, string>(now), senseRows, phraseRows, parts);
-        try
-        {
-            animate = false;
-            parts = new();
-            var sense = new JsonObject { ["index"] = 0, ["number"] = 1, ["pos"] = "n.", ["gloss"] = "a meaning", ["tip"] = "a meaning", ["chosen"] = true, ["dimmed"] = false, ["hasNote"] = true };
-            var row = new JsonObject
-            {
-                ["token"] = -99, ["text"] = "明朝", ["gloss"] = "a meaning", ["open"] = true, ["opens"] = true, ["hasNote"] = true,
-                ["pinyin"] = new JsonArray(new JsonObject { ["text"] = "míng", ["tone"] = 2 }, new JsonObject { ["text"] = "cháo", ["tone"] = 2 }),
-                ["here"] = "in this sentence", ["back"] = "a meaning",
-                ["note"] = new JsonObject { ["title"] = "Cultural context", ["text"] = "A note with 中文 in it." },
-                ["senses"] = new JsonArray(sense, sense.DeepClone()), ["more"] = "Show All 3",
-            };
-            var panel = new StackPanel();
-            panel.Children.Add(PhraseRow(row, 60));
-            panel.Children.Add(Detail(row));
-            panel.Children.Add(SenseRow(sense, 13, 5, 3, "warm", noteMarks: true, first: true, () => { }));
-            panel.Children.Add(Note((JsonObject)row["note"]!, 12));
-            panel.Measure(new Size(Width - 2 * Pad, double.PositiveInfinity));
-            panel.Arrange(new Rect(panel.DesiredSize));
-        }
-        catch (Exception) { }
-        finally
-        {
-            (animate, senseRows, phraseRows, parts) = (saved.animate, saved.senseRows, saved.phraseRows, saved.parts);
-            Restore(Targets, saved.Targets); Restore(Animated, saved.Animated); Restore(tracked, saved.tracked); Restore(now, saved.now);
-        }
-        static void Restore<T>(Dictionary<string, T> d, Dictionary<string, T> from) { d.Clear(); foreach (var (k, v) in from) d[k] = v; }
-    }
-
     /// How long the last Show took, in parts, for the UI check's log.
     public string Timing = "";
 
