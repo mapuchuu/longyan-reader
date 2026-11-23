@@ -1,0 +1,485 @@
+{
+ "copy": "在中国，面子很重要。他靠关系找到了工作，大家都知道这件事。明朝实行海禁，闭关锁国，后来慢慢落后了",
+ "hidden": "1 more words not shown",
+ "kind": "phrase",
+ "rows": [
+  {
+   "dim": true,
+   "gloss": "to be at",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": true,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "zài",
+     "tone": 4
+    }
+   ],
+   "text": "在",
+   "token": 0
+  },
+  {
+   "dim": false,
+   "gloss": "China",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": false,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "Zhōng",
+     "tone": 1
+    },
+    {
+     "text": "guó",
+     "tone": 2
+    }
+   ],
+   "text": "中国",
+   "token": 1
+  },
+  {
+   "dim": false,
+   "gloss": "social prestige",
+   "guess": false,
+   "hasNote": true,
+   "open": false,
+   "opens": true,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "miàn",
+     "tone": 4
+    },
+    {
+     "text": "zi",
+     "tone": 5
+    }
+   ],
+   "text": "面子",
+   "token": 2
+  },
+  {
+   "dim": false,
+   "gloss": "very",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": true,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "hěn",
+     "tone": 3
+    }
+   ],
+   "text": "很",
+   "token": 3
+  },
+  {
+   "dim": false,
+   "gloss": "important",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": false,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "zhòng",
+     "tone": 4
+    },
+    {
+     "text": "yào",
+     "tone": 4
+    }
+   ],
+   "text": "重要",
+   "token": 4
+  },
+  {
+   "dim": false,
+   "gloss": "he",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": true,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "tā",
+     "tone": 1
+    }
+   ],
+   "text": "他",
+   "token": 5
+  },
+  {
+   "dim": false,
+   "gloss": "to depend on",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": true,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "kào",
+     "tone": 4
+    }
+   ],
+   "text": "靠",
+   "token": 6
+  },
+  {
+   "dim": false,
+   "gloss": "guanxi",
+   "guess": false,
+   "hasNote": true,
+   "open": false,
+   "opens": true,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "guān",
+     "tone": 1
+    },
+    {
+     "text": "xi",
+     "tone": 5
+    }
+   ],
+   "text": "关系",
+   "token": 7
+  },
+  {
+   "dim": false,
+   "gloss": "to find",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": false,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "zhǎo",
+     "tone": 3
+    },
+    {
+     "text": "dào",
+     "tone": 4
+    }
+   ],
+   "text": "找到",
+   "token": 8
+  },
+  {
+   "dim": true,
+   "gloss": "action done, or a new situation",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": true,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "le",
+     "tone": 5
+    }
+   ],
+   "text": "了",
+   "token": 9
+  },
+  {
+   "dim": false,
+   "gloss": "job",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": true,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "gōng",
+     "tone": 1
+    },
+    {
+     "text": "zuò",
+     "tone": 4
+    }
+   ],
+   "text": "工作",
+   "token": 10
+  },
+  {
+   "dim": false,
+   "gloss": "everyone",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": true,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "dà",
+     "tone": 4
+    },
+    {
+     "text": "jiā",
+     "tone": 1
+    }
+   ],
+   "text": "大家",
+   "token": 11
+  },
+  {
+   "dim": true,
+   "gloss": "all",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": true,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "dōu",
+     "tone": 1
+    }
+   ],
+   "text": "都",
+   "token": 12
+  },
+  {
+   "dim": false,
+   "gloss": "to know",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": false,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "zhī",
+     "tone": 1
+    },
+    {
+     "text": "dào",
+     "tone": 4
+    }
+   ],
+   "text": "知道",
+   "token": 13
+  },
+  {
+   "dim": false,
+   "gloss": "this",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": true,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "zhè",
+     "tone": 4
+    }
+   ],
+   "text": "这",
+   "token": 14
+  },
+  {
+   "dim": false,
+   "gloss": "measure word for events, things, clothes",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": true,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "jiàn",
+     "tone": 4
+    }
+   ],
+   "text": "件",
+   "token": 15
+  },
+  {
+   "dim": false,
+   "gloss": "work",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": true,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "shì",
+     "tone": 4
+    }
+   ],
+   "text": "事",
+   "token": 16
+  },
+  {
+   "dim": false,
+   "gloss": "Ming Dynasty",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": true,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "Míng",
+     "tone": 2
+    },
+    {
+     "text": "cháo",
+     "tone": 2
+    }
+   ],
+   "text": "明朝",
+   "token": 17
+  },
+  {
+   "dim": false,
+   "gloss": "to implement",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": true,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "shí",
+     "tone": 2
+    },
+    {
+     "text": "xíng",
+     "tone": 2
+    }
+   ],
+   "text": "实行",
+   "token": 18
+  },
+  {
+   "dim": false,
+   "gloss": "prohibition on entering or leaving by sea",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": false,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "hǎi",
+     "tone": 3
+    },
+    {
+     "text": "jìn",
+     "tone": 4
+    }
+   ],
+   "text": "海禁",
+   "token": 19
+  },
+  {
+   "dim": false,
+   "gloss": "to close a country to exclude foreign contact",
+   "guess": false,
+   "hasNote": true,
+   "open": false,
+   "opens": true,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "bì",
+     "tone": 4
+    },
+    {
+     "text": "guān",
+     "tone": 1
+    },
+    {
+     "text": "suǒ",
+     "tone": 3
+    },
+    {
+     "text": "guó",
+     "tone": 2
+    }
+   ],
+   "text": "闭关锁国",
+   "token": 20
+  },
+  {
+   "dim": false,
+   "gloss": "afterwards",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": true,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "hòu",
+     "tone": 4
+    },
+    {
+     "text": "lái",
+     "tone": 2
+    }
+   ],
+   "text": "后来",
+   "token": 21
+  },
+  {
+   "dim": false,
+   "gloss": "slowly",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": false,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "màn",
+     "tone": 4
+    },
+    {
+     "text": "màn",
+     "tone": 4
+    }
+   ],
+   "text": "慢慢",
+   "token": 22
+  },
+  {
+   "dim": false,
+   "gloss": "to lag",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": true,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "luò",
+     "tone": 4
+    },
+    {
+     "text": "hòu",
+     "tone": 4
+    }
+   ],
+   "text": "落后",
+   "token": 23
+  }
+ ],
+ "text": "在中国，面子很重要。他靠关系找到了工作，大家都知道这件事。明朝实行海禁，闭关锁国，后来慢慢落后了",
+ "translation": "In China, \"face\" is very important. He got his job through connections, and everyone knows about it. During the Ming Dynasty, the country implemented a ban on sea trade and closed itself off, which eventually led to its gradual decline."
+}

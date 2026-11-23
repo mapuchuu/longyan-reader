@@ -323,7 +323,7 @@ static partial class Program
         File.WriteAllText(Path.Combine(outDir, name + ".json"), card?.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }) ?? "", new UTF8Encoding(false));
         Console.WriteLine($"[{name}] card text:\n{text}\n");
         if (card == null || !Settled(card)) failures.Add($"{name}: the card didn't settle");
-        foreach (var e in expect) if (!text.Contains(e)) failures.Add($"{name}: no \"{e}\" on the card");
+        foreach (var e in expect) if (!text.Replace('\u00A0', ' ').Contains(e)) failures.Add($"{name}: no \"{e}\" on the card");
     }
 
     /// For each click on the card: how long until the core's new card, and until it's drawn.
@@ -446,7 +446,7 @@ static partial class Program
         var cond = new PropertyCondition(AutomationElement.ProcessIdProperty, app.Id);
         foreach (AutomationElement w in AutomationElement.RootElement.FindAll(TreeScope.Children, cond))
             foreach (AutomationElement t in w.FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Text)))
-                if (t.Current.Name.Contains(contains)) return t.Current.BoundingRectangle;
+                if (t.Current.Name.Replace('\u00A0', ' ').Contains(contains)) return t.Current.BoundingRectangle;   // the card keeps last words together with a no-break space
         return null;
     }
 

@@ -1,0 +1,55 @@
+{
+ "alternatives": [
+  "闭关",
+  "闭"
+ ],
+ "contextual": false,
+ "copy": "闭关锁国",
+ "kind": "word",
+ "meaning": "to close a country to exclude foreign contact",
+ "note": {
+  "text": "Usually aimed at the Ming and Qing sea bans, as shorthand for how China fell behind the West. Also used against any inward-looking policy.",
+  "title": "Cultural context"
+ },
+ "pinyin": [
+  {
+   "text": "bì",
+   "tone": 4
+  },
+  {
+   "text": "guān",
+   "tone": 1
+  },
+  {
+   "text": "suǒ",
+   "tone": 3
+  },
+  {
+   "text": "guó",
+   "tone": 2
+  }
+ ],
+ "senses": [
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "to close the passes and seal off the country",
+   "hasNote": false,
+   "index": 0,
+   "number": 1,
+   "pos": "v.",
+   "tip": "to close the passes and seal off the country"
+  },
+  {
+   "chosen": true,
+   "dimmed": false,
+   "gloss": "to close a country to exclude foreign contact",
+   "hasNote": true,
+   "index": 1,
+   "number": 2,
+   "pos": "v.",
+   "tip": "to close a country to exclude foreign contact"
+  }
+ ],
+ "word": "闭关锁国"
+}

@@ -1,5 +1,8 @@
 {
- "alternatives": ["中华", "中"],
+ "alternatives": [
+  "中华",
+  "中"
+ ],
  "contextual": false,
  "copy": "中华人民共和国",
  "kind": "word",

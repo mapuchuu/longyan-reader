@@ -2,7 +2,8 @@
 // card (or hint) as a JSON line: the Mac's output is scripts/bridge-check-expected.txt, which
 // the Windows build's own run of the same lookups is compared with (scripts/bridge-check.sh,
 // windows/BridgeCheck). Usage: check RESOURCES LOOKUPS [MODEL]
-// A fourth column opens that row after the card goes quiet (-2: Show All). CHECK_FIRST=1
+// A fourth column opens that row after the card goes quiet (-2: Show All; -100 - N: picks a
+// word card's meaning N). CHECK_FIRST=1
 // prints each lookup's first card instead: the card as it opens, before the model answers.
 #include <dispatch/dispatch.h>
 #include <stdint.h>
@@ -14,6 +15,7 @@ void ly_start(const char *resources, const char *model, void (*cb)(const char *)
 int64_t ly_lookup(const char *passage, int32_t start, int32_t end);
 void ly_toggle_row(int64_t id, int32_t token);
 void ly_toggle_all(int64_t id, int32_t token);
+void ly_pick(int64_t id, int32_t token, int32_t sense);
 
 #define MAX 256
 static char *passages[MAX];
@@ -40,6 +42,7 @@ static void quiet(void *ctx) {
         int any = 0;
         for (int i = 0; i < count; i++) if (expands[i] >= 0) { ly_toggle_row(ids[i], expands[i]); any = 1; }
             else if (expands[i] == -2) { ly_toggle_all(ids[i], -1); any = 1; }
+            else if (expands[i] <= -100) { ly_pick(ids[i], -1, -100 - expands[i]); any = 1; }
         if (any) { dispatch_after_f(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC), dispatch_get_main_queue(), NULL, quiet); return; }
     }
     for (int i = 0; i < count; i++) printf("%s\n", last[i] ? last[i] : "{\"missing\":true}");

@@ -1,0 +1,73 @@
+{
+ "alternatives": [
+  "感"
+ ],
+ "contextual": false,
+ "copy": "感冒",
+ "kind": "word",
+ "meaning": "to catch cold",
+ "note": null,
+ "pinyin": [
+  {
+   "text": "gǎn",
+   "tone": 3
+  },
+  {
+   "text": "mào",
+   "tone": 4
+  }
+ ],
+ "senses": [
+  {
+   "chosen": true,
+   "dimmed": false,
+   "gloss": "to catch cold",
+   "hasNote": false,
+   "index": 0,
+   "number": 1,
+   "pos": "v.",
+   "tip": "to catch cold"
+  },
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "(common) cold",
+   "hasNote": false,
+   "index": 1,
+   "number": 2,
+   "pos": "adj.",
+   "tip": "(common) cold"
+  },
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "(coll.) to be interested in (often used in the negative)",
+   "hasNote": false,
+   "index": 2,
+   "number": 3,
+   "pos": "v.",
+   "tip": "(coll.) to be interested in (often used in the negative)"
+  },
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "can't stand",
+   "hasNote": false,
+   "index": 3,
+   "number": 4,
+   "tip": "can't stand"
+  },
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "(Tw) to detest",
+   "hasNote": false,
+   "index": 4,
+   "number": 5,
+   "pos": "v.",
+   "tip": "(Tw) to detest"
+  }
+ ],
+ "word": "感冒",
+ "shadow": true
+}

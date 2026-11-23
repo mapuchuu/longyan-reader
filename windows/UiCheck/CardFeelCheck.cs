@@ -164,7 +164,7 @@ static class CardFeelCheck
         var cond = new PropertyCondition(AutomationElement.ProcessIdProperty, app.Id);
         foreach (AutomationElement w in AutomationElement.RootElement.FindAll(TreeScope.Children, cond))
             foreach (AutomationElement t in w.FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Text)))
-                if (t.Current.Name.Contains(contains)) return t.Current.BoundingRectangle;
+                if (t.Current.Name.Replace('\u00A0', ' ').Contains(contains)) return t.Current.BoundingRectangle;
         return null;
     }
 

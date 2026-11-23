@@ -24,6 +24,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: dotnet build windows/LongyanReader -c Release -o app
+      - name: Fonts the card uses, as this runner has them
+        run: ls /c/Windows/Fonts | grep -iE '^(segui|segoeui|msyh|SegUIVar)' || true
       - name: Draw the cards
         run: |
           set -euo pipefail
