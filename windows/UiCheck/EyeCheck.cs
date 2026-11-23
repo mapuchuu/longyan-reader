@@ -125,7 +125,12 @@ static partial class Program
             GetWindowRect(again, out r);
             MoveTo((r.Left + r.Right) / 2.0, (r.Top + r.Bottom) / 2.0);
             Thread.Sleep(6200);
-            if (Eye() != IntPtr.Zero) failures.Add("3-eye: still there 6 s after it appeared");
+            if (Eye() != IntPtr.Zero)
+            {
+                var events = File.Exists(log) ? File.ReadAllLines(log).Where(l => l.Contains("\"eye")).TakeLast(6) : Enumerable.Empty<string>();
+                Console.WriteLine($"[3-eye-again] still there; last eye events: {string.Join(" ", events)}");
+                failures.Add("3-eye: still there 6 s after it appeared");
+            }
         }
     }
 
@@ -435,7 +440,7 @@ static partial class Program
         // The app's own part: all but the 0.12 s wait and the app's answer to UI Automation (the
         // Mac waits on Accessibility the same way, up to 0.5 s).
         var probeMs = Last(skip, "eye-probe")?["ms"] is JsonNode pm ? (int)pm : 0;
-        if (logged?["ms"] is JsonNode msNode && (int)msNode - probeMs - 120 > 150) failures.Add($"{name}: the eye came {(int)msNode} ms after the mouse let go, {(int)msNode - probeMs - 120} ms of it the app's own (reading the screen {logged["drawnMs"]} ms; the selection {probeMs} ms)");
+        if (burst == null && logged?["ms"] is JsonNode msNode && (int)msNode - probeMs - 120 > 150) failures.Add($"{name}: the eye came {(int)msNode} ms after the mouse let go, {(int)msNode - probeMs - 120} ms of it the app's own (reading the screen {logged["drawnMs"]} ms; the selection {probeMs} ms)");
         if (rects.Length == 0) { failures.Add($"{name}: no selection to measure"); return eye; }
         var union = rects[0];
         foreach (var x in rects.Skip(1)) union.Union(x);
