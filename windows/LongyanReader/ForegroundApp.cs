@@ -55,15 +55,11 @@ sealed record ForegroundApp(string Process, string Path, bool CopyWorks, bool Ma
         return new ForegroundApp(process, path, copies, copies && !notTextClasses.Contains(cls) && !notTextProcesses.Contains(process));
     }
 
-    /// Whether the window under a point (device pixels) is a terminal's.
-    public static bool TerminalAt(int x, int y)
-    {
-        var root = GetAncestor(WindowFromPoint(new POINT { X = x, Y = y }), GA_ROOT);
-        if (root == IntPtr.Zero) return false;
-        if (terminalClasses.Contains(ClassOf(root))) return true;
-        GetWindowThreadProcessId(root, out var pid);
-        return ImagePath(pid) is string path && terminalProcesses.Contains(System.IO.Path.GetFileNameWithoutExtension(path).ToLowerInvariant());
-    }
+    /// Whether a process is a terminal's: Windows Terminal, or the console host behind a
+    /// classic console window (by its program's name).
+    public static bool IsTerminal(int pid) =>
+        pid > 0 && ImagePath((uint)pid) is string path && System.IO.Path.GetFileNameWithoutExtension(path).ToLowerInvariant() is var name
+        && (terminalProcesses.Contains(name) || name is "conhost" or "openconsole");
 
     /// The name to show for an app: its program's description ("Microsoft Edge"), else its file name.
     public static string NameOf(string path)
@@ -97,10 +93,6 @@ sealed record ForegroundApp(string Process, string Path, bool CopyWorks, bool Ma
         finally { CloseHandle(h); }
     }
 
-    [StructLayout(LayoutKind.Sequential)] struct POINT { public int X, Y; }
-    const int GA_ROOT = 2;
-    [DllImport("user32.dll")] static extern IntPtr WindowFromPoint(POINT p);
-    [DllImport("user32.dll")] static extern IntPtr GetAncestor(IntPtr hwnd, int flags);
     const uint PROCESS_QUERY_INFORMATION = 0x400, PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
     [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetClassName(IntPtr hwnd, StringBuilder name, int max);

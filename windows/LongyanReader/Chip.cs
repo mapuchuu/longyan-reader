@@ -98,9 +98,6 @@ static class Chip
         // Not over a full-screen game, video or presentation.
         if (SHQueryUserNotificationState(out var state) == 0 && state is QUNS_BUSY or QUNS_RUNNING_D3D_FULL_SCREEN or QUNS_PRESENTATION_MODE) { Skip("full screen"); return; }
         if (ForegroundApp.Get() is not ForegroundApp app || Settings.EyeHiddenIn(app.Process)) { Skip("app"); return; }
-        // Not in a terminal, even where it says what's selected: a drag there is a copy. The
-        // window under the pointer decides, where the selection was made.
-        if (ForegroundApp.TerminalAt(up.X, up.Y)) { Skip("terminal"); return; }
         var sinceUp = System.Diagnostics.Stopwatch.StartNew();
         var mine = ++generation;
         // Give the app a moment to update its selection.
@@ -122,6 +119,8 @@ static class Chip
         {
             case SelectionReader.Found.Selection when probed.Selection is Selected selection:
                 if (!SelectionReader.HasChinese(selection) || SelectionReader.Length(selection) > 400) { Skip("not Chinese or too long"); return; }
+                // Not in a terminal, even though it says what's selected: a drag there is a copy.
+                if (ForegroundApp.IsTerminal(probed.Process)) { Skip("terminal"); return; }
                 // A position far from where the mouse let go isn't where the selection is.
                 // Nor is an empty one (the Mac's SelectionReader.checked).
                 var near = selection.Bounds is Rect b && b.Width >= 1 && b.Height >= 1 && Inflate(b, 160 * ScaleAt(up)).Contains(new Point(up.X, up.Y));

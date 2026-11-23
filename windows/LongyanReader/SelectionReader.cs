@@ -27,7 +27,7 @@ static class SelectionReader
     public enum Found { Selection, NothingSelected, Unreadable }
 
     /// What a probe found, the focused element's kind and where it is on screen (device pixels).
-    public sealed record Probed(Found Found, Selected? Selection, ControlType? Role = null, Rect? Area = null);
+    public sealed record Probed(Found Found, Selected? Selection, ControlType? Role = null, Rect? Area = null, int Process = 0);
 
     public static Selected? ReadAutomation() => Probe().Selection;
 
@@ -74,7 +74,7 @@ static class SelectionReader
                 passage = selected; start = 0;
             }
             var (bounds, oneLine) = Bounds(selection);
-            return new Probed(Found.Selection, new Selected(passage, start, start + selected.Length, bounds, oneLine, selected.TrimEnd().Length < selected.Length), role, area);
+            return new Probed(Found.Selection, new Selected(passage, start, start + selected.Length, bounds, oneLine, selected.TrimEnd().Length < selected.Length), role, area, info.ProcessId);
         }
         catch (Exception)
         {
