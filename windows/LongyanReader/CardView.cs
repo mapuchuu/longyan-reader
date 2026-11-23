@@ -601,8 +601,18 @@ sealed class CardView
                 Width = 14, Height = 14, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
                 RenderTransformOrigin = new Point(0.5, 0.5),
                 // Drawn on a 14 grid; SF Symbols at the Mac's size come out a little larger.
-                RenderTransform = new TransformGroup { Children = { new ScaleTransform(scale, scale), new TranslateTransform(0, dy) } },
+                RenderTransform = new TransformGroup { Children = { new ScaleTransform(scale, scale), pop, new TranslateTransform(0, dy) } },
             };
+        }
+        readonly ScaleTransform pop = new(1, 1);
+        /// [card feel] SF Symbols' replace transition (copy to checkmark and back, pin to pin.fill):
+        /// the new symbol grows in and fades in with cardMotion, rather than swapping in a frame.
+        public void Pop()
+        {
+            if (Motion.Reduced) return;
+            Motion.Animate(pop, ScaleTransform.ScaleXProperty, 0.5, 1);
+            Motion.Animate(pop, ScaleTransform.ScaleYProperty, 0.5, 1);
+            Motion.Animate(Path, UIElement.OpacityProperty, 0, 1, new Duration(TimeSpan.FromSeconds(0.2)), Motion.EaseOut);
         }
         public void To(Brush target, double seconds)
         {
@@ -628,12 +638,16 @@ sealed class CardView
         if (actions.CanListen) { buttons.Children.Add(ListenButton(speech)); n++; }
         buttons.Children.Add(CopyButton(copy)); n++;
         var pin = actions.Pinned ? new Symbol(PinFill, true, ((SolidColorBrush)Theme.Accent).Color, true, dy: 1) : new Symbol(Pin, false, Rest, false, dy: 1);
+        if (animate && wasPinned != actions.Pinned) pin.Pop();   // [card feel]
+        wasPinned = actions.Pinned;
         buttons.Children.Add(ActionButton(pin, actions.Pinned ? "Unpin: close when you click elsewhere" : "Pin: keep the card here for every lookup", _ => actions.TogglePin())); n++;
         buttons.Margin = new Thickness(0, 0, Pad * Zoom - 6 - ButtonGap / 2, 0);
         // The slot they take on the first line, in the content's own (unzoomed) units. The Mac
         // keeps room for all three even when there's no voice to listen with.
         return (3 * ButtonW + 2 * ButtonGap - 6) / Zoom;
     }
+
+    bool? wasPinned;
 
     /// A symbol's colour at rest: tertiary, secondary while the pointer is on the card.
     Color Rest => ((SolidColorBrush)(hovered ? Theme.Secondary : Theme.Tertiary)).Color;
@@ -673,9 +687,10 @@ sealed class CardView
         var label = text.Length > 14 ? text[..13] + "…" : text;
         var help = $"Copy “{label}”";
         var symbol = new Symbol(Copy, false, Rest, false);
-        void Checked(Border b, TimeSpan left)
+        void Checked(Border b, TimeSpan left, bool pop = false)
         {
             // A checkmark in the accent, then back to the copy symbol.
+            if (pop) symbol.Pop();   // [card feel]
             symbol.Path.Data = Geometry.Parse(Check);
             symbol.Path.StrokeThickness = 1.6;
             symbol.Ink.BeginAnimation(SolidColorBrush.ColorProperty, null);
@@ -689,6 +704,7 @@ sealed class CardView
                 if (DateTime.UtcNow < copiedUntil - TimeSpan.FromMilliseconds(50)) return;   // copied again since
                 symbol.Path.Data = Geometry.Parse(Copy);
                 symbol.Path.StrokeThickness = 1.15;
+                symbol.Pop();   // [card feel]
                 symbol.Ink.Color = b.IsMouseOver ? ((SolidColorBrush)Theme.Primary).Color : Rest;
                 if (!symbols.Contains(symbol)) symbols.Add(symbol);
                 b.ToolTip = help;
@@ -698,10 +714,11 @@ sealed class CardView
         Border? button = null;
         button = ActionButton(symbol, help, b =>
         {
+            var showing = copied == text && DateTime.UtcNow < copiedUntil;
             actions.Copy(text);
             copied = text;
             copiedUntil = DateTime.UtcNow.AddSeconds(1.5);
-            Checked(b, TimeSpan.FromSeconds(1.5));
+            Checked(b, TimeSpan.FromSeconds(1.5), pop: !showing);
         });
         if (copied == text && DateTime.UtcNow < copiedUntil) Checked(button, copiedUntil - DateTime.UtcNow);
         return button;

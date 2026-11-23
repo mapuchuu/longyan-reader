@@ -62,6 +62,9 @@ static class Theme
         return b;
     }
 
+    /// Whether Windows is set to dark for apps now (CardWindow re-reads it when that changes).
+    public static bool SystemDark() => IsDark();
+
     static bool IsDark()
     {
         try

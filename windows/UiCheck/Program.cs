@@ -124,6 +124,7 @@ static class Program
         EyeCheck(window);
         HistoryCheck.Run(exe, app, outDir, failures);
         PointCheck.Run(app, window, log, failures, Shot);
+        CardFeelCheck.Run(app, window, log, failures, Shot);
         SettingsCheck(exe);
 
         try { notepad.Kill(); } catch { }
