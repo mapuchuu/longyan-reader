@@ -9,6 +9,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
+using System.Windows.Shapes;
 using System.Windows.Threading;
 
 namespace Longyan;
@@ -19,27 +20,35 @@ sealed class CardWindow : Window, ICardActions
 {
     static CardWindow? current;
     static bool pinned;
-    static Point? pinnedTopLeft;   // device pixels
     static double zoom = 1;
+    static double? wordWidth, phraseWidth;
+    static Point? pinnedAt;                  // a pinned card's top-left corner, device pixels   // widths set by dragging an edge, DIPs as drawn
     /// True while a press has become a move, so the control under it doesn't count a click.
     public static bool WasDrag;
 
-    const double Frame = 28, Gap = 8, Inset = 8;
+    const double Frame = 28, Gap = 8, Inset = 8, Narrowest = 240, Widest = 1000;
 
     long cardID;
     readonly CardView view;
     readonly Grid frame = new();             // the window's content: the card in its shadow margin
-    readonly Grid card = new();              // shadow layers and the card, moved on reveal
+    readonly Grid card = new();              // shadow layers, the card, its resize bands and badge
     readonly Border surface;
+    readonly Grid overlay = new();           // inside the card: content, buttons, grips, hairline
     readonly ScrollViewer scroller;
+    readonly FrameworkElement[] layers;      // what takes the card's height: shadows and surface
     readonly ScaleTransform revealScale = new(1, 1);
     readonly TranslateTransform revealShift = new();
     readonly ScaleTransform zoomScale = new(1, 1);
+    readonly Canvas grip = new() { Width = 13, Height = 13, Opacity = 0, IsHitTestVisible = false, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(0, 0, 3, 3) };
+    readonly Border grabber = new() { Width = 3, CornerRadius = new CornerRadius(1.5), Opacity = 0, IsHitTestVisible = false, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 3, 0) };
+    readonly Grid badge = new() { Width = 20, Height = 20, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(-7, -7, 0, 0), Opacity = 0, Visibility = Visibility.Collapsed, ToolTip = "Close" };
+    readonly ScaleTransform badgeScale = new(0.7, 0.7);
+    readonly System.Collections.Generic.List<FrameworkElement> bands = new();
     readonly bool offscreen;
 
     // Placement, in device pixels: the selection, and whether the card hangs below it.
     Rect anchor;
-    bool below = true, placed, moved, revealed, closing, isHint;
+    bool below = true, placed, moved, revealed, closing, isHint, hovered, resizing;
     double scale = 1;
     double shownHeight;                       // the card's target height, DIPs
     double cardLeft, edge;                    // device pixels: the card's left, and its top (below) or bottom (above)
@@ -48,6 +57,8 @@ sealed class CardWindow : Window, ICardActions
 
     public bool Pinned => pinned;
     public bool CanListen => offscreen || Speech.Available;
+    double Zoom => isHint ? 1 : zoom;
+    double CardWidth => view.Width * Zoom;
 
     // MARK: Opening
 
@@ -55,7 +66,9 @@ sealed class CardWindow : Window, ICardActions
     {
         var old = current;
         current = new CardWindow(selected.Bounds, false);
-        if (pinned && old != null && !old.isHint) current.HangFrom(old.CardTopLeft(), old.scale);
+        // A pinned card opens at its corner for every lookup.
+        if (pinned && old != null && !old.isHint && old.IsVisible) current.HangFrom(old.CardTopLeft(), old.scale);
+        else if (pinned && pinnedAt is Point at) current.HangFrom(at, 1);
         current.Open(selected);
         old?.Dismiss();
     }
@@ -80,7 +93,9 @@ sealed class CardWindow : Window, ICardActions
         var w = new CardWindow(null, true);
         w.view.Show(json, animate: false);
         w.Content = null;
-        w.card.Children.RemoveRange(0, 2);
+        w.card.Children.Remove(w.layers[0]);
+        w.card.Children.Remove(w.layers[1]);
+        foreach (var b in w.bands) b.Visibility = Visibility.Collapsed;
         w.card.Margin = new Thickness(0);
         w.card.Width = w.view.Width;
         w.scroller.VerticalScrollBarVisibility = ScrollBarVisibility.Disabled;
@@ -100,7 +115,7 @@ sealed class CardWindow : Window, ICardActions
     CardWindow(Rect? selection, bool offscreen)
     {
         this.offscreen = offscreen;
-        view = new CardView(this);
+        view = new CardView(this) { Zoom = zoom, WidthFor = phrase => (phrase ? phraseWidth : wordWidth) / zoom };
         GetCursorPos(out var p);
         anchor = selection ?? new Rect(p.X - 20, p.Y - 10, 40, 20);
 
@@ -116,26 +131,46 @@ sealed class CardWindow : Window, ICardActions
         UseLayoutRounding = true;
         TextOptions.SetTextFormattingMode(this, TextFormattingMode.Ideal);
 
-        // The shadow: two layers cast by copies of the card's outline behind it.
         card.Margin = new Thickness(Frame);
         card.VerticalAlignment = VerticalAlignment.Top;
         card.HorizontalAlignment = HorizontalAlignment.Left;
-        card.Children.Add(Shadow(32, 8, 0.16));
-        card.Children.Add(Shadow(3, 0.5, 0.08));
+
+        // Content scrolls under the buttons, with no scroll bar; the hairline is drawn over it.
         scroller = new ScrollViewer
         {
             Content = view.Root, VerticalScrollBarVisibility = ScrollBarVisibility.Hidden,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, Focusable = false,
-            VerticalAlignment = VerticalAlignment.Top,
         };
+        scroller.ScrollChanged += (_, _) => Fades();
         view.Root.LayoutTransform = zoomScale;
-        surface = new Border
+        for (var i = 0; i < 3; i++)
         {
-            Background = Theme.Surface, BorderBrush = Theme.Hairline, BorderThickness = new Thickness(0.5),
-            CornerRadius = new CornerRadius(16), Child = scroller, VerticalAlignment = VerticalAlignment.Top,
+            var inset = i * 3.5 + 2;
+            grip.Children.Add(new Line { X1 = 11, Y1 = inset, X2 = inset, Y2 = 11, StrokeThickness = 1, Stroke = Theme.Ink(0.22) });
+        }
+        grabber.Background = Theme.Ink(0.20);
+        overlay.Children.Add(scroller);
+        overlay.Children.Add(view.Buttons);
+        overlay.Children.Add(grip);
+        overlay.Children.Add(grabber);
+        overlay.Children.Add(new Border { BorderBrush = Theme.Hairline, BorderThickness = new Thickness(0.5), CornerRadius = new CornerRadius(16), IsHitTestVisible = false });
+        surface = new Border { Background = Theme.Surface, CornerRadius = new CornerRadius(16), Child = overlay, VerticalAlignment = VerticalAlignment.Top };
+        overlay.SizeChanged += (_, _) =>
+        {
+            overlay.Clip = new RectangleGeometry(new Rect(overlay.RenderSize), 16, 16);
+            grabber.Height = Math.Min(22, overlay.ActualHeight * 0.3);
+            grabber.Visibility = overlay.ActualHeight > 60 ? Visibility.Visible : Visibility.Hidden;
+            Fades();
         };
-        surface.SizeChanged += (_, _) => scroller.Clip = new RectangleGeometry(new Rect(new Size(Math.Max(0, surface.ActualWidth - 1), Math.Max(0, surface.ActualHeight - 1))), 15.5, 15.5);
-        card.Children.Add(surface);
+
+        // The shadow: two layers cast by copies of the card's outline behind it.
+        layers = new FrameworkElement[] { Shadow(32, 8, 0.16), Shadow(3, 0.5, 0.08), surface };
+        foreach (var l in layers) card.Children.Add(l);
+        Bands();
+        Badge();
+        card.Children.Add(badge);
+        if (pinned && !offscreen) badge.Visibility = Visibility.Visible;
+
         var group = new TransformGroup();
         group.Children.Add(revealScale);
         group.Children.Add(revealShift);
@@ -156,6 +191,8 @@ sealed class CardWindow : Window, ICardActions
             if (cardID != 0) Core.Shared.Close(cardID);
             if (current == this) current = null;
         };
+        card.MouseEnter += (_, _) => Hover(true);
+        card.MouseLeave += (_, _) => Hover(false);
         PreviewMouseLeftButtonDown += PressStart;
         PreviewMouseMove += PressMove;
         PreviewMouseLeftButtonUp += PressEnd;
@@ -189,6 +226,9 @@ sealed class CardWindow : Window, ICardActions
     {
         if (cardID != 0) { Core.Shared.Close(cardID); cardID = 0; }
         isHint = true;
+        zoomScale.ScaleX = zoomScale.ScaleY = 1;
+        foreach (var b in bands) b.Visibility = Visibility.Collapsed;
+        view.Buttons.Children.Clear();
         view.Hint(message);
         Arrive();
         // A hint goes by itself.
@@ -220,7 +260,7 @@ sealed class CardWindow : Window, ICardActions
         if (revealed || closing) return;
         revealed = true;
         hold?.Stop();
-        Width = view.Width * zoom + 2 * Frame;
+        Width = CardWidth + 2 * Frame;
         Height = 200;
         if (!IsVisible) { Show(); Hooks.Add(this); }
         scale = VisualTreeHelper.GetDpi(this).DpiScaleX;
@@ -228,11 +268,11 @@ sealed class CardWindow : Window, ICardActions
         Reveal();
     }
 
+    /// The content's height as drawn (zoomed), up to the most the card may be.
     double Measure()
     {
-        view.Root.Measure(new Size(view.Width, double.PositiveInfinity));
-        var content = view.Root.DesiredSize.Height * zoom;
-        return Math.Ceiling(Math.Min(content, MaxHeight()));
+        view.Root.Measure(new Size(CardWidth, double.PositiveInfinity));
+        return Math.Ceiling(Math.Min(view.Root.DesiredSize.Height, MaxHeight()));
     }
 
     void Reveal()
@@ -253,28 +293,28 @@ sealed class CardWindow : Window, ICardActions
     /// inside it; when it shrinks, the window follows 0.32 s later.
     void Resize(bool animated)
     {
-        var width = view.Width * zoom;
+        var width = CardWidth;
         card.Width = width;
+        foreach (var l in layers) l.Width = width;
         var target = Measure();
-        foreach (FrameworkElement layer in card.Children) layer.Width = width;
         shrink?.Stop();
-        if (!animated)
+        if (!animated || resizing)
         {
-            foreach (FrameworkElement layer in card.Children) { layer.BeginAnimation(HeightProperty, null); layer.Height = target; }
+            foreach (var l in layers) { l.BeginAnimation(HeightProperty, null); l.Height = target; }
             shownHeight = target;
             SetFrame(target);
             return;
         }
         var from = surface.ActualHeight > 0 ? surface.ActualHeight : shownHeight;
-        if (Math.Abs(target - from) < 0.5) return;
+        if (Math.Abs(target - from) < 0.5) { SetFrame(Math.Max(target, from)); return; }
         if (target > from) SetFrame(target);
-        foreach (FrameworkElement layer in card.Children)
+        foreach (var l in layers)
         {
             var a = new DoubleAnimation(from, target, Motion.Reduced ? new Duration(TimeSpan.FromSeconds(0.15)) : Motion.CardDuration)
             {
                 EasingFunction = Motion.Reduced ? new QuadraticEase { EasingMode = EasingMode.EaseInOut } : Motion.Card,
             };
-            layer.BeginAnimation(HeightProperty, a);
+            l.BeginAnimation(HeightProperty, a);
         }
         shownHeight = target;
         if (target < from) shrink = After(0.32, () => SetFrame(target));
@@ -283,11 +323,51 @@ sealed class CardWindow : Window, ICardActions
     /// Sizes the window for a card `height` tall and places it by the selection.
     void SetFrame(double height)
     {
-        Width = view.Width * zoom + 2 * Frame;
+        Width = CardWidth + 2 * Frame;
         Height = height + 2 * Frame;
         Place(height);
         card.VerticalAlignment = below ? VerticalAlignment.Top : VerticalAlignment.Bottom;
-        foreach (FrameworkElement layer in card.Children) layer.VerticalAlignment = card.VerticalAlignment;
+        foreach (var l in layers) l.VerticalAlignment = card.VerticalAlignment;
+    }
+
+    /// The scroll-edge fades: the bottom 36 fades out while there's more below; scrolled, the
+    /// content is hidden under the buttons and fades in over 14 below them.
+    void Fades()
+    {
+        var h = scroller.ActualHeight;
+        if (h <= 0) return;
+        var top = scroller.VerticalOffset > 1;
+        var more = scroller.ExtentHeight - scroller.VerticalOffset - h > 2;
+        if (!top && !more) { scroller.OpacityMask = null; return; }
+        var mask = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(0, 1) };
+        if (top)
+        {
+            var hide = view.Buttons.Margin.Top + CardView.ButtonH;
+            mask.GradientStops.Add(new GradientStop(Colors.Transparent, 0));
+            mask.GradientStops.Add(new GradientStop(Colors.Transparent, hide / h));
+            mask.GradientStops.Add(new GradientStop(Colors.Black, Math.Min(1, (hide + 14 * Zoom) / h)));
+        }
+        else mask.GradientStops.Add(new GradientStop(Colors.Black, 0));
+        if (more)
+        {
+            mask.GradientStops.Add(new GradientStop(Colors.Black, Math.Max(0, (h - 36 * Zoom) / h)));
+            mask.GradientStops.Add(new GradientStop(Colors.Transparent, 1));
+        }
+        else mask.GradientStops.Add(new GradientStop(Colors.Black, 1));
+        scroller.OpacityMask = mask;
+    }
+
+    void Hover(bool on)
+    {
+        hovered = on;
+        view.SetHovered(on);
+        if (isHint) return;
+        Motion.To(grip, OpacityProperty, on || resizing ? 1 : 0, 0.15);
+        Motion.To(grabber, OpacityProperty, on || resizing ? 1 : 0, 0.15);
+        if (!pinned) return;
+        Motion.Animate(badge, OpacityProperty, badge.Opacity, on ? 1 : 0, Motion.BadgeDuration, Motion.Badge);
+        Motion.Animate(badgeScale, ScaleTransform.ScaleXProperty, badgeScale.ScaleX, on ? 1 : 0.7, Motion.BadgeDuration, Motion.Badge);
+        Motion.Animate(badgeScale, ScaleTransform.ScaleYProperty, badgeScale.ScaleY, on ? 1 : 0.7, Motion.BadgeDuration, Motion.Badge);
     }
 
     // MARK: Placement
@@ -305,7 +385,7 @@ sealed class CardWindow : Window, ICardActions
         var area = Screen().WorkingArea;
         var s = scale <= 0 ? 1 : scale;
         double room;
-        if (placed && below && moved) room = (area.Bottom - edge) / s - Inset;
+        if (placed && moved) room = below ? (area.Bottom - edge) / s - Inset : (edge - area.Top) / s - Inset;
         else room = below ? (area.Bottom - anchor.Bottom) / s - Gap - Inset : (anchor.Top - area.Top) / s - Gap - Inset;
         return Math.Max(120, Math.Min(room, area.Height / s * 0.8));
     }
@@ -319,15 +399,15 @@ sealed class CardWindow : Window, ICardActions
         if (!placed)
         {
             placed = true;
-            view.Root.Measure(new Size(view.Width, double.PositiveInfinity));
-            var content = view.Root.DesiredSize.Height * zoom;
+            view.Root.Measure(new Size(CardWidth, double.PositiveInfinity));
+            var content = view.Root.DesiredSize.Height;
             var roomBelow = (area.Bottom - anchor.Bottom) / s - 16;
             var roomAbove = (anchor.Top - area.Top) / s - 16;
             below = roomBelow >= Math.Max(content, 320) || roomBelow >= roomAbove;
             cardLeft = anchor.Left;
             edge = below ? anchor.Bottom + Gap * s : anchor.Top - Gap * s;
         }
-        var w = view.Width * zoom * s;
+        var w = CardWidth * s;
         var h = height * s;
         var left = Math.Max(area.Left + Inset * s, Math.Min(cardLeft, area.Right - Inset * s - w));
         var top = below ? edge : edge - h;
@@ -337,14 +417,17 @@ sealed class CardWindow : Window, ICardActions
             (int)Math.Round(w + 2 * m), (int)Math.Round(h + 2 * m), SWP_NOACTIVATE | SWP_NOZORDER);
     }
 
-    /// The card's top-left corner on screen, in device pixels.
-    Point CardTopLeft()
+    /// The card's corners on screen, in device pixels.
+    Rect CardRect()
     {
         GetWindowRect(new WindowInteropHelper(this).Handle, out var r);
         var m = Frame * scale;
-        var top = below ? r.Top + m : r.Bottom - m - surface.ActualHeight * scale;
-        return new Point(r.Left + m, top);
+        var h = surface.ActualHeight * scale;
+        var top = below ? r.Top + m : r.Bottom - m - h;
+        return new Rect(r.Left + m, top, CardWidth * scale, h);
     }
+
+    Point CardTopLeft() => CardRect().TopLeft;
 
     // MARK: Moving
 
@@ -355,18 +438,25 @@ sealed class CardWindow : Window, ICardActions
     void PressStart(object sender, MouseButtonEventArgs e)
     {
         WasDrag = false;
+        if (e.OriginalSource is DependencyObject d && (IsIn(d, badge) || bands.Exists(b => IsIn(d, b)))) return;
         pressing = true;
         GetCursorPos(out pressScreen);
         GetWindowRect(new WindowInteropHelper(this).Handle, out pressWindow);
         // A card placed above hangs from its top edge from the first click on.
         if (!below && !isHint)
         {
-            var tl = CardTopLeft();
             below = true;
-            edge = tl.Y;
+            edge = CardTopLeft().Y;
             SetFrame(shownHeight);
             GetWindowRect(new WindowInteropHelper(this).Handle, out pressWindow);
         }
+    }
+
+    static bool IsIn(DependencyObject d, DependencyObject parent)
+    {
+        for (var x = d; x != null; x = x is Visual || x is System.Windows.Media.Media3D.Visual3D ? VisualTreeHelper.GetParent(x) : LogicalTreeHelper.GetParent(x))
+            if (x == parent) return true;
+        return false;
     }
 
     void PressMove(object sender, MouseEventArgs e)
@@ -389,7 +479,7 @@ sealed class CardWindow : Window, ICardActions
         var tl = CardTopLeft();
         cardLeft = tl.X;
         edge = tl.Y;
-        if (pinned) pinnedTopLeft = tl;
+        if (pinned) pinnedAt = tl;
         e.Handled = true;
         Dispatcher.BeginInvoke(() => WasDrag = false, DispatcherPriority.Input);
     }
@@ -398,13 +488,141 @@ sealed class CardWindow : Window, ICardActions
     void Wheel(object sender, MouseWheelEventArgs e)
     {
         if ((Keyboard.Modifiers & ModifierKeys.Control) == 0 || isHint) return;
-        zoom = Math.Clamp(zoom * (e.Delta > 0 ? 1.1 : 1 / 1.1), 0.8, 2.2);
-        zoomScale.ScaleX = zoomScale.ScaleY = zoom;
-        Resize(animated: false);
+        SetZoom(zoom * (e.Delta > 0 ? 1.1 : 1 / 1.1));
         e.Handled = true;
     }
 
+    /// A new text size: saved widths scale with it, so cards keep their shape.
+    void SetZoom(double z)
+    {
+        z = Math.Clamp(z, 0.8, 2.2);
+        var ratio = z / zoom;
+        if (wordWidth != null) wordWidth *= ratio;
+        if (phraseWidth != null) phraseWidth *= ratio;
+        zoom = z;
+        Relayout();
+    }
+
+    /// Draws the content again at the current zoom and width, with no animation.
+    void Relayout()
+    {
+        view.Zoom = zoom;
+        zoomScale.ScaleX = zoomScale.ScaleY = zoom;
+        if (last != null) view.Show(last, animate: false);
+        Resize(animated: false);
+    }
+
+    // MARK: Resizing
+
+    enum Grab { Left, Right, TopLeft, TopRight, BottomLeft, BottomRight }
+
+    /// Bands straddling the card's edges, half in the shadow margin: the sides change the width,
+    /// the corners the text size and width together.
+    void Bands()
+    {
+        Band(Grab.Left, 8, double.NaN, new Thickness(-4, 14, 0, 14), HorizontalAlignment.Left, VerticalAlignment.Stretch, Cursors.SizeWE);
+        Band(Grab.Right, 12, double.NaN, new Thickness(0, 14, -4, 14), HorizontalAlignment.Right, VerticalAlignment.Stretch, Cursors.SizeWE);
+        Band(Grab.TopLeft, 14, 14, new Thickness(-4, -4, 0, 0), HorizontalAlignment.Left, VerticalAlignment.Top, Cursors.SizeNWSE);
+        Band(Grab.TopRight, 14, 14, new Thickness(0, -4, -4, 0), HorizontalAlignment.Right, VerticalAlignment.Top, Cursors.SizeNESW);
+        Band(Grab.BottomLeft, 14, 14, new Thickness(-4, 0, 0, -4), HorizontalAlignment.Left, VerticalAlignment.Bottom, Cursors.SizeNESW);
+        Band(Grab.BottomRight, 26, 26, new Thickness(0, 0, -4, -4), HorizontalAlignment.Right, VerticalAlignment.Bottom, Cursors.SizeNWSE);
+    }
+
+    void Band(Grab grab, double width, double height, Thickness margin, HorizontalAlignment h, VerticalAlignment v, Cursor cursor)
+    {
+        // Nearly clear, not clear: a fully clear pixel of a layered window lets clicks through.
+        var band = new Border { Width = width, Height = height, Margin = margin, HorizontalAlignment = h, VerticalAlignment = v, Cursor = cursor, Background = new SolidColorBrush(Color.FromArgb(1, 0, 0, 0)) };
+        if (grab is not (Grab.Left or Grab.Right)) band.ToolTip = "Drag to resize · double-click for actual size";
+        Rect start = default;
+        POINT from = default;
+        double startZoom = 1, startWidth = 0;
+        band.MouseLeftButtonDown += (_, e) =>
+        {
+            e.Handled = true;
+            if (e.ClickCount == 2)
+            {
+                // An edge: the default width. A corner: actual size.
+                if (grab is Grab.Left or Grab.Right) { if (IsPhrase) phraseWidth = null; else wordWidth = null; Relayout(); }
+                else { wordWidth = phraseWidth = null; zoom = 1; Relayout(); }
+                return;
+            }
+            resizing = true;
+            moved = true;
+            band.CaptureMouse();
+            GetCursorPos(out from);
+            start = CardRect();
+            startZoom = zoom;
+            startWidth = CardWidth;
+            foreach (Line l in grip.Children) l.Stroke = Theme.Ink(0.45);
+            grabber.Background = Theme.Ink(0.40);
+        };
+        band.MouseMove += (_, e) =>
+        {
+            if (!resizing || !band.IsMouseCaptured) return;
+            GetCursorPos(out var now);
+            double dx = (now.X - from.X) / scale, dy = (now.Y - from.Y) / scale;
+            var area = Screen().WorkingArea;
+            var widest = Math.Min(Widest, area.Width / scale - 2 * Inset);
+            double width;
+            var right = grab is Grab.Right or Grab.TopRight or Grab.BottomRight;
+            var bottom = grab is Grab.BottomLeft or Grab.BottomRight or Grab.Left or Grab.Right;
+            if (grab is Grab.Left or Grab.Right) width = Math.Clamp(startWidth + (right ? dx : -dx), Narrowest, widest);
+            else
+            {
+                double w = start.Width / scale, hgt = start.Height / scale;
+                var outX = right ? dx : -dx;
+                var outY = bottom ? dy : -dy;
+                var f = 1 + (outX * w + outY * hgt) / (w * w + hgt * hgt);
+                var z = Math.Clamp(startZoom * f, 0.8, 2.2);
+                width = Math.Clamp(startWidth * z / startZoom, Narrowest, widest);
+                var ratio = z / zoom;
+                if (IsPhrase) { if (wordWidth != null) wordWidth *= ratio; } else if (phraseWidth != null) phraseWidth *= ratio;
+                zoom = z;
+            }
+            if (IsPhrase) phraseWidth = width; else wordWidth = width;
+            // The opposite edge or corner stays put.
+            cardLeft = right ? start.Left : start.Right - width * scale;
+            below = bottom;
+            edge = bottom ? start.Top : start.Bottom;
+            Relayout();
+        };
+        band.MouseLeftButtonUp += (_, _) =>
+        {
+            if (!resizing) return;
+            resizing = false;
+            band.ReleaseMouseCapture();
+            foreach (Line l in grip.Children) l.Stroke = Theme.Ink(0.22);
+            grabber.Background = Theme.Ink(0.20);
+            if (pinned) pinnedAt = CardTopLeft();
+            if (!hovered) Hover(false);
+        };
+        bands.Add(band);
+        card.Children.Add(band);
+    }
+
+    bool IsPhrase => (string?)last?["kind"] == "phrase";
+
     // MARK: Closing
+
+    /// The pinned card's close badge, over its top-left corner, shown while the pointer is on it.
+    void Badge()
+    {
+        var circle = new Border
+        {
+            Width = 20, Height = 20, CornerRadius = new CornerRadius(10), Background = Theme.Surface,
+            BorderBrush = Theme.Ink(0.12), BorderThickness = new Thickness(0.5),
+            Effect = new DropShadowEffect { BlurRadius = 4, ShadowDepth = 1, Direction = 270, Opacity = 0.12, Color = Colors.Black },
+        };
+        var x = new Path { Data = Geometry.Parse("M 7,7 L 13,13 M 13,7 L 7,13"), Stroke = Theme.Secondary, StrokeThickness = 1.6, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round, Width = 20, Height = 20 };
+        badge.Children.Add(circle);
+        badge.Children.Add(x);
+        badge.RenderTransform = badgeScale;
+        badge.RenderTransformOrigin = new Point(0.5, 0.5);
+        badge.MouseEnter += (_, _) => x.Stroke = Theme.Primary;
+        badge.MouseLeave += (_, _) => { x.Stroke = Theme.Secondary; Motion.To(circle, OpacityProperty, 1, 0.08); };
+        badge.MouseLeftButtonDown += (_, e) => { Motion.To(circle, OpacityProperty, 0.55, 0.08); e.Handled = true; };
+        badge.MouseLeftButtonUp += (_, e) => { e.Handled = true; Dismiss(); };
+    }
 
     public void Dismiss()
     {
@@ -429,11 +647,12 @@ sealed class CardWindow : Window, ICardActions
         Dismiss();
     }
 
+    /// On the card or its resize bands (the shadow margin around them is click-through).
     bool Contains(POINT p)
     {
-        GetWindowRect(new WindowInteropHelper(this).Handle, out var r);
-        var m = Frame * scale;
-        return p.X >= r.Left + m && p.X <= r.Right - m && p.Y >= r.Top + m && p.Y <= r.Bottom - m;
+        var r = CardRect();
+        r.Inflate(8 * scale, 8 * scale);
+        return r.Contains(new Point(p.X, p.Y));
     }
 
     DispatcherTimer After(double seconds, Action act)
@@ -467,8 +686,16 @@ sealed class CardWindow : Window, ICardActions
     public void TogglePin()
     {
         pinned = !pinned;
-        pinnedTopLeft = pinned ? CardTopLeft() : null;
-        if (pinned) { below = true; moved = true; edge = pinnedTopLeft!.Value.Y; cardLeft = pinnedTopLeft.Value.X; SetFrame(shownHeight); }
+        badge.Visibility = pinned ? Visibility.Visible : Visibility.Collapsed;
+        if (pinned)
+        {
+            // Pinning keeps the card where it is and hangs it from its top-left corner.
+            var tl = CardTopLeft();
+            pinnedAt = tl;
+            below = true; moved = true; edge = tl.Y; cardLeft = tl.X;
+            SetFrame(shownHeight);
+            Hover(hovered);
+        }
         if (last != null) view.Show(last, animate: true);
     }
 

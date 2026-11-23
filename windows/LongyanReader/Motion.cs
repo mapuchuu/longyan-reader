@@ -16,6 +16,10 @@ static class Motion
     public static readonly Duration RevealDuration = new(TimeSpan.FromSeconds(0.45));
     public static readonly IEasingFunction Reveal = new Spring(0.32, 0.82, 0.45);
 
+    /// The pinned card's close badge: response 0.25 s, damping 0.9.
+    public static readonly Duration BadgeDuration = new(TimeSpan.FromSeconds(0.35));
+    public static readonly IEasingFunction Badge = new Spring(0.25, 0.9, 0.35);
+
     public static readonly IEasingFunction EaseOut = new CubicEase { EasingMode = EasingMode.EaseOut };
 
     /// True when Windows' "Animation effects" are off (Reduce Motion on the Mac).

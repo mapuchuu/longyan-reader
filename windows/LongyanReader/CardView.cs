@@ -33,9 +33,17 @@ interface ICardActions
 /// fades in, changed text crossfades, and chevrons and checkmarks move from where they were.
 sealed class CardView
 {
+    /// The content, scaled by the zoom and scrolled; and the buttons, which do neither and sit
+    /// over it in the card's top-right corner.
     public readonly Grid Root = new();
+    public readonly StackPanel Buttons = new() { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top };
     readonly StackPanel content = new();
-    readonly StackPanel buttons = new() { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top };
+    StackPanel buttons => Buttons;
+    /// The text size; the content is drawn at 1 and scaled by the window.
+    public double Zoom = 1;
+    /// A width the reader set by dragging an edge (content units), for phrase (true) or word cards.
+    public Func<bool, double?>? WidthFor;
+    public const double WordWidth = 360, PhraseWidth = 390, HintWidth = 260;
     readonly ICardActions actions;
     Dictionary<string, string> before = new(), now = new();
     bool animate;
@@ -50,10 +58,10 @@ sealed class CardView
         this.actions = actions;
         content.Margin = new Thickness(Pad, Pad, Pad, PadBottom);
         Root.Children.Add(content);
-        Root.Children.Add(buttons);
-        Root.MouseEnter += (_, _) => { hovered = true; Recolor(); };
-        Root.MouseLeave += (_, _) => { hovered = false; Recolor(); };
     }
+
+    /// The pointer came onto the card or left it: the buttons brighten or dim.
+    public void SetHovered(bool on) { hovered = on; Recolor(); }
 
     public void Show(JsonObject card, bool animate)
     {
@@ -61,13 +69,13 @@ sealed class CardView
         before = now; now = new();
         content.Children.Clear();
         buttons.Children.Clear();
-        if ((string?)card["kind"] == "phrase") { Width = 390; Phrase(card); }
-        else { Width = 360; Word(card); }
+        if ((string?)card["kind"] == "phrase") { Width = WidthFor?.Invoke(true) ?? PhraseWidth; Phrase(card); }
+        else { Width = WidthFor?.Invoke(false) ?? WordWidth; Word(card); }
     }
 
     public void Hint(string message)
     {
-        Width = 260;
+        Width = HintWidth;
         content.Children.Clear();
         buttons.Children.Clear();
         content.Children.Add(Label(message, 12, Theme.Secondary));
@@ -79,7 +87,7 @@ sealed class CardView
     {
         var syllables = c["pinyin"]?.AsArray() ?? new JsonArray();
         var word = (string?)c["word"] ?? "";
-        var slot = Buttons((string?)c["copy"] ?? word, (string?)c["speech"] ?? word);
+        var slot = AddButtons((string?)c["copy"] ?? word, (string?)c["speech"] ?? word);
 
         // The top group, 4 apart: header, meaning, Part of, Back to, status.
         var top = new StackPanel();
@@ -163,12 +171,12 @@ sealed class CardView
     void Phrase(JsonObject c)
     {
         var text = (string?)c["text"] ?? "";
-        var slot = Buttons((string?)c["copy"] ?? text, text);
+        var slot = AddButtons((string?)c["copy"] ?? text, text);
         var top = new StackPanel();
         var source = Lines(new TextBlock
         {
             Text = text, FontSize = 14 * Theme.ChineseScale, FontFamily = Theme.Chinese, Foreground = Theme.Secondary, TextWrapping = TextWrapping.Wrap,
-            MaxHeight = Math.Ceiling(14 * Theme.LineFactor) * 4, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, 0, slot + 8, 0),
+            MaxHeight = Math.Round(14 * Theme.LineFactor) * 4, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, 0, slot + 8, 0),
         }, 14);
         top.Children.Add(source);
         PlaceButtons(source, 14, Theme.Chinese, FontWeights.Normal, 5);
@@ -477,7 +485,7 @@ sealed class CardView
     readonly List<TextBlock> glyphs = new();
 
     /// The Listen, Copy and Pin buttons; returns the width their slot takes on the first line.
-    double Buttons(string copy, string speech)
+    double AddButtons(string copy, string speech)
     {
         glyphs.Clear();
         var n = 0;
@@ -487,14 +495,15 @@ sealed class CardView
             () => actions.TogglePin(), tint: actions.Pinned);
         pin.Child.RenderTransform = new RotateTransform(-45);   // Segoe's pin leans; the Mac's stands
         buttons.Children.Add(pin); n++;
-        buttons.Margin = new Thickness(0, 0, Pad - 6, 0);
-        return n * ButtonW + (n - 1) * ButtonGap - 6;
+        buttons.Margin = new Thickness(0, 0, Pad * Zoom - 6 - ButtonGap / 2, 0);
+        // The slot they take on the first line, in the content's own (unzoomed) units.
+        return (n * ButtonW + (n - 1) * ButtonGap - 6) / Zoom;
     }
 
     /// The buttons' centre sits `above` over the first line's baseline.
     void PlaceButtons(FrameworkElement firstLine, double size, FontFamily family, FontWeight weight, double above)
     {
-        var top = Pad + Baseline(family, size, weight) - above - ButtonH / 2;
+        var top = (Pad + Baseline(family, size, weight) - above) * Zoom - ButtonH / 2;
         buttons.Margin = new Thickness(0, Math.Max(0, top), buttons.Margin.Right, 0);
     }
 
@@ -549,7 +558,7 @@ sealed class CardView
     static TextBlock Lines(TextBlock t, double size, double extra = 0)
     {
         t.LineStackingStrategy = LineStackingStrategy.BlockLineHeight;
-        t.LineHeight = Math.Ceiling(size * Theme.LineFactor) + extra;
+        t.LineHeight = Math.Round(size * Theme.LineFactor) + extra;
         return t;
     }
 
@@ -598,7 +607,7 @@ sealed class CardView
         var ft = new FormattedText(family == Theme.Chinese ? "国" : "Ag", CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
             new Typeface(family, FontStyles.Normal, weight, FontStretches.Normal), 100, Brushes.Black, 1.0);
         var ratio = ft.Baseline / ft.Height;
-        return baselines[key] = Math.Ceiling(size * Theme.LineFactor) * ratio;
+        return baselines[key] = Math.Round(size * Theme.LineFactor) * ratio;
     }
 
     // MARK: Transitions
