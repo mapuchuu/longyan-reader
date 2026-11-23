@@ -707,7 +707,7 @@ extension EmbeddedModel {
         var offset = 0
         while offset < Int(length) {
             let info = (buffer + offset).assumingMemoryBound(to: SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX.self)
-            let mask = UInt64(info.pointee.Processor.GroupMask.0.Mask)
+            let mask = UInt64(info.pointee.Processor.GroupMask.Mask)
             cores.append((info.pointee.Processor.EfficiencyClass, max(1, mask.nonzeroBitCount)))
             offset += Int(info.pointee.Size)
         }
