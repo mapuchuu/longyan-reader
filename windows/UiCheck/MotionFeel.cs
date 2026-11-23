@@ -147,9 +147,21 @@ static partial class Program
         if (Events(skip, "band").Count > 0) failures.Add("2-band: a mouse notch at the top bounced");
     }
 
-    /// Esc fades the card out linearly over the full 0.12 s (Popup.swift close) and the window
-    /// goes only after a frame at 0; each reveal fades in over 0.14 s (0.12 in place) from the
-    /// window's first drawn frame, with the reveal spring starting at the same moment.
+    /// Esc fades the card out over the full 0.12 s (Popup.swift close) on AppKit's default curve,
+    /// the Bézier (0.25, 0.1, 0.25, 1), and the window goes only after a frame at 0; each reveal
+    /// fades in over 0.14 s (0.12 in place) from the window's first drawn frame, with the reveal
+    /// spring starting at the same moment.
+    /// Core Animation's default timing, the cubic Bézier (0.25, 0.1, 0.25, 1), at `x` of the time.
+    static double FadeCurve(double x)
+    {
+        if (x <= 0) return 0;
+        if (x >= 1) return 1;
+        static double C(double a, double b, double t) => 3 * a * (1 - t) * (1 - t) * t + 3 * b * (1 - t) * t * t + t * t * t;
+        double lo = 0, hi = 1, t = x;
+        for (var i = 0; i < 40; i++) { t = (lo + hi) / 2; if (C(0.25, 0.25, t) < x) lo = t; else hi = t; }
+        return C(0.1, 1, t);
+    }
+
     static void FadeCheck(int skip)
     {
         var outs = Events(skip, "linear").Where(e => (string?)e["tag"] == "fade-out").ToList();
@@ -160,10 +172,15 @@ static partial class Program
             double start = (double)e["start"]!, done = (double)e["done"]!;
             if (frames[^1].X != 0 || frames[^1].T - start < 119.9) failures.Add($"3-fade: the fade-out reached {frames[^1].X:0.00} at {frames[^1].T - start:0} ms, not 0 at 120 ms");
             if (done <= frames[^1].T) failures.Add("3-fade: the window went on the same frame that drew 0");
+            // Drawn on the way down, not held and then cut: frames between the ends, none far apart.
+            var mid = frames.Count(f => f.X > 0.02 && f.X < (double)e["from"]! - 0.02);
+            if (mid < 1) failures.Add("3-fade: the fade-out drew no frame between its ends");
+            var gap = frames.Zip(frames.Skip(1), (a, b) => b.T - a.T).DefaultIfEmpty(0).Max();
+            if (gap > 100) failures.Add($"3-fade: the fade-out went {gap:0} ms without a frame");
             foreach (var f in frames)
             {
-                var want = Math.Max(0, (double)e["from"]! * (1 - (f.T - start) / 120));
-                if (Math.Abs(f.X - want) > 0.01) { failures.Add($"3-fade: {f.X:0.000} at {f.T - start:0} ms is off the straight line ({want:0.000})"); break; }
+                var want = Math.Max(0, (double)e["from"]! * (1 - FadeCurve((f.T - start) / 120)));
+                if (Math.Abs(f.X - want) > 0.01) { failures.Add($"3-fade: {f.X:0.000} at {f.T - start:0} ms is off the fade's curve ({want:0.000})"); break; }
             }
             Console.WriteLine($"[3-fade] {frames.Count} frames, 0 at {frames[^1].T - start:0} ms, closed at {done - start:0} ms");
         }
@@ -176,6 +193,9 @@ static partial class Program
             double start = (double)e["start"]!;
             var last = e["frames"]!.AsArray()[^1]!;
             if ((double)last[1]! != 1 || (double)last[0]! - start < seconds * 1000 - 0.1) failures.Add($"3-fade: a fade-in ended at {(double)last[0]! - start:0} ms, not {seconds * 1000:0}");
+            var inFrames = e["frames"]!.AsArray().Select(f => (T: (double)f![0]!, X: (double)f[1]!)).ToList();
+            var inGap = inFrames.Zip(inFrames.Skip(1), (a, b) => b.T - a.T).DefaultIfEmpty(0).Max();
+            Console.WriteLine($"[3-fade] fade-in: {inFrames.Count(f => f.X > 0.02 && f.X < 0.98)} frames between its ends, longest gap {inGap:0} ms");
         }
         foreach (var sc in scales)
             if (!ins.Any(e => Math.Abs((double)e["start"]! - (double)sc["start"]!) < 1)) failures.Add($"3-fade: a reveal spring started at {(double)sc["start"]!:0} ms with no fade-in at the same moment");
