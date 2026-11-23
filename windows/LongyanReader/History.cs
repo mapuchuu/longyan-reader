@@ -153,7 +153,7 @@ static class History
             if (d < best) { best = d; at = i; }
         }
         if (at < 0) return word;
-        const string stops = "。！？；!?;\n\r ";
+        const string stops = "。！？；!?;\n\r\u2029";
         int lo = at, hi = at + word.Length;
         while (lo > 0 && !stops.Contains(p[lo - 1]) && at - lo < 160) lo--;
         while (hi < p.Length && !stops.Contains(p[hi]) && hi - (at + word.Length) < 160) hi++;
@@ -377,7 +377,7 @@ static class HistoryExport
             e.Date.ToLocalTime().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), e.Kind, e.Text, e.Pinyin, e.Meaning, e.Gloss, e.Sentence,
         }.Select(Field)));
         // The byte-order mark tells Excel the file is UTF-8.
-        return "﻿" + string.Join("\r\n", new[] { "date,type,chinese,pinyin,meaning,dictionary,sentence" }.Concat(rows)) + "\r\n";
+        return "\uFEFF" + string.Join("\r\n", new[] { "date,type,chinese,pinyin,meaning,dictionary,sentence" }.Concat(rows)) + "\r\n";
     }
 
     /// Anki's text import (File > Import): one card per word or phrase, the Chinese on the front;

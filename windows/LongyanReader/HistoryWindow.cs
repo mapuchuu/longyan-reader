@@ -31,6 +31,7 @@ sealed class HistoryRow
     public string? SentenceTip => Sentence.Length > 0 ? Sentence : null;
     public string When => HistoryView.When(Entry.Date);
     // What a screen reader says for the row.
+    public string Spoken => ToString();
     public override string ToString() => string.Join(", ", new[] { Entry.Text, Entry.Pinyin, Entry.Meaning }.Where(s => s.Length > 0));
 }
 
@@ -77,14 +78,14 @@ sealed class HistoryView : Grid
         DockPanel.SetDock(kinds, Dock.Left);
         bar.Children.Add(kinds);
         more = new Button { Style = (Style)Look["Plain"], Width = 32, Padding = new Thickness(0), Margin = new Thickness(8, 0, 0, 0), ToolTip = "More options" };
-        more.Content = Icon("", 16);
+        more.Content = Icon("\uE712", 16);
         System.Windows.Automation.AutomationProperties.SetName(more, "More options");
         more.Click += (_, _) => ShowMenu(more, MoreMenu());
         DockPanel.SetDock(more, Dock.Right);
         bar.Children.Add(more);
         var exportLabel = new StackPanel { Orientation = Orientation.Horizontal };
         exportLabel.Children.Add(new TextBlock { Text = "Export", VerticalAlignment = VerticalAlignment.Center });
-        exportLabel.Children.Add(Icon("", 10, new Thickness(8, 1, 0, 0)));
+        exportLabel.Children.Add(Icon("\uE70D", 10, new Thickness(8, 1, 0, 0)));
         export = new Button { Style = (Style)Look["Plain"], Content = exportLabel, Margin = new Thickness(12, 0, 0, 0) };
         System.Windows.Automation.AutomationProperties.SetName(export, "Export");
         export.Click += (_, _) => ShowMenu(export, ExportMenu());
@@ -524,7 +525,7 @@ sealed class HistoryView : Grid
                 <Border x:Name="b" Background="{DynamicResource ControlFill}" BorderBrush="{DynamicResource ControlStroke}" BorderThickness="1" CornerRadius="4" MinHeight="32">
                   <Grid>
                     <ScrollViewer x:Name="PART_ContentHost" Margin="10,0,36,0" VerticalAlignment="Center" Focusable="False" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"/>
-                    <TextBlock x:Name="hint" Text="{TemplateBinding Tag}" Foreground="{DynamicResource TextSecondary}" Margin="12,0,36,0" VerticalAlignment="Center" IsHitTestVisible="False" Visibility="Collapsed" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock x:Name="hint" Text="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Foreground="{DynamicResource TextSecondary}" Margin="12,0,36,0" VerticalAlignment="Center" IsHitTestVisible="False" Visibility="Collapsed" TextTrimming="CharacterEllipsis"/>
                     <TextBlock Text="&#xE721;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0" IsHitTestVisible="False"/>
                     <Border x:Name="line" Height="2" VerticalAlignment="Bottom" Background="{DynamicResource Accent}" CornerRadius="0,0,4,4" Visibility="Collapsed"/>
                   </Grid>
@@ -540,6 +541,7 @@ sealed class HistoryView : Grid
           <Style x:Key="RowItem" TargetType="ListBoxItem">
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="AutomationProperties.Name" Value="{Binding Spoken}"/>
             <Setter Property="Template"><Setter.Value>
               <ControlTemplate TargetType="ListBoxItem">
                 <Grid Margin="5,1,5,1" Background="Transparent">
