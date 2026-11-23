@@ -7,9 +7,9 @@ using System.Windows.Automation;
 
 namespace Longyan;
 
-/// Chromium browsers (Chrome, Edge, Brave, Opera, Vivaldi) and Electron apps (VS Code, Slack,
-/// QQ) build a page's accessibility tree only once a UI Automation client asks for it, and
-/// building takes a moment. Until then the first selection reads as nothing. As the Mac does
+/// Chromium browsers (Chrome, Edge, Brave, Opera, Vivaldi), Electron apps (VS Code, Slack,
+/// QQ) and Firefox build a page's accessibility tree only once a UI Automation client asks for
+/// it, and building takes a moment (Firefox: 2 to 6 s on CI). Until then the first selection reads as nothing. As the Mac does
 /// (SelectionReader.prepare, on each app activation and again 2 s later), the tree is asked
 /// for when such a window comes to the front, so it's there by the time text is selected.
 /// LONGYAN_WAKE=0 turns this off (CompatCheck measures both).
@@ -37,12 +37,12 @@ static class AccessibilityWake
         _ = Ask(hwnd, 2000);
     }
 
-    /// Chromium's top-level windows, in browsers and Electron apps alike.
+    /// Chromium's top-level windows, in browsers and Electron apps alike, and Firefox's.
     static bool IsChromium(IntPtr hwnd)
     {
         var cls = new StringBuilder(64);
         GetClassName(hwnd, cls, cls.Capacity);
-        return cls.ToString() == "Chrome_WidgetWin_1";
+        return cls.ToString() is "Chrome_WidgetWin_1" or "MozillaWindowClass";
     }
 
     /// The window's document through UI Automation, off the app's thread and given up after

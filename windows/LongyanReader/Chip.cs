@@ -106,14 +106,6 @@ static class Chip
         var clock = System.Diagnostics.Stopwatch.StartNew();
         var probed = await SelectionReader.ProbeAsync();
         if (mine != generation) return;
-        // Firefox says what a drag selected a little later than other apps: once more.
-        if (probed.Found == SelectionReader.Found.NothingSelected && dragged)
-        {
-            await Task.Delay(250);
-            if (mine != generation) return;
-            probed = await SelectionReader.ProbeAsync();
-            if (mine != generation) return;
-        }
         if (Core.Logging) Core.Log($"{{\"event\":\"eye-probe\",\"found\":\"{probed.Found}\",\"ms\":{clock.ElapsedMilliseconds},\"dragged\":{(dragged ? "true" : "false")},\"clicks\":{clicks}}}");
         switch (probed.Found)
         {
