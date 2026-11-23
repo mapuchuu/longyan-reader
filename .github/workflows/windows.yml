@@ -537,6 +537,9 @@ jobs:
     steps:
       - run: git config --global core.autocrlf false
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The build number updates compare is the commit count, as in app.
+          fetch-depth: 0
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         id: llama
         with:
@@ -634,8 +637,10 @@ jobs:
       - name: Build the app
         run: |
           set -euo pipefail
-          dotnet publish windows/LongyanReader -c Release -r win-arm64 -o publish
+          scripts/fetch-winsparkle.sh
+          dotnet publish windows/LongyanReader -c Release -r win-arm64 -o publish -p:BuildNumber=$(git rev-list --count HEAD)
           cp -r publish/* dist/LongyanReader/
+          ls dist/LongyanReader/WinSparkle.dll
           # Every native DLL and the app itself should be ARM64 (machine type aa64). .NET's
           # IL-only assemblies run on any CPU.
           python - dist/LongyanReader/*.dll dist/LongyanReader/LongyanReader.exe <<'PY'

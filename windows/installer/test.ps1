@@ -55,6 +55,7 @@ Write-Host "setup: $Setup, $([Math]::Round((Get-Item $Setup).Length / 1MB)) MB"
 Run $Setup install.log
 if (-not (Test-Path $exe)) { Fail "no $exe" }
 if (-not (Test-Path "$app\Resources\splitter.tsv")) { Fail 'no Resources\splitter.tsv' }
+if (-not (Test-Path "$app\WinSparkle.dll")) { Fail 'no WinSparkle.dll, so no updates' }
 if (-not (Test-Path $lnk)) { Fail "no Start menu shortcut at $lnk" }
 $target = (New-Object -ComObject WScript.Shell).CreateShortcut($lnk).TargetPath
 if ($target -ne $exe) { Fail "the shortcut opens $target" }
