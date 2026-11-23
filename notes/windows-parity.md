@@ -239,12 +239,12 @@ windows/gallery/mac (mac); composites are made with the scratch tools described 
 | Translating | PC:69-72 | spinner, 12 secondary | CV:237 | same | phrase-translating: dh 0 |
 | No translation | PC:67 | 11 secondary | CV:235 | font only | code |
 | Words label, divider | PC:39-41 | as on the word card | CV:249-251 | same | phrase-*: dy 0 to +1 |
-| Phrase rows | PC:75-129 | word 17 medium, pinyin 10.5, gloss 13, gutter 12, 5 above and below | CV:289 `PhraseRow` | font only | phrase-trad, phrase-ming-open: dy 0 to +1. "prohibition on entering or leaving by sea" breaks before "by sea" on Windows: Segoe sets that line 3% wider |
+| Phrase rows | PC:75-129 | word 17 medium, pinyin 10.5, gloss 13, gutter 12, 5 above and below | CV:289 `PhraseRow` | font only | phrase-trad, phrase-ming-open: dy 0 to +1. "prohibition on entering or leaving by sea" breaks before "by sea" on Windows (phrase-ming 1 pt taller): no one stretch at 13 fixes it, as at 1.01 and 1.015 "behavior; conduct (Taiwan pronounced xìng)" (word-all) stops breaking. San Francisco and Segoe differ letter by letter, so lines this close to the edge need the Mac's own widths |
 | Word column | PC:4-8 | widest word block | CV:254 | same | gloss x within 1 px |
 | Row chevron | PC:114-120 | chevron.forward 10 semibold tertiary, turns 90 open | CV:322 | same | phrase-ming-open |
 | Row detail | PC:131-213 | 2 above, 8 below, rows 3 above and below | CV:334 `Detail` | font only | phrase-ming-open, phrase-guanxi-open: dh 0 |
 | Pending rows | PC:89, 99, 110 | redacted bars | CV:889, 916 | same | phrase-pending |
-| More words not shown | PC:46-49 | 11 tertiary, 4 above and below | CV:261 | font only | phrase-long (+9 px: one gloss breaks a line earlier, font width) |
+| More words not shown | PC:46-49 | 11 tertiary, 4 above and below | CV:261 | font only | phrase-long (+3 px: one gloss breaks earlier and one later than the Mac's, font width) |
 | Hint | PU:839-844 | 12 secondary | CV:100 `Hint` | open | no gallery case |
 
 ### Buttons and symbols
