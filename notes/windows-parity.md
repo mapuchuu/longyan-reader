@@ -6,7 +6,8 @@ PC = PhraseCard.swift, APP = App.swift. Windows refs: CW = CardWindow.cs, CV = C
 MO = Motion.cs, UC = windows/UiCheck. Line numbers are as of branch win/card-feel.
 
 Status: **same** (checked in code, and in CI where it says), **fixed** (was different, changed
-on win/card-feel), **differs** (left different, with why).
+on win/card-feel or win/springs), **differs** (left different, with why). Mac films below were made
+on macOS 26.6 with small SwiftUI and AppKit test apps (screencapture, frames read with AVFoundation).
 
 ## Motion and behaviour
 
@@ -22,9 +23,10 @@ and live dark mode on every push.
 |---|---|---|
 | Hold for the pick | 0.4 s from the lookup (APP:756) | 0.4 s from the lookup (CW Update), Normal-priority timer |
 | Reveal: window fade | 0 to 1, 0.14 s, linear (PU:442) | 0 to 1, 0.14 s, linear (CW Reveal) |
-| Reveal: card | scale 0.96 to 1, y −4 (below) / +4 (above) to 0, spring 0.32 / 0.82, anchor top or bottom (PU:446, CC:382) | same values, MO Reveal over 0.45 s (left over at the end: 0.07%) |
+| Reveal: card | scale 0.96 to 1, y −4 (below) / +4 (above) to 0, spring 0.32 / 0.82, anchor top or bottom (PU:446, CC:382) | same values, on the spring driver (MO Spring), run until it settles |
 | Swap in place (pinned, Part of) | fade 0.12 s, no spring (PU:435) | fade 0.12 s, no spring |
-| Every change inside (cardMotion) | spring 0.34 / 1.0; Reduce Motion easeInOut 0.15 s (CC:191) | same, MO Card over 0.5 s (left over: 0.1%); Reduce Motion Bézier (0.42, 0, 0.58, 1) 0.15 s |
+| Every change inside (cardMotion) | spring 0.34 / 1.0; Reduce Motion easeInOut 0.15 s (CC:191) | same, MO Spring with MO Card until it settles; Reduce Motion Bézier (0.42, 0, 0.58, 1) 0.15 s |
+| A spring given a new target mid-way | carries on from where it is at the speed it is going (filmed: a bar sent to 180 then to 178 after 60 ms runs on smoothly; a restart would stall) | same (**fixed**: WPF animations restarted from rest) |
 | Card height | cardMotion, not on the first frame (CC:365) | same |
 | Row open: detail | opacity + y from −6 × zoom, cardMotion; leaves the same way (PC:126) | same (CV Keyed, FadeOut) |
 | Note box | opacity + y from −4 × zoom (PU:27) | same |
@@ -32,8 +34,10 @@ and live dark mode on every push.
 | Chevrons | Show All 0° to 180°, phrase row 0° to 90°, cardMotion | same |
 | Pick: checkmark | opacity 0 to 1, scale 0.6 to 1, cardMotion (CC:720) | same |
 | Dismiss | fade to 0, 0.12 s, linear; no motion (PU:727) | same |
-| Pin: close badge | opacity 0 to 1, scale 0.7 to 1, spring 0.25 / 0.9 (CC:1006) | same, over 0.35 s |
-| Pin and Copy symbols | SF Symbols replace transition | grow 0.5 to 1 on cardMotion, fade in 0.2 s ease-out (**fixed**, was instant) |
+| Pin: close badge | opacity 0 to 1, scale 0.7 to 1, spring 0.25 / 0.9 (CC:1006) | same, on the spring driver |
+| Copy, Anki symbols | replace.downUp, filmed: the old symbol shrinks to 0.5 in 0.23 s (speeding up), the new one starts at 0.52 and is full size at 0.46 s (slowing down); no fade | the same curve, from the film (**fixed**: was a grow from 0.5 on cardMotion with a fade) |
+| Pin symbol | replace.downUp with bounce.down, filmed: old one to 0.51 in 0.22 s, new one in at 0.76, up to 1.10 at 0.4 s, back to 1 at 0.62 s | the same curve (**fixed**: had no bounce) |
+| Listen while speaking | variableColor.iterative, filmed: steps of 1/3 s; both waves dim to 0.29, inner lights, outer lights as inner dims, outer dims, a step dim; round 4/3 s; each change 0.31 s on a gentle S curve (Bézier 0.3, 0, 0.7, 1 fits to 1%); on stop the round finishes, then both waves are back at once | the same (**fixed**: the waves didn't move) |
 | Copy checkmark | 1.5 s (CC:893) | 1.5 s |
 | Resize, pinch / Ctrl+wheel | no animation while the hand moves (CC:36, CC:365) | no animation |
 | Zoom step | × 1.1 (CC:120) | × 1.1 a wheel notch |
@@ -86,7 +90,7 @@ and live dark mode on every push.
 |---|---|---|---|---|
 | cardMotion: spring response 0.34, damping 1 (Reduce Motion: easeInOut 0.15) | CC:191-197 | MO Card, ContentEase | same | 2-open bottom: 12%, 32%, 59%, 79%, 89%, 95%, 97% at 16, 65, 114, 161, 209, 257, 306 ms after a start at 130 ms: the critically damped spring with ω = 18.5 to a frame |
 | Spring maths: SwiftUI mass 1, stiffness (2π/response)², damping 4πζ/response, from rest | | MO Spring | same | |
-| Spring interrupted mid-way keeps its velocity | SwiftUI retargets | WPF restarts from the current value at rest | differs: only seen when a row is toggled twice within 0.3 s; a velocity-keeping spring needs a custom animation clock | |
+| Spring interrupted mid-way keeps its velocity | SwiftUI retargets (filmed, MotionCheck/mac-retarget.tsv) | MO Spring: a driver of our own on CompositionTarget.Rendering, Spring.cs for the maths; a part rebuilt in a new element carries on by key (slides, chevrons, check marks) | **fixed** | windows/MotionCheck (CI): Spring.cs within 1e-6 of SwiftUI's ODE for a row toggled 50, 100, 150 ms apart, and within 1.5 pt of the Mac film; UC 2-twice: the app's drawn heights against the closed form |
 | Card height animates with cardMotion; window resized instantly around it | CC:365, PU:591-612 | CW Resize | same | 2-open |
 | Rows around inserted or removed parts slide; new parts fade (note box from y −4, phrase detail from y −6); text changes crossfade | PU:27, PC:126, PU:56, PU:82, PC:112 | CV Slide, Keyed, FadeOut | **fixed**: leaving parts faded on ease-out 0.3 s and didn't slide back up; now cardMotion and the slide | 2-open, 2-shut films |
 | Show All chevron 0° to 180°, phrase row chevron 0° to 90°, cardMotion | PU:184, PC:118 | CV Rotate | same | |
@@ -94,7 +98,8 @@ and live dark mode on every push.
 | "Reading the sentence…" spinner | PU:127 (ProgressView mini) | CV Spinner: 8 spokes stepping every 0.1 s | same in kind | |
 | Scroll-edge fades: bottom 36 × s, top under the buttons + 14 × s; ease-out 0.2 s | CC:439-455 | CW Fades | same | 2-zoomed.png |
 | No scroll bar | CC:423-427 | CW scroller (Hidden) | same | |
-| Wheel scrolling | NSScrollView | CW Wheel, Glide: 40 × zoom a notch, eased (about 0.2 s), touchpad deltas in proportion | differs by platform: Windows apps glide a notch; there's no rubber-band overscroll on Windows | 2-scroll film |
+| Touchpad scrolling | 1:1 with momentum; at an end it stretches (measured in a test app: a 20th of the push, pushing back takes it in 1:1) and springs back e^(−12.5 t) (235 to 57 in 0.11 s); only when the content scrolls (.basedOnSize) | CW Pan: deltas that aren't whole notches move 1:1 (Windows sends the momentum), the same stretch and spring back, after 0.1 s with no deltas | **fixed** (no stretch before); Windows has no "fingers up", so the stretch lets go 0.1 s after the last delta | UC 2-band |
+| Mouse wheel | a notch jumps a line with no glide and never bounces (test app) | CW Glide: 40 × zoom a notch, eased about 0.2 s, no bounce | differs on purpose: Windows apps glide a notch | 2-scroll film |
 | Ctrl+wheel changes text size by 1.1 a notch (pinch on the Mac) | CC:104-122 | CW Wheel, SetZoom | same in effect | 2-zoomed.png |
 
 ### Pointer feedback
@@ -104,11 +109,13 @@ and live dark mode on every push.
 | Row highlight: hover 0.05 on in 0.08 s, off in 0.2 s; pressed 0.09 in 0.08 s; radius 6 | CC:682-689 | CV RowButton | same (curve **fixed**, see the ease-out row above) | 1-hover.png |
 | A row rebuilt under the pointer is hovered at once | (SwiftUI keeps hover) | CV JustBuilt | same | 1-picked.png |
 | Action buttons: highlight 0.07 in 0.15 s; symbols tertiary, secondary while on the card (0.2 s), primary on the button; pressed 0.55 in 0.08 s | CC:953-976 | CV ActionButton, Recolor | same | |
-| Copy: checkmark in the accent for 1.5 s, symbol replace transition | CC:886-895, CC:854 | CV CopyButton, Symbol.Pop | **fixed**: the symbol swapped in one frame; now grows and fades in with cardMotion | |
-| Pin: pin.fill in the accent, replace transition | CC:868-875 | CV AddButtons, Symbol.Pop | **fixed** as Copy | |
-| Listen: accent while speaking, a click stops | CC:847-853 | CV ListenButton | same, except the Mac's waves light in turn while speaking (variableColor); the Windows speaker is one path | differs (small): needs the symbol split into parts, look agent's icon |
+| Copy: checkmark in the accent for 1.5 s, symbol replace transition | CC:886-895, CC:854 | CV CopyButton, Symbol.Swap | **fixed**: the replace.downUp curve as filmed (see the numbers) | UC 1-copy, 1-copy-back |
+| Pin: pin.fill in the accent, replace transition and bounce | CC:868-875 | CV AddButtons, Symbol.Replaced | **fixed**: with the bounce as filmed | UC 1-pin, 1-unpin |
+| Listen: accent while speaking, a click stops | CC:847-853 | CV ListenButton, WaveClock | **fixed**: the waves light in turn as filmed (Icons.cs speaker in three parts); the tint changes at once, as the Mac's (it eased 0.15 s) | UC 1-listen (a silent stand-in voice) |
+| A card opening under a pointer at rest | not hovered until the pointer moves (no mouseEntered till then) | CW PointerHook: the card takes no hover until a real move or press | **fixed**: WPF hovered it at once, showing the edge grabber (taken for a scroll bar) and a row highlight | |
+| Tooltips (.help) | not shown: AppKit shows tooltips only in the active app, and the card never activates its app | CW ToolTipOpening handled for card windows; the help stays as each button's UI Automation name | **fixed**: Windows showed them (e.g. "(concept of) time" on a meaning) | |
 | Grip and edge grabber fade in 0.15 s while on the card; darker while resizing | CC:499-520 | CW Hover, Bands | same | 1-hover.png |
-| Close badge: spring 0.25 / 0.9, opacity and scale 0.7 to 1, pressed 0.55 | CC:980-1009 | CW Badge, Hover | same | |
+| Close badge: spring 0.25 / 0.9, opacity and scale 0.7 to 1, pressed 0.55 | CC:980-1009 | CW Badge, SpringBadge | same; a quick in and out now keeps its speed | |
 | Cursors: arrow everywhere, resize cursors on bands, held through the drag | CC:637-656 | CW Bands (Cursor per band, mouse captured) | same | |
 
 ### Moving and resizing
