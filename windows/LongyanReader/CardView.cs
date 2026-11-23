@@ -143,7 +143,7 @@ sealed class CardView
         var senses = new StackPanel { Margin = new Thickness(0, 12, 0, 0) };
         senses.Children.Add(Divider());
         senses.Children.Add(Section("Meanings"));
-        var rows = new StackPanel { Margin = new Thickness(0, 9, 0, 0) };   // the spec's 8, plus 1 to line up with the Mac
+        var rows = new StackPanel { Margin = new Thickness(0, 8, 0, 0) };
         var all = c["senses"]?.AsArray() ?? new JsonArray();
         var total = Total(all, (string?)c["more"]);
         foreach (var node in all)
@@ -184,7 +184,7 @@ sealed class CardView
         var scale = Math.Clamp(room / Math.Max(1, characters * 34), 0.5, 1);
         head.LayoutTransform = new ScaleTransform(scale, scale);
         head.MaxWidth = room / scale;
-        var cell = new Grid { Height = Math.Round(34 * Theme.LineFactor), Margin = new Thickness(0, 0, slot + 8, 0) };
+        var cell = new Grid { Height = LineHeight(34), Margin = new Thickness(0, 0, slot + 8, 0) };
         cell.Children.Add(head);
         two.Children.Add(cell);
         var py = Lines(new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 0), FontFamily = Theme.Text }, 15);
@@ -222,7 +222,7 @@ sealed class CardView
         var source = Lines(new TextBlock
         {
             Text = text, FontSize = 14 * Theme.ChineseScale, FontFamily = Theme.Chinese, Foreground = Theme.Secondary, TextWrapping = TextWrapping.Wrap,
-            MaxHeight = Math.Round(14 * Theme.LineFactor) * 4, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, SourceTop, slot + 8, 0),
+            MaxHeight = LineHeight(14) * 4, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, SourceTop, slot + 8, 0),
         }, 14);
         top.Children.Add(Track("source", source));
         PlaceButtons(source, 14, Theme.Chinese, FontWeights.Normal, 5 - SourceTop);
@@ -846,9 +846,13 @@ sealed class CardView
         return text[..last] + "\u00A0" + text[(last + 1)..];
     }
 
-    /// San Francisco's line height at a size: 1.2 of it, rounded, except at 12, where the
-    /// Mac's lines measure 15 rather than 14.
-    static double LineHeight(double size) => size == 12 ? 15 : Math.Round(size * Theme.LineFactor);
+    /// A line's height at a size, as SwiftUI lays out the system font (measured on a Mac at 2x);
+    /// 1.2 of the size, rounded, between the sizes it has.
+    public static double LineHeight(double size) => size switch
+    {
+        10 or 10.5 => 13, 11 => 14, 12 => 15, 13 => 16, 14 => 17, 15 or 16 => 19, 18 => 21, 19 => 23, 34 => 40,
+        _ => Math.Round(size * Theme.LineFactor),
+    };
 
     static TextBlock Lines(TextBlock t, double size, double extra = 0)
     {
@@ -884,7 +888,7 @@ sealed class CardView
     /// 7 tall, 2 above the bottom of the 13 line, in the tone's colour faintly (the neutral tone in grey).
     static FrameworkElement PinyinBars(JsonArray syllables, Thickness margin)
     {
-        var line = new StackPanel { Orientation = Orientation.Horizontal, Height = Math.Round(10.5 * Theme.LineFactor), Margin = margin, HorizontalAlignment = HorizontalAlignment.Left };
+        var line = new StackPanel { Orientation = Orientation.Horizontal, Height = LineHeight(10.5), Margin = margin, HorizontalAlignment = HorizontalAlignment.Left };
         for (var i = 0; i < syllables.Count; i++)
         {
             var s = syllables[i] as JsonObject;
@@ -914,7 +918,7 @@ sealed class CardView
         const double Size = 13, Bar = 9;
         readonly string[] words;
         List<double> widths = new();
-        static double LineH => Math.Round(Size * Theme.LineFactor);
+        static double LineH => LineHeight(Size);
         public Bars(string text, Thickness margin)
         {
             words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
