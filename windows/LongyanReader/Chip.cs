@@ -157,7 +157,10 @@ static class Chip
 /// 24 circle in the card's style (surface, 0.5 hairline, soft shadow) with the Longyan mark.
 sealed class ChipWindow : Window
 {
-    const double Box = 44, Target = 30, Diameter = 24, Mark = 13;
+    const double Box = 44, Target = 30, Diameter = 24;
+    /// The mark is 13 on the Mac; SwiftUI's sharper downsampling draws it lighter, so 12.6
+    /// here matches its weight (windows/gallery/mac/eye.png).
+    const double Mark = 12.6;
 
     public readonly Selected? Selection;
     readonly string process, appName;
@@ -230,7 +233,8 @@ sealed class ChipWindow : Window
         if (!snapshot) surface.Effect = new DropShadowEffect { BlurRadius = 10, ShadowDepth = 2, Direction = 270, Opacity = 0.18, Color = Colors.Black, RenderingBias = RenderingBias.Quality };
         // A 0.5 border drawn inside the circle, as strokeBorder does.
         var hairline = new Ellipse { Width = Diameter, Height = Diameter, Stroke = Theme.Hairline, StrokeThickness = 0.5 };
-        var mark = new Rectangle { Width = Mark, Height = Mark, Fill = Theme.Ink(1), OpacityMask = markBrush, Opacity = InkAlpha(false) };
+        // SwiftUI puts the image on whole points: half a point right and down of centre.
+        var mark = new Rectangle { Width = Mark, Height = Mark, Fill = Theme.Ink(1), OpacityMask = markBrush, Opacity = InkAlpha(false), RenderTransform = new TranslateTransform(0.5, 0.5) };
         RenderOptions.SetBitmapScalingMode(mark, BitmapScalingMode.HighQuality);
         var hit = new Ellipse { Width = Target, Height = Target, Fill = Brushes.Transparent };
         var button = new Grid
@@ -340,8 +344,9 @@ sealed class ChipWindow : Window
         scale.BeginAnimation(ScaleTransform.ScaleYProperty, a);
     }
 
-    /// Secondary at rest, primary on hover, as label colours (Theme.Secondary and Primary).
-    static double InkAlpha(bool hover) => hover ? 0.85 : Theme.Dark ? 0.55 : 0.50;
+    /// Secondary at rest, primary on hover. The Mac's template image comes out a little
+    /// stronger than its secondary text, so these are measured from its drawing.
+    static double InkAlpha(bool hover) => hover ? 0.85 : Theme.Dark ? 0.575 : 0.52;
 
     /// Right-click: switch the eye off here or everywhere, without a trip to the tray.
     void Options(FrameworkElement at)
