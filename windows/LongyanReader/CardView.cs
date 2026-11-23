@@ -90,6 +90,9 @@ sealed class CardView
         tracked.Clear();
         before = now; now = new();
         builtAt = Environment.TickCount64;
+        // Rows mid-highlight keep it through the rebuild, as the Mac's rows (never rebuilt) do.
+        var lit = new Dictionary<string, double>();
+        foreach (var (n, t) in Targets) if (RowFill(t) is Brush f && f.Opacity > 0.001) lit[n] = f.Opacity;
         Targets.Clear(); Animated.Clear(); senseRows = phraseRows = 0;
         content.Children.Clear();
         buttons.Children.Clear();
@@ -100,6 +103,13 @@ sealed class CardView
         if (was != null) Slide(was);
         var slid = clock.Elapsed.TotalMilliseconds;
         if (old != null) FadeOut(old);
+        foreach (var (n, v) in lit)
+            if (Targets.TryGetValue(n, out var t) && RowFill(t) is Brush f && f.Opacity == 0)
+            {
+                // Eases off as it was: entering it again (still under the pointer) eases it back.
+                Motion.Set(f, Brush.OpacityProperty, v);
+                Motion.To(f, Brush.OpacityProperty, 0, 0.2);
+            }
         Timing = $"\"build\":{built:0.0},\"layout\":{slid - built:0.0},\"fade\":{clock.Elapsed.TotalMilliseconds - slid:0.0}";
         Rebuilt?.Invoke();
     }
@@ -111,6 +121,8 @@ sealed class CardView
     /// so it takes its highlight at once rather than fading in again.
     long builtAt;
     bool JustBuilt => Environment.TickCount64 - builtAt < 200;
+    /// A row's highlight brush (RowButton), or null for anything else.
+    static Brush? RowFill(UIElement e) => e is Grid g && g.Children.Count > 0 && g.Children[0] is Border h ? h.Background : null;
 
     public void Hint(string message)
     {
@@ -455,7 +467,7 @@ sealed class CardView
 
     FrameworkElement Back(string meaning, int token, double top)
     {
-        var line = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, top, 0, 0), Background = Brushes.Transparent, HorizontalAlignment = HorizontalAlignment.Left, Cursor = Cursors.Arrow };
+        var line = new StackPanel { Orientation = Orientation.Horizontal, Background = Brushes.Transparent, HorizontalAlignment = HorizontalAlignment.Left, Cursor = Cursors.Arrow };
         var icon = Icons.UturnBack.Shape(Theme.Accent);
         icon.VerticalAlignment = VerticalAlignment.Center;
         icon.Margin = new Thickness(0, 0, 8.5, 0);   // a SwiftUI Label's gap after its icon, measured
@@ -466,7 +478,9 @@ sealed class CardView
         line.Children.Add(label);
         Pressable(line, () => actions.UseSuggested(token));
         Targets["back"] = line;
-        return line;
+        // The press dims the line; its fading in and out is the holder's, as on the Mac they
+        // are two modifiers (the button style's and the transition's), not one opacity.
+        return new Border { Child = line, Margin = new Thickness(0, top, 0, 0), HorizontalAlignment = HorizontalAlignment.Left };
     }
 
     /// A plain button: dims to 0.55 while pressed (ease-out 0.08 s), acts on a release over it.
@@ -586,7 +600,14 @@ sealed class CardView
         var pressed = false;
         host.MouseEnter += (_, _) =>
         {
-            if (JustBuilt) { fill.BeginAnimation(Brush.OpacityProperty, null); fill.Opacity = 0.05; }
+            if (JustBuilt)
+            {
+                // Rebuilt under the pointer, hovered already. One that kept its highlight through
+                // the rebuild (just let go of: a pick) eases back from where it was, as the Mac's
+                // row, which isn't rebuilt, does from the press.
+                if (fill.Opacity > 0.001) Motion.To(fill, Brush.OpacityProperty, 0.05, 0.08);
+                else Motion.Set(fill, Brush.OpacityProperty, 0.05);
+            }
             else Motion.To(fill, Brush.OpacityProperty, pressed ? 0.09 : 0.05, 0.08);
         };
         host.MouseLeave += (_, _) => { pressed = false; Motion.To(fill, Brush.OpacityProperty, 0, 0.2); };
@@ -779,6 +800,7 @@ sealed class CardView
         // pin to pin.fill and back: replace.downUp with bounce.down (CC:873-874).
         if (animate && wasPinned is bool was && was != actions.Pinned) pin.Replaced(was ? Icons.PinFill : Icons.Pin, bounce: true);
         wasPinned = actions.Pinned;
+        pinSymbol = pin;
         buttons.Children.Add(ActionButton("pin", pin, actions.Pinned ? "Unpin: close when you click elsewhere" : "Pin: keep the card here for every lookup", _ => actions.TogglePin())); n++;
         buttons.Margin = new Thickness(0, 0, Pad * Zoom - 6 - ButtonGap / 2, 0);
         // The slot they take on the first line, in the content's own (unzoomed) units. The Mac
@@ -789,6 +811,26 @@ sealed class CardView
     }
 
     bool? wasPinned;
+    Symbol? pinSymbol;
+
+    /// Pinned or unpinned: the pin button turns to pin.fill or back in place (replace.downUp with
+    /// bounce.down, CC:873-874), as the Mac changes only that symbol. False when there's no pin
+    /// button to change (the caller builds the card again).
+    public bool PinChanged()
+    {
+        if (pinSymbol is not Symbol pin || !Targets.TryGetValue("pin", out var e) || e is not Border b || wasPinned == actions.Pinned) return false;
+        var on = actions.Pinned;
+        pin.Swap(on ? Icons.PinFill : Icons.Pin, bounce: true);
+        if (on) { symbols.Remove(pin); pin.To(Theme.Accent, 0); }
+        else
+        {
+            if (!symbols.Contains(pin)) symbols.Add(pin);
+            pin.To(Theme.Primary, 0);   // the pointer is on it: it was just clicked
+        }
+        b.ToolTip = on ? "Unpin: close when you click elsewhere" : "Pin: keep the card here for every lookup";
+        wasPinned = on;
+        return true;
+    }
 
     /// A symbol's colour at rest: tertiary, secondary while the pointer is on the card.
     Color Rest => ((SolidColorBrush)(hovered ? Theme.Secondary : Theme.Tertiary)).Color;
@@ -894,7 +936,7 @@ sealed class CardView
             if (JustBuilt)
             {
                 // Rebuilt under the pointer: hovered already.
-                fill.BeginAnimation(Brush.OpacityProperty, null); fill.Opacity = 0.07;
+                Motion.Set(fill, Brush.OpacityProperty, 0.07);
                 if (symbols.Contains(symbol)) { symbol.Ink.BeginAnimation(SolidColorBrush.ColorProperty, null); symbol.Ink.Color = ((SolidColorBrush)Theme.Primary).Color; }
                 return;
             }
@@ -908,7 +950,16 @@ sealed class CardView
             Motion.To(b, UIElement.OpacityProperty, 1, 0.08);
             if (symbols.Contains(symbol)) symbol.To(hovered ? Theme.Secondary : Theme.Tertiary, 0.15);
         };
-        b.MouseLeftButtonDown += (_, e) => { pressed = true; Motion.To(b, UIElement.OpacityProperty, 0.55, 0.08); e.Handled = true; };
+        b.MouseLeftButtonDown += (_, e) =>
+        {
+            pressed = true;
+            Motion.To(b, UIElement.OpacityProperty, 0.55, 0.08);
+            // Hovered and pressed in the same moment (a click from --script, a tap): on the Mac
+            // both changes are one transaction, and the button style's 0.08 s animation, the
+            // innermost, times the hover fill too (CC:963, CC:974).
+            if (Motion.Pending(fill, Brush.OpacityProperty)) Motion.To(fill, Brush.OpacityProperty, 0.07, 0.08);
+            e.Handled = true;
+        };
         b.MouseLeftButtonUp += (_, e) =>
         {
             e.Handled = true;
@@ -1243,6 +1294,8 @@ sealed class CardView
             }
             Canvas.SetLeft(ghost, o.At.X); Canvas.SetTop(ghost, o.At.Y);
             ghosts.Children.Add(ghost);
+            // A part leaving is traced (--trace) under its name, as the Mac's removal transition is.
+            if (TraceName(o.Key) is string name && !Animated.ContainsKey(name)) Animated[name] = ghost;
             // [card feel] SwiftUI's removal runs on cardMotion, as the insertion does.
             Motion.Content(ghost, UIElement.OpacityProperty, ghost.Opacity, 0, done: () => ghosts.Children.Remove(ghost));
         }
@@ -1274,7 +1327,6 @@ sealed class CardView
     {
         "back" => "back-to",
         "note" => "note-box",
-        "meaning" or "header" or "partOf" or "translation" => key.ToLowerInvariant(),
         _ when key.StartsWith("back:") => "back-to",
         _ when key.StartsWith("dnote:") => "note-box",
         _ when key.StartsWith("detail:") => "detail",

@@ -22,7 +22,7 @@ and live dark mode on every push.
 | Step | Mac | Windows |
 |---|---|---|
 | Hold for the pick | 0.4 s from the lookup (APP:756) | 0.4 s from the lookup (CW Update), Normal-priority timer |
-| Reveal: window fade | 0 to 1, 0.14 s, linear (PU:442) | 0 to 1, 0.14 s, linear (CW Reveal); **fixed**: the fade and the spring now start on the window's first drawn frame (ContentRendered). They started at Show(), and a new layered window takes tens of ms to reach the screen, so a VM film saw the spring 97% done at 131 ms (the spring itself is 82% at 131 ms, 98% at 200 ms) |
+| Reveal: window fade | 0 to 1, 0.14 s, AppKit's default curve, Bézier (0.25, 0.1, 0.25, 1) (PU:442; traced, not linear) | same curve (CW Reveal, MO Fade); **fixed**: it was linear, and a trace showed the Mac's half way at 33 ms against Windows' 72. Before that: the fade and the spring now start on the window's first drawn frame (ContentRendered). They started at Show(), and a new layered window takes tens of ms to reach the screen, so a VM film saw the spring 97% done at 131 ms (the spring itself is 82% at 131 ms, 98% at 200 ms) |
 | Reveal: card | scale 0.96 to 1, y −4 (below) / +4 (above) to 0, spring 0.32 / 0.82, anchor top or bottom (PU:446, CC:382) | same values, on the spring driver (MO Spring), run until it settles |
 | Swap in place (pinned, Part of) | fade 0.12 s, no spring (PU:435) | fade 0.12 s, no spring |
 | Every change inside (cardMotion) | spring 0.34 / 1.0; Reduce Motion easeInOut 0.15 s (CC:191) | same, MO Spring with MO Card until it settles; Reduce Motion Bézier (0.42, 0, 0.58, 1) 0.15 s |
@@ -33,7 +33,7 @@ and live dark mode on every push.
 | Parts leaving, text crossfades | opacity on cardMotion | same (was ease-out 0.3 s, **fixed**) |
 | Chevrons | Show All 0° to 180°, phrase row 0° to 90°, cardMotion | same |
 | Pick: checkmark | opacity 0 to 1, scale 0.6 to 1, cardMotion (CC:720) | same |
-| Dismiss | fade to 0, 0.12 s, linear; no motion (PU:727) | same, **fixed**: a VM film saw it reach about 60% and then vanish at 96 ms. Now the fade runs on the frame clock (MO Linear) over the full 0.12 s, and the window closes on the frame after the one that drew 0. UC 3-fade checks every frame against the straight line |
+| Dismiss | fade to 0, 0.12 s, AppKit's default curve; no motion (PU:727) | same, on MO Fade from the next frame; **fixed**: it was linear. Before that: a VM film saw it reach about 60% and then vanish at 96 ms. Now the fade runs on the frame clock (MO Linear) over the full 0.12 s, and the window closes on the frame after the one that drew 0. UC 3-fade checks every frame against the curve |
 | Pin: close badge | opacity 0 to 1, scale 0.7 to 1, spring 0.25 / 0.9 (CC:1006) | same, on the spring driver |
 | Copy, Anki symbols | replace.downUp, filmed: the old symbol shrinks to 0.5 in 0.23 s (speeding up), the new one starts at 0.52 and is full size at 0.46 s (slowing down); no fade | the same curve, from the film (**fixed**: was a grow from 0.5 on cardMotion with a fade) |
 | Pin symbol | replace.downUp with bounce.down, filmed: old one to 0.51 in 0.22 s, new one in at 0.76, up to 1.10 at 0.4 s, back to 1 at 0.62 s | the same curve (**fixed**: had no bounce) |
@@ -76,7 +76,7 @@ and live dark mode on every push.
 | Word card with the model ready holds up to 0.4 s for the pick | APP:756, PU:371-375 | CW Update | **fixed**: held 0.4 s from the first content on a Background-priority timer, which ran late (CI: the eye's card waited 1413 ms, events.jsonl). Now 0.4 s from the lookup, on a Normal timer | 6-feel logs `opened` and fails over 1 s |
 | Pick in time: applied with no motion, card shows at once | APP:787-794, PU:413-422 | CW Update (`animate: false`, Arrive) | same | |
 | Late pick animates in | APP:787 | CW Update (`animate: true`) | same | 1-pick film |
-| Window fade 0 to 1 over 0.14 s, linear | PU:442-445 | CW Reveal | same | 1-word-reveal: dark band 0.11, 0.45, 1.0 over three drawn frames |
+| Window fade 0 to 1 over 0.14 s, Bézier (0.25, 0.1, 0.25, 1) | PU:442-445 | CW Reveal | same | 1-word-reveal: dark band 0.11, 0.45, 1.0 over three drawn frames |
 | Card scale 0.96 to 1 and y ∓4 to 0, spring response 0.32, damping 0.82, anchored top (below) or bottom (above) | PU:446, CC:382-383 | CW Reveal, MO Reveal (same spring formula, run 0.45 s) | same | |
 | Height doesn't animate on the first frame | CC:364-365 | CW Arrive (`Resize(animated: false)`) | same | |
 | Replacing a card in place (pinned, Part of): fade 0.12 s over the old one, no spring, old one goes after | PU:429-441 | CW Reveal, TakeOver, DropSwap | **fixed**: a pinned card opening at its corner with no card there also skipped the spring; now only a real swap does | |

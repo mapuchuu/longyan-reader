@@ -620,7 +620,9 @@ sealed partial class CardWindow : Window, ICardActions
         {
             if (closing) return;
             // Once this card is in, the one it replaces goes, with no fade.
-            Motion.Linear(this, OpacityProperty, 0, 1, inPlace ? 0.12 : 0.14, () => DropSwap(fade: false), trace: "fade-in");
+            // On AppKit's default curve, as the Mac's animator() fade (Motion.Fade), from this
+            // frame: the window's first one has just been drawn.
+            Motion.Linear(this, OpacityProperty, 0, 1, inPlace ? 0.12 : 0.14, () => DropSwap(fade: false), trace: "fade-in", ease: Motion.Fade, startNow: true);
             if (!springs) return;
             Motion.Spring(revealScale, ScaleTransform.ScaleXProperty, 1, Motion.Reveal, from: 0.96, trace: "reveal-scale");
             Motion.Spring(revealScale, ScaleTransform.ScaleYProperty, 1, Motion.Reveal, from: 0.96);
@@ -1191,9 +1193,10 @@ sealed partial class CardWindow : Window, ICardActions
     {
         if (gone) return;
         if (!IsVisible) { CloseNow(); return; }
-        // The whole 0.12 s, linear, from where it is; the window goes only after 0 is drawn.
+        // The whole 0.12 s on AppKit's default curve (Motion.Fade), from where it is, starting on
+        // the next frame as the Mac's does; the window goes only after 0 is drawn.
         var from = Opacity;
-        Motion.Linear(this, OpacityProperty, from, 0, 0.12, CloseNow, trace: "fade-out");
+        Motion.Linear(this, OpacityProperty, from, 0, 0.12, CloseNow, trace: "fade-out", ease: Motion.Fade);
     }
 
     void CloseNow()
@@ -1236,10 +1239,11 @@ sealed partial class CardWindow : Window, ICardActions
 
     // MARK: ICardActions
 
-    public void Pick(int token, int sense) { Act("pick"); Bridge.ly_pick(cardID, token, sense); }
-    public void UseSuggested(int token) { Act("back"); Bridge.ly_use_suggested(cardID, token); }
-    public void ToggleAll(int token) { Act("all"); Bridge.ly_toggle_all(cardID, token); }
-    public void ToggleRow(int token) { Act("row"); Bridge.ly_toggle_row(cardID, token); }
+    // Each answered at once (Core.DrainNow), not when the core's queue next signals.
+    public void Pick(int token, int sense) { Act("pick"); Bridge.ly_pick(cardID, token, sense); Core.Shared.DrainNow(); }
+    public void UseSuggested(int token) { Act("back"); Bridge.ly_use_suggested(cardID, token); Core.Shared.DrainNow(); }
+    public void ToggleAll(int token) { Act("all"); Bridge.ly_toggle_all(cardID, token); Core.Shared.DrainNow(); }
+    public void ToggleRow(int token) { Act("row"); Bridge.ly_toggle_row(cardID, token); Core.Shared.DrainNow(); }
 
     static void Act(string what) { if (Core.Logging) Core.Log($"{{\"event\":\"action\",\"what\":\"{what}\"}}"); }
 
@@ -1255,7 +1259,9 @@ sealed partial class CardWindow : Window, ICardActions
         next.cardID = Core.Shared.OpenPartOf(cardID, next.Update, next.ShowHint);
     }
 
-    public void Copy(string text) { try { Clipboard.SetText(text); } catch { } }
+    // After the frame that starts the button's release (Clipboard.SetText can hold the thread for
+    // tens of ms, and the button's motion with it).
+    public void Copy(string text) => Dispatcher.BeginInvoke(DispatcherPriority.Background, () => { try { Clipboard.SetText(text); } catch { } });
 
     // MARK: Anki
 
@@ -1305,7 +1311,9 @@ sealed partial class CardWindow : Window, ICardActions
             SetFrame(shownHeight);
             Hover(hovered);
         }
-        if (last != null) view.Show(last, animate: true);
+        // Only the pin button changes: the rest stays as it is, mid-motion (a rebuild here held
+        // the thread and snapped the buttons' release and the rows' hover).
+        if (last != null && !view.PinChanged()) view.Show(last, animate: true);
         SaveCard();
     }
 

@@ -147,9 +147,21 @@ static partial class Program
         if (Events(skip, "band").Count > 0) failures.Add("2-band: a mouse notch at the top bounced");
     }
 
-    /// Esc fades the card out linearly over the full 0.12 s (Popup.swift close) and the window
-    /// goes only after a frame at 0; each reveal fades in over 0.14 s (0.12 in place) from the
-    /// window's first drawn frame, with the reveal spring starting at the same moment.
+    /// Esc fades the card out over the full 0.12 s (Popup.swift close) on AppKit's default curve,
+    /// the Bézier (0.25, 0.1, 0.25, 1), and the window goes only after a frame at 0; each reveal
+    /// fades in over 0.14 s (0.12 in place) from the window's first drawn frame, with the reveal
+    /// spring starting at the same moment.
+    /// Core Animation's default timing, the cubic Bézier (0.25, 0.1, 0.25, 1), at `x` of the time.
+    static double FadeCurve(double x)
+    {
+        if (x <= 0) return 0;
+        if (x >= 1) return 1;
+        static double C(double a, double b, double t) => 3 * a * (1 - t) * (1 - t) * t + 3 * b * (1 - t) * t * t + t * t * t;
+        double lo = 0, hi = 1, t = x;
+        for (var i = 0; i < 40; i++) { t = (lo + hi) / 2; if (C(0.25, 0.25, t) < x) lo = t; else hi = t; }
+        return C(0.1, 1, t);
+    }
+
     static void FadeCheck(int skip)
     {
         var outs = Events(skip, "linear").Where(e => (string?)e["tag"] == "fade-out").ToList();
@@ -162,8 +174,8 @@ static partial class Program
             if (done <= frames[^1].T) failures.Add("3-fade: the window went on the same frame that drew 0");
             foreach (var f in frames)
             {
-                var want = Math.Max(0, (double)e["from"]! * (1 - (f.T - start) / 120));
-                if (Math.Abs(f.X - want) > 0.01) { failures.Add($"3-fade: {f.X:0.000} at {f.T - start:0} ms is off the straight line ({want:0.000})"); break; }
+                var want = Math.Max(0, (double)e["from"]! * (1 - FadeCurve((f.T - start) / 120)));
+                if (Math.Abs(f.X - want) > 0.01) { failures.Add($"3-fade: {f.X:0.000} at {f.T - start:0} ms is off the fade's curve ({want:0.000})"); break; }
             }
             Console.WriteLine($"[3-fade] {frames.Count} frames, 0 at {frames[^1].T - start:0} ms, closed at {done - start:0} ms");
         }
