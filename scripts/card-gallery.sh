@@ -51,18 +51,20 @@ card = lambda line: json.loads(line).get("card", json.loads(line))
 for (name, _, _, _, state), done, opening in zip(cases, settled, first):
     c = card(opening) if state in ("reading", "translating", "pending") else card(done)
     if state == "pending": c["translation"] = card(done).get("translation")
+    if state == "anki": c["anki"] = "ready"   # the Windows app draws the Anki button for this key
     json.dump(c, open(f"{sys.argv[4]}/{name}.json", "w", encoding="utf-8"), ensure_ascii=False, indent=1, sort_keys=True)
 PY
 rm -f "$lookups" "$lookups.cards" "$lookups.first"
 while IFS=$'\t' read -r name passage sel expand state; do
     [[ -z "$name" || "$name" == \#* ]] && continue
     [ "$expand" = "-" ] && expand=""
+    anki=$([ "$state" = anki ] && echo 1 || echo 0)   # the Anki button, as while Anki is open
     for mode in light dark; do
         suffix=$([ $mode = dark ] && echo "-dark" || true)
         if [ "$sel" = "$passage" ]; then
-            LONGYAN_RENDER_STATE=$state LONGYAN_APPEARANCE=$mode .build/release/LongyanReader --render-phrase "$passage" "$out/mac/$name$suffix.png" ${expand:+"$expand"} >/dev/null
+            LONGYAN_RENDER_ANKI=$anki LONGYAN_RENDER_STATE=$state LONGYAN_APPEARANCE=$mode .build/release/LongyanReader --render-phrase "$passage" "$out/mac/$name$suffix.png" ${expand:+"$expand"} >/dev/null
         else
-            LONGYAN_RENDER_STATE=$state LONGYAN_APPEARANCE=$mode .build/release/LongyanReader --render "$passage" "$sel" "$out/mac/$name$suffix.png" >/dev/null
+            LONGYAN_RENDER_ANKI=$anki LONGYAN_RENDER_STATE=$state LONGYAN_APPEARANCE=$mode .build/release/LongyanReader --render "$passage" "$sel" "$out/mac/$name$suffix.png" >/dev/null
         fi
     done
     echo "$name"

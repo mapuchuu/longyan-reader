@@ -1,0 +1,58 @@
+{
+ "actions": [
+  "findNotes",
+  "findNotes",
+  "modelNames",
+  "createModel",
+  "createDeck",
+  "addNote"
+ ],
+ "addNote": {
+  "action": "addNote",
+  "params": {
+   "note": {
+    "deckName": "Longyan Reader",
+    "fields": {
+     "Chinese": "感冒",
+     "Dictionary": "",
+     "Meaning": "to catch cold",
+     "Note": "",
+     "Pinyin": "gǎn mào",
+     "Sentence": "他得了<b>感冒</b>，吃不了饭。"
+    },
+    "modelName": "Longyan Reader",
+    "options": {
+     "allowDuplicate": false,
+     "duplicateScope": "deck"
+    },
+    "tags": [
+     "longyan"
+    ]
+   }
+  },
+  "version": 6
+ },
+ "createModel": {
+  "action": "createModel",
+  "params": {
+   "cardTemplates": [
+    {
+     "Back": "{{FrontSide}}\n<hr id=\"answer\">\n{{#Pinyin}}<div class=\"py\">{{Pinyin}}</div>{{/Pinyin}}\n<div class=\"meaning\">{{Meaning}}</div>\n{{#Sentence}}<div class=\"sentence\">{{Sentence}}</div>{{/Sentence}}\n{{#Note}}<div class=\"note\">{{Note}}</div>{{/Note}}\n{{#Dictionary}}<div class=\"dict\">{{Dictionary}}</div>{{/Dictionary}}",
+     "Front": "<div class=\"zh\">{{Chinese}}</div>",
+     "Name": "Recognition"
+    }
+   ],
+   "css": ".card { font-family: -apple-system, \"PingFang SC\", \"Helvetica Neue\", sans-serif; font-size: 18px;\n  line-height: 1.45; text-align: center; color: #1d1d1f; background: #fff; }\n.card.nightMode { color: #f2f2f2; background: #1f1f21; }\n.zh { font-size: 44px; font-weight: 500; }\n.py { font-size: 20px; color: #6e6e73; }\n.meaning { margin-top: 4px; font-size: 22px; font-weight: 600; }\n.sentence { margin-top: 16px; font-size: 20px; }\n.note { max-width: 30em; margin: 16px auto 0; font-size: 15px; color: #6e6e73; text-align: left; }\n.dict { margin-top: 12px; font-size: 13px; color: #8e8e93; }\n.nightMode .py, .nightMode .note { color: #a1a1a6; }",
+   "inOrderFields": [
+    "Chinese",
+    "Pinyin",
+    "Meaning",
+    "Sentence",
+    "Dictionary",
+    "Note"
+   ],
+   "modelName": "Longyan Reader"
+  },
+  "version": 6
+ }
+}

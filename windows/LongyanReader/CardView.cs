@@ -23,6 +23,7 @@ interface ICardActions
     void OpenPartOf();
     void Copy(string text);
     void Listen(string text);
+    void AddToAnki();
     void TogglePin();
     bool Pinned { get; }
     bool CanListen { get; }
@@ -620,19 +621,22 @@ sealed class CardView
 
     readonly List<Symbol> symbols = new();
 
-    /// The Listen, Copy and Pin buttons; returns the width their slot takes on the first line.
+    /// The Listen, Copy, Anki and Pin buttons; returns the width their slot takes on the first line.
     double AddButtons(string copy, string speech)
     {
         symbols.Clear();
         var n = 0;
         if (actions.CanListen) { buttons.Children.Add(ListenButton(speech)); n++; }
         buttons.Children.Add(CopyButton(copy)); n++;
+        if (AnkiState != null) { buttons.Children.Add(AnkiButton(copy)); n++; }
         var pin = actions.Pinned ? new Symbol(PinFill, true, ((SolidColorBrush)Theme.Accent).Color, true, dy: 1) : new Symbol(Pin, false, Rest, false, dy: 1);
         buttons.Children.Add(ActionButton(pin, actions.Pinned ? "Unpin: close when you click elsewhere" : "Pin: keep the card here for every lookup", _ => actions.TogglePin())); n++;
         buttons.Margin = new Thickness(0, 0, Pad * Zoom - 6 - ButtonGap / 2, 0);
         // The slot they take on the first line, in the content's own (unzoomed) units. The Mac
-        // keeps room for all three even when there's no voice to listen with.
-        return (3 * ButtonW + 2 * ButtonGap - 6) / Zoom;
+        // keeps room for Listen, Copy and Pin even when there's no voice to listen with, and
+        // one more for Anki.
+        var count = AnkiState != null ? 4 : 3;
+        return (count * ButtonW + (count - 1) * ButtonGap - 6) / Zoom;
     }
 
     /// A symbol's colour at rest: tertiary, secondary while the pointer is on the card.
@@ -711,7 +715,7 @@ sealed class CardView
     {
         if (!symbol.Tinted) symbols.Add(symbol);
         var fill = new SolidColorBrush(((SolidColorBrush)Theme.Ink(1)).Color) { Opacity = 0 };
-        var b = new Border { Width = ButtonW, Height = ButtonH, CornerRadius = new CornerRadius(6), Background = fill, Child = symbol.Path, ToolTip = help, Margin = new Thickness(ButtonGap / 2, 0, ButtonGap / 2, 0) };
+        var b = new ActionBorder { Width = ButtonW, Height = ButtonH, CornerRadius = new CornerRadius(6), Background = fill, Child = symbol.Path, ToolTip = help, Margin = new Thickness(ButtonGap / 2, 0, ButtonGap / 2, 0) };
         var pressed = false;
         b.MouseEnter += (_, _) =>
         {
@@ -741,7 +745,102 @@ sealed class CardView
             pressed = false;
             act(b);
         };
+        b.Invoked = () => act(b);
         return b;
+    }
+
+    /// A card button as UI Automation sees it: a button named by its help, which Invoke clicks.
+    sealed class ActionBorder : Border
+    {
+        public Action? Invoked;
+        protected override System.Windows.Automation.Peers.AutomationPeer OnCreateAutomationPeer() => new Peer(this);
+
+        sealed class Peer : System.Windows.Automation.Peers.FrameworkElementAutomationPeer, System.Windows.Automation.Provider.IInvokeProvider
+        {
+            public Peer(ActionBorder owner) : base(owner) { }
+            protected override System.Windows.Automation.Peers.AutomationControlType GetAutomationControlTypeCore() => System.Windows.Automation.Peers.AutomationControlType.Button;
+            protected override string GetClassNameCore() => "Button";
+            protected override string GetNameCore() => ((ActionBorder)Owner).ToolTip as string ?? "";
+            public override object GetPattern(System.Windows.Automation.Peers.PatternInterface p) =>
+                p == System.Windows.Automation.Peers.PatternInterface.Invoke ? this : base.GetPattern(p);
+            public void Invoke() => ((ActionBorder)Owner).Invoked?.Invoke();
+        }
+    }
+
+    // MARK: Anki
+
+    /// Add to Anki's state, as the core reports it (Anki.cs): "ready", "adding", "added" or
+    /// "failed" (AnkiMessage says why); null shows no button, as when Anki isn't open with
+    /// AnkiConnect or the card has nothing to add. The window sets it.
+    public string? AnkiState;
+    public string AnkiMessage = "";
+    Border? ankiButton;
+    Symbol? ankiSymbol;
+    string ankiWord = "";
+
+    /// Adds the card to Anki; once it's there, in the accent, and a click shows the note in
+    /// Anki; when Anki doesn't answer, a warning for a moment, with why in its help.
+    FrameworkElement AnkiButton(string text)
+    {
+        ankiWord = text.Length > 14 ? text[..13] + "…" : text;
+        var symbol = new Symbol("M 0,0", false, Rest, false);
+        ankiSymbol = symbol;
+        ankiButton = ActionButton(symbol, "", _ => actions.AddToAnki());
+        ShowAnki();
+        return ankiButton;
+    }
+
+    /// The button's state changed: shown in place, without building the card again.
+    public void SetAnki(string? state, string message)
+    {
+        AnkiState = state;
+        AnkiMessage = message;
+        if (state != null && ankiButton != null && buttons.Children.Contains(ankiButton)) ShowAnki();
+    }
+
+    void ShowAnki()
+    {
+        if (ankiSymbol is not Symbol s || ankiButton is not Border b) return;
+        s.Path.Data = AnkiState switch { "added" => AnkiAdded, "failed" => Warning, _ => AnkiAdd };
+        s.Path.Opacity = AnkiState == "adding" ? 0.4 : 1;
+        b.ToolTip = AnkiState switch
+        {
+            "adding" => "Adding to Anki…",
+            "added" => "In Anki · click to show it there",
+            "failed" => AnkiMessage,
+            _ => $"Add “{ankiWord}” to Anki",
+        };
+        s.Ink.BeginAnimation(SolidColorBrush.ColorProperty, null);
+        if (AnkiState == "added")
+        {
+            symbols.Remove(s);
+            s.Ink.Color = ((SolidColorBrush)Theme.Accent).Color;
+        }
+        else
+        {
+            if (!symbols.Contains(s)) symbols.Add(s);
+            s.Ink.Color = b.IsMouseOver ? ((SolidColorBrush)Theme.Primary).Color : Rest;
+        }
+    }
+
+    // The Anki symbols, drawn for this app on Copy's 14 grid with its stroke: a card with two
+    // more stacked behind it, a plus where its corner would be; the stack with a check on the
+    // card; a warning triangle.
+    static readonly Geometry AnkiAdd = Icon(
+        "M 4,1.8 H 10 M 3,3.6 H 11 " +
+        "M 12.4,8.6 V 6.6 A 1.2,1.2 0 0 0 11.2,5.4 H 2.8 A 1.2,1.2 0 0 0 1.6,6.6 V 11.2 A 1.2,1.2 0 0 0 2.8,12.4 H 8.4 " +
+        "M 11.4,9.6 V 13.2 M 9.6,11.4 H 13.2");
+    static readonly Geometry AnkiAdded = Icon(
+        "M 4,1.8 H 10 M 3,3.6 H 11 " +
+        "M 2.8,5.4 H 11.2 A 1.2,1.2 0 0 1 12.4,6.6 V 11.2 A 1.2,1.2 0 0 1 11.2,12.4 H 2.8 A 1.2,1.2 0 0 1 1.6,11.2 V 6.6 A 1.2,1.2 0 0 1 2.8,5.4 Z " +
+        "M 4.9,8.9 L 6.4,10.3 L 9.2,7.4");
+    static readonly Geometry Warning = Icon("M 7,1.9 L 12.9,12.1 H 1.1 Z M 7,5.6 V 8.4 M 7,10.3 V 10.32");
+
+    static Geometry Icon(string data)
+    {
+        var g = Geometry.Parse(data);
+        g.Freeze();
+        return g;
     }
 
     /// The symbols brighten while the pointer is anywhere on the card (ease-out 0.2 s).

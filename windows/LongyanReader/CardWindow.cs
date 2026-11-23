@@ -61,6 +61,7 @@ sealed class CardWindow : Window, ICardActions
     DispatcherTimer? shrink, hold;
     Stopwatch? firstContent;
     JsonObject? last;
+    bool ankiDecided;                         // whether the card has an Anki button is settled as it opens
 
     public bool Pinned => pinned;
     public bool CanListen => offscreen || Speech.Available;
@@ -95,6 +96,7 @@ sealed class CardWindow : Window, ICardActions
              "senses":[{"chosen":true,"dimmed":false,"gloss":"China","hasNote":false,"index":0,"number":1,"tip":"China"}]}
             """;
         if (JsonNode.Parse(sample) is not JsonObject json) return;
+        Anki.Start();   // asks AnkiConnect, so the first card knows whether to offer Add to Anki
         var w = new CardWindow(null, false) { Left = -30000, Top = -30000, Width = 400, Height = 300 };
         w.view.Show(json, animate: false);
         w.Show();
@@ -121,6 +123,7 @@ sealed class CardWindow : Window, ICardActions
     {
         pinned = pin;
         var w = new CardWindow(null, true);
+        w.view.AnkiState = (string?)json["anki"];   // the gallery's cards say which Anki state to draw
         w.view.Show(json, animate: false);
         w.Content = null;
         w.card.Children.Remove(w.layers[0]);
@@ -226,7 +229,7 @@ sealed class CardWindow : Window, ICardActions
             gone = true;
             DropSwap(fade: false);
             Hooks.Remove(this);
-            if (cardID != 0) Core.Shared.Close(cardID);
+            if (cardID != 0) { Anki.Close(cardID); Core.Shared.Close(cardID); }
             if (current == this) current = null;
         };
         card.MouseEnter += (_, _) => Hover(true);
@@ -279,7 +282,7 @@ sealed class CardWindow : Window, ICardActions
     void ShowHint(string message)
     {
         if (closing) return;
-        if (cardID != 0) { Core.Shared.Close(cardID); cardID = 0; }
+        if (cardID != 0) { Anki.Close(cardID); Core.Shared.Close(cardID); cardID = 0; }
         DropSwap(fade: true);
         isHint = true;
         zoomScale.ScaleX = zoomScale.ScaleY = 1;
@@ -298,6 +301,7 @@ sealed class CardWindow : Window, ICardActions
         History.Saw(cardID, json);   // History: what the card says, for the lookup history
         if (closing) return;
         last = json;
+        if (!ankiDecided) OpenAnki(json);
         if (!revealed)
         {
             // Hold a word card up to 0.4 s for the model's pick, so it opens complete.
@@ -939,6 +943,38 @@ sealed class CardWindow : Window, ICardActions
     }
 
     public void Copy(string text) { try { Clipboard.SetText(text); } catch { } }
+
+    // MARK: Anki
+
+    /// As the card opens: the Anki button if AnkiConnect answered the last check and the card
+    /// has something to add, so the row of buttons doesn't change while the card is up. Then a
+    /// check for the next card, in case Anki was opened or quit since.
+    void OpenAnki(JsonObject json)
+    {
+        ankiDecided = true;
+        if (Anki.Available && Anki.HasNote(json))
+        {
+            view.AnkiState = "ready";
+            Anki.Open(cardID, AnkiChanged);
+        }
+        Anki.Check();
+    }
+
+    void AnkiChanged(string state, string message)
+    {
+        if (closing || gone) return;
+        if (state == "none")
+        {
+            // The core found nothing to add after all: no button.
+            if (view.AnkiState == null) return;
+            view.AnkiState = null;
+            if (last != null) { view.Show(last, animate: revealed); if (revealed) Resize(animated: true); }
+            return;
+        }
+        view.SetAnki(state, message);
+    }
+
+    public void AddToAnki() { Act("anki"); Anki.Click(cardID); }
     /// Says the text, or stops if it's being said (the Mac's Listen turns into Stop).
     public void Listen(string text) { if (Speech.Speaking == text) Speech.Stop(); else Speech.Say(text); }
 

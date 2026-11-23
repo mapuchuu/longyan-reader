@@ -155,14 +155,27 @@ package final class AnkiLink {
     nonisolated private static let endpoint = URL(string: "http://127.0.0.1:8765")!
     #endif
     /// No cookies, no cache: nothing about these requests is kept.
+    #if canImport(Darwin)
     nonisolated private static let session = URLSession(configuration: .ephemeral)
+    nonisolated private static func session(for timeout: TimeInterval) -> URLSession { session }
+    #else
+    // swift-corelibs-foundation times a request out by its session's timeoutIntervalForRequest,
+    // not the request's own: on Windows a check without Anki took the default 60 s.
+    nonisolated private static let quick = timed(2), slow = timed(4)
+    nonisolated private static func timed(_ seconds: TimeInterval) -> URLSession {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.timeoutIntervalForRequest = seconds
+        return URLSession(configuration: configuration)
+    }
+    nonisolated private static func session(for timeout: TimeInterval) -> URLSession { timeout <= 2 ? quick : slow }
+    #endif
 
     nonisolated private static func call(_ action: String, _ params: [String: Any] = [:], timeout: TimeInterval = 4) async throws -> Any? {
         var request = URLRequest(url: endpoint, timeoutInterval: timeout)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: ["action": action, "version": 6, "params": params])
-        let (data, _) = try await session.data(for: request)
+        let (data, _) = try await session(for: timeout).data(for: request)
         // Whatever answers on the port is only trusted so far: a reply this app could use is
         // small, and Anki's message is shown, so it's kept short.
         guard data.count < 1_000_000,
