@@ -70,7 +70,7 @@ static class Chip
         if (ours || !Settings.ShowEye || !(dragged || clicks >= 2)) return;
         // Not over a full-screen game, video or presentation.
         if (SHQueryUserNotificationState(out var state) == 0 && state is QUNS_BUSY or QUNS_RUNNING_D3D_FULL_SCREEN or QUNS_PRESENTATION_MODE) return;
-        if (Foreground() is not AppInfo app || Settings.EyeHiddenIn(app.Process)) return;
+        if (ForegroundApp.Get() is not ForegroundApp app || Settings.EyeHiddenIn(app.Process)) return;
         var mine = ++generation;
         // Give the app a moment to update its selection.
         await Task.Delay(120);
@@ -98,7 +98,7 @@ static class Chip
         }
     }
 
-    static void Show(InputWatch.POINT up, Selected? selection, AppInfo app)
+    static void Show(InputWatch.POINT up, Selected? selection, ForegroundApp app)
     {
         Hide();
         Bridge.ly_warm_up();
@@ -154,76 +154,6 @@ static class Chip
         || role == ControlType.MenuItem || role == ControlType.ComboBox || role == ControlType.Tab || role == ControlType.TabItem
         || role == ControlType.Window || role == ControlType.TitleBar);
 
-    internal sealed record AppInfo(string Process, string Path, bool MayBeText);
-
-    // Windows where an unreadable double-click isn't a text selection, or Ctrl+C isn't copy.
-    static readonly System.Collections.Generic.HashSet<string> notTextClasses = new()
-    {
-        "Progman", "WorkerW", "Shell_TrayWnd", "Shell_SecondaryTrayWnd", "CabinetWClass", "ExploreWClass", "#32770",
-        "ConsoleWindowClass", "CASCADIA_HOSTING_WINDOW_CLASS", "PuTTY", "mintty", "VirtualConsoleClass", "Emacs", "Vim",
-    };
-    static readonly System.Collections.Generic.HashSet<string> notTextProcesses = new()
-    {
-        "explorer", "windowsterminal", "putty", "kitty", "mintty", "conemu", "conemu64", "alacritty", "wezterm-gui",
-        "emacs", "gvim", "excel", "totalcmd", "totalcmd64", "dopus",
-    };
-
-    /// The foreground app: its process name (a UWP app's own, not its frame host's), its
-    /// program's path, and whether an unreadable selection there may be text worth copying.
-    static AppInfo? Foreground()
-    {
-        var hwnd = GetForegroundWindow();
-        if (hwnd == IntPtr.Zero) return null;
-        var cls = ClassOf(hwnd);
-        GetWindowThreadProcessId(hwnd, out var pid);
-        if (cls == "ApplicationFrameWindow")
-        {
-            var core = FindWindowEx(hwnd, IntPtr.Zero, "Windows.UI.Core.CoreWindow", null);
-            if (core != IntPtr.Zero) GetWindowThreadProcessId(core, out pid);
-        }
-        if (pid == (uint)Environment.ProcessId) return null;
-        var path = ImagePath(pid);
-        if (path == null) return null;
-        var process = System.IO.Path.GetFileNameWithoutExtension(path).ToLowerInvariant();
-        // An app run as administrator can be named but not read or sent keys from here.
-        var lower = OpenProcess(PROCESS_QUERY_INFORMATION, false, pid);
-        var reachable = lower != IntPtr.Zero;
-        if (reachable) CloseHandle(lower);
-        return new AppInfo(process, path, reachable && !notTextClasses.Contains(cls) && !notTextProcesses.Contains(process));
-    }
-
-    static string ClassOf(IntPtr hwnd)
-    {
-        var cls = new StringBuilder(256);
-        GetClassName(hwnd, cls, cls.Capacity);
-        return cls.ToString();
-    }
-
-    static string? ImagePath(uint pid)
-    {
-        var h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
-        if (h == IntPtr.Zero) return null;
-        try
-        {
-            var sb = new StringBuilder(1024);
-            var size = sb.Capacity;
-            return QueryFullProcessImageName(h, 0, sb, ref size) ? sb.ToString() : null;
-        }
-        finally { CloseHandle(h); }
-    }
-
-    /// The name to show for an app: its program's description ("Microsoft Edge"), else its file name.
-    internal static string NameOf(string path)
-    {
-        try
-        {
-            var d = System.Diagnostics.FileVersionInfo.GetVersionInfo(path).FileDescription;
-            if (!string.IsNullOrWhiteSpace(d)) return d.Trim();
-        }
-        catch { }
-        return System.IO.Path.GetFileNameWithoutExtension(path);
-    }
-
     internal static double ScaleAt(InputWatch.POINT p)
     {
         var monitor = MonitorFromPoint(p, 2);
@@ -231,17 +161,9 @@ static class Chip
     }
 
     const int QUNS_BUSY = 2, QUNS_RUNNING_D3D_FULL_SCREEN = 3, QUNS_PRESENTATION_MODE = 4;
-    const uint PROCESS_QUERY_INFORMATION = 0x400, PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
-    [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetClassName(IntPtr hwnd, StringBuilder name, int max);
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern IntPtr FindWindowEx(IntPtr parent, IntPtr after, string? cls, string? title);
-    [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr hwnd, out uint pid);
     [DllImport("user32.dll")] static extern IntPtr MonitorFromPoint(InputWatch.POINT p, uint flags);
     [DllImport("shcore.dll")] static extern int GetDpiForMonitor(IntPtr monitor, int type, out uint x, out uint y);
     [DllImport("shell32.dll")] static extern int SHQueryUserNotificationState(out int state);
-    [DllImport("kernel32.dll")] static extern IntPtr OpenProcess(uint access, bool inherit, uint pid);
-    [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr h);
-    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] static extern bool QueryFullProcessImageName(IntPtr h, int flags, StringBuilder name, ref int size);
 }
 
 /// The eye's window: 44 across so the hover growth and shadow fit, around a 30 hit area and a
@@ -343,7 +265,7 @@ sealed class ChipWindow : Window
         button.Children.Add(hairline);
         button.Children.Add(mark);
         button.Children.Add(hit);
-        button.ToolTip = "Look up (Ctrl+Alt+L). Right-click for options.";
+        button.ToolTip = Shortcut.Registered ? $"Look up ({Shortcut.Name}). Right-click for options." : "Look up. Right-click for options.";
         ToolTipService.SetInitialShowDelay(button, 700);
         return (button, hit, mark);
     }
@@ -451,7 +373,7 @@ sealed class ChipWindow : Window
         menu = new ContextMenu { PlacementTarget = at, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom };
         if (process.Length > 0)
         {
-            var name = Chip.NameOf(path);
+            var name = ForegroundApp.NameOf(path);
             var here = new MenuItem { Header = $"Hide the eye in {name}" };
             here.Click += (_, _) => { Settings.HideEyeIn(process, name); Program.MenuChanged(); };
             menu.Items.Add(here);
@@ -459,8 +381,11 @@ sealed class ChipWindow : Window
         var off = new MenuItem { Header = "Turn off the eye" };
         off.Click += (_, _) => { Settings.ShowEye = false; Program.MenuChanged(); };
         menu.Items.Add(off);
-        menu.Items.Add(new Separator());
-        menu.Items.Add(new MenuItem { Header = "Ctrl+Alt+L still looks up selected text", IsEnabled = false });
+        if (Shortcut.Registered)
+        {
+            menu.Items.Add(new Separator());
+            menu.Items.Add(new MenuItem { Header = $"{Shortcut.Name} still looks up selected text", IsEnabled = false });
+        }
         menu.Closed += (_, _) => { menuOpen = false; Chip.Hide(); };
         menu.IsOpen = true;
     }

@@ -37,6 +37,8 @@ static class Program
         SystemParametersInfo(SPI_GETCLIENTAREAANIMATION, 0, out var animates, 0);
         Console.WriteLine($"animations {(animates != 0 ? "on" : "off")}");
 
+        ShortcutCheck(exe);
+
         var start = new ProcessStartInfo(exe) { WorkingDirectory = Path.GetDirectoryName(exe)! };
         start.Environment["LONGYAN_CARD_LOG"] = log;
         var app = Process.Start(start)!;
@@ -124,6 +126,40 @@ static class Program
         Latencies();
         foreach (var f in failures) Console.WriteLine("FAILED: " + f);
         return failures.Count == 0 ? 0 : 1;
+    }
+
+    /// The default shortcut by keyboard layout: Ctrl+Alt+L on this desktop's US layout; with
+    /// Polish (Programmers) added, where Ctrl+Alt+L is AltGr+L and types ł, another one. Polish
+    /// is taken away again before the app starts, so the rest uses Ctrl+Alt+L.
+    static void ShortcutCheck(string exe)
+    {
+        var usual = ShortcutDefault(exe, "us");
+        if (usual != "Ctrl+Alt+L") failures.Add($"shortcut: the default on the US layout is {usual}, not Ctrl+Alt+L");
+        var polish = LoadKeyboardLayout("00000415", KLF_NOTELLSHELL);
+        Console.WriteLine($"[shortcut] loaded Polish: {(long)polish & 0xFFFFFFFF:X8}");
+        var withPolish = ShortcutDefault(exe, "polish", out var lines);
+        if (!lines.Any(l => l.Contains("Polish") && l.Contains("types ł"))) failures.Add("shortcut: Ctrl+Alt+L doesn't show as typing ł on Polish");
+        if (withPolish == null || withPolish == "Ctrl+Alt+L") failures.Add($"shortcut: with Polish the default is still {withPolish ?? "nothing"}");
+        if (polish != IntPtr.Zero && !UnloadKeyboardLayout(polish)) Console.WriteLine("[shortcut] couldn't unload Polish");
+        var after = ShortcutDefault(exe, "after");
+        if (after != "Ctrl+Alt+L") failures.Add($"shortcut: after Polish went, the default is {after}, not Ctrl+Alt+L");
+    }
+
+    static string? ShortcutDefault(string exe, string name) => ShortcutDefault(exe, name, out _);
+
+    static string? ShortcutDefault(string exe, string name, out List<string> lines)
+    {
+        var start = new ProcessStartInfo(exe, "--check-shortcut")
+        {
+            UseShellExecute = false, RedirectStandardOutput = true, StandardOutputEncoding = new UTF8Encoding(false),
+            WorkingDirectory = Path.GetDirectoryName(exe)!,
+        };
+        using var p = Process.Start(start)!;
+        var output = p.StandardOutput.ReadToEnd();
+        p.WaitForExit(30000);
+        lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+        foreach (var l in lines) Console.WriteLine($"[shortcut {name}] {l}");
+        return lines.FirstOrDefault(l => l.StartsWith("default "))?.Substring(8);
     }
 
     /// Presses the shortcut, then waits for the card to settle, as the core reports it (the
@@ -525,4 +561,7 @@ static class Program
     [DllImport("user32.dll")] static extern bool EnumWindows(EnumProc f, IntPtr p);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetWindowText(IntPtr h, StringBuilder sb, int n);
     [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr h);
+    const uint KLF_NOTELLSHELL = 0x80;
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern IntPtr LoadKeyboardLayout(string id, uint flags);
+    [DllImport("user32.dll")] static extern bool UnloadKeyboardLayout(IntPtr hkl);
 }
