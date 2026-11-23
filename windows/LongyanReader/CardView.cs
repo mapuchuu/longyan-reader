@@ -231,8 +231,8 @@ sealed class CardView
         else
         {
             // Lower than a status line elsewhere: the Mac centres it where the translation will be.
-            var busy = Busy("Translating…", top: 7);
-            busy.Margin = new Thickness(0, 7, 0, -1);
+            var busy = Busy("Translating…", top: 9);
+            busy.Margin = new Thickness(0, 9, 0, -2);
             top.Children.Add(Keyed("translating", busy));
         }
         content.Children.Add(Track("phraseTop", top));
