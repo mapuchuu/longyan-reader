@@ -27,6 +27,7 @@ static class Chip
     public static Func<Selected?, Task>? Clicked;
 
     static ChipWindow? shown;
+    static long lag;          // from the button coming up to deciding on the eye (ms), for the log
     static int generation;    // any press, key or scroll makes a read still under way stale
 
     public static void Start()
@@ -99,18 +100,19 @@ static class Chip
         if (SHQueryUserNotificationState(out var state) == 0 && state is QUNS_BUSY or QUNS_RUNNING_D3D_FULL_SCREEN or QUNS_PRESENTATION_MODE) { Skip("full screen"); return; }
         if (ForegroundApp.Get() is not ForegroundApp app || Settings.EyeHiddenIn(app.Process)) { Skip("app"); return; }
         var sinceUp = System.Diagnostics.Stopwatch.StartNew();
+        lag = (long)System.Diagnostics.Stopwatch.GetElapsedTime(InputWatch.LastUp).TotalMilliseconds;
         var mine = ++generation;
         // Give the app a moment to update its selection.
         await Task.Delay(120);
         if (mine != generation) return;
         var clock = System.Diagnostics.Stopwatch.StartNew();
         var probed = await SelectionReader.ProbeAsync();
-        if (mine != generation) return;
-        if (Core.Logging) Core.Log($"{{\"event\":\"eye-probe\",\"found\":\"{probed.Found}\",\"ms\":{clock.ElapsedMilliseconds},\"dragged\":{(dragged ? "true" : "false")},\"clicks\":{clicks}}}");
+        if (mine != generation) { Skip("a press, key or scroll came while reading"); return; }
+        if (Core.Logging) Core.Log($"{{\"event\":\"eye-probe\",\"found\":\"{probed.Found}\",\"why\":\"{probed.Why ?? probed.Role?.ProgrammaticName ?? ""}\",\"ms\":{clock.ElapsedMilliseconds},\"dragged\":{(dragged ? "true" : "false")},\"clicks\":{clicks}}}");
         switch (probed.Found)
         {
             case SelectionReader.Found.Selection when probed.Selection is Selected selection:
-                if (!SelectionReader.HasChinese(selection) || SelectionReader.Length(selection) > 400) { Skip("not Chinese or too long"); return; }
+                if (!SelectionReader.HasChinese(selection) || SelectionReader.Length(selection) > 400) { Skip($"not Chinese or too long ({SelectionReader.Length(selection)} characters)"); return; }
                 // A position far from where the mouse let go isn't where the selection is.
                 // Nor is an empty one (the Mac's SelectionReader.checked).
                 var near = selection.Bounds is Rect b && b.Width >= 1 && b.Height >= 1 && Inflate(b, 160 * ScaleAt(up)).Contains(new Point(up.X, up.Y));
@@ -131,20 +133,25 @@ static class Chip
 
     static void Show(InputWatch.POINT up, Selected? selection, ForegroundApp app, System.Diagnostics.Stopwatch? sinceUp = null)
     {
+        var steps = System.Diagnostics.Stopwatch.StartNew();
         Hide();
         Bridge.ly_warm_up();
+        var warmMs = steps.ElapsedMilliseconds;
         var w = new ChipWindow(selection, app.Process, app.Path);
+        var buildMs = steps.ElapsedMilliseconds - warmMs;
         // One line: where its highlight ends and its text's ink is, as drawn (see Drawn).
         var drawnClock = System.Diagnostics.Stopwatch.StartNew();
         var drawn = selection is { Bounds: Rect sb, OneLine: true } ? SelectionReader.Drawn(sb, ScaleAt(up)) : (null, null);
         var drawnMs = drawnClock.ElapsedMilliseconds;
         // White space left out of the rect is still highlighted: the text ends at the rect.
         if (selection is { Trimmed: true, Bounds: Rect tb } && drawn.Right > tb.Right) drawn.Right = tb.Right;
+        var placeClock = System.Diagnostics.Stopwatch.StartNew();
         var (left, top, size) = w.Place(up, selection?.Bounds, selection?.OneLine ?? false, drawn.Right, drawn.InkMid);
+        var placeMs = placeClock.ElapsedMilliseconds;
         shown = w;
         // Positions only, in device pixels (UiCheck checks them): never the text.
         var bounds = selection?.Bounds is Rect b ? $"[{b.X:0.#},{b.Y:0.#},{b.Width:0.#},{b.Height:0.#}]" : "null";
-        Core.Log($"{{\"event\":\"eye\",\"readable\":{(selection != null ? "true" : "false")},\"up\":[{up.X},{up.Y}],\"bounds\":{bounds},\"window\":[{left},{top},{size}],\"scale\":{ScaleAt(up):0.##},\"oneLine\":{((selection?.OneLine ?? false) ? "true" : "false")},\"drawn\":[{drawn.Right?.ToString("0.#") ?? "null"},{drawn.InkMid?.ToString("0.#") ?? "null"}],\"ms\":{sinceUp?.ElapsedMilliseconds ?? -1},\"drawnMs\":{drawnMs}}}");
+        Core.Log($"{{\"event\":\"eye\",\"readable\":{(selection != null ? "true" : "false")},\"up\":[{up.X},{up.Y}],\"bounds\":{bounds},\"window\":[{left},{top},{size}],\"scale\":{ScaleAt(up):0.##},\"oneLine\":{((selection?.OneLine ?? false) ? "true" : "false")},\"drawn\":[{drawn.Right?.ToString("0.#") ?? "null"},{drawn.InkMid?.ToString("0.#") ?? "null"}],\"ms\":{sinceUp?.ElapsedMilliseconds ?? -1},\"drawnMs\":{drawnMs},\"warmMs\":{warmMs},\"buildMs\":{buildMs},\"placeMs\":{placeMs},\"lag\":{lag}}}");
         // The card's work starts once the eye has stayed a moment (or on hover): most selections
         // are made to copy, and the model's work costs battery.
         DispatcherTimer? soon = null;

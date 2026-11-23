@@ -26,7 +26,7 @@ static class SelectionReader
     public enum Found { Selection, NothingSelected, Unreadable }
 
     /// What a probe found, the focused element's kind and where it is on screen (device pixels).
-    public sealed record Probed(Found Found, Selected? Selection, ControlType? Role = null, Rect? Area = null);
+    public sealed record Probed(Found Found, Selected? Selection, ControlType? Role = null, Rect? Area = null, string? Why = null);
 
     public static Selected? ReadAutomation() => Probe().Selection;
 
@@ -37,9 +37,9 @@ static class SelectionReader
     /// While an earlier probe is still stuck in a hung app, a new one doesn't pile up behind it.
     public static async Task<Probed> ProbeAsync(int timeout = 500)
     {
-        if (pending is { IsCompleted: false }) return new Probed(Found.Unreadable, null);
+        if (pending is { IsCompleted: false }) return new Probed(Found.Unreadable, null, Why: "busy");
         var work = pending = Task.Run(Probe);
-        return await Task.WhenAny(work, Task.Delay(timeout)) == work ? work.Result : new Probed(Found.Unreadable, null);
+        return await Task.WhenAny(work, Task.Delay(timeout)) == work ? work.Result : new Probed(Found.Unreadable, null, Why: "timeout");
     }
 
     /// The focused element's selection; or that it has a text pattern and nothing is selected;
@@ -49,12 +49,12 @@ static class SelectionReader
         try
         {
             var element = AutomationElement.FocusedElement;
-            if (element == null) return new Probed(Found.Unreadable, null);
+            if (element == null) return new Probed(Found.Unreadable, null, Why: "no focus");
             var info = element.Current;
             var role = info.ControlType;
             Rect? area = info.BoundingRectangle is { IsEmpty: false } r0 ? r0 : null;
             if (info.IsPassword) return new Probed(Found.NothingSelected, null, role, area);
-            if (!element.TryGetCurrentPattern(TextPattern.Pattern, out var p) || p is not TextPattern text) return new Probed(Found.Unreadable, null, role, area);
+            if (!element.TryGetCurrentPattern(TextPattern.Pattern, out var p) || p is not TextPattern text) return new Probed(Found.Unreadable, null, role, area, "no text pattern");
             var selection = text.GetSelection().FirstOrDefault();
             if (selection == null) return new Probed(Found.NothingSelected, null, role, area);
             var selected = selection.GetText(-1);
@@ -75,9 +75,9 @@ static class SelectionReader
             var (bounds, oneLine) = Bounds(selection);
             return new Probed(Found.Selection, new Selected(passage, start, start + selected.Length, bounds, oneLine, selected.TrimEnd().Length < selected.Length), role, area);
         }
-        catch (Exception)
+        catch (Exception e)
         {
-            return new Probed(Found.Unreadable, null);   // the app went away or doesn't answer
+            return new Probed(Found.Unreadable, null, Why: e.GetType().Name);   // the app went away or doesn't answer
         }
     }
 

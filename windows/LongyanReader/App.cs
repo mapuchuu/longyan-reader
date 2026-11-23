@@ -247,7 +247,8 @@ static class Program
         Core.Log("{\"event\":\"shortcut\"}");
         Bridge.ly_warm_up();
         var warm = clock.Elapsed.TotalMilliseconds;
-        var selected = (await SelectionReader.ProbeAsync()).Selection;
+        var probed = await SelectionReader.ProbeAsync();
+        var selected = probed.Selection;
         var read = clock.Elapsed.TotalMilliseconds;
         var how = "automation";
         // Nothing readable with Chinese in it is selected: the word under the pointer.
@@ -264,7 +265,7 @@ static class Program
         if (selected == null) { how = "copy"; selected = await SelectionReader.ReadByCopying(); }
         var done = clock.Elapsed.TotalMilliseconds;
         // Timings only: the selected text never goes in the log.
-        Core.Log(FormattableString.Invariant($"{{\"event\":\"selection\",\"how\":\"{(selected == null ? "none" : how)}\",\"warm\":{warm:F1},\"automation\":{read - warm:F1},\"point\":{point - read:F1},\"copy\":{done - point:F1}}}"));
+        Core.Log(FormattableString.Invariant($"{{\"event\":\"selection\",\"how\":\"{(selected == null ? "none" : how)}\",\"warm\":{warm:F1},\"automation\":{read - warm:F1},\"point\":{point - read:F1},\"copy\":{done - point:F1},\"probe\":\"{probed.Found}\",\"why\":\"{probed.Why ?? ""}\",\"length\":{(probed.Selection is Selected p ? SelectionReader.Length(p) : -1)}}}"));
         if (selected == null) { CardWindow.Hint($"Highlight Chinese text, or point at a word and press {Shortcut.Name}"); return; }
         Present(selected);
     }

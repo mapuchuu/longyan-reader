@@ -23,6 +23,8 @@ static class InputWatch
     public static event Action<POINT, int, bool, bool>? Up;
     public static event Action? Wheel;
     public static event Action? Key;
+    /// When the primary button last came up (Stopwatch ticks), for the eye's timings.
+    public static long LastUp;
 
     static Dispatcher? app, watch;
     static Thread? thread;
@@ -120,6 +122,7 @@ static class InputWatch
             // More than 4 points from where it went down, as the Mac counts a drag.
             var dragged = Math.Sqrt(Math.Pow(p.X - downAt.X, 2) + Math.Pow(p.Y - downAt.Y, 2)) > 4 * Chip.ScaleAt(downAt);
             int count = clicks; bool ours = downOurs;
+            LastUp = System.Diagnostics.Stopwatch.GetTimestamp();
             Post(() => Up?.Invoke(p, count, dragged, ours));
         }
         if ((flags & (RI_WHEEL | RI_HWHEEL)) != 0) Post(() => Wheel?.Invoke());
