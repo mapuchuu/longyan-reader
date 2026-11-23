@@ -221,7 +221,7 @@ sealed class HistoryView : Grid
         body.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondary");
         empty.Children.Add(body);
         if (isOn) return;
-        var on = new Button { Style = (Style)Look["Accent"], Content = "Turn on history", HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 20, 0, 0) };
+        var on = new Button { Style = (Style)Look["AccentButton"], Content = "Turn on history", HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 20, 0, 0) };
         on.Click += (_, _) => TurnOn?.Invoke();
         empty.Children.Add(on);
     }
@@ -354,7 +354,7 @@ sealed class HistoryView : Grid
         foot.SetResourceReference(Border.BackgroundProperty, "DialogFooter");
         foot.SetResourceReference(Border.BorderBrushProperty, "Stroke");
         var buttons = new UniformGrid { Columns = 2 };
-        var yes = new Button { Style = (Style)Look["Accent"], Content = "Move to Recycle Bin", Margin = new Thickness(0, 0, 4, 0), IsDefault = true };
+        var yes = new Button { Style = (Style)Look["AccentButton"], Content = "Move to Recycle Bin", Margin = new Thickness(0, 0, 4, 0), IsDefault = true };
         var no = new Button { Style = (Style)Look["Plain"], Content = "Cancel", Margin = new Thickness(4, 0, 0, 0), IsCancel = true };
         yes.Click += (_, _) => { CloseDialog(); Clear?.Invoke(); };
         no.Click += (_, _) => CloseDialog();
@@ -480,7 +480,7 @@ sealed class HistoryView : Grid
               </ControlTemplate>
             </Setter.Value></Setter>
           </Style>
-          <Style x:Key="Accent" TargetType="Button" BasedOn="{StaticResource Plain}">
+          <Style x:Key="AccentButton" TargetType="Button" BasedOn="{StaticResource Plain}">
             <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}"/>
             <Setter Property="Background" Value="{DynamicResource Accent}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource Accent}"/>

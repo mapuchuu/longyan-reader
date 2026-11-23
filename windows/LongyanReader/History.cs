@@ -121,7 +121,7 @@ static class History
         var text = Str(card["text"]);
         if (text.Length == 0) return;
         var words = new JsonArray();
-        foreach (var r in card["rows"] as JsonArray ?? new JsonArray()) words.Add(Str(r?["text"]));
+        foreach (var r in card["rows"] as JsonArray ?? new JsonArray()) words.Add((JsonNode)Str(r?["text"]));
         Write(new JsonObject { ["event"] = "phrase", ["text"] = text, ["words"] = words, ["translation"] = translation, ["app"] = lastApp ?? "" });
     }
 
@@ -165,7 +165,11 @@ static class History
 
     // MARK: The file
 
-    static readonly JsonSerializerOptions compact = new() { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+    static readonly JsonSerializerOptions compact = new()
+    {
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
+    };
 
     /// Appends one record, stamped with the time, as the Mac's Log.write does.
     static void Write(JsonObject record)
