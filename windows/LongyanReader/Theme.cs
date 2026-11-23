@@ -15,7 +15,7 @@ static class Theme
     public static Brush Primary => Ink(Dark ? 0.85 : 0.85);
     public static Brush Secondary => Ink(Dark ? 0.55 : 0.50);
     public static Brush Tertiary => Ink(Dark ? 0.25 : 0.26);
-    public static Brush Accent => Solid(Dark ? 0x0A84FF : 0x007AFF);
+    public static Brush Accent => Solid(0x0A60FF);   // macOS's control accent (blue), as the Mac renders it in both modes
 
     /// Black (light) or white (dark) at `alpha`: the Mac card's Color.primary.opacity(x).
     public static Brush Ink(double alpha) => Solid(Dark ? 0xFFFFFF : 0x000000, alpha);

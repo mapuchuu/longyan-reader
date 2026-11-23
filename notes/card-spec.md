@@ -28,7 +28,7 @@ They are system values, not set in this code, so treat them as close approximati
 | `.primary` text (labelColor) | black, alpha 0.85 | white, alpha 0.85 |
 | `.secondary` text (secondaryLabelColor) | black, alpha 0.50 | white, alpha 0.55 |
 | `.tertiary` text (tertiaryLabelColor) | black, alpha 0.26 | white, alpha 0.25 |
-| `Color.accentColor` (system accent, default blue) | #007AFF | #0A84FF |
+| `Color.accentColor` (system accent, default blue) | #0A60FF as rendered (not #007AFF) | #0A60FF as rendered (not #0A84FF) |
 
 `Color.primary.opacity(x)` is used for fills and strokes. Treat it as black (light) or white
 (dark) at alpha `x`. macOS may also apply labelColor's 0.85 alpha, so the real alpha can be
