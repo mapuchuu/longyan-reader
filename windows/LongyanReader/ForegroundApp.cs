@@ -8,8 +8,9 @@ namespace Longyan;
 /// The app in front: its process name (a UWP app's own, not its frame host's), its program's
 /// path, whether Ctrl+C there copies (not in terminals, Emacs or Vim, where it interrupts or
 /// starts a command, nor in apps run as administrator, which can't be sent keys from here),
-/// and whether an unreadable double-click there may be text worth copying (the eye).
-sealed record ForegroundApp(string Process, string Path, bool CopyWorks, bool MayBeText)
+/// whether an unreadable double-click there may be text worth copying (the eye), and whether
+/// it's a terminal (no eye there, even when the selection can be read: a drag there is a copy).
+sealed record ForegroundApp(string Process, string Path, bool CopyWorks, bool MayBeText, bool Terminal)
 {
     // Where Ctrl+C isn't copy.
     static readonly HashSet<string> terminalClasses = new()
@@ -51,8 +52,9 @@ sealed record ForegroundApp(string Process, string Path, bool CopyWorks, bool Ma
         var lower = OpenProcess(PROCESS_QUERY_INFORMATION, false, pid);
         var reachable = lower != IntPtr.Zero;
         if (reachable) CloseHandle(lower);
-        var copies = reachable && !terminalClasses.Contains(cls) && !terminalProcesses.Contains(process);
-        return new ForegroundApp(process, path, copies, copies && !notTextClasses.Contains(cls) && !notTextProcesses.Contains(process));
+        var terminal = terminalClasses.Contains(cls) || terminalProcesses.Contains(process);
+        var copies = reachable && !terminal;
+        return new ForegroundApp(process, path, copies, copies && !notTextClasses.Contains(cls) && !notTextProcesses.Contains(process), terminal);
     }
 
     /// The name to show for an app: its program's description ("Microsoft Edge"), else its file name.

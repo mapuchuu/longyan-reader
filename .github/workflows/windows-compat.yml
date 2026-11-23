@@ -1,0 +1,63 @@
+# The Windows app in other apps people read Chinese in: Chrome, Edge, Firefox, VS Code,
+# Windows Terminal, LibreOffice Writer (and WordPad where the runner has it), a PDF in Edge and
+# in SumatraPDF. windows/CompatCheck drags, double-clicks, presses the shortcut and points in
+# each, and writes a table (compat.md, also in the run's summary). Called from windows.yml.
+name: windows-compat
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  compat:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: LongyanReader-windows
+          path: dist
+      - name: Install the apps
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -uo pipefail
+          choco install vscode -y --no-progress --params "/NoDesktopIcon /NoQuicklaunchIcon" > choco.txt 2>&1 || tail -40 choco.txt
+          choco install libreoffice-fresh sumatrapdf -y --no-progress >> choco.txt 2>&1 || tail -40 choco.txt
+          grep -iE "installed|failed" choco.txt | tail -10
+          # Windows Terminal, the portable zip from its latest release.
+          mkdir -p "$RUNNER_TEMP/wt"
+          gh release download -R microsoft/terminal --pattern '*_x64.zip' -D "$RUNNER_TEMP/wt" && (cd "$RUNNER_TEMP/wt" && 7z x -y *.zip > /dev/null) || echo "no Windows Terminal"
+          wt=$(find "$RUNNER_TEMP/wt" -iname WindowsTerminal.exe | head -1)
+          if [ -n "$wt" ]; then
+            d=$(dirname "$wt"); touch "$d/.portable"; mkdir -p "$d/settings"
+            echo '{"profiles":{"defaults":{"font":{"size":20}}}}' > "$d/settings/settings.json"
+            echo "WT=$(cygpath -w "$d/wt.exe")" >> "$GITHUB_ENV"
+          fi
+          find_exe() { for p in "$@"; do [ -f "$p" ] && { cygpath -w "$p"; return; }; done; }
+          echo "VSCODE=$(find_exe '/c/Program Files/Microsoft VS Code/Code.exe')" >> "$GITHUB_ENV"
+          echo "SOFFICE=$(find_exe '/c/Program Files/LibreOffice/program/soffice.exe')" >> "$GITHUB_ENV"
+          echo "SUMATRA=$(find_exe '/c/Program Files/SumatraPDF/SumatraPDF.exe' "$LOCALAPPDATA/SumatraPDF/SumatraPDF.exe")" >> "$GITHUB_ENV"
+          ls "/c/Program Files/Google/Chrome/Application/chrome.exe" "/c/Program Files/Mozilla Firefox/firefox.exe" "/c/Program Files/Windows NT/Accessories/wordpad.exe" 2>&1 || true
+      - name: Versions
+        run: |
+          cat "$GITHUB_ENV" | grep -E '^(WT|VSCODE|SOFFICE|SUMATRA)=' || true
+          for f in "/c/Program Files/Google/Chrome/Application/chrome.exe" "/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe" "/c/Program Files/Mozilla Firefox/firefox.exe" "$VSCODE" "$SOFFICE" "$SUMATRA" "$WT"; do
+            [ -n "$f" ] && [ -f "$f" ] && powershell -NoProfile -Command "(Get-Item '$(cygpath -w "$f")').VersionInfo | Select-Object -Property ProductName,ProductVersion | Format-Table -HideTableHeaders" || true
+          done
+      - run: dotnet build windows/CompatCheck -c Release -o compatcheck
+      - name: Use the app in each
+        run: compatcheck/CompatCheck.exe "$(cygpath -w "$PWD/dist/LongyanReader/LongyanReader.exe")" compat-out
+      - name: Table
+        if: always()
+        run: cat compat-out/compat.md >> "$GITHUB_STEP_SUMMARY" || true
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: compat
+          path: compat-out

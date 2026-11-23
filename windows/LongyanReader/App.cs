@@ -154,6 +154,7 @@ static class Program
         Shortcut.Start(LookUp, (text, pick) => { Balloon(text, pick ? ShortcutWindow.Open : null); if (pick) ShortcutWindow.Open(); });
         Chip.Clicked = EyeClicked;
         Chip.Start();
+        AccessibilityWake.Start();
     }
 
     /// The eye: the selection read when it appeared, else copy it now (the eye never took the

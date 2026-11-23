@@ -70,7 +70,7 @@ static class Chip
         if (ours || !Settings.ShowEye || !(dragged || clicks >= 2)) return;
         // Not over a full-screen game, video or presentation.
         if (SHQueryUserNotificationState(out var state) == 0 && state is QUNS_BUSY or QUNS_RUNNING_D3D_FULL_SCREEN or QUNS_PRESENTATION_MODE) return;
-        if (ForegroundApp.Get() is not ForegroundApp app || Settings.EyeHiddenIn(app.Process)) return;
+        if (ForegroundApp.Get() is not ForegroundApp app || app.Terminal || Settings.EyeHiddenIn(app.Process)) return;
         var mine = ++generation;
         // Give the app a moment to update its selection.
         await Task.Delay(120);

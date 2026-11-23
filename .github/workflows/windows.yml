@@ -19,6 +19,7 @@ on:
       - scripts/bridge-check*
       - scripts/stage-windows-resources.sh
       - .github/workflows/windows.yml
+      - .github/workflows/windows-compat.yml
   workflow_dispatch:
 
 permissions:
@@ -136,6 +137,13 @@ jobs:
         with:
           name: llama-simple
           path: Vendor/llama/tools/llama-simple.exe
+
+  # The app in other apps (browsers, VS Code, Windows Terminal, LibreOffice, PDF readers):
+  # windows-compat.yml. It takes a while, so only on win/compat and when run by hand.
+  compat:
+    needs: app
+    if: github.ref == 'refs/heads/win/compat' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/windows-compat.yml
 
   # The app on a real desktop, with the reading model: Notepad, a selection, Ctrl+Alt+L, then
   # screenshots and the card's text as UI Automation reads it.
