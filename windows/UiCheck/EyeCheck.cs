@@ -432,7 +432,12 @@ static partial class Program
             var ink = Ink(before, (int)cols.Min(c => c.Left), (int)cols.Max(c => c.Right), (int)line.Top, (int)Math.Ceiling(line.Bottom));
             if (ink is (int t, int b)) { top = Math.Min(top, t); bottom = Math.Max(bottom, b); }
         }
-        if (top == int.MaxValue) { failures.Add($"{name}: no ink found for the selected text"); return eye; }
+        if (top == int.MaxValue)
+        {
+            Console.WriteLine($"[{name}] no ink: lines {string.Join(" ", lines.Select(x => Fmt(x)))}; selection boxes {string.Join(" ", rects.Select(x => Fmt(x)))}; eye {r.Left},{r.Top} to {r.Right},{r.Bottom}");
+            failures.Add($"{name}: no ink found for the selected text");
+            return eye;
+        }
         var textMid = (top + bottom + 1) / 2.0;
         var beside = oneLine || lineHeight * lines.Length < 40 * s;
         double predX, predY;   // the 30-point button's centre

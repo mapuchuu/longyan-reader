@@ -81,8 +81,8 @@ static class SelectionReader
     /// Where the selection is on screen: its lines' rectangles together, as the Mac's
     /// AXBoundsForRange gives. Notepad on Windows 11 counts the page's top margin (16 at 100%)
     /// as part of the first line, which put the eye that much above the text: a top line taller
-    /// than the next line by a quarter, or than its font allows, is cut to a normal line's
-    /// height from the bottom, where its text is.
+    /// than the next line by a quarter and than 1.5 em (Microsoft YaHei's line is about 1.32 em)
+    /// is cut to a normal line's height from the bottom, where its text is.
     /// White space at the selection's end is left out: a double-click in Chromium on Windows
     /// takes the space after the word, and a line's selection its line break, which the Mac's
     /// double-click doesn't, and the eye would sit that much further right.
@@ -136,7 +136,7 @@ static class SelectionReader
         // Only worth the extra calls when the top line is taller than its font would make it.
         // A font size the app doesn't give: no cut (a heading followed by small text isn't a margin).
         var em = Em(selection, top);
-        if (em <= 0 || top.Height <= em * 1.6) return 0;
+        if (em <= 0 || top.Height <= em * 1.5) return 0;
         foreach (var x in rects) if (x.Top >= top.Bottom - 1 && x.Height > 0) return x.Height;
         foreach (var step in new[] { 1, -1 })
         {

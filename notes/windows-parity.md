@@ -331,7 +331,7 @@ on the box, 17 px (8.5 points) above the text, and its spring and shadow made it
 still. Read in the user's VM with a UI Automation probe and PrintWindow, no clicks. Windows
 Server's classic Notepad (CI) has no margin in its boxes, and the old check compared the eye
 with the box, not the text, so CI never saw it. Now SR.Bounds cuts a top line that is a
-quarter taller than the next line and 1.6 times its font (no cut when the app gives no font size) to a line's height from the bottom,
+quarter taller than the next line and 1.5 times its font (no cut when the app gives no font size) to a line's height from the bottom,
 and UiCheck compares the eye with the text's ink.
 
 Checked in the user's VM afterwards, read-only (the app's own Bounds code run on Notepad's
