@@ -59,6 +59,17 @@ sealed class WelcomeWindow : Window
         ModelDownload.Changed += Changed;
         Shortcut.Changed += ShortcutChanged;
         Microsoft.Win32.SystemEvents.UserPreferenceChanged += ThemeMaybeChanged;
+        // Esc closes the window, as Windows dialogs do, but not while a card is up: trying the
+        // sample, Esc is for the card. The card leaves Esc in the app's own windows alone, so
+        // it's closed from here.
+        PreviewKeyDown += (_, e) =>
+        {
+            if (e.Key != System.Windows.Input.Key.Escape) return;
+            e.Handled = true;
+            var cards = Application.Current.Windows.OfType<CardWindow>().Where(w => w.IsVisible).ToList();
+            if (cards.Count == 0) Close();
+            else foreach (var c in cards) c.Dismiss();
+        };
         Closed += (_, _) =>
         {
             ModelDownload.Changed -= Changed;
@@ -168,8 +179,7 @@ sealed class WelcomePage
         footer.Children.Add(login);
         if (!preview && !LoginItem.Available) { loginLabel.Visibility = Visibility.Collapsed; login.Visibility = Visibility.Collapsed; }
         var doneButton = f.PushButton("Done", done, accent: true, automationId: "Done");
-        doneButton.IsDefault = true;
-        doneButton.IsCancel = true;
+        doneButton.IsDefault = true;   // Esc is the window's own (WelcomeWindow), so it can leave a card to close
         doneButton.MinWidth = 120;
         Grid.SetColumn(doneButton, 3);
         footer.Children.Add(doneButton);

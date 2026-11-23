@@ -79,6 +79,7 @@ static partial class Program
         }
         Keys(VK_ESCAPE);
         Thread.Sleep(800);
+        if (!IsWindowVisible(window)) failures.Add("first-run: Esc on the sample's card closed the welcome window too");
 
         // 3. Download, then Stop once some is in: what's in stays.
         if (button?.GetCurrentPattern(InvokePattern.Pattern) is InvokePattern download) download.Invoke();
@@ -118,7 +119,7 @@ static partial class Program
             var t = WindowText(root);
             if (t.Contains("Checking the download") && !sawChecking) { sawChecking = true; Shot("fr-5-checking"); film.Every = 300; }
             return t.Contains("Ready. It picks");
-        }, 1800);
+        }, 900);
         Console.WriteLine($"[first-run] model {(ready ? "ready" : "NOT ready")} after {clock.Elapsed.TotalSeconds - started:0} s");
         film.Every = 200;
         Thread.Sleep(800);
@@ -244,7 +245,7 @@ static partial class Program
     {
         readonly string dir;
         readonly Thread thread;
-        readonly StringBuilder times = new();
+        readonly StreamWriter times;
         volatile bool stop;
         public volatile int Every = 200;
 
@@ -252,6 +253,8 @@ static partial class Program
         {
             this.dir = dir;
             Directory.CreateDirectory(dir);
+            // Written as it goes, so a cancelled job still has it.
+            times = new StreamWriter(Path.Combine(dir, "times.txt")) { AutoFlush = true };
             thread = new Thread(Loop) { IsBackground = true };
             thread.Start();
         }
@@ -271,7 +274,7 @@ static partial class Program
                     using var bmp = new Bitmap(b.Width, b.Height);
                     using (var g = Graphics.FromImage(bmp)) g.CopyFromScreen(b.Location, Point.Empty, b.Size);
                     bmp.Save(Path.Combine(dir, $"{n:00000}.jpg"), jpeg, quality);
-                    lock (times) times.AppendLine($"{n:00000}\t{clock.Elapsed.TotalMilliseconds:0}");
+                    lock (times) times.WriteLine($"{n:00000}\t{clock.Elapsed.TotalMilliseconds:0}");
                     n++;
                 }
                 catch { }
@@ -283,7 +286,7 @@ static partial class Program
         {
             stop = true;
             thread.Join(3000);
-            lock (times) File.WriteAllText(Path.Combine(dir, "times.txt"), times.ToString());
+            lock (times) times.Dispose();
         }
     }
 }
