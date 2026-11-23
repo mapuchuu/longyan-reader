@@ -98,8 +98,9 @@ static class Chip
         // Not over a full-screen game, video or presentation.
         if (SHQueryUserNotificationState(out var state) == 0 && state is QUNS_BUSY or QUNS_RUNNING_D3D_FULL_SCREEN or QUNS_PRESENTATION_MODE) { Skip("full screen"); return; }
         if (ForegroundApp.Get() is not ForegroundApp app || Settings.EyeHiddenIn(app.Process)) { Skip("app"); return; }
-        // Not in a terminal, even where it says what's selected: a drag there is a copy.
-        if (app.Terminal) { Skip("terminal"); return; }
+        // Not in a terminal, even where it says what's selected: a drag there is a copy. The
+        // window under the pointer decides, where the selection was made.
+        if (ForegroundApp.TerminalAt(up.X, up.Y)) { Skip("terminal"); return; }
         var sinceUp = System.Diagnostics.Stopwatch.StartNew();
         var mine = ++generation;
         // Give the app a moment to update its selection.
@@ -108,6 +109,14 @@ static class Chip
         var clock = System.Diagnostics.Stopwatch.StartNew();
         var probed = await SelectionReader.ProbeAsync();
         if (mine != generation) return;
+        // Firefox says what a drag selected a little later than other apps: once more.
+        if (probed.Found == SelectionReader.Found.NothingSelected && dragged)
+        {
+            await Task.Delay(250);
+            if (mine != generation) return;
+            probed = await SelectionReader.ProbeAsync();
+            if (mine != generation) return;
+        }
         if (Core.Logging) Core.Log($"{{\"event\":\"eye-probe\",\"found\":\"{probed.Found}\",\"ms\":{clock.ElapsedMilliseconds},\"dragged\":{(dragged ? "true" : "false")},\"clicks\":{clicks}}}");
         switch (probed.Found)
         {
