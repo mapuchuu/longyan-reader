@@ -62,6 +62,7 @@ static partial class Program
         // edges show in the frames.
         SetWindowPos(window, IntPtr.Zero, 40, 30, 760, 170, 0x4 /* SWP_NOZORDER */);
         Thread.Sleep(300);
+        FitNotepad(window);
         Focus(window);
         // Before anything else: the first eye of a fresh start, clicked once.
         FirstEye(app, window, "0-first-eye");
