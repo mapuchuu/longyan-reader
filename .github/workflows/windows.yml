@@ -192,6 +192,7 @@ jobs:
       run:
         shell: bash
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: LongyanReader-windows
@@ -200,15 +201,25 @@ jobs:
         with:
           name: llama-simple
           path: tool
-      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Model folder
+        run: echo "MODELS=$(cygpath -u "$LOCALAPPDATA")/LongyanReader/models" >> "$GITHUB_ENV"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: model
         with:
           path: ~/AppData/Local/LongyanReader/models
           key: model-qwen3.5-4b-q4_k_m-00fe7986
-          fail-on-cache-miss: true
+      - name: Download the reading model
+        if: steps.model.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p "$MODELS"
+          curl -fL --retry 3 -o "$MODELS/qwen3.5-4b-q4_k_m.gguf" \
+            "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/e87f176479d0855a907a41277aca2f8ee7a09523/Qwen3.5-4B-Q4_K_M.gguf"
+          echo "00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4  $MODELS/qwen3.5-4b-q4_k_m.gguf" | sha256sum -c
       - name: SSE 4.2 kernels only
         run: |
           set -euo pipefail
-          m="$(cygpath -w "$LOCALAPPDATA/LongyanReader/models/qwen3.5-4b-q4_k_m.gguf")"
+          m="$(cygpath -w "$MODELS/qwen3.5-4b-q4_k_m.gguf")"
           for v in sse42 all; do
             d=run-$v; mkdir -p $d
             cp tool/llama-simple.exe dist/LongyanReader/{llama,ggml,ggml-base,vcruntime140,vcruntime140_1,msvcp140}.dll $d/
