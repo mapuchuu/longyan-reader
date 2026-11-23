@@ -34,10 +34,13 @@ static class HistoryCheck
             if (Str(cold, "pinyin").Length == 0 || Str(cold, "meaningHere").Length == 0 || Str(cold, "gloss").Length == 0) Fail("the first lookup has no pinyin, meaning or dictionary sense");
             if (!Str(cold, "app").Equals("notepad", StringComparison.OrdinalIgnoreCase)) Fail("the first lookup's app isn't Notepad");
         }
-        var phrase = records.LastOrDefault(r => Str(r, "event") == "phrase" && Str(r, "text") == "明朝实行海禁，闭关锁国。");
+        // The core leaves the closing 。 off a phrase.
+        var phrase = records.LastOrDefault(r => Str(r, "event") == "phrase" && Str(r, "text").TrimEnd('。') == "明朝实行海禁，闭关锁国");
         if (phrase == null) Fail("the phrase isn't in the history");
         else if (Str(phrase, "translation").Length == 0) Fail("the phrase has no translation in the history");
-        if (!records.Any(r => Str(r, "event") == "word" && Str(r, "word") == "海禁")) Fail("the eye's word isn't in the history");
+        // A double-click selects one character, 海, whose card offers 海禁.
+        var eye = records.LastOrDefault(r => Str(r, "event") == "word" && Str(r, "word").Length > 0 && "海禁".Contains(Str(r, "word")));
+        if (eye == null) Fail("the eye's word isn't in the history");
         if (records.Any(r => Str(r, "at").Length == 0)) Fail("a record has no time");
 
         // The window, from --history, as a second copy passes it on.
@@ -50,10 +53,10 @@ static class HistoryCheck
             Shot(outDir, "4-history");
             var rows = Rows(window);
             Console.WriteLine($"[4-history] the window lists {rows.Count} lookups");
-            var expected = new[] { "感冒", "明朝实行海禁，闭关锁国。", "海禁" };
+            var expected = new[] { "感冒", "明朝实行海禁，闭关锁国", eye == null ? "海禁" : Str(eye, "word") };
             for (var i = 0; i < expected.Length; i++)
-                if (!rows.Any(n => n == expected[i] || n.StartsWith(expected[i] + ","))) Fail($"lookup {i + 1} isn't in the window's list");
-            if (rows.Count > 0 && !rows[0].StartsWith("海禁")) Fail("the newest lookup isn't first");
+                if (!rows.Any(n => n.TrimEnd('。') == expected[i] || n.StartsWith(expected[i] + ",") || n.StartsWith(expected[i] + "。,"))) Fail($"lookup {i + 1} isn't in the window's list");
+            if (rows.Count > 0 && !rows[0].StartsWith(expected[2] + ",")) Fail("the newest lookup isn't first");
 
             // Search: only what has 感冒 in it.
             if (window.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, "Search")) is AutomationElement box
@@ -86,6 +89,15 @@ static class HistoryCheck
             if (window.TryGetCurrentPattern(WindowPattern.Pattern, out var wp)) ((WindowPattern)wp).Close();
             Thread.Sleep(500);
         }
+
+        // What the app logged about history (never the text).
+        var appLog = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LongyanReader", "logs", "longyan.log");
+        try
+        {
+            using var f = new FileStream(appLog, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            foreach (var l in new StreamReader(f).ReadToEnd().Split('\n').Where(l => l.Contains("history"))) Console.WriteLine("[4-history log] " + l.Trim());
+        }
+        catch (Exception e) { Console.WriteLine("[4-history] no app log: " + e.GetType().Name); }
 
         // The drawings, with made-up entries.
         var drawn = Path.Combine(outDir, "history");

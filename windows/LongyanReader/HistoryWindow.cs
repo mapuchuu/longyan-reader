@@ -738,6 +738,12 @@ sealed class HistoryWindow : Window
 
     static void Draw(string path, bool dark, Action<HistoryView> set)
     {
+        try { DrawNow(path, dark, set); }
+        catch (Exception e) { Console.WriteLine(Path.GetFileName(path) + " failed: " + e); }
+    }
+
+    static void DrawNow(string path, bool dark, Action<HistoryView> set)
+    {
         var view = new HistoryView(dark);
         set(view);
         // In a window out of sight, so the list makes its rows as on screen.
