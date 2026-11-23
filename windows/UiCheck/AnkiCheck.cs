@@ -211,15 +211,16 @@ sealed class FakeAnkiConnect : IDisposable
             TcpClient client;
             try { client = l.AcceptTcpClient(); } catch { return; }
             // Each connection on its own thread, as a client may open one and wait before sending.
-            ThreadPool.QueueUserWorkItem(_ =>
+            var accepted = DateTime.Now;
+            new Thread(() =>
             {
-                try { using (client) Answer(client.GetStream()); }
-                catch (Exception e) { Console.WriteLine("[4-anki] stand-in: " + e.Message); }
-            });
+                try { using (client) Answer(client.GetStream(), accepted); }
+                catch (Exception e) { Console.WriteLine($"[4-anki] stand-in, accepted {accepted:HH:mm:ss.fff}: {e.Message}"); }
+            }) { IsBackground = true }.Start();
         }
     }
 
-    void Answer(NetworkStream stream)
+    void Answer(NetworkStream stream, DateTime accepted)
     {
         stream.ReadTimeout = 5000;
         var head = new List<byte>();
@@ -253,6 +254,8 @@ sealed class FakeAnkiConnect : IDisposable
         var reply = Encoding.UTF8.GetBytes(new JsonObject { ["result"] = result, ["error"] = error }.ToJsonString());
         stream.Write(Encoding.ASCII.GetBytes($"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {reply.Length}\r\nConnection: close\r\n\r\n"));
         stream.Write(reply);
+        // When each request came and went: a late one looks like Anki not answering to the app.
+        Console.WriteLine($"[4-anki] stand-in: {request["action"]} accepted {accepted:HH:mm:ss.fff}, answered {DateTime.Now:HH:mm:ss.fff}");
     }
 
     JsonNode? Act(string action, JsonObject p, ref string? error)
