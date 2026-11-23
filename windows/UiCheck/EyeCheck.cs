@@ -262,6 +262,13 @@ static partial class Program
             if (lastCrop != null) { crops.Add(($"{name} {label}, double-click {word}", lastCrop)); lastCrop = null; }
             // Edge's own menu for a selection, if it came: its windows besides the page's.
             foreach (var (h, r) in EdgePopups(window)) Console.WriteLine($"[{tag}] Edge popup {h:X}: {r.Left},{r.Top} to {r.Right},{r.Bottom}");
+            // The same once the eye has gone by itself, for drawing where else it could go.
+            if (eye != null)
+            {
+                Thread.Sleep(6000);
+                Shot(tag + "-no-eye");
+                foreach (var (h, r) in EdgePopups(window)) Console.WriteLine($"[{tag}] after the eye: Edge popup {h:X}: {r.Left},{r.Top} to {r.Right},{r.Bottom}");
+            }
         }
     }
 
