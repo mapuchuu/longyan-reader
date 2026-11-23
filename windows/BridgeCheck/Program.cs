@@ -10,7 +10,9 @@ namespace Longyan;
 
 /// Runs the lookups in scripts/bridge-check.txt through the bridge and prints each one's last
 /// card (or hint), one JSON line each. Drains the core's main queue from this thread, as the
-/// app does from its message loop. Usage: BridgeCheck RESOURCES LOOKUPS
+/// app does from its message loop. Usage: BridgeCheck RESOURCES LOOKUPS [MODEL]
+/// With MODEL, the lookups go one at a time, each once its card has settled (the pick parity
+/// step in windows.yml), and the signal check is skipped.
 static class Program
 {
     static readonly List<(string passage, int start, int end)> lookups = new();
@@ -30,7 +32,8 @@ static class Program
             lookups.Add((p[0], int.Parse(p[1]), int.Parse(p[2])));
         }
         keep = OnEvent;
-        Bridge.ly_start(Bridge.Utf8(args[0]), null, keep);
+        var model = args.Length > 2 ? args[2] : null;
+        Bridge.ly_start(Bridge.Utf8(args[0]), model == null ? null : Bridge.Utf8(model), keep);
         var handle = Bridge._dispatch_get_main_queue_handle_4CF();
         Console.Error.WriteLine($"main queue handle: {handle}");
         using var queued = handle == IntPtr.Zero ? null : new AutoResetEvent(false) { SafeWaitHandle = new Microsoft.Win32.SafeHandles.SafeWaitHandle(handle, false) };
@@ -44,6 +47,12 @@ static class Program
             queued?.WaitOne(20);
             Bridge._dispatch_main_queue_callback_4CF(IntPtr.Zero);
             if (failed) return 1;
+            if (model != null)
+            {
+                if (ready && Next()) break;
+                if ((DateTime.Now - started).TotalMinutes > 30) { Console.Error.WriteLine("timed out"); return 1; }
+                continue;
+            }
             if (ready && !asked)
             {
                 for (var i = 0; i < lookups.Count; i++) byID[Bridge.ly_lookup(Bridge.Utf8(lookups[i].passage), lookups[i].start, lookups[i].end)] = i;
@@ -54,6 +63,7 @@ static class Program
             if ((DateTime.Now - started).TotalMinutes > 5) { Console.Error.WriteLine("timed out"); return 1; }
         }
         for (var i = 0; i < lookups.Count; i++) Console.WriteLine(last.TryGetValue(i, out var j) ? j : "{\"missing\":true}");
+        if (model != null) return 0;
         return queued == null ? 0 : SignalCheck(queued);
     }
 
@@ -82,6 +92,46 @@ static class Program
         Bridge.ly_shutdown();
         Console.Error.WriteLine($"signal check: ly_shutdown took {clock.Elapsed.TotalMilliseconds:F1} ms");
         return same == lookups.Count ? 0 : 1;
+    }
+
+    static int current = -1;
+    static DateTime askedAt, changedAt;
+    static string? seenCard;
+
+    /// Model mode: asks for the next lookup once the current card has stayed settled a while
+    /// (or after 3 minutes). True when all are done.
+    static bool Next()
+    {
+        if (current >= 0)
+        {
+            last.TryGetValue(current, out var json);
+            if (json != seenCard) { seenCard = json; changedAt = DateTime.Now; }
+            var c = json == null ? null : JsonNode.Parse(json)?["card"] as JsonObject;
+            var settled = c != null && Settled(c);
+            // A word card without a meaning yet may not have started its pick: wait longer.
+            var quiet = c?["meaning"] != null || (string?)c?["kind"] == "phrase" ? 2 : 10;
+            var waited = (DateTime.Now - askedAt).TotalSeconds;
+            if (!(settled && (DateTime.Now - changedAt).TotalSeconds > quiet) && waited < 180) return false;
+            Console.Error.WriteLine($"lookup {current}: {(settled ? "settled" : "NOT settled")} after {waited:0.0} s");
+        }
+        if (++current >= lookups.Count) return true;
+        var (passage, start, end) = lookups[current];
+        askedAt = changedAt = DateTime.Now; seenCard = null;
+        byID[Bridge.ly_lookup(Bridge.Utf8(passage), start, end)] = current;
+        return false;
+    }
+
+    /// As UiCheck's: the model's pick in, and for a phrase its translation.
+    static bool Settled(JsonObject card)
+    {
+        if ((string?)card["kind"] == "phrase")
+        {
+            if (card["translation"] == null && card["translationError"] == null) return false;
+            foreach (var r in card["rows"]?.AsArray() ?? new JsonArray())
+                if ((bool?)r?["pending"] == true || ((string?)r?["status"])?.StartsWith("Reading") == true) return false;
+            return true;
+        }
+        return (string?)card["status"] != "Reading the sentence…";
     }
 
     static string WithoutID(string json)
