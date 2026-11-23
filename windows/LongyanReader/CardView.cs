@@ -810,10 +810,10 @@ sealed class CardView
         new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, new Typeface(family, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal), size, Brushes.Black, 1.0).WidthIncludingTrailingWhitespace;
 
     /// A pending gloss as redaction draws it: a bar per line the text would wrap to (two at
-    /// most), as wide as that line, 11 tall in the 16 line.
+    /// most), as wide as that line, 9 tall and 2 above the bottom of the 16 line.
     sealed class Bars : FrameworkElement
     {
-        const double Size = 13, Bar = 11;
+        const double Size = 13, Bar = 9;
         readonly string[] words;
         List<double> widths = new();
         static double LineH => Math.Round(Size * Theme.LineFactor);
@@ -848,7 +848,7 @@ sealed class CardView
         {
             var fill = Theme.Ink(0.082);
             for (var i = 0; i < widths.Count; i++)
-                dc.DrawRoundedRectangle(fill, null, new Rect(0, i * LineH + (LineH - Bar) / 2, Math.Ceiling(widths[i]), Bar), 2.5, 2.5);
+                dc.DrawRoundedRectangle(fill, null, new Rect(0, i * LineH + LineH - 2 - Bar, Math.Ceiling(widths[i]), Bar), 2, 2);
         }
     }
 
