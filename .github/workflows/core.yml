@@ -24,7 +24,7 @@ env:
   # GitHub's archive of the tag (the Mac's build-llama.sh fetches the same file).
   LLAMA_TAR_SHA: 37588f85e252f1b8753dcb200fba7198dc93e4f1b1615f459abffbe5662ac85d
   # Bump to rebuild llama.cpp when the build flags change.
-  LLAMA_CACHE: v1
+  LLAMA_CACHE: v2
 
 jobs:
   windows:
@@ -45,7 +45,7 @@ jobs:
         with:
           path: Vendor/llama
           key: llama-${{ env.LLAMA_TAG }}-windows-${{ env.LLAMA_CACHE }}-${{ hashFiles('patches/llama.cpp-output-tokens.patch', 'patches/llama.cpp-windows.patch') }}
-      - name: Build llama.cpp (CPU, static)
+      - name: Build llama.cpp (CPU, DLLs)
         if: steps.llama.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
@@ -56,16 +56,22 @@ jobs:
           (cd "$T" && tar -xzf src.tar.gz -C src --strip-components 1)
           (cd "$T/src" && git apply -p1 "$GITHUB_WORKSPACE/patches/llama.cpp-output-tokens.patch" \
                        && git apply -p1 "$GITHUB_WORKSPACE/patches/llama.cpp-windows.patch")
-          cmake -S "$T/src" -B "$T/build" -A x64 -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_LIBDIR=lib \
+          # DLLs, with the CPU kernels built once per kind of x64 CPU (ggml-cpu-x64.dll, -sse42, -haswell,
+          # -skylakex, -icelake, -alderlake...). ggml loads the best one the CPU runs, so CPUs without
+          # AVX2 (Celeron, Pentium Silver, Atom) work too.
+          cmake -S "$T/src" -B "$T/build" -A x64 -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_LIBDIR=lib \
+            -DGGML_BACKEND_DL=ON -DGGML_CPU_ALL_VARIANTS=ON \
             -DLLAMA_BUILD_APP=OFF -DLLAMA_BUILD_COMMON=OFF -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TOOLS=OFF \
             -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_SERVER=OFF -DLLAMA_BUILD_MTMD=OFF -DLLAMA_OPENSSL=OFF -DLLAMA_CURL=OFF \
             -DGGML_NATIVE=OFF -DGGML_OPENMP=OFF
           cmake --build "$T/build" --config Release -j 4
           cmake --install "$T/build" --config Release --prefix Vendor/llama
-          ls Vendor/llama/include Vendor/llama/lib
+          ls Vendor/llama/include Vendor/llama/lib Vendor/llama/bin || true
       - run: swift build -c release --product longyan-core-check
       - name: Run the check
-        run: .build/release/longyan-core-check.exe --full full-windows.txt > check-windows.txt
+        run: |
+          cp Vendor/llama/bin/*.dll .build/release/
+          .build/release/longyan-core-check.exe --full full-windows.txt > check-windows.txt
       - name: Compare with the Mac
         run: |
           if grep -q $'\r' check-windows.txt; then echo "note: output has CRLF line endings"; fi
@@ -106,7 +112,7 @@ jobs:
             -DGGML_NATIVE=OFF -DGGML_OPENMP=OFF
           cmake --build "$T/build"
           cmake --install "$T/build" --prefix Vendor/llama
-          ls Vendor/llama/include Vendor/llama/lib
+          ls Vendor/llama/include Vendor/llama/lib Vendor/llama/bin || true
       - run: swift build -c release --product longyan-core-check
       - name: Run the check
         run: .build/release/longyan-core-check --full full-linux.txt > check-linux.txt

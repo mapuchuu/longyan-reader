@@ -62,7 +62,9 @@ let package = Package(
 )
 #else
 // Windows and Linux: the core and the check tool only. llama.cpp (the same release and patch,
-// CPU only) is built as static libraries into Vendor/llama/{include,lib}, as the workflow does.
+// CPU only) is built into Vendor/llama, as the workflows do. Linux links it statically. Windows
+// links llama.dll, ggml.dll and ggml-base.dll; the CPU kernels are ggml-cpu-*.dll, one per kind
+// of CPU, and ggml loads the best one this CPU runs when the model first loads.
 let package = Package(
     name: "LongyanReader",
     products: [
@@ -77,7 +79,8 @@ let package = Package(
             swiftSettings: [.swiftLanguageMode(.v5)],
             linkerSettings: [
                 .unsafeFlags(["-L", Context.packageDirectory + "/Vendor/llama/lib"]),
-                .linkedLibrary("llama"), .linkedLibrary("ggml"), .linkedLibrary("ggml-cpu"), .linkedLibrary("ggml-base"),
+                .linkedLibrary("llama"), .linkedLibrary("ggml"), .linkedLibrary("ggml-cpu", .when(platforms: [.linux])),
+                .linkedLibrary("ggml-base"),
                 .linkedLibrary("stdc++", .when(platforms: [.linux])),
             ]
         ),

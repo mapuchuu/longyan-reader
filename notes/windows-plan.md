@@ -95,7 +95,7 @@ Streaming from Ollama uses `URLSession.bytes`, which only Apple's Foundation has
 
 ## Still to build for Windows
 
-- llama.cpp for the app: CI builds it CPU-only and static. Vulkan (and maybe CUDA) for speed, and DLL or static.
+- llama.cpp for the app: CI builds it CPU-only as DLLs, with the CPU kernels once per kind of x64 CPU (ggml-cpu-*.dll, SSE 4.2 up to AVX-512); ggml loads the best one at run time, and the UI check also runs on the SSE 4.2 ones. Vulkan (and maybe CUDA) for speed.
 - Fold the Windows fence (patches/llama.cpp-windows.patch) into the output-tokens patch, which needs a Mac llama rebuild. Until then the output table's pages aren't given back on Windows.
 - Run the real model on Windows: load the GGUF, pick a sense, translate, and compare with the Mac.
 - Memory pressure: Windows has its own low-memory signal to call `EmbeddedModel.relieve`.

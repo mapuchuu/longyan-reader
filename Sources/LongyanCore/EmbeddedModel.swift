@@ -123,6 +123,9 @@ package final class EmbeddedModel: @unchecked Sendable {
         if let at = contextFailedAt, Date().timeIntervalSince(at) < 60 { throw Self.error("couldn't create a context") }
         guard let path = Self.modelPath else { throw Self.error("no model file") }
         if !backendReady {
+            #if os(Windows)
+            Self.loadCPUBackend()
+            #endif
             if ProcessInfo.processInfo.environment["LONGYAN_LLAMA_LOG"] != "1" { llama_log_set({ _, _, _ in }, nil) }
             llama_backend_init()
             backendReady = true
@@ -604,3 +607,53 @@ private func releaseCString(_ p: UnsafeMutablePointer<CChar>?) {
     free(p)
     #endif
 }
+
+#if os(Windows)
+extension EmbeddedModel {
+    nonisolated(unsafe) private static var backendLog = ""
+
+    /// The CPU kernels are ggml-cpu-*.dll beside the app, one per kind of CPU (x64 and sse42 up
+    /// to AVX-512 with VNNI). ggml loads the best one this CPU runs, so a laptop without AVX2
+    /// gets the SSE 4.2 kernels instead of an illegal instruction. LONGYAN_CPU=sse42 (or another
+    /// variant's name) loads that one instead, if this CPU can run it. LONGYAN_BACKEND_LOG=file
+    /// adds a line there saying what was loaded.
+    fileprivate static func loadCPUBackend() {
+        let env = ProcessInfo.processInfo.environment
+        backendLog = ""
+        llama_log_set({ _, text, _ in
+            if let text { EmbeddedModel.backendLog += String(cString: text) }
+        }, nil)
+        if let v = env["LONGYAN_CPU"], !v.isEmpty,
+           let dir = Bundle.main.executableURL?.deletingLastPathComponent() {
+            _ = dir.appendingPathComponent("ggml-cpu-\(v).dll").withUnsafeFileSystemRepresentation { p in
+                p.flatMap { ggml_backend_load($0) }
+            }
+        }
+        if ggml_backend_reg_count() == 0 { ggml_backend_load_all() }
+        llama_log_set(nil, nil)
+
+        // The DLL ggml took, and the features it was built with.
+        let from = backendLog.split(whereSeparator: \.isNewline)
+            .first { $0.contains("loaded CPU backend from") }
+            .map { String($0.split(separator: "\\").last ?? "") } ?? "none"
+        var features: [String] = []
+        if let reg = ggml_backend_reg_by_name("CPU"),
+           let fn = ggml_backend_reg_get_proc_address(reg, "ggml_backend_get_features") {
+            let get = unsafeBitCast(fn, to: ggml_backend_get_features_t.self)
+            var f = get(reg)
+            while let name = f?.pointee.name {
+                features.append(String(cString: name)); f = f?.successor()
+            }
+        }
+        let cpu = ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_CPU).flatMap { ggml_backend_dev_description($0) }
+            .map { String(cString: $0) } ?? "?"
+        let line = "llama.cpp CPU backend: \(from) (\(features.joined(separator: " "))) on \(cpu)\n"
+        if env["LONGYAN_TIMING"] == "1" { FileHandle.standardError.write(Data(line.utf8)) }
+        if let path = env["LONGYAN_BACKEND_LOG"], let h = FileHandle(forWritingAtPath: path) ?? {
+            FileManager.default.createFile(atPath: path, contents: nil) ? FileHandle(forWritingAtPath: path) : nil
+        }() {
+            h.seekToEndOfFile(); h.write(Data(line.utf8)); h.closeFile()
+        }
+    }
+}
+#endif

@@ -28,7 +28,7 @@ env:
   LLAMA_TAG: b11588
   LLAMA_TAR_SHA: 37588f85e252f1b8753dcb200fba7198dc93e4f1b1615f459abffbe5662ac85d
   # The same key as core.yml's, so the two share the built llama.cpp.
-  LLAMA_CACHE: v1
+  LLAMA_CACHE: v2
   PYTHONIOENCODING: utf-8
 
 jobs:
@@ -49,7 +49,7 @@ jobs:
         with:
           path: Vendor/llama
           key: llama-${{ env.LLAMA_TAG }}-windows-${{ env.LLAMA_CACHE }}-${{ hashFiles('patches/llama.cpp-output-tokens.patch', 'patches/llama.cpp-windows.patch') }}
-      - name: Build llama.cpp (CPU, static)
+      - name: Build llama.cpp (CPU, DLLs)
         if: steps.llama.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
@@ -59,7 +59,11 @@ jobs:
           (cd "$T" && tar -xzf src.tar.gz -C src --strip-components 1)
           (cd "$T/src" && git apply -p1 "$GITHUB_WORKSPACE/patches/llama.cpp-output-tokens.patch" \
                        && git apply -p1 "$GITHUB_WORKSPACE/patches/llama.cpp-windows.patch")
-          cmake -S "$T/src" -B "$T/build" -A x64 -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_LIBDIR=lib \
+          # DLLs, with the CPU kernels built once per kind of x64 CPU (ggml-cpu-x64.dll, -sse42, -haswell,
+          # -skylakex, -icelake, -alderlake...). ggml loads the best one the CPU runs, so CPUs without
+          # AVX2 (Celeron, Pentium Silver, Atom) work too.
+          cmake -S "$T/src" -B "$T/build" -A x64 -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_LIBDIR=lib \
+            -DGGML_BACKEND_DL=ON -DGGML_CPU_ALL_VARIANTS=ON \
             -DLLAMA_BUILD_APP=OFF -DLLAMA_BUILD_COMMON=OFF -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TOOLS=OFF \
             -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_SERVER=OFF -DLLAMA_BUILD_MTMD=OFF -DLLAMA_OPENSSL=OFF -DLLAMA_CURL=OFF \
             -DGGML_NATIVE=OFF -DGGML_OPENMP=OFF
@@ -73,6 +77,8 @@ jobs:
           mkdir -p "$out"
           ls .build/release/*.dll
           cp .build/release/LongyanBridge.dll "$out/"
+          # llama.dll, ggml.dll, ggml-base.dll and the CPU kernels, ggml-cpu-*.dll.
+          cp Vendor/llama/bin/*.dll "$out/"
           # The Swift runtime: the folder that holds swiftCore.dll on this runner.
           rt=$(cygpath -u "$(where.exe swiftCore.dll | head -1 | tr -d '\r')")
           echo "Swift runtime: $(dirname "$rt")"
@@ -85,6 +91,10 @@ jobs:
           cp Resources/licenses/llama.cpp-LICENSE.txt "$out/Licenses/llama.cpp.txt"
           { sed -n '/^#/p;/^[^#]/q' Resources/cedict_ts.u8; } > "$out/Licenses/CC-CEDICT.txt"
           du -sh "$out"
+      - name: CPU kernels shipped
+        run: |
+          ls -l dist/LongyanReader/ggml*.dll dist/LongyanReader/llama.dll
+          du -ch dist/LongyanReader/ggml*.dll dist/LongyanReader/llama.dll | tail -1
       - name: Bridge check
         run: |
           set -euo pipefail
@@ -113,10 +123,16 @@ jobs:
           path: dist
 
   # The app on a real desktop, with the reading model: Notepad, a selection, Ctrl+Alt+L, then
-  # screenshots and the card's text as UI Automation reads it.
+  # screenshots and the card's text as UI Automation reads it. Twice: with the CPU kernels ggml
+  # picks for this runner, and with the SSE 4.2 ones (LONGYAN_CPU=sse42), which CPUs without AVX
+  # use (Celeron, Pentium Silver, Atom).
   ui:
     needs: app
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cpu: [best, sse42]
     defaults:
       run:
         shell: bash
@@ -143,10 +159,20 @@ jobs:
           echo "00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4  $MODELS/qwen3.5-4b-q4_k_m.gguf" | sha256sum -c
       - run: dotnet build windows/UiCheck -c Release -o uicheck
       - name: Use the app
-        run: uicheck/UiCheck.exe "$(cygpath -w "$PWD/dist/LongyanReader/LongyanReader.exe")" ui-out
+        env:
+          LONGYAN_CPU: ${{ matrix.cpu != 'best' && matrix.cpu || '' }}
+        run: |
+          export LONGYAN_BACKEND_LOG="$(cygpath -w "$PWD/backend.txt")"
+          uicheck/UiCheck.exe "$(cygpath -w "$PWD/dist/LongyanReader/LongyanReader.exe")" ui-out
+      - name: CPU kernels used
+        if: always()
+        run: |
+          cat backend.txt || echo "no backend line: the model didn't load"
+          cp backend.txt ui-out/ 2>/dev/null || true
+          if [ -n "${{ matrix.cpu != 'best' && matrix.cpu || '' }}" ]; then grep -q "ggml-cpu-${{ matrix.cpu }}.dll" backend.txt; fi
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: ui-check
+          name: ui-check${{ matrix.cpu != 'best' && format('-{0}', matrix.cpu) || '' }}
           path: ui-out
 
