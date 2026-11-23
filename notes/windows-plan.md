@@ -78,6 +78,8 @@ Streaming from Ollama uses `URLSession.bytes`, which only Apple's Foundation has
 - Motion follows the Mac's springs: changes on cardMotion (response 0.34, no bounce), the reveal on a 0.32/0.82 spring. Parts that stay slide to their new place when others come or go.
 - `gallery.yml` draws the cards in `windows/gallery` (light and dark) to put beside the Mac's drawings of the same cards (`windows/gallery/mac`, from `scripts/card-gallery.sh`). Card heights are within 1 to 3 pt of the Mac's.
 - The UI check in `windows.yml` also films the reveal, a pick, a row opening and Esc, and tries hover and drag.
+- Parts that leave fade out where they were, and changed text crossfades (the old element itself fades, since snapshots cost 30 ms a click). Rows rebuilt under the pointer keep their highlight.
+- The window keeps 160 spare height past the card. Resizing a transparent WPF window redraws its whole surface (40 to 57 ms on CI), so the card grows inside the spare room and the window gives it back after the motion. Click to drawn is now 13 to 19 ms on CI; the app logs the breakdown and WPF's frame times for the UI check.
 
 ## Still to build for Windows
 
