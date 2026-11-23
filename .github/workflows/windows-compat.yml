@@ -52,6 +52,7 @@ jobs:
           done
       - run: dotnet build windows/CompatCheck -c Release -o compatcheck
       - name: Use the app in each
+        timeout-minutes: 70
         run: compatcheck/CompatCheck.exe "$(cygpath -w "$PWD/dist/LongyanReader/LongyanReader.exe")" compat-out
       - name: Table
         if: always()
@@ -77,11 +78,15 @@ jobs:
           path: dist
       - name: Notepad
         run: |
+          # The runner's desktop starts under Windows 11's privacy-settings screen.
+          powershell -NoProfile -Command "New-Item -Force 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\OOBE' | Out-Null; Set-ItemProperty 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\OOBE' DisablePrivacyExperience 1 -Type DWord; Get-Process | Where-Object { \$_.MainWindowTitle -ne '' } | Select-Object ProcessName,MainWindowTitle | Format-Table -AutoSize" || true
+          powershell -NoProfile -Command "Get-Process WWAHost,CloudExperienceHost* -ErrorAction SilentlyContinue | Stop-Process -Force" || true
           powershell -NoProfile -Command "Get-AppxPackage *WindowsNotepad* | Select-Object Name,Version | Format-Table -HideTableHeaders" || true
           a="$LOCALAPPDATA/Microsoft/WindowsApps/Microsoft.WindowsNotepad_8wekyb3d8bbwe/notepad.exe"
           if [ -f "$a" ]; then echo "NOTEPAD11=$(cygpath -w "$a")" >> "$GITHUB_ENV"; else echo "NOTEPAD11=C:\\Windows\\notepad.exe" >> "$GITHUB_ENV"; fi
       - run: dotnet build windows/CompatCheck -c Release -o compatcheck
       - name: Use the app in Notepad
+        timeout-minutes: 15
         run: compatcheck/CompatCheck.exe "$(cygpath -w "$PWD/dist/LongyanReader/LongyanReader.exe")" compat-out notepad11
       - name: Table
         if: always()

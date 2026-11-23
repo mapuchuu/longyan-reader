@@ -84,9 +84,12 @@ static class Program
         {
             var exe = c.Exe();
             if (exe == null) { rows.Add(new[] { c.App, "all", "skipped: not installed", "", "", "", "" }); continue; }
-            try { Run(c, exe); }
-            catch (Exception e) { rows.Add(new[] { c.App, "all", "check failed: " + e.Message, "", "", "", "" }); Console.WriteLine(e); }
+            // Six minutes a case: one that hangs is listed, and the rest still run.
+            var task = System.Threading.Tasks.Task.Run(() => Run(c, exe));
+            try { if (!task.Wait(TimeSpan.FromMinutes(6))) { rows.Add(new[] { c.App, "all", "the check hung", "", "", "", "" }); Shot(c.Name + "-hung"); try { app?.Kill(); } catch { } app = null; } }
+            catch (Exception e) { rows.Add(new[] { c.App, "all", "check failed: " + e.GetBaseException().Message, "", "", "", "" }); Console.WriteLine(e); }
             Kill(c.Kill);
+            Table();
         }
         try { app?.Kill(); } catch { }
         Table();
