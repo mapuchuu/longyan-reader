@@ -13,7 +13,9 @@
     <AssemblyName>LongyanReader</AssemblyName>
     <StartupObject>Longyan.Program</StartupObject>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Platforms>x64</Platforms>
+    <Platforms>x64;ARM64</Platforms>
+    <!-- x64 unless asked: the ARM64 build is dotnet publish -r win-arm64 (windows.yml). -->
+    <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
     <Version>0.1.0</Version>
