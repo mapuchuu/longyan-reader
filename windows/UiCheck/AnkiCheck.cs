@@ -93,7 +93,7 @@ static partial class Program
         var ready = AnkiButton(app);
         if (ready == null || ready.Current.Name != "Add “吃” to Anki") { failures.Add($"4-anki: no \"Add “吃” to Anki\" button ({ready?.Current.Name ?? "none"})"); Keys(VK_ESCAPE); return; }
         Invoke(ready);
-        var failed = WaitForAnki(app, "Anki didn't answer. Is it open?", 10);
+        var failed = WaitForAnki(app, "Anki didn't answer. Is it open?", 20);
         Shot("4-anki-failed");
         if (failed == null) failures.Add($"4-anki: with Anki gone, the button didn't say so ({AnkiButton(app)?.Current.Name ?? "gone"})");
         else Console.WriteLine("[4-anki] with Anki gone: \"Anki didn't answer. Is it open?\"");

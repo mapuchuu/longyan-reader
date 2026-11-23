@@ -242,7 +242,10 @@ sealed class SettingsPage
     }
 
     /// Rows for the card's own settings, from other branches; none yet.
-    IEnumerable<FrameworkElement> CardRows() { yield break; }
+    IEnumerable<FrameworkElement> CardRows()
+    {
+        yield return new AnkiCard(f, preview).Root;   // Add to Anki (AnkiSettings.cs)
+    }
 
     public void FocusShortcut()
     {
