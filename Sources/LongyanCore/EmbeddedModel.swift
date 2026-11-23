@@ -186,7 +186,10 @@ package final class EmbeddedModel: @unchecked Sendable {
         // CPU side, outside the GPU's mapped range, which Metal keeps wired. Only the rows the input
         // looks up are then read; the kept output rows get a GPU copy of their own.
         let trim = Self.outputTokens != nil
-        let pattern = strdup("^(token_embd|output_norm)\\.weight$")
+        // With repacking on (LONGYAN_REPACK=1), the output table stays plain too: its kept rows are
+        // copied out of it, which a repacked buffer can't give back.
+        let repack = ProcessInfo.processInfo.environment["LONGYAN_REPACK"] == "1"
+        let pattern = strdup(repack ? "^(token_embd|output_norm|output)\\.weight$" : "^(token_embd|output_norm)\\.weight$")
         defer { releaseCString(pattern) }
         var overrides = [llama_model_tensor_buft_override(pattern: pattern, buft: ggml_backend_cpu_buffer_type()),
                          llama_model_tensor_buft_override(pattern: nil, buft: nil)]
