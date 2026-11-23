@@ -236,11 +236,11 @@ sealed class CardView
         var block = WordBlock(r).Panel;
         grid.Children.Add(block);
 
-        var dim = (bool?)r["dim"] == true || (bool?)r["guess"] == true || pending;
+        var dim = (bool?)r["dim"] == true || (bool?)r["guess"] == true || pending;   // particles and guesses
         var glossText = (string?)r["gloss"] ?? "";
         var gloss = Label(glossText, 13, dim ? Theme.Secondary : Theme.Primary);
         gloss.Margin = new Thickness(0, Baseline(Theme.Chinese, 17, FontWeights.Medium) - Baseline(Theme.Text, 13, FontWeights.Normal), 0, 0);
-        if (!open) { gloss.MaxHeight = 13 * 1.33 * 2 + 1; gloss.TextTrimming = TextTrimming.CharacterEllipsis; }
+        if (!open) { gloss.MaxHeight = gloss.LineHeight * 2 + 1; gloss.TextTrimming = TextTrimming.CharacterEllipsis; }
         FrameworkElement glossView = pending ? Redacted(gloss, 0.6) : Keyed("gloss:" + token, gloss, glossText, crossfade: true);
         Grid.SetColumn(glossView, 2);
         grid.Children.Add(glossView);
@@ -248,12 +248,13 @@ sealed class CardView
         if ((bool?)r["hasNote"] == true)
         {
             var mark = NoteMark();
-            mark.Margin = new Thickness(12, Baseline(Theme.Chinese, 17, FontWeights.Medium) - 13, 0, 0);
+            mark.Margin = new Thickness(12, gloss.Margin.Top + gloss.LineHeight / 2 - mark.Height / 2, 0, 0);
             Grid.SetColumn(mark, 3);
             grid.Children.Add(mark);
         }
-        var chevron = Chevron("", 9, Theme.Tertiary);
-        chevron.Margin = new Thickness(12, Baseline(Theme.Chinese, 17, FontWeights.Medium) - 11, 0, 0);
+        var chevron = Shape(ChevronRight, 10, 10, Theme.Tertiary, 1.4);
+        chevron.VerticalAlignment = VerticalAlignment.Top;
+        chevron.Margin = new Thickness(12, gloss.Margin.Top + gloss.LineHeight / 2 - 5, 0, 0);
         chevron.Opacity = opens || open ? 1 : 0;
         Rotate(chevron, "chevron:" + token, open ? 90 : 0);
         Grid.SetColumn(chevron, 4);
@@ -327,10 +328,8 @@ sealed class CardView
             Grid.SetColumn(mark, 3);
             grid.Children.Add(mark);
         }
-        var check = Icon("", 12, Theme.Accent);
-        check.FontWeight = FontWeights.SemiBold;
+        var check = Shape(Checkmark, 14, 13, Theme.Accent, 1.7);
         var box = new Border { Width = 14, Margin = new Thickness(8, 0, 0, 0), Child = check, VerticalAlignment = VerticalAlignment.Center };
-        check.HorizontalAlignment = HorizontalAlignment.Right;
         Choice(check, $"check:{scope}:{r["index"]}", chosen);
         Grid.SetColumn(box, 4);
         grid.Children.Add(box);
@@ -344,7 +343,7 @@ sealed class CardView
     {
         var line = new StackPanel { Orientation = Orientation.Horizontal };
         line.Children.Add(Label(text, 12, Theme.Accent, FontWeights.Medium));
-        var chevron = Chevron("", 9, Theme.Accent);
+        var chevron = Shape(ChevronDown, 10, 10, Theme.Accent, 1.4);
         chevron.Margin = new Thickness(4, 1, 0, 0);
         chevron.VerticalAlignment = VerticalAlignment.Center;
         Rotate(chevron, "more:" + scope, text == "Show Fewer" ? 180 : 0);
@@ -415,7 +414,21 @@ sealed class CardView
     static FrameworkElement Divider() => new Border { Height = 1, Background = Theme.Divider };
     static FrameworkElement Section(string title) => Label(title, 11, Theme.Secondary, FontWeights.SemiBold, top: 8);
 
-    static FrameworkElement NoteMark() => Icon("", 11, Theme.Tertiary);
+    static FrameworkElement NoteMark() => Shape(Bubble, 13, 12, Theme.Tertiary, 1.1);
+
+    // SF Symbols drawn as paths, so they sit exactly where they're put (icon fonts carry
+    // their own spacing above and below).
+    const string ChevronRight = "M 3.5,1.5 L 7,5 L 3.5,8.5";
+    const string ChevronDown = "M 1.5,3.5 L 5,7 L 8.5,3.5";
+    const string Checkmark = "M 1.5,7.2 L 5.2,10.8 L 12.5,2";
+    const string Bubble = "M 2.5,1 H 10.5 A 1.8,1.8 0 0 1 12.3,2.8 V 7.4 A 1.8,1.8 0 0 1 10.5,9.2 H 6 L 3.4,11.2 V 9.2 H 2.5 A 1.8,1.8 0 0 1 0.7,7.4 V 2.8 A 1.8,1.8 0 0 1 2.5,1 Z M 3.6,4 H 9.4 M 3.6,6.2 H 7.6";
+
+    static FrameworkElement Shape(string data, double width, double height, Brush color, double thickness) => new Path
+    {
+        Data = Geometry.Parse(data), Stroke = color, StrokeThickness = thickness, Width = width, Height = height,
+        StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round, StrokeLineJoin = PenLineJoin.Round,
+        RenderTransformOrigin = new Point(0.5, 0.5), SnapsToDevicePixels = false,
+    };
 
     /// A full-width row that highlights like a macOS list row: 0.05 under the pointer, 0.09
     /// pressed, radius 6, reaching `bleed` past the text on both sides.
@@ -460,8 +473,10 @@ sealed class CardView
         var n = 0;
         if (actions.CanListen) { buttons.Children.Add(ActionButton("", $"Listen to “{speech}”", () => actions.Listen(speech))); n++; }
         buttons.Children.Add(CopyButton(copy)); n++;
-        buttons.Children.Add(ActionButton(actions.Pinned ? "\uE842" : "\uE840", actions.Pinned ? "Unpin: close when you click elsewhere" : "Pin: keep the card here for every lookup",
-            () => actions.TogglePin(), tint: actions.Pinned)); n++;
+        var pin = ActionButton(actions.Pinned ? "\uE842" : "\uE840", actions.Pinned ? "Unpin: close when you click elsewhere" : "Pin: keep the card here for every lookup",
+            () => actions.TogglePin(), tint: actions.Pinned);
+        pin.Child.RenderTransform = new RotateTransform(-45);   // Segoe's pin leans; the Mac's stands
+        buttons.Children.Add(pin); n++;
         buttons.Margin = new Thickness(0, 0, Pad - 6, 0);
         return n * ButtonW + (n - 1) * ButtonGap - 6;
     }
@@ -532,17 +547,6 @@ sealed class CardView
     {
         Text = glyph, FontFamily = Theme.Icons, FontSize = size, Foreground = color, RenderTransformOrigin = new Point(0.5, 0.5),
     };
-
-    /// An icon in a square box with the glyph in its middle, so it turns in place.
-    static TextBlock Chevron(string glyph, double size, Brush color)
-    {
-        var t = Icon(glyph, size, color);
-        t.Width = t.Height = size + 2;
-        t.TextAlignment = TextAlignment.Center;
-        t.LineStackingStrategy = LineStackingStrategy.BlockLineHeight;
-        t.LineHeight = size + 2;
-        return t;
-    }
 
     static void AddHanzi(InlineCollection inlines, string word, JsonArray syllables, double size, FontWeight weight, bool pending)
     {

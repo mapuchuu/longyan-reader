@@ -329,6 +329,7 @@ public func ly_close(_ id: Int64) {
             "token": token.id, "text": token.text,
             "pinyin": syllables(senses[safe: shownSense ?? 0]?.pinyin ?? ""),
             "gloss": state.gloss(token), "pending": pending, "guess": state.isGuess(token),
+            "dim": particleWords.contains(token.text),
             "opens": state.canOpen(token), "open": state.expanded == token.id,
             "hasNote": !pending && state.note(token) != nil,
         ]
