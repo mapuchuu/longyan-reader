@@ -602,8 +602,18 @@ sealed class CardView
                 Width = 14, Height = 14, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
                 RenderTransformOrigin = new Point(0.5, 0.5),
                 // Drawn on a 14 grid; SF Symbols at the Mac's size come out a little larger.
-                RenderTransform = new TransformGroup { Children = { new ScaleTransform(scale, scale), new TranslateTransform(0, dy) } },
+                RenderTransform = new TransformGroup { Children = { new ScaleTransform(scale, scale), pop, new TranslateTransform(0, dy) } },
             };
+        }
+        readonly ScaleTransform pop = new(1, 1);
+        /// [card feel] SF Symbols' replace transition (copy to checkmark and back, pin to pin.fill):
+        /// the new symbol grows in and fades in with cardMotion, rather than swapping in a frame.
+        public void Pop()
+        {
+            if (Motion.Reduced) return;
+            Motion.Animate(pop, ScaleTransform.ScaleXProperty, 0.5, 1);
+            Motion.Animate(pop, ScaleTransform.ScaleYProperty, 0.5, 1);
+            Motion.Animate(Path, UIElement.OpacityProperty, 0, 1, new Duration(TimeSpan.FromSeconds(0.2)), Motion.EaseOut);
         }
         public void To(Brush target, double seconds)
         {
@@ -630,6 +640,8 @@ sealed class CardView
         buttons.Children.Add(CopyButton(copy)); n++;
         if (AnkiState != null) { buttons.Children.Add(AnkiButton(copy)); n++; }
         var pin = actions.Pinned ? new Symbol(PinFill, true, ((SolidColorBrush)Theme.Accent).Color, true, dy: 1) : new Symbol(Pin, false, Rest, false, dy: 1);
+        if (animate && wasPinned != actions.Pinned) pin.Pop();   // [card feel]
+        wasPinned = actions.Pinned;
         buttons.Children.Add(ActionButton(pin, actions.Pinned ? "Unpin: close when you click elsewhere" : "Pin: keep the card here for every lookup", _ => actions.TogglePin())); n++;
         buttons.Margin = new Thickness(0, 0, Pad * Zoom - 6 - ButtonGap / 2, 0);
         // The slot they take on the first line, in the content's own (unzoomed) units. The Mac
@@ -638,6 +650,8 @@ sealed class CardView
         var count = AnkiState != null ? 4 : 3;
         return (count * ButtonW + (count - 1) * ButtonGap - 6) / Zoom;
     }
+
+    bool? wasPinned;
 
     /// A symbol's colour at rest: tertiary, secondary while the pointer is on the card.
     Color Rest => ((SolidColorBrush)(hovered ? Theme.Secondary : Theme.Tertiary)).Color;
@@ -677,9 +691,10 @@ sealed class CardView
         var label = text.Length > 14 ? text[..13] + "…" : text;
         var help = $"Copy “{label}”";
         var symbol = new Symbol(Copy, false, Rest, false);
-        void Checked(Border b, TimeSpan left)
+        void Checked(Border b, TimeSpan left, bool pop = false)
         {
             // A checkmark in the accent, then back to the copy symbol.
+            if (pop) symbol.Pop();   // [card feel]
             symbol.Path.Data = Geometry.Parse(Check);
             symbol.Path.StrokeThickness = 1.6;
             symbol.Ink.BeginAnimation(SolidColorBrush.ColorProperty, null);
@@ -693,6 +708,7 @@ sealed class CardView
                 if (DateTime.UtcNow < copiedUntil - TimeSpan.FromMilliseconds(50)) return;   // copied again since
                 symbol.Path.Data = Geometry.Parse(Copy);
                 symbol.Path.StrokeThickness = 1.15;
+                symbol.Pop();   // [card feel]
                 symbol.Ink.Color = b.IsMouseOver ? ((SolidColorBrush)Theme.Primary).Color : Rest;
                 if (!symbols.Contains(symbol)) symbols.Add(symbol);
                 b.ToolTip = help;
@@ -702,10 +718,11 @@ sealed class CardView
         Border? button = null;
         button = ActionButton(symbol, help, b =>
         {
+            var showing = copied == text && DateTime.UtcNow < copiedUntil;
             actions.Copy(text);
             copied = text;
             copiedUntil = DateTime.UtcNow.AddSeconds(1.5);
-            Checked(b, TimeSpan.FromSeconds(1.5));
+            Checked(b, TimeSpan.FromSeconds(1.5), pop: !showing);
         });
         if (copied == text && DateTime.UtcNow < copiedUntil) Checked(button, copiedUntil - DateTime.UtcNow);
         return button;
@@ -1058,13 +1075,25 @@ sealed class CardView
             ghost.Width = w; ghost.Height = h;
             ghost.Margin = new Thickness(0);
             ghost.RenderTransform = Transform.Identity;
+            // [card feel] Leaving the way it came: the note box and a phrase row's detail go back
+            // up by their slide as they fade (PU:27, PC:126), with cardMotion.
+            if (!Motion.Reduced && slides.TryGetValue(o.Key, out var up))
+            {
+                var t = new TranslateTransform();
+                ghost.RenderTransform = t;
+                Motion.Animate(t, TranslateTransform.YProperty, 0, up, Motion.ContentDuration, Motion.ContentEase);
+            }
             Canvas.SetLeft(ghost, o.At.X); Canvas.SetTop(ghost, o.At.Y);
             ghosts.Children.Add(ghost);
-            var fade = new DoubleAnimation(0, Motion.Reduced ? Motion.ContentDuration : new Duration(TimeSpan.FromSeconds(0.3))) { EasingFunction = Motion.EaseOut };
+            // [card feel] SwiftUI's removal runs on cardMotion, as the insertion does.
+            var fade = new DoubleAnimation(0, Motion.ContentDuration) { EasingFunction = Motion.ContentEase };
             fade.Completed += (_, _) => ghosts.Children.Remove(ghost);
             ghost.BeginAnimation(UIElement.OpacityProperty, fade);
         }
     }
+
+    /// Keys that slide in from above by this much, and leave the same way.
+    readonly Dictionary<string, double> slides = new();
 
     /// Keys whose old copy fades out when their value changes.
     readonly HashSet<string> crossfades = new();
@@ -1075,6 +1104,7 @@ sealed class CardView
     {
         now[key] = value;
         if (crossfade) crossfades.Add(key);
+        if (slide != 0) slides[key] = slide;
         if (e is FrameworkElement fe) tracked[key] = fe;
         if (!animate) return e;
         if (!before.TryGetValue(key, out var old)) Motion.FadeIn(e, slide);
