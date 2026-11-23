@@ -67,20 +67,72 @@ static class SelectionReader
             {
                 passage = selected; start = 0;
             }
-            Rect? bounds = null;
-            var rects = selection.GetBoundingRectangles();
-            if (rects.Length > 0)
-            {
-                var r = rects[0];
-                foreach (var x in rects.Skip(1)) r.Union(x);
-                bounds = r;
-            }
-            return new Probed(Found.Selection, new Selected(passage, start, start + selected.Length, bounds), role, area);
+            return new Probed(Found.Selection, new Selected(passage, start, start + selected.Length, Bounds(selection)), role, area);
         }
         catch (Exception)
         {
             return new Probed(Found.Unreadable, null);   // the app went away or doesn't answer
         }
+    }
+
+    /// Where the selection is on screen: its lines' rectangles together, as the Mac's
+    /// AXBoundsForRange gives. Notepad on Windows 11 counts the page's top margin (16 at 100%)
+    /// as part of the first line, which put the eye that much above the text: a top line taller
+    /// than the next line by a quarter, or than its font allows, is cut to a normal line's
+    /// height from the bottom, where its text is.
+    static Rect? Bounds(TextPatternRange selection)
+    {
+        var rects = selection.GetBoundingRectangles();
+        if (rects.Length == 0) return null;
+        var top = rects.OrderBy(x => x.Top).First();
+        var line = LineHeight(selection, rects, top);
+        if (line > 0 && top.Height > line * 1.25)
+        {
+            var cut = top.Bottom - line;
+            for (var i = 0; i < rects.Length; i++)
+                if (rects[i].Top < cut && rects[i].Bottom > cut) rects[i] = new Rect(rects[i].X, cut, rects[i].Width, rects[i].Bottom - cut);
+        }
+        var r = rects[0];
+        foreach (var x in rects.Skip(1)) r.Union(x);
+        return r;
+    }
+
+    /// A normal line's height near the selection's top line: the selection's next line, else
+    /// the document's line after or before it, else about 1.33 of the font (Microsoft YaHei's
+    /// line). Zero when there's nothing to go by.
+    static double LineHeight(TextPatternRange selection, Rect[] rects, Rect top)
+    {
+        // Only worth the extra calls when the top line is taller than its font would make it.
+        var em = Em(selection, top);
+        if (em > 0 && top.Height <= em * 1.6) return 0;
+        foreach (var x in rects) if (x.Top >= top.Bottom - 1 && x.Height > 0) return x.Height;
+        foreach (var step in new[] { 1, -1 })
+        {
+            try
+            {
+                var r = selection.Clone();
+                if (step > 0) r.MoveEndpointByRange(TextPatternRangeEndpoint.Start, r, TextPatternRangeEndpoint.End);
+                else r.MoveEndpointByRange(TextPatternRangeEndpoint.End, r, TextPatternRangeEndpoint.Start);
+                if (r.Move(TextUnit.Line, step) != step) continue;
+                r.ExpandToEnclosingUnit(TextUnit.Line);
+                foreach (var x in r.GetBoundingRectangles())
+                    if (x.Height > 0 && (step > 0 ? x.Top >= top.Bottom - 1 : x.Bottom <= top.Top + 1)) return x.Height;
+            }
+            catch (Exception) { }
+        }
+        return em > 0 ? Math.Round(em * 1.33) : 0;
+    }
+
+    /// The selection's font size in device pixels where it is, or zero when the app doesn't say.
+    static double Em(TextPatternRange selection, Rect at)
+    {
+        try
+        {
+            if (selection.GetAttributeValue(TextPattern.FontSizeAttribute) is not double points || points <= 0) return 0;
+            var p = new InputWatch.POINT { X = (int)at.Left, Y = (int)at.Top };
+            return points / 72 * 96 * Chip.ScaleAt(p);
+        }
+        catch (Exception) { return 0; }
     }
 
     /// True when the selected part has a Chinese character (CJK ideographs, extensions included).

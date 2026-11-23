@@ -33,10 +33,12 @@ static class Chip
     {
         InputWatch.Down += (button, p, ours) =>
         {
+            // The Mac watches the left and right buttons only.
+            if (button == InputWatch.Button.Middle) return;
             generation++;
             if (shown == null) return;
-            // Its own menu: a click elsewhere closes it (WPF can't see that click, as the app is
-            // never in front), and the eye with it.
+            // Its own menu: a click elsewhere closes it (the menu can't see that click, as the
+            // app is never in front), and the eye with it.
             if (shown.MenuOpen) { if (!ours) shown.CloseMenu(); return; }
             if (ours && shown.Contains(p)) return;
             Hide();
@@ -82,7 +84,8 @@ static class Chip
             case SelectionReader.Found.Selection when probed.Selection is Selected selection:
                 if (!SelectionReader.HasChinese(selection) || SelectionReader.Length(selection) > 400) return;
                 // A position far from where the mouse let go isn't where the selection is.
-                var near = selection.Bounds is Rect b && Inflate(b, 160 * ScaleAt(up)).Contains(new Point(up.X, up.Y));
+                // Nor is an empty one (the Mac's SelectionReader.checked).
+                var near = selection.Bounds is Rect b && b.Width >= 1 && b.Height >= 1 && Inflate(b, 160 * ScaleAt(up)).Contains(new Point(up.X, up.Y));
                 Show(up, near ? selection : selection with { Bounds = null }, app);
                 break;
             case SelectionReader.Found.Unreadable:
@@ -103,9 +106,11 @@ static class Chip
         Hide();
         Bridge.ly_warm_up();
         var w = new ChipWindow(selection, app.Process, app.Path);
-        w.Place(up, selection?.Bounds);
+        var (left, top, size) = w.Place(up, selection?.Bounds);
         shown = w;
-        Core.Log($"{{\"event\":\"eye\",\"readable\":{(selection != null ? "true" : "false")}}}");
+        // Positions only, in device pixels (UiCheck checks them): never the text.
+        var bounds = selection?.Bounds is Rect b ? $"[{b.X:0.#},{b.Y:0.#},{b.Width:0.#},{b.Height:0.#}]" : "null";
+        Core.Log($"{{\"event\":\"eye\",\"readable\":{(selection != null ? "true" : "false")},\"up\":[{up.X},{up.Y}],\"bounds\":{bounds},\"window\":[{left},{top},{size}],\"scale\":{ScaleAt(up):0.##}}}");
         // The card's work starts once the eye has stayed a moment (or on hover): most selections
         // are made to copy, and the model's work costs battery.
         DispatcherTimer? soon = null;
@@ -134,9 +139,15 @@ static class Chip
     {
         if (shown != w) return;
         shown = null;
-        w.Leave(quick: true);
+        w.Leave();
         Core.Log("{\"event\":\"eye-click\"}");
-        Clicked?.Invoke(w.Selection);
+        Open(w.Selection);
+    }
+
+    static async void Open(Selected? selection)
+    {
+        try { if (Clicked != null) await Clicked(selection); }
+        catch (Exception e) { Core.Log($"{{\"event\":\"eye-click-error\",\"type\":\"{e.GetType().Name}\"}}"); }
     }
 
     internal static void Forget(ChipWindow w) { if (shown == w) shown = null; }
@@ -177,7 +188,6 @@ sealed class ChipWindow : Window
 
     public readonly Selected? Selection;
     readonly string process, path;
-    ContextMenu? menu;
     /// Whether the card's work was started for this eye (see Chip.Prepare).
     public bool Prepared;
     readonly ScaleTransform scale = new(0.6, 0.6, Target / 2, Target / 2);
@@ -226,15 +236,10 @@ sealed class ChipWindow : Window
             e.Handled = true;
             Chip.Click(this);
         };
-        hit.MouseRightButtonUp += (_, e) => { e.Handled = true; Options(button); };
+        hit.MouseRightButtonUp += (_, e) => { e.Handled = true; Options(); };
 
-        timer.Tick += (_, _) =>
-        {
-            // Not from under the pointer: wait until it moves off.
-            if (hovering || menuOpen) { timer.Interval = TimeSpan.FromSeconds(1.5); return; }
-            timer.Stop();
-            Chip.Hide();
-        };
+        // Gone after 6 s, as on the Mac (its menu stops the clock).
+        timer.Tick += (_, _) => { timer.Stop(); Chip.Hide(); };
         SourceInitialized += (_, _) =>
         {
             hwnd = new WindowInteropHelper(this).Handle;
@@ -265,7 +270,7 @@ sealed class ChipWindow : Window
         button.Children.Add(hairline);
         button.Children.Add(mark);
         button.Children.Add(hit);
-        button.ToolTip = Shortcut.Registered ? $"Look up ({Shortcut.Name}). Right-click for options." : "Look up. Right-click for options.";
+        button.ToolTip = Shortcut.Registered ? $"Look up ({Shortcut.Name}). Right-click to hide the eye." : "Look up. Right-click to hide the eye.";
         ToolTipService.SetInitialShowDelay(button, 700);
         return (button, hit, mark);
     }
@@ -289,7 +294,7 @@ sealed class ChipWindow : Window
 
     /// Just after the end of a one-line selection; for longer selections, or with no position,
     /// just above and right of where the mouse let go. Kept on that screen's working area.
-    public void Place(InputWatch.POINT up, Rect? selection)
+    public (int Left, int Top, int Size) Place(InputWatch.POINT up, Rect? selection)
     {
         s = Chip.ScaleAt(up);
         double x = up.X + 6 * s, y = up.Y - 6 * s - Target * s;
@@ -313,8 +318,9 @@ sealed class ChipWindow : Window
         // A small spring in (response 0.3, damping 0.68) and a 0.12 s fade, as on the Mac.
         BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromSeconds(0.12)));
         if (Motion.Reduced) scale.ScaleX = scale.ScaleY = 1;
-        else ScaleTo(1, Motion.EyeAppear, 0.6);
+        else ScaleTo(1, Motion.EyeAppear, Motion.EyeAppearSeconds);
         timer.Start();
+        return (left, top, (int)Math.Round(size));
     }
 
     protected override void OnDpiChanged(DpiScale oldDpi, DpiScale newDpi)
@@ -327,13 +333,14 @@ sealed class ChipWindow : Window
     /// True when `p` (device pixels) is on the eye's window.
     public bool Contains(InputWatch.POINT p) => !leaving && p.X >= left && p.Y >= top && p.X < left + Box * s && p.Y < top + Box * s;
 
-    public void Leave(bool quick = false)
+    /// Fades out over 0.1 s, clicked or not (Chip.swift hide()).
+    public void Leave()
     {
         if (leaving) return;
         leaving = true;
         timer.Stop();
         Chip.Forget(this);
-        var fade = new DoubleAnimation(0, TimeSpan.FromSeconds(quick ? 0.08 : 0.1));
+        var fade = new DoubleAnimation(0, TimeSpan.FromSeconds(0.1));
         fade.Completed += (_, _) => Close();
         BeginAnimation(OpacityProperty, fade);
     }
@@ -342,7 +349,10 @@ sealed class ChipWindow : Window
     {
         hovering = on;
         Bounce();
-        mark.BeginAnimation(OpacityProperty, new DoubleAnimation(InkAlpha(on), TimeSpan.FromSeconds(0.15)) { EasingFunction = Motion.EaseOut });
+        // The mark's colour changes in the same spring as the growth: SwiftUI's .animation(value:
+        // hovering) covers both.
+        if (Motion.Reduced) { mark.BeginAnimation(OpacityProperty, null); mark.Opacity = InkAlpha(on); return; }
+        mark.BeginAnimation(OpacityProperty, new DoubleAnimation(InkAlpha(on), TimeSpan.FromSeconds(Motion.EyeHoverSeconds)) { EasingFunction = Motion.EyeHover });
     }
 
     /// 1.08 on hover, 0.92 pressed, springing between (Chip.swift:212).
@@ -350,8 +360,8 @@ sealed class ChipWindow : Window
     {
         if (leaving) return;
         if (Motion.Reduced) return;
-        if (pressed) ScaleTo(0.92, Motion.EyePress, 0.4);
-        else ScaleTo(hovering ? 1.08 : 1, Motion.EyeHover, 0.5);
+        if (pressed) ScaleTo(0.92, Motion.EyePress, Motion.EyePressSeconds);
+        else ScaleTo(hovering ? 1.08 : 1, Motion.EyeHover, Motion.EyeHoverSeconds);
     }
 
     void ScaleTo(double to, IEasingFunction ease, double seconds)
@@ -365,32 +375,38 @@ sealed class ChipWindow : Window
     /// stronger than its secondary text, so these are measured from its drawing.
     static double InkAlpha(bool hover) => hover ? 0.85 : Theme.Dark ? 0.575 : 0.52;
 
-    /// Right-click: switch the eye off here or everywhere, without a trip to the tray.
-    void Options(FrameworkElement at)
+    /// Right-click: switch the eye off here or everywhere, without a trip to the tray. The
+    /// system's own menu at the pointer, as the Mac's NSMenu is, so it has Windows 11's look.
+    /// It never takes the focus (the eye can't), so a click or key elsewhere closes it (Chip.Start).
+    void Options()
     {
+        if (menuOpen || leaving) return;
         timer.Stop();
         menuOpen = true;
-        menu = new ContextMenu { PlacementTarget = at, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom };
+        var menu = CreatePopupMenu();
+        string? name = null;
         if (process.Length > 0)
         {
-            var name = ForegroundApp.NameOf(path);
-            var here = new MenuItem { Header = $"Hide the eye in {name}" };
-            here.Click += (_, _) => { Settings.HideEyeIn(process, name); Program.MenuChanged(); };
-            menu.Items.Add(here);
+            name = ForegroundApp.NameOf(path);
+            AppendMenu(menu, MF_STRING, HideHere, $"Hide the eye in {name.Replace("&", "&&")}");
         }
-        var off = new MenuItem { Header = "Turn off the eye" };
-        off.Click += (_, _) => { Settings.ShowEye = false; Program.MenuChanged(); };
-        menu.Items.Add(off);
+        AppendMenu(menu, MF_STRING, TurnOff, "Turn off the eye");
         if (Shortcut.Registered)
         {
-            menu.Items.Add(new Separator());
-            menu.Items.Add(new MenuItem { Header = $"{Shortcut.Name} still looks up selected text", IsEnabled = false });
+            AppendMenu(menu, MF_SEPARATOR, 0, null);
+            AppendMenu(menu, MF_STRING | MF_GRAYED, 0, $"{Shortcut.Name} still looks up selected text");
         }
-        menu.Closed += (_, _) => { menuOpen = false; Chip.Hide(); };
-        menu.IsOpen = true;
+        GetCursorPos(out var at);
+        var chosen = TrackPopupMenuEx(menu, TPM_RETURNCMD | TPM_RIGHTBUTTON | TPM_NONOTIFY, at.X, at.Y, hwnd, IntPtr.Zero);
+        DestroyMenu(menu);
+        menuOpen = false;
+        Core.Log($"{{\"event\":\"eye-menu\",\"chosen\":{chosen}}}");
+        if (chosen == HideHere && name != null) { Settings.HideEyeIn(process, name); Program.MenuChanged(); }
+        else if (chosen == TurnOff) { Settings.ShowEye = false; Program.MenuChanged(); }
+        Chip.Hide();
     }
 
-    public void CloseMenu() { if (menu != null) menu.IsOpen = false; }
+    public void CloseMenu() { if (menuOpen) EndMenu(); }
 
     static ImageBrush MakeMark()
     {
@@ -407,6 +423,14 @@ sealed class ChipWindow : Window
     }
 
     const int GWL_EXSTYLE = -20, WS_EX_NOACTIVATE = 0x08000000, WS_EX_TOOLWINDOW = 0x80;
+    const int HideHere = 1, TurnOff = 2;
+    const uint MF_STRING = 0, MF_GRAYED = 1, MF_SEPARATOR = 0x800, TPM_RIGHTBUTTON = 2, TPM_NONOTIFY = 0x80, TPM_RETURNCMD = 0x100;
+    [DllImport("user32.dll")] static extern IntPtr CreatePopupMenu();
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern bool AppendMenu(IntPtr menu, uint flags, nint id, string? text);
+    [DllImport("user32.dll")] static extern int TrackPopupMenuEx(IntPtr menu, uint flags, int x, int y, IntPtr hwnd, IntPtr tpm);
+    [DllImport("user32.dll")] static extern bool DestroyMenu(IntPtr menu);
+    [DllImport("user32.dll")] static extern bool EndMenu();
+    [DllImport("user32.dll")] static extern bool GetCursorPos(out InputWatch.POINT p);
     const uint SWP_NOACTIVATE = 0x10;
     static readonly IntPtr HWND_TOPMOST = new(-1);
     [DllImport("user32.dll")] static extern int GetWindowLong(IntPtr hwnd, int index);
