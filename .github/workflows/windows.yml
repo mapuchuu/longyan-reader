@@ -680,6 +680,10 @@ jobs:
           Start-Sleep 3
           Get-Process | Where-Object MainWindowTitle | Format-Table Id,ProcessName,MainWindowTitle -AutoSize
           Get-AppxPackage -AllUsers *Microsoft.WindowsNotepad* | Select-Object Name,Version
+      # The WSL prompt comes back during the check: closed whenever it shows, logged in ui-out.
+      - name: Keep the WSL prompt closed
+        shell: pwsh
+        run: Start-Process pwsh -WindowStyle Hidden -ArgumentList '-NoProfile', '-File', "$PWD\windows\UiCheck\close-wsl-prompt.ps1", '-Out', "$PWD\ui-out\wsl-prompt.txt"
       - run: dotnet build windows/UiCheck -c Release -o uicheck
       - name: Use the app
         run: |
@@ -776,6 +780,10 @@ jobs:
           Start-Sleep 3
           Get-Process | Where-Object MainWindowTitle | Format-Table Id,ProcessName,MainWindowTitle -AutoSize
           Get-AppxPackage -AllUsers *Microsoft.WindowsNotepad* | Select-Object Name,Version
+      # The WSL prompt comes back during the check: closed whenever it shows, logged in ui-out.
+      - name: Keep the WSL prompt closed
+        shell: pwsh
+        run: Start-Process pwsh -WindowStyle Hidden -ArgumentList '-NoProfile', '-File', "$PWD\windows\UiCheck\close-wsl-prompt.ps1", '-Out', "$PWD\ui-out\wsl-prompt.txt"
       - run: dotnet build windows/UiCheck -c Release -o uicheck
       - name: Use the app
         run: |
