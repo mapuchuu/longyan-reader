@@ -48,6 +48,8 @@ package enum LocalModel {
 
     package static func isAvailable() async -> Bool {
         guard enabled else { return false }
+        // Too slow (Windows only): as if there were no model, without loading it.
+        if !ollamaAllowed && EmbeddedModel.tooSlow { lastCheck = (Date(), false); note(.tooSlow); return false }
         if backend == .ollama && !ollamaAllowed { lastCheck = (Date(), false); return false }
         if backend == .embedded {
             let ok = !EmbeddedModel.fileUnloadable
@@ -76,6 +78,7 @@ package enum LocalModel {
     private static var _lastWarmUp: Date?
     package static func warmUp() {
         guard enabled else { return }
+        guard ollamaAllowed || !EmbeddedModel.tooSlow else { return }
         if backend == .embedded { EmbeddedModel.shared.warmUp(); checkWarmUp(); return }
         guard ollamaAllowed else { return }
         let due = lock.withLock {
@@ -100,8 +103,8 @@ package enum LocalModel {
 
     /// Why the built-in model can't run, as last seen: its file wouldn't load, or there was no
     /// memory for a context (the model tries again a minute later). Nil when it worked or
-    /// hasn't been tried.
-    package enum Problem: String, Sendable { case unloadable, noMemory = "no-memory" }
+    /// hasn't been tried. Or this PC is too slow for it (Windows only), so it's never loaded.
+    package enum Problem: String, Sendable { case unloadable, noMemory = "no-memory", tooSlow = "too-slow" }
     private static var _problem: Problem?
     package static var problem: Problem? { lock.withLock { _problem } }
     /// Told of each change of `problem`, on any thread. Set by the Windows bridge.
@@ -120,6 +123,12 @@ package enum LocalModel {
         // A file that won't load stays that way: cards stop waiting for it.
         if p == .unloadable { lastCheck = (Date(), false) }
         if changed { problemChanged?(p) }
+    }
+
+    /// The first cards showed the model too slow here: cards stop waiting for it.
+    static func noteTooSlow() {
+        lastCheck = (Date(), false)
+        note(.tooSlow)
     }
 
     /// A request to the built-in model failed: was it the load?
@@ -144,6 +153,7 @@ package enum LocalModel {
             let loaded = EmbeddedModel.shared.memoryState().loaded
             lock.withLock { checkingWarmUp = false }
             if loaded { note(nil) }
+            else if EmbeddedModel.tooSlow { note(.tooSlow) }
             else if EmbeddedModel.fileUnloadable { note(.unloadable) }
             else if EmbeddedModel.modelPath != nil { note(.noMemory) }
         }
