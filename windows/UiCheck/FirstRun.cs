@@ -128,6 +128,7 @@ static partial class Program
         if (!sawChecking) Console.WriteLine("[first-run] (the check was too quick to see)");
         if (!File.Exists(modelFile) || new FileInfo(modelFile).Length != 2_740_937_888) failures.Add("first-run: no model file of the right size");
         if (File.Exists(modelFile + ".part") || File.Exists(modelFile + ".pieces")) failures.Add("first-run: the .part or .pieces file was left behind");
+        if (ReadShared(appLog).Contains("couldn't save the list of pieces")) failures.Add("first-run: the list of pieces couldn't be saved");
         Console.WriteLine("[first-run] app log:\n" + string.Join("\n", ReadShared(appLog).Split('\n').Where(l => l.Contains("model"))));
 
         // 5. The next card: open at once, then the model's pick fills in.

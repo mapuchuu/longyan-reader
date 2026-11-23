@@ -561,15 +561,21 @@ static class ModelDownload
             WriteLedger(lines);
         }
 
+        /// One writer at a time: pieces finishing and the watchdog save it from different threads.
+        static readonly object ledgerGate = new();
+
         static void WriteLedger(List<string> lines)
         {
-            try
+            lock (ledgerGate)
             {
-                var temp = Ledger + ".new";
-                File.WriteAllText(temp, string.Join("\n", lines));
-                File.Move(temp, Ledger, true);
+                try
+                {
+                    var temp = Ledger + ".new";
+                    File.WriteAllText(temp, string.Join("\n", lines));
+                    File.Move(temp, Ledger, true);
+                }
+                catch (Exception e) { Diagnostics.Write("model download: couldn't save the list of pieces: " + e.Message); }
             }
-            catch (Exception e) { Diagnostics.Write("model download: couldn't save the list of pieces: " + e.Message); }
         }
     }
 
