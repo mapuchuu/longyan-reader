@@ -66,11 +66,14 @@ sealed class CardView
     public void Show(JsonObject card, bool animate)
     {
         this.animate = animate && !Motion.Reduced;
+        var was = this.animate ? Positions() : null;
+        tracked.Clear();
         before = now; now = new();
         content.Children.Clear();
         buttons.Children.Clear();
         if ((string?)card["kind"] == "phrase") { Width = WidthFor?.Invoke(true) ?? PhraseWidth; Phrase(card); }
         else { Width = WidthFor?.Invoke(false) ?? WordWidth; Word(card); }
+        if (was != null) Slide(was);
     }
 
     public void Hint(string message)
@@ -92,7 +95,7 @@ sealed class CardView
         // The top group, 4 apart: header, meaning, Part of, Back to, status.
         var top = new StackPanel();
         var header = Header(word, syllables, slot);
-        top.Children.Add(header);
+        top.Children.Add(Track("header", header));
         PlaceButtons(header, 34, Theme.Chinese, FontWeights.Medium, 12);
 
         if ((string?)c["meaning"] is string meaning)
@@ -103,11 +106,11 @@ sealed class CardView
                 block.Children.Add(Keyed("contextual", Label("Meaning in this sentence", 11, Theme.Secondary, top: 2)));
             top.Children.Add(Keyed("meaningBlock", block));
         }
-        if (c["partOf"] is JsonObject part) top.Children.Add(PartOf(part));
+        if (c["partOf"] is JsonObject part) top.Children.Add(Track("partOf", PartOf(part)));
         if ((string?)c["back"] is string back) top.Children.Add(Keyed("back", Back(back, -1)));
         if ((string?)c["status"] is string status)
             top.Children.Add(Keyed("status:" + status, status == "Reading the sentence…" ? Busy(status) : Label(status, 11, Theme.Secondary, top: 4)));
-        content.Children.Add(top);
+        content.Children.Add(Track("top", top));
 
         if (c["note"] is JsonObject note)
             content.Children.Add(Keyed("note", Note(note, 12), (string?)note["text"] ?? "", slide: -4, crossfade: true));
@@ -120,12 +123,12 @@ sealed class CardView
         var all = c["senses"]?.AsArray() ?? new JsonArray();
         var total = Total(all, (string?)c["more"]);
         foreach (var node in all)
-            if (node is JsonObject r) rows.Children.Add(SenseRow(r, 13, 5, total, "w", noteMarks: true, rows.Children.Count == 0, () => actions.Pick(-1, (int)r["index"]!)));
-        if ((string?)c["more"] is string more) rows.Children.Add(More(more, 5, () => actions.ToggleAll(-1), "w"));
+            if (node is JsonObject r) rows.Children.Add(Track($"row:w:{r["index"]}", SenseRow(r, 13, 5, total, "w", noteMarks: true, rows.Children.Count == 0, () => actions.Pick(-1, (int)r["index"]!))));
+        if ((string?)c["more"] is string more) rows.Children.Add(Track("more:w", More(more, 5, () => actions.ToggleAll(-1), "w")));
         senses.Children.Add(rows);
         var alternatives = c["alternatives"]?.AsArray().Select(x => (string?)x).Where(x => x != null).ToArray() ?? Array.Empty<string?>();
-        if (alternatives.Length > 0) senses.Children.Add(Label("Other words here: " + string.Join(" · ", alternatives), 11, Theme.Tertiary, top: 8));
-        content.Children.Add(senses);
+        if (alternatives.Length > 0) senses.Children.Add(Track("alternatives", Label("Other words here: " + string.Join(" · ", alternatives), 11, Theme.Tertiary, top: 8)));
+        content.Children.Add(Track("senses", senses));
     }
 
     /// Headword and pinyin on one baseline, 8 apart, with room for the buttons; on two lines
@@ -178,7 +181,7 @@ sealed class CardView
             Text = text, FontSize = 14 * Theme.ChineseScale, FontFamily = Theme.Chinese, Foreground = Theme.Secondary, TextWrapping = TextWrapping.Wrap,
             MaxHeight = Math.Round(14 * Theme.LineFactor) * 4, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, 0, slot + 8, 0),
         }, 14);
-        top.Children.Add(source);
+        top.Children.Add(Track("source", source));
         PlaceButtons(source, 14, Theme.Chinese, FontWeights.Normal, 5);
         if ((string?)c["translation"] is string t)
         {
@@ -188,7 +191,7 @@ sealed class CardView
         }
         else if ((string?)c["translationError"] is string e) top.Children.Add(Keyed("translationError", Label(e, 11, Theme.Secondary, top: 4)));
         else top.Children.Add(Keyed("translating", Busy("Translating…", top: 4)));
-        content.Children.Add(top);
+        content.Children.Add(Track("phraseTop", top));
 
         var rows = c["rows"]?.AsArray() ?? new JsonArray();
         if (rows.Count == 0) return;
@@ -201,12 +204,12 @@ sealed class CardView
         foreach (var node in rows)
         {
             if (node is not JsonObject r) continue;
-            list.Children.Add(PhraseRow(r, column));
+            list.Children.Add(Track("prow:" + r["token"], PhraseRow(r, column)));
             if ((bool?)r["open"] == true) list.Children.Add(Keyed("detail:" + r["token"], Detail(r), slide: -6));
         }
-        if ((string?)c["hidden"] is string hidden) list.Children.Add(Label(hidden, 11, Theme.Tertiary, top: 4, bottom: 4));
+        if ((string?)c["hidden"] is string hidden) list.Children.Add(Track("hidden", Label(hidden, 11, Theme.Tertiary, top: 4, bottom: 4)));
         words.Children.Add(list);
-        content.Children.Add(words);
+        content.Children.Add(Track("words", words));
     }
 
     sealed class Block
@@ -295,9 +298,9 @@ sealed class CardView
             var list = new StackPanel();
             var total = Total(senses, (string?)r["more"]);
             foreach (var node in senses)
-                if (node is JsonObject s) list.Children.Add(SenseRow(s, 12, 3, total, "p" + token, noteMarks: false, list.Children.Count == 0, () => actions.Pick(token, (int)s["index"]!)));
-            if ((string?)r["more"] is string more) list.Children.Add(More(more, 3, () => actions.ToggleAll(token), "p" + token));
-            Add(list);
+                if (node is JsonObject s) list.Children.Add(Track($"row:p{token}:{s["index"]}", SenseRow(s, 12, 3, total, "p" + token, noteMarks: false, list.Children.Count == 0, () => actions.Pick(token, (int)s["index"]!))));
+            if ((string?)r["more"] is string more) list.Children.Add(Track($"more:p{token}", More(more, 3, () => actions.ToggleAll(token), "p" + token)));
+            Add(Track("dlist:" + token, list));
         }
         return d;
     }
@@ -612,11 +615,52 @@ sealed class CardView
 
     // MARK: Transitions
 
+    readonly Dictionary<string, FrameworkElement> tracked = new();
+
+    /// Registers a part that keeps its place across changes, so it can slide to a new one.
+    T Track<T>(string key, T e) where T : FrameworkElement
+    {
+        tracked[key] = e;
+        return e;
+    }
+
+    /// Where each tracked part is, within its own panel (so a part inside a moving part moves
+    /// only by its own change), counting any slide still under way.
+    Dictionary<string, Point> Positions()
+    {
+        var d = new Dictionary<string, Point>();
+        foreach (var (key, e) in tracked)
+        {
+            if (!e.IsVisible || VisualTreeHelper.GetParent(e) is not Visual parent) continue;
+            try { d[key] = e.TransformToAncestor(parent).Transform(new Point(0, 0)); } catch (InvalidOperationException) { }
+        }
+        return d;
+    }
+
+    /// Parts that were on the card before slide from their old place to their new one with
+    /// cardMotion, as SwiftUI moves views around inserted and removed ones.
+    void Slide(Dictionary<string, Point> was)
+    {
+        Root.UpdateLayout();
+        foreach (var (key, e) in tracked)
+        {
+            if (!was.TryGetValue(key, out var old) || VisualTreeHelper.GetParent(e) is not Visual parent) continue;
+            Point now;
+            try { now = e.TransformToAncestor(parent).Transform(new Point(0, 0)); } catch (InvalidOperationException) { continue; }
+            var dy = old.Y - now.Y;
+            if (Math.Abs(dy) < 0.5) continue;
+            var t = e.RenderTransform as TranslateTransform ?? new TranslateTransform();
+            e.RenderTransform = t;
+            Motion.Animate(t, TranslateTransform.YProperty, dy, 0);
+        }
+    }
+
     /// Registers a part by key: new parts fade in (sliding from `slide` above), and with
     /// `crossfade`, a part whose value changed fades in again.
     T Keyed<T>(string key, T e, string value = "", double slide = 0, bool crossfade = false) where T : UIElement
     {
         now[key] = value;
+        if (e is FrameworkElement fe) tracked[key] = fe;
         if (!animate) return e;
         if (!before.TryGetValue(key, out var old)) Motion.FadeIn(e, slide);
         else if (crossfade && old != value) Motion.FadeIn(e);
