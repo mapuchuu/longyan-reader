@@ -61,7 +61,7 @@ static class Theme
     /// little narrower around 16. Measured on the gallery's cards.
     public static double LatinStretch(double size)
     {
-        (double Size, double Factor)[] table = { (10, 1.035), (12, 1.035), (13, 1.02), (14, 1.0), (15, 0.99), (16, 0.98), (17, 0.98), (19, 1.0) };
+        (double Size, double Factor)[] table = { (10, 1.035), (12, 1.035), (13, 1.01), (14, 1.0), (15, 0.99), (16, 0.98), (17, 0.98), (19, 1.0) };
         if (size <= table[0].Size) return table[0].Factor;
         for (var i = 1; i < table.Length; i++)
             if (size <= table[i].Size)

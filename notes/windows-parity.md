@@ -217,7 +217,7 @@ windows/gallery/mac (mac); composites are made with the scratch tools described 
 | Dictionary order lines | PU:129-136 | 11 secondary | CV:134 | font only | word-readings |
 | Note box | NV:7-32 | 12/10 padding, radius 10, primary 0.045 | CV:463 `Note` | same | word-mianzi, word-lost: every band within 1 px; fill 245/40 on both |
 | Note symbol | NV:15 | globe.asia.australia.fill / translate, 11 semibold, teal / rose | IC `Globe`, `Translate` | same | symbols.png (own drawings) |
-| Note title | NV:18-21 | 11 semibold secondary, 4 after the symbol | CV:473 | font only | word-mianzi: title starts at the same x |
+| Note title | NV:18-21 | 11 semibold secondary, 4 after the symbol; the row is as tall as the symbol (translate 15, globe 14), the label centred | CV:473 | font only | word-mianzi: title starts at the same x; word-lost: box 71 tall on both (was 0.5 short) |
 | Note text | NV:23-26 | 13 primary, line spacing 2 | CV:475 | font only | word-mianzi: lines wrap the same |
 | Divider | CC:705 | 1 tall, primary 0.08 | CV:524 | same | 238/46 on both |
 | Meanings label | CC:695 | 11 semibold secondary | CV:525 | font only | all word cases: dy 0 to +1 |
@@ -234,7 +234,7 @@ windows/gallery/mac (mac); composites are made with the scratch tools described 
 
 | Element | Mac | Values | Windows | Status | Evidence |
 |---|---|---|---|---|---|
-| Source text | PC:26-34 | 14 secondary, up to 4 lines | CV:222 | font only | phrase-*: dy 0 |
+| Source text | PC:26-34 | 14 secondary, up to 4 lines; the buttons' slot reaches 3 below one line, not below more | CV:222 | font only | phrase-*: dy 0; phrase-long: translation at the same y (was 3 lower). Lines are made 0.92 as wide, so YaHei at 0.92 of the size holds as many characters as PingFang and breaks in the same place |
 | Translation | PC:61-66 | 16, line spacing 2 | CV:229 | font only | phrase-ming: dy 0; same breaks |
 | Translating | PC:69-72 | spinner, 12 secondary | CV:237 | same | phrase-translating: dh 0 |
 | No translation | PC:67 | 11 secondary | CV:235 | font only | code |
