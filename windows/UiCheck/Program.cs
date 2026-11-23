@@ -261,7 +261,7 @@ static class Program
                     action = t; card = null;
                     break;
                 case "revealed" when action != null:
-                    Console.WriteLine($"[latency] the card on screen {t - action} ms after the shortcut or eye");
+                    Console.WriteLine($"[latency] the card on screen {t - action} ms after the shortcut or eye (waited {e["waited"]} ms after its first content, showing it {e["show"]} ms)");
                     break;
                 case "selection":
                     Console.WriteLine($"[latency] shortcut: warm-up {e["warm"]} ms, automation read {e["automation"]} ms, copy {e["copy"]} ms ({e["how"]})");

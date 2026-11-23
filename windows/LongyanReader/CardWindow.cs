@@ -59,6 +59,7 @@ sealed class CardWindow : Window, ICardActions
     double shownHeight;                       // the card's target height, DIPs
     double cardLeft, edge;                    // device pixels: the card's left, and its top (below) or bottom (above)
     DispatcherTimer? shrink, hold;
+    Stopwatch? firstContent;
     JsonObject? last;
 
     public bool Pinned => pinned;
@@ -301,6 +302,7 @@ sealed class CardWindow : Window, ICardActions
             // Hold a word card up to 0.4 s for the model's pick, so it opens complete.
             var reading = (string?)json["kind"] != "phrase" && (string?)json["status"] == "Reading the sentence…";
             view.Show(json, animate: false);
+            firstContent ??= Stopwatch.StartNew();
             if (reading) { hold ??= After(0.4, Arrive); return; }
             Arrive();
             return;
@@ -345,10 +347,14 @@ sealed class CardWindow : Window, ICardActions
         ChoosePlacement();
         Width = CardWidth + 2 * Frame;
         Height = 200;
+        var waited = firstContent?.Elapsed.TotalMilliseconds ?? 0;
+        var showing = Stopwatch.StartNew();
         if (!IsVisible) { Show(); Hooks.Add(this); }
         Resize(animated: false);
         Reveal();
-        Core.Log("{\"event\":\"revealed\"}");
+        // How long it waited after its first content (0.4 s at most for a word's pick, unless the
+        // app's thread was held up), and how long showing the window took.
+        Core.Log(FormattableString.Invariant($"{{\"event\":\"revealed\",\"waited\":{waited:F0},\"show\":{showing.Elapsed.TotalMilliseconds:F1}}}"));
     }
 
     /// Below the selection when the card fits there, else whichever side has more room.
