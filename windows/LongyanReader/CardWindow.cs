@@ -483,7 +483,7 @@ sealed partial class CardWindow : Window, ICardActions
         view.Show(json, animate: true);
         var shown = drawing.Elapsed.TotalMilliseconds;
         Resize(animated: true);
-        if (Core.Logging) { Core.Log($"{{\"event\":\"drawn\",\"ms\":{drawing.Elapsed.TotalMilliseconds:0.0},{view.Timing},\"resize\":{drawing.Elapsed.TotalMilliseconds - shown:0.0}}}"); Frames(); }
+        if (Core.Logging) { Core.Log($"{{\"event\":\"drawn\",\"mono\":{(Stopwatch.GetTimestamp() * 1000.0 / Stopwatch.Frequency).ToString("F1", System.Globalization.CultureInfo.InvariantCulture)},\"ms\":{drawing.Elapsed.TotalMilliseconds:0.0},{view.Timing},\"resize\":{drawing.Elapsed.TotalMilliseconds - shown:0.0}}}"); Frames(); }
     }
 
     /// For the UI check: how soon WPF draws a frame after a change, and how evenly over the
@@ -628,8 +628,13 @@ sealed partial class CardWindow : Window, ICardActions
             Motion.Spring(revealScale, ScaleTransform.ScaleYProperty, 1, Motion.Reveal, from: 0.96);
             Motion.Spring(revealShift, TranslateTransform.YProperty, 0, Motion.Reveal, from: below ? -4 : 4);
         }
-        if (firstFrame) Go();
-        else ContentRendered += (_, _) => { firstFrame = true; Go(); };
+        if (firstFrame) { Go(); return; }
+        // From the window's first frame, or 40 ms after Show if that frame is late (a busy
+        // machine): the reveal never waits longer than that.
+        var went = false;
+        void Once() { if (went) return; went = true; Go(); }
+        ContentRendered += (_, _) => { firstFrame = true; Once(); };
+        After(0.04, Once);
     }
 
     bool firstFrame;
@@ -1193,10 +1198,10 @@ sealed partial class CardWindow : Window, ICardActions
     {
         if (gone) return;
         if (!IsVisible) { CloseNow(); return; }
-        // The whole 0.12 s on AppKit's default curve (Motion.Fade), from where it is, starting on
-        // the next frame as the Mac's does; the window goes only after 0 is drawn.
+        // The whole 0.12 s on AppKit's default curve (Motion.Fade), from where it is and from
+        // now, so it never waits on a frame; the window goes only after 0 is drawn.
         var from = Opacity;
-        Motion.Linear(this, OpacityProperty, from, 0, 0.12, CloseNow, trace: "fade-out", ease: Motion.Fade);
+        Motion.Linear(this, OpacityProperty, from, 0, 0.12, CloseNow, trace: "fade-out", ease: Motion.Fade, startNow: true);
     }
 
     void CloseNow()
@@ -1240,7 +1245,15 @@ sealed partial class CardWindow : Window, ICardActions
     // MARK: ICardActions
 
     // Each answered at once (Core.DrainNow), not when the core's queue next signals.
-    public void Pick(int token, int sense) { Act("pick"); Bridge.ly_pick(cardID, token, sense); Core.Shared.DrainNow(); }
+    public void Pick(int token, int sense)
+    {
+        Act("pick");
+        var t = Stopwatch.StartNew();
+        Bridge.ly_pick(cardID, token, sense);
+        var core = t.Elapsed.TotalMilliseconds;
+        Core.Shared.DrainNow();
+        if (Core.Logging) Core.Log(FormattableString.Invariant($"{{\"event\":\"pick-timing\",\"mono\":{Stopwatch.GetTimestamp() * 1000.0 / Stopwatch.Frequency:F1},\"core\":{core:0.0},\"drained\":{t.Elapsed.TotalMilliseconds:0.0}}}"));
+    }
     public void UseSuggested(int token) { Act("back"); Bridge.ly_use_suggested(cardID, token); Core.Shared.DrainNow(); }
     public void ToggleAll(int token) { Act("all"); Bridge.ly_toggle_all(cardID, token); Core.Shared.DrainNow(); }
     public void ToggleRow(int token) { Act("row"); Bridge.ly_toggle_row(cardID, token); Core.Shared.DrainNow(); }

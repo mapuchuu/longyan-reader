@@ -172,6 +172,11 @@ static partial class Program
             double start = (double)e["start"]!, done = (double)e["done"]!;
             if (frames[^1].X != 0 || frames[^1].T - start < 119.9) failures.Add($"3-fade: the fade-out reached {frames[^1].X:0.00} at {frames[^1].T - start:0} ms, not 0 at 120 ms");
             if (done <= frames[^1].T) failures.Add("3-fade: the window went on the same frame that drew 0");
+            // Drawn on the way down, not held and then cut: frames between the ends, none far apart.
+            var mid = frames.Count(f => f.X > 0.02 && f.X < (double)e["from"]! - 0.02);
+            if (mid < 3) failures.Add($"3-fade: the fade-out drew {mid} frames between its ends, not 3 or more");
+            var gap = frames.Zip(frames.Skip(1), (a, b) => b.T - a.T).DefaultIfEmpty(0).Max();
+            if (gap > 60) failures.Add($"3-fade: the fade-out went {gap:0} ms without a frame");
             foreach (var f in frames)
             {
                 var want = Math.Max(0, (double)e["from"]! * (1 - FadeCurve((f.T - start) / 120)));
@@ -188,6 +193,9 @@ static partial class Program
             double start = (double)e["start"]!;
             var last = e["frames"]!.AsArray()[^1]!;
             if ((double)last[1]! != 1 || (double)last[0]! - start < seconds * 1000 - 0.1) failures.Add($"3-fade: a fade-in ended at {(double)last[0]! - start:0} ms, not {seconds * 1000:0}");
+            var inFrames = e["frames"]!.AsArray().Select(f => (T: (double)f![0]!, X: (double)f[1]!)).ToList();
+            var inMid = inFrames.Count(f => f.X > 0.02 && f.X < 0.98);
+            if (inMid < 3) failures.Add($"3-fade: a fade-in drew {inMid} frames between its ends, not 3 or more");
         }
         foreach (var sc in scales)
             if (!ins.Any(e => Math.Abs((double)e["start"]! - (double)sc["start"]!) < 1)) failures.Add($"3-fade: a reveal spring started at {(double)sc["start"]!:0} ms with no fade-in at the same moment");

@@ -84,8 +84,10 @@ sealed class CardView
     public void Show(JsonObject card, bool animate)
     {
         this.animate = animate;
+        var whole = System.Diagnostics.Stopwatch.StartNew();
         var was = animate ? Positions() : null;
         var old = animate ? Snapshot() : null;
+        var before0 = whole.Elapsed.TotalMilliseconds;
         if (!animate) ghosts.Children.Clear();
         tracked.Clear();
         before = now; now = new();
@@ -110,7 +112,7 @@ sealed class CardView
                 Motion.Set(f, Brush.OpacityProperty, v);
                 Motion.To(f, Brush.OpacityProperty, 0, 0.2);
             }
-        Timing = $"\"build\":{built:0.0},\"layout\":{slid - built:0.0},\"fade\":{clock.Elapsed.TotalMilliseconds - slid:0.0}";
+        Timing = $"\"before\":{before0:0.0},\"clear\":{whole.Elapsed.TotalMilliseconds - before0 - clock.Elapsed.TotalMilliseconds:0.0},\"build\":{built:0.0},\"layout\":{slid - built:0.0},\"fade\":{clock.Elapsed.TotalMilliseconds - slid:0.0}";
         Rebuilt?.Invoke();
     }
 
