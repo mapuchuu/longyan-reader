@@ -324,7 +324,7 @@ static class Mica
     {
         try
         {
-            if (Environment.OSVersion.Version.Build < 22621 || !TransparencyOn()) return false;
+            if (!WindowsBuild.HasMica || !TransparencyOn()) return false;
             var h = new WindowInteropHelper(w).Handle;
             if (h == IntPtr.Zero || HwndSource.FromHwnd(h) is not HwndSource source) return false;
             var margins = new Margins { Left = -1, Right = -1, Top = -1, Bottom = -1 };

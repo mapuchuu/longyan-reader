@@ -141,3 +141,28 @@ Fixed on the way:
 - Saved model states use `VirtualAlloc` on Windows, where there's no `mmap`.
 
 Not exercised yet: the model itself, the Anki connection (FoundationNetworking) and parts of speech, which need the table in section 2.
+
+## Windows 10 (branch win/win10)
+
+Supported from Windows 10 1809 (build 17763); the installer refuses older builds. .NET 8 itself needs 1607. No Windows 10 runner or VM exists, so this comes from reading the code and the shipped DLLs' imports, plus CI checks on Windows 11.
+
+What differs, all decided by the build number in `WindowsBuild.cs`:
+
+- Welcome window: a solid background, no Mica (Mica needs 22H2). It already fell back this way.
+- Title bars: Windows 10's own, white or dark. No caption colour (Windows 11 only). Dark title bars use attribute 19 on 1809 to 1909 and 20 from 2004; before, 1809 to 1909 kept a white title bar in dark mode.
+- Corners: square, as Windows 10 draws every window. The app never asked for rounded ones.
+- Fonts: Segoe UI instead of Segoe UI Variable, Segoe MDL2 Assets instead of Segoe Fluent Icons. Every icon the app uses has the same code point in MDL2. The card is drawn by the app and keeps its size: gallery.yml draws it both ways and compares.
+- Nothing else changes. The imports of every shipped DLL (llama.cpp, ggml's CPU kernels, the Swift runtime, WinSparkle) were checked: all exist on 1809. IsWow64Process2 is 1511 and later, the high-resolution timer 1803 and later (it falls back to Task.Delay), per-monitor DPI v2 1703 and later.
+- Windows 10 on ARM: it can't run x64 apps, only ARM64 ones. The x64 installer refuses there (Inno Setup's x64compatible), the ARM64 and combined installers install the ARM64 build.
+
+Checks: `windows/Win10Check` (windows.yml's app job) tests the build gates for each Windows 10 and 11 release, that each icon glyph is in Segoe MDL2 Assets, and the installer's MinVersion. `LONGYAN_WINDOWS_BUILD=19045` makes the app act as on that build (dev and CI only); gallery.yml draws the gallery that way into `windows10/` and compares sizes with the normal drawing.
+
+A Windows 10 beta tester should check:
+
+- The installer runs, and the app opens from the Start menu and at login.
+- The welcome and settings windows: every icon shows (no empty boxes), text isn't cut off, light and dark both look right, and the title bar turns dark with dark mode, also when the mode changes while the window is open.
+- History: the search, menu and check icons show.
+- A card from Notepad, Edge and Chrome, with the shortcut and the eye: same as on Windows 11, including the fade and spring.
+- The notification after closing the welcome window, and the tray icon (it starts in the overflow, behind the arrow).
+- The model download and a card with the model.
+- On 1809 to 1909: dark mode title bars. On a Snapdragon PC with Windows 10: the ARM64 installer.

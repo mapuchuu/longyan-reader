@@ -65,7 +65,8 @@ DisableDirPage=yes
 DisableProgramGroupPage=yes
 UsedUserAreasWarning=no
 SetupMutex=LongyanReaderSetup
-MinVersion=10.0
+; Windows 10 1809 or later: .NET 8 needs 1607, and the app is checked from 1809 (notes/windows-plan.md, Windows 10).
+MinVersion=10.0.17763
 
 #if defined(SrcX64) && defined(SrcArm64)
 ArchitecturesAllowed=x64compatible or arm64

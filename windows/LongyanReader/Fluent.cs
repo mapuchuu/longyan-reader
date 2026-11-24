@@ -22,8 +22,8 @@ sealed class Fluent
         ControlFill, ControlHover, ControlPressed, ControlStroke, InputFocused, StrongStroke,
         ToggleOffFill, ToggleOffHover, Divider, Accent, AccentText, OnAccent, Error;
 
-    public static readonly FontFamily Font = new("Segoe UI Variable Text, Segoe UI");
-    public static readonly FontFamily DisplayFont = new("Segoe UI Variable Display, Segoe UI");
+    public static readonly FontFamily Font = new(WindowsBuild.Fonts("Segoe UI Variable Text, Segoe UI", "Segoe UI"));
+    public static readonly FontFamily DisplayFont = new(WindowsBuild.Fonts("Segoe UI Variable Display, Segoe UI", "Segoe UI"));
     public static readonly FontFamily ChineseFont = new("Microsoft YaHei UI, Microsoft JhengHei UI, Segoe UI");
 
     /// As Windows is set now (the card's Theme.Dark is read once, at launch).
@@ -336,7 +336,8 @@ sealed class Fluent
     // MARK: Windows
 
     /// A window in this look: the background, fonts and styles, the app's icon, and a title
-    /// bar that matches (dark in dark mode, the background's colour on Windows 11).
+    /// bar that matches (dark in dark mode, the background's colour on Windows 11; Windows 10
+    /// has no caption colour, so there it's Windows 10's own white or dark).
     public void Dress(Window w)
     {
         w.Background = B(Background);
@@ -353,17 +354,18 @@ sealed class Fluent
 
     void TitleBar(IntPtr hwnd)
     {
+        WindowsBuild.DarkTitleBar(hwnd, Dark);
+        // Windows 10 has no caption colour: its title bar stays white, or dark in dark mode.
+        if (!WindowsBuild.HasCaptionColor) return;
         try
         {
-            var dark = Dark ? 1 : 0;
-            DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref dark, 4);
             var caption = Background.R | Background.G << 8 | Background.B << 16;
             DwmSetWindowAttribute(hwnd, DWMWA_CAPTION_COLOR, ref caption, 4);
         }
         catch { }
     }
 
-    const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20, DWMWA_CAPTION_COLOR = 35;
+    const int DWMWA_CAPTION_COLOR = 35;
     [DllImport("dwmapi.dll")] static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
 
     /// Draws `content` at `width` (and its own height) to a PNG at twice the size, on the
