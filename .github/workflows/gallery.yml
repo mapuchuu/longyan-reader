@@ -9,6 +9,7 @@ on:
     paths:
       - windows/LongyanReader/**
       - windows/gallery/**
+      - scripts/windows10-gallery.py
       - .github/workflows/gallery.yml
   workflow_dispatch:
 
@@ -32,6 +33,13 @@ jobs:
           mkdir -p gallery-out
           app/LongyanReader.exe --render windows/gallery gallery-out
           ls gallery-out
+      # The same, as on Windows 10 (WindowsBuild.cs): Segoe UI and Segoe MDL2 Assets, no Mica.
+      # The card should come out the same size; the heights are compared.
+      - name: Draw the cards as on Windows 10
+        run: |
+          set -euo pipefail
+          LONGYAN_WINDOWS_BUILD=19045 app/LongyanReader.exe --render windows/gallery gallery-out/windows10
+          python scripts/windows10-gallery.py gallery-out gallery-out/windows10 | tee gallery-out/windows10/sizes.txt
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: gallery-windows

@@ -40,7 +40,7 @@ static class Theme
     public static Brush Backdrop => Solid(Dark ? 0x282828 : 0x969696);
 
     // Latin text in Segoe UI Variable (Segoe UI before Windows 11), Chinese in Microsoft YaHei UI.
-    public static readonly FontFamily Text = new("Segoe UI Variable Text, Segoe UI, Microsoft YaHei UI");
+    public static readonly FontFamily Text = new(WindowsBuild.Fonts("Segoe UI Variable Text, Segoe UI, Microsoft YaHei UI", "Segoe UI, Microsoft YaHei UI"));
     public static readonly FontFamily Chinese = new("Microsoft YaHei UI, Microsoft JhengHei UI, Segoe UI");
     /// YaHei's characters fill more of the em than PingFang's: this matches their height.
     public const double ChineseScale = 0.92;
@@ -73,7 +73,9 @@ static class Theme
     }
     /// San Francisco's line spacing as a multiple of the size.
     public const double LineFactor = 1.2;
-    public static readonly FontFamily Icons = new("Segoe Fluent Icons, Segoe MDL2 Assets");
+    /// Segoe Fluent Icons is Windows 11's; Windows 10 has Segoe MDL2 Assets, with the same code
+    /// points for every glyph the app uses (windows/Win10Check checks).
+    public static readonly FontFamily Icons = new(WindowsBuild.Fonts("Segoe Fluent Icons, Segoe MDL2 Assets", "Segoe MDL2 Assets"));
 
     // Tones 1 to 4: brick, sage, slate, violet.
     static readonly int[] lightTones = { 0xA8544C, 0x4A8761, 0x4A73A6, 0x8061A3 };

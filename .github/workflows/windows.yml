@@ -58,6 +58,10 @@ jobs:
       # carries on at its speed, and matches the Mac's, filmed.
       - name: Motion check
         run: dotnet run --project windows/MotionCheck -c Release
+      # Windows 10 without a Windows 10 runner (windows/Win10Check): the build gates, every icon
+      # glyph in Segoe MDL2 Assets, and the installer's MinVersion.
+      - name: Windows 10 check
+        run: dotnet run --project windows/Win10Check -c Release -- "$(cygpath -w "$PWD")"
       - uses: compnerd/gha-setup-swift@9ff1ee4c44888c5817fc14d1b257ac8cabb4935f # v0.5.1
         with:
           swift-version: swift-6.3.3-release

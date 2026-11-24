@@ -72,7 +72,7 @@ static class Diagnostics
             Write("unobserved task error: " + Describe(e.Exception));
             e.SetObserved();
         };
-        Write($"start {Version}, {WindowsVersion}, {System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription}, {Environment.ProcessorCount} cores");
+        Write($"start {Version}, {WindowsVersion}{(WindowsBuild.IsFaked ? $", acting as build {WindowsBuild.Build}" : "")}, {System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription}, {Environment.ProcessorCount} cores");
         var bad = false;
         try
         {
