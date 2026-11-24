@@ -1025,6 +1025,7 @@ jobs:
         run: |
           set -euo pipefail
           # Every function ggml-vulkan.dll takes from vulkan-1.dll, plus the loader's entry points.
+          export PATH="$PATH:/c/Program Files/LLVM/bin"
           llvm-readobj --coff-imports dist/LongyanReader/gpu/ggml-vulkan.dll > imports.txt || true
           python - <<'PY'
           import re
