@@ -208,7 +208,7 @@ static class Chip
         shown = w;
         // Positions only, in device pixels (UiCheck checks them): never the text.
         var bounds = selection?.Bounds is Rect b ? $"[{b.X:0.#},{b.Y:0.#},{b.Width:0.#},{b.Height:0.#}]" : "null";
-        Core.Log($"{{\"event\":\"eye\",\"readable\":{(selection != null ? "true" : "false")},\"up\":[{up.X},{up.Y}],\"bounds\":{bounds},\"window\":[{left},{top},{size}],\"scale\":{ScaleAt(up):0.##},\"oneLine\":{((selection?.OneLine ?? false) ? "true" : "false")},\"drawn\":[{drawn.Right?.ToString("0.#") ?? "null"},{drawn.InkMid?.ToString("0.#") ?? "null"}],\"ms\":{(at == 0 ? -1 : (long)System.Diagnostics.Stopwatch.GetElapsedTime(at).TotalMilliseconds)},\"drawnMs\":{drawnMs},\"warmMs\":{warmMs},\"buildMs\":{buildMs},\"placeMs\":{placeMs},\"lag\":{lag},\"waited\":{waited}}}");
+        Core.Log($"{{\"event\":\"eye\",\"readable\":{(selection != null ? "true" : "false")},\"up\":[{up.X},{up.Y}],\"bounds\":{bounds},\"window\":[{left},{top},{size}],\"settle\":[{w.SettlePx.X:0.###},{w.SettlePx.Y:0.###}],\"scale\":{ScaleAt(up):0.##},\"oneLine\":{((selection?.OneLine ?? false) ? "true" : "false")},\"drawn\":[{drawn.Right?.ToString("0.#") ?? "null"},{drawn.InkMid?.ToString("0.#") ?? "null"}],\"ms\":{(at == 0 ? -1 : (long)System.Diagnostics.Stopwatch.GetElapsedTime(at).TotalMilliseconds)},\"drawnMs\":{drawnMs},\"warmMs\":{warmMs},\"buildMs\":{buildMs},\"placeMs\":{placeMs},\"lag\":{lag},\"waited\":{waited}}}");
         // The card's work starts once the eye has stayed a moment (or on hover): most selections
         // are made to copy, and the model's work costs battery.
         DispatcherTimer? soon = null;
@@ -298,6 +298,8 @@ sealed class ChipWindow : Window
     readonly Rectangle mark;
     /// Moves the circle and the mark together by what snapping the window to whole pixels moved.
     readonly TranslateTransform settle = new();
+    /// What the circle and the mark were moved by, in device pixels (for the log).
+    public (double X, double Y) SettlePx => (settle.X * s, settle.Y * s);
     readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(6) };
     bool hovering, pressed, leaving, menuOpen;
     public bool MenuOpen => menuOpen;
@@ -327,7 +329,8 @@ sealed class ChipWindow : Window
         mark = markShape;
         button.RenderTransform = scale;
         button.Invoked = () => Chip.Click(this);
-        Content = new Grid { Children = { button }, RenderTransform = settle };
+        // Not snapped to pixels inside: the circle and the mark keep the same centre at 125%, 150%, 175%.
+        Content = new Grid { Children = { button }, RenderTransform = settle, UseLayoutRounding = false };
 
         hit.MouseEnter += (_, _) => { Hover(true); Chip.Prepare(this); };
         hit.MouseLeave += (_, _) => Hover(false);

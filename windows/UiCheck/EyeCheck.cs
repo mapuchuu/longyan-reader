@@ -515,7 +515,8 @@ static partial class Program
         // Exact: the mark itself, against the text as the eye sees it (the Mac measured 0.0
         // from the ink's centre and 19.5 points after the highlight, 12 points wide).
         var clamped = Math.Abs(predX - ((drawnRight ?? trimmedRight ?? union.Right) + 19.5 * s)) > 1 || r.Right >= area.Right;
-        if (exact && beside && lines.Length == 1 && !clamped) Exact(name, after, r, s, textMid, union, top, bottom, trimmedRight);
+        var settle = logged?["settle"] is JsonArray sa && sa.Count == 2 ? ((double)sa[0]!, (double)sa[1]!) : (0.0, 0.0);
+        if (exact && beside && lines.Length == 1 && !clamped) Exact(name, after, r, s, textMid, union, top, bottom, trimmedRight, settle);
 
         if (first != null)
         {
@@ -562,7 +563,7 @@ static partial class Program
 
     /// The mark's ink inside the eye's circle (darker or lighter than the circle's surface),
     /// then the eye hidden (Shift) and the highlight's right edge read with nothing over it.
-    static void Exact(string name, Bitmap after, RECT r, double s, double textMid, System.Windows.Rect union, int inkTop, int inkBottom, double? trimmedRight)
+    static void Exact(string name, Bitmap after, RECT r, double s, double textMid, System.Windows.Rect union, int inkTop, int inkBottom, double? trimmedRight, (double X, double Y) settle = default)
     {
         double cx = (r.Left + r.Right) / 2.0, cy = (r.Top + r.Bottom) / 2.0;
         // The circle's surface: the commonest colour on a ring between the mark and the hairline.
@@ -646,28 +647,30 @@ static partial class Program
         if (Math.Abs(dy) > tol) failures.Add($"{name}: the mark's centre is {dy:+0.##;-0.##} points from the text's ink centre (the Mac: 0)");
         if (dx is double d && Math.Abs(d - 19.5) > tol) failures.Add($"{name}: the mark's centre is {d:0.##} points after the text's end (the Mac: 19.5)");
         if (dx == null) failures.Add($"{name}: couldn't find the highlight's right edge");
-        // The mark in the middle of the circle as drawn: the circle's edges on rows and columns
-        // 7 points either side of the middle, where the mark isn't.
-        double? Mid(bool across, int at)
+        // The mark in the middle of the circle. The circle is the window's middle moved by what
+        // the app logged (a white circle on a white page has no edge to find); the mark's edges
+        // come from how much of each edge column and row it covers, to a fraction of a pixel.
+        double discX = cx + settle.X, discY = cy + settle.Y;
+        var colSum = new double[n]; var rowSum = new double[n];
+        for (var j = 0; j < n; j++) for (var i = 0; i < n; i++) { colSum[i] += diff[i, j]; rowSum[j] += diff[i, j]; }
+        static (double Lo, double Hi)? Edges(double[] p)
         {
-            bool Surface(int k) { var c = across ? after.GetPixel(k, at) : after.GetPixel(at, k); return Math.Abs(c.R - surface.R) + Math.Abs(c.G - surface.G) + Math.Abs(c.B - surface.B) < 24; }
-            int c0 = (int)(across ? cx : cy), lo = c0, hi = c0;
-            if (!Surface(c0)) return null;
-            while (Surface(lo - 1)) lo--;
-            while (Surface(hi + 1)) hi++;
-            return (lo + hi + 1) / 2.0;
+            var peak = p.Max(); if (peak <= 0) return null;
+            int lo = Array.FindIndex(p, v => v > peak * 0.05), hi = Array.FindLastIndex(p, v => v > peak * 0.05);
+            if (lo < 1 || hi > p.Length - 2) return null;
+            double inLo = Math.Max(p[lo + 1], 1), inHi = Math.Max(p[hi - 1], 1);
+            return (lo + 1 - Math.Min(1, p[lo] / inLo), hi + Math.Min(1, p[hi] / inHi));
         }
-        var acrossMids = new[] { Mid(true, (int)(cy - 7 * s)), Mid(true, (int)(cy + 7 * s)) };
-        var downMids = new[] { Mid(false, (int)(cx - 7 * s)), Mid(false, (int)(cx + 7 * s)) };
-        if (acrossMids.All(v => v != null) && downMids.All(v => v != null))
+        if (Edges(colSum) is (double ml, double mr) && Edges(rowSum) is (double mt, double mb))
         {
-            double discX = acrossMids.Average(v => v!.Value), discY = downMids.Average(v => v!.Value);
-            double offX = (mx - discX) / s, offY = (my - discY) / s;
-            Console.WriteLine($"[{name}] circle's centre {discX:0.##},{discY:0.##}; mark minus circle {offX:+0.##;-0.##;0},{offY:+0.##;-0.##;0} points");
-            var ctol = 0.25 + 0.5 / s;
+            double markX = X0 + (ml + mr) / 2, markY = Y0 + (mt + mb) / 2;
+            double offX = (markX - discX) / s, offY = (markY - discY) / s;
+            Console.WriteLine($"[{name}] circle's centre {discX:0.##},{discY:0.##} (window middle moved {settle.X:0.##},{settle.Y:0.##}); mark {markX:0.##},{markY:0.##}; mark minus circle {offX:+0.##;-0.##;0},{offY:+0.##;-0.##;0} points");
+            // A quarter of a point, plus a fifth of a device pixel for reading the edges.
+            var ctol = 0.25 + 0.2 / s;
             if (Math.Abs(offX) > ctol || Math.Abs(offY) > ctol) failures.Add($"{name}: the mark is {offX:+0.##;-0.##;0},{offY:+0.##;-0.##;0} points from the circle's centre (should be 0,0)");
         }
-        else failures.Add($"{name}: couldn't find the circle's edges around the mark");
+        else failures.Add($"{name}: couldn't find the mark's edges");
     }
 
     /// The highlight's colour, or that colour under a shadow (Edge's search button over a
