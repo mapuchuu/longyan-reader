@@ -193,6 +193,25 @@ sealed class FakeAnkiConnect : IDisposable
         thread = new Thread(Serve) { IsBackground = true };
         thread.Start();
         Console.WriteLine("[4-anki] stand-in AnkiConnect on 127.0.0.1:8765");
+        // One answer to itself first. Under x64 emulation on ARM the first one took over 2 s
+        // between taking the request and writing the answer (parsing, recording, the JSON
+        // writer's first use), past the app's 2 s wait for deckNames, so the app found no Anki.
+        // Real Anki has long been up when the app asks.
+        var clock = Stopwatch.StartNew();
+        try
+        {
+            using var client = new TcpClient();
+            client.Connect(IPAddress.Loopback, 8765);
+            var body = Encoding.UTF8.GetBytes("{\"action\":\"version\",\"version\":6}");
+            using var stream = client.GetStream();
+            stream.Write(Encoding.ASCII.GetBytes($"POST / HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: {body.Length}\r\n\r\n"));
+            stream.Write(body);
+            stream.ReadTimeout = 20000;
+            while (stream.ReadByte() >= 0) { }
+            Console.WriteLine($"[4-anki] stand-in warmed up in {clock.ElapsedMilliseconds} ms");
+        }
+        catch (Exception e) { Console.WriteLine($"[4-anki] stand-in warm-up: {e.Message}"); }
+        lock (requests) requests.Clear();
     }
 
     public void Stop()
@@ -242,20 +261,24 @@ sealed class FakeAnkiConnect : IDisposable
             if (n <= 0) return;
             read += n;
         }
+        var read = DateTime.Now;
         var request = JsonNode.Parse(body) as JsonObject ?? new JsonObject();
+        JsonNode? result;
+        string? error = null;
         lock (requests)
         {
             requests.Add(request);
-            File.AppendAllText(record, request.ToJsonString(new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }) + "\n");
+            result = Act((string?)request["action"] ?? "", request["params"] as JsonObject ?? new JsonObject(), ref error);
         }
-        JsonNode? result;
-        string? error = null;
-        lock (requests) result = Act((string?)request["action"] ?? "", request["params"] as JsonObject ?? new JsonObject(), ref error);
         var reply = Encoding.UTF8.GetBytes(new JsonObject { ["result"] = result, ["error"] = error }.ToJsonString());
         stream.Write(Encoding.ASCII.GetBytes($"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {reply.Length}\r\nConnection: close\r\n\r\n"));
         stream.Write(reply);
+        var answered = DateTime.Now;
+        // Recorded once answered: the file needn't hold the app up. Not the warm-up (no params).
+        if ((string?)request["action"] != "version" || request["params"] != null)
+            lock (requests) File.AppendAllText(record, request.ToJsonString(new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }) + "\n");
         // When each request came and went: a late one looks like Anki not answering to the app.
-        Console.WriteLine($"[4-anki] stand-in: {request["action"]} accepted {accepted:HH:mm:ss.fff}, answered {DateTime.Now:HH:mm:ss.fff}");
+        Console.WriteLine($"[4-anki] stand-in: {request["action"]} accepted {accepted:HH:mm:ss.fff}, read {read:HH:mm:ss.fff}, answered {answered:HH:mm:ss.fff}");
     }
 
     JsonNode? Act(string action, JsonObject p, ref string? error)
