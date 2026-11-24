@@ -330,10 +330,15 @@ static class SelectionReader
         // render it, and an app that doesn't answer (Windows 11's Notepad, while it waits on the
         // clipboard itself) held the app's thread for 30 s a format. Given up after 3 s here; the
         // thread then finishes or gives up on its own.
+        // Only into the window in front now, and only if Ctrl+C copies there. If that window
+        // loses the front, or the copy is late, it's called off rather than sent elsewhere.
+        var target = GetForegroundWindow();
+        if (target == IntPtr.Zero || ForegroundApp.Get() is not { CopyWorks: true }) { Interlocked.Exchange(ref copying, 0); return null; }
+        var deadline = Environment.TickCount64 + 2500;
         var done = new TaskCompletionSource<string?>();
         var thread = new Thread(() =>
         {
-            try { done.TrySetResult(Copy()); }
+            try { done.TrySetResult(Copy(target, deadline)); }
             catch { done.TrySetResult(null); }
             finally { Interlocked.Exchange(ref copying, 0); }
         }) { IsBackground = true, Name = "Longyan copy" };
@@ -351,38 +356,61 @@ static class SelectionReader
 
     /// Saves what's on the clipboard (its data itself, before anything replaces it), copies,
     /// reads the copy and puts the saved data back. Waits pump COM, so apps asking for the
-    /// marker meanwhile get an answer.
-    static string? Copy()
+    /// marker meanwhile get an answer. Gives up without sending Ctrl+C if the clipboard can't
+    /// be saved, the deadline has passed or `target` is no longer in front. Puts the saved data
+    /// back only if nothing else has been copied since.
+    static string? Copy(IntPtr target, long deadline)
     {
+        bool Late() => Environment.TickCount64 > deadline || GetForegroundWindow() != target;
         DataObject? saved = null;
-        try { if (Clipboard.GetDataObject() is IDataObject current) saved = Private(current); } catch { }
-        var marker = "longyan-" + Guid.NewGuid();
-        try { Clipboard.SetDataObject(Private(marker), false); } catch { return null; }
-        SendCopy();
-        string? text = null;
-        using var wait = new ManualResetEvent(false);
-        for (var i = 0; i < 20; i++)
+        try
         {
-            wait.WaitOne(25);
-            try { text = Clipboard.ContainsText() ? Clipboard.GetText() : null; } catch { }
-            if (text != null && text != marker) break;
+            if (Clipboard.GetDataObject() is IDataObject current)
+            {
+                saved = Private(current, out var kept, out var had);
+                // Nothing of what was there could be read: putting it "back" would empty it.
+                if (had > 0 && kept == 0) return null;
+            }
         }
-        try { if (saved != null) Clipboard.SetDataObject(saved, true); else Clipboard.Clear(); } catch { }
+        catch { return null; }
+        if (Late()) return null;
+        var marker = "longyan-" + Guid.NewGuid();
+        try { Clipboard.SetDataObject(Private(marker, out _, out _), false); } catch { return null; }
+        var ours = GetClipboardSequenceNumber();
+        string? text = null;
+        if (!Late())
+        {
+            SendCopy();
+            using var wait = new ManualResetEvent(false);
+            for (var i = 0; i < 20; i++)
+            {
+                wait.WaitOne(25);
+                try { text = Clipboard.ContainsText() ? Clipboard.GetText() : null; } catch { }
+                if (text != null && text != marker) { ours = GetClipboardSequenceNumber(); break; }
+            }
+        }
+        // Something copied since (by the user, or a card's Copy) stays.
+        if (GetClipboardSequenceNumber() == ours)
+        {
+            try { if (saved != null) Clipboard.SetDataObject(saved, true); else Clipboard.Clear(); } catch { }
+        }
         return text == marker ? null : text;
     }
 
     /// Clipboard contents marked to stay out of Win+V history and cloud clipboard sync, so the
     /// marker and the put-back don't show up there. (The app's own copy of the selection can't
     /// be marked: that one is the copied app's.)
-    static DataObject Private(object content)
+    static DataObject Private(object content, out int kept, out int had)
     {
         var data = new DataObject();
+        kept = had = 0;
         if (content is string text) data.SetText(text);
         else if (content is IDataObject saved)
         {
             foreach (var format in saved.GetFormats(false))
             {
-                try { if (saved.GetData(format, false) is object value) data.SetData(format, value, false); } catch { }
+                had++;
+                try { if (saved.GetData(format, false) is object value) { data.SetData(format, value, false); kept++; } } catch { }
             }
         }
         var no = new System.IO.MemoryStream(BitConverter.GetBytes(0));
@@ -423,4 +451,6 @@ static class SelectionReader
 
     [DllImport("user32.dll")] static extern uint SendInput(uint n, INPUT[] inputs, int size);
     [DllImport("user32.dll")] static extern short GetAsyncKeyState(int vk);
+    [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] static extern uint GetClipboardSequenceNumber();
 }

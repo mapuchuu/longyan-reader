@@ -55,8 +55,7 @@ static class Program
         {
             Diagnostics.Write("missing " + missing + " in " + Core.AppDirectory);
             MessageBox.Show($"Longyan Reader can't find some of its files ({missing}).\n\n" +
-                "If you opened it from inside the zip, extract the whole zip first: right-click it, choose Extract all, " +
-                "then open LongyanReader.exe in the folder it makes. If you did, download Longyan Reader again.",
+                Reinstall,
                 "Longyan Reader", MessageBoxButton.OK, MessageBoxImage.Error);
             Diagnostics.ExitedCleanly();
             return 1;
@@ -83,8 +82,13 @@ static class Program
         return 0;
     }
 
-    /// A file the app can't run without, when it's missing: as when the exe was run from inside
-    /// the zip, or the zip was only partly extracted.
+    /// What to do about missing or damaged files.
+    static string Reinstall => Store.Packaged
+        ? "Reinstall Longyan Reader from the Microsoft Store, or repair it in Settings, Apps, Installed apps."
+        : "Download Longyan Reader again and run the installer.";
+
+    /// A file the app can't run without, when it's missing: as when the install was cut short
+    /// or something removed a file.
     static string? MissingFile()
     {
         foreach (var f in new[] { "LongyanBridge.dll", "dispatch.dll", "swiftCore.dll", @"Resources\cedict_ts.u8", @"Resources\splitter.tsv" })
@@ -209,13 +213,13 @@ static class Program
         // Outside the core's callback, so the message box's loop doesn't run the core's queue inside its own drain.
         core.Failed += message => Application.Current.Dispatcher.BeginInvoke(() => MessageBox.Show(
             "Longyan Reader couldn't load its dictionary, so it can't show cards (" + message + ").\n\n" +
-            "Extract the download again, or use Report a problem in the icon's menu.", "Longyan Reader", MessageBoxButton.OK, MessageBoxImage.Error));
+            Reinstall + " If that doesn't help, use Report a problem in the icon's menu.", "Longyan Reader", MessageBoxButton.OK, MessageBoxImage.Error));
         try { Gpu.Apply(lastRunEndedBadly); core.Start(); }
         catch (Exception e) when (e is DllNotFoundException or EntryPointNotFoundException or BadImageFormatException)
         {
             Diagnostics.Write("couldn't start the core: " + Diagnostics.Describe(e));
             MessageBox.Show("Longyan Reader couldn't start: some of its files are missing or damaged (" + e.Message + ").\n\n" +
-                "Extract the whole zip again and open LongyanReader.exe from the extracted folder.", "Longyan Reader", MessageBoxButton.OK, MessageBoxImage.Error);
+                Reinstall, "Longyan Reader", MessageBoxButton.OK, MessageBoxImage.Error);
             Diagnostics.ExitedCleanly();
             Application.Current.Shutdown();
             return;
@@ -280,7 +284,7 @@ static class Program
         }
         var point = clock.Elapsed.TotalMilliseconds;
         // Ctrl+C interrupts the program in a terminal (and isn't copy in Emacs or Vim).
-        if (selected == null && ForegroundApp.Get() is { CopyWorks: false }) { CardWindow.Hint("Can't read the selection in this app"); return; }
+        if (selected == null && ForegroundApp.Get() is not { CopyWorks: true }) { CardWindow.Hint("Can't read the selection in this app"); return; }
         if (selected == null) { how = "copy"; selected = await SelectionReader.ReadByCopying(); }
         var done = clock.Elapsed.TotalMilliseconds;
         // Timings only: the selected text never goes in the log.

@@ -19,6 +19,15 @@ sealed record ForegroundApp(string Process, string Path, bool CopyWorks, bool Ma
     static readonly HashSet<string> terminalProcesses = new()
     {
         "windowsterminal", "putty", "kitty", "mintty", "conemu", "conemu64", "alacritty", "wezterm-gui", "emacs", "gvim",
+        "tabby", "hyper", "mobaxterm", "termius", "warp", "fluentterminal.app", "terminus", "cmder", "rio", "ghostty",
+    };
+    // Editors with a terminal inside. Which part has focus can't be told from here, so Ctrl+C
+    // isn't sent anywhere in them; UI Automation still reads their text, and the eye still shows.
+    static readonly HashSet<string> terminalInside = new()
+    {
+        "code", "code - insiders", "cursor", "windsurf", "vscodium", "zed",
+        "idea64", "pycharm64", "webstorm64", "clion64", "goland64", "rider64", "rubymine64", "phpstorm64", "datagrip64",
+        "rustrover64", "studio64", "fleet",
     };
     // Where an unreadable double-click isn't a text selection: the desktop, the taskbar, file
     // windows, dialogs and spreadsheets.
@@ -31,7 +40,8 @@ sealed record ForegroundApp(string Process, string Path, bool CopyWorks, bool Ma
         "explorer", "excel", "totalcmd", "totalcmd64", "dopus",
     };
 
-    /// The app in front, or null for none or this app.
+    /// The app in front, or null for none, this app, or one whose program can't be read
+    /// (callers then don't send it keys).
     public static ForegroundApp? Get()
     {
         var hwnd = GetForegroundWindow();
@@ -51,7 +61,7 @@ sealed record ForegroundApp(string Process, string Path, bool CopyWorks, bool Ma
         var lower = OpenProcess(PROCESS_QUERY_INFORMATION, false, pid);
         var reachable = lower != IntPtr.Zero;
         if (reachable) CloseHandle(lower);
-        var copies = reachable && !terminalClasses.Contains(cls) && !terminalProcesses.Contains(process);
+        var copies = reachable && !terminalClasses.Contains(cls) && !terminalProcesses.Contains(process) && !terminalInside.Contains(process);
         return new ForegroundApp(process, path, copies, copies && !notTextClasses.Contains(cls) && !notTextProcesses.Contains(process));
     }
 
