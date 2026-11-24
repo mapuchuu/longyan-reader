@@ -7,7 +7,9 @@
 # installer is signed with $WINDOWS_UPDATE_KEY and checked against the public key the app has
 # ($UPDATE_PUBLIC_KEY, or windows/update-key.txt); without the key the item goes in unsigned,
 # which the app refuses, and $REQUIRE_SIGNATURE=1 makes that an error. $INSTALLER_ARGS go on the
-# command line WinSparkle runs the installer with.
+# command line WinSparkle runs the installer with; without them it's the silent update,
+# /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /OPEN=1. Beside FEED it also writes
+# appcast-windows-x64-on-arm64.xml, which the x64 app reads on an ARM PC (windows-feed.py).
 set -euo pipefail
 [ $# -eq 6 ] || { echo "usage: $0 FEED VERSION BUILD NOTES URL_PREFIX DIR" >&2; exit 1; }
 feed=$1 version=$2 build=$3 notes=$4 prefix=$5 dir=$6
@@ -31,4 +33,5 @@ if [ -n "${WINDOWS_UPDATE_KEY:-}" ]; then
   [ "$("$py" "$here/windows-feed.py" public-key)" = "$pub" ] \
     || { echo "WINDOWS_UPDATE_KEY isn't the key in windows/update-key.txt: installed copies would refuse the update" >&2; exit 1; }
   "$py" "$here/windows-feed.py" verify "$feed" "$pub" "$dir"
+  "$py" "$here/windows-feed.py" verify "$(dirname "$feed")/appcast-windows-x64-on-arm64.xml" "$pub" "$dir"
 fi

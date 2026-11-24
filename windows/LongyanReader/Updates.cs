@@ -13,6 +13,12 @@ namespace Longyan;
 /// in windows/update-key.txt before it runs. As on the Mac, WinSparkle asks on the second launch
 /// whether to check automatically, then checks once a day; until the reader says yes, the app
 /// only goes online for an update when they choose Check for Updates.
+///
+/// The installer runs silently (the feed's sparkle:installerArguments, /VERYSILENT ... /OPEN=1)
+/// and opens the app again. The x64 app on an ARM PC moves to the ARM64 build at its next
+/// update: WinSparkle picks the enclosure for the arch it was built for, so that copy reads
+/// appcast-windows-x64-on-arm64.xml, the same items with the ARM64 installer in the x64 place
+/// (scripts/windows-feed.py writes both).
 static class Updates
 {
     // Built in from the csproj: the feed, the public key and the build number WinSparkle
@@ -42,6 +48,24 @@ static class Updates
         return Meta("UpdateFeed");
     }
 
+    /// The x64 build running under emulation on an ARM64 PC.
+    public static bool X64OnArm64 { get; } = DetectX64OnArm64();
+
+    static bool DetectX64OnArm64()
+    {
+        if (RuntimeInformation.ProcessArchitecture != Architecture.X64) return false;
+        try { return IsWow64Process2(GetCurrentProcess(), out _, out var native) && native == 0xAA64; } // IMAGE_FILE_MACHINE_ARM64
+        catch { return RuntimeInformation.OSArchitecture == Architecture.Arm64; }
+    }
+
+    /// The feed for this copy: on an ARM PC, the x64 app reads the one that offers the ARM64 build.
+    public static string FeedFor(string feed, bool x64OnArm64)
+    {
+        const string name = "appcast-windows.xml";
+        if (!x64OnArm64 || !feed.EndsWith("/" + name, StringComparison.OrdinalIgnoreCase)) return feed;
+        return feed[..^name.Length] + "appcast-windows-x64-on-arm64.xml";
+    }
+
     // Kept so the collector never frees what WinSparkle calls back on its own threads.
     static readonly CanShutdown canShutdown = () => 1;
     static readonly Callback shutdown = () => System.Windows.Application.Current?.Dispatcher.BeginInvoke(() => Program.ExitForUpdate());
@@ -57,7 +81,7 @@ static class Updates
         if (!Available || started) return;
         try
         {
-            var feed = Feed();
+            var feed = FeedFor(Feed(), X64OnArm64);
             win_sparkle_set_appcast_url(feed);
             if (win_sparkle_set_eddsa_public_key(key) != 1) { Diagnostics.Write("updates: the built-in key isn't valid, so updates are off"); return; }
             win_sparkle_set_app_details("Longyan Reader", "Longyan Reader", Diagnostics.Version.Split('+')[0]);
@@ -74,7 +98,7 @@ static class Updates
             win_sparkle_set_update_postponed_callback(postponed);
             win_sparkle_init();
             started = true;
-            Diagnostics.Write($"updates: build {build}, {RuntimeInformation.ProcessArchitecture}, automatic checks {(Automatic ? "on" : "off")}"
+            Diagnostics.Write($"updates: build {build}, {RuntimeInformation.ProcessArchitecture}{(X64OnArm64 ? " on ARM64, so the ARM64 build next" : "")}, automatic checks {(Automatic ? "on" : "off")}"
                 + (feed != Meta("UpdateFeed") ? ", feed " + feed : ""));
         }
         catch (Exception e) { Diagnostics.Write("updates: couldn't start WinSparkle: " + Diagnostics.Describe(e)); }
@@ -109,6 +133,9 @@ static class Updates
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)] delegate int CanShutdown();
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)] delegate void Callback();
+
+    [DllImport("kernel32.dll", SetLastError = true)] static extern bool IsWow64Process2(IntPtr process, out ushort processMachine, out ushort nativeMachine);
+    [DllImport("kernel32.dll")] static extern IntPtr GetCurrentProcess();
 
     const string Dll = "WinSparkle.dll";
     [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)] static extern void win_sparkle_init();

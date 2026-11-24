@@ -16,10 +16,13 @@ namespace Longyan;
 ///   2. Check now in Settings, with a tampered installer: the signature fails, nothing runs.
 ///   3. Check now again with the real one: it downloads, the signature checks out, Install
 ///      update runs the installer and the app exits for it.
-/// Usage: UpdateCheck APP_EXE FEED_DIR SERVER_LOG OUT_DIR VERSION
+/// The installer runs with the silent update's flags. With ARCH arm64 (the x64 app on an ARM
+/// PC), the app reads appcast-windows-x64-on-arm64.xml and is offered the ARM64 installer.
+/// Usage: UpdateCheck APP_EXE FEED_DIR SERVER_LOG OUT_DIR VERSION [ARCH]
 /// Run as LongyanReader-Setup-*.exe it is the test installer: it notes its arguments and exits.
 static class Program
 {
+    const string UpdateArgs = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /OPEN=1";
     static readonly string marker = Path.Combine(Path.GetTempPath(), "longyan-test-installer.txt");
     static readonly string appLog = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LongyanReader", "logs", "longyan.log");
     static string outDir = ".";
@@ -34,10 +37,13 @@ static class Program
             return 0;
         }
         var (exe, feedDir, serverLog, version) = (args[0], args[1], args[2], args[4]);
+        var arch = args.Length > 5 ? args[5] : "x64";
         outDir = Path.GetFullPath(args[3]);
         Directory.CreateDirectory(outDir);
         File.Delete(marker);
-        var installer = Directory.GetFiles(feedDir, "LongyanReader-Setup-*-x64.exe").Single();
+        var installer = Path.Combine(feedDir, $"LongyanReader-Setup-{version}-{arch}.exe");
+        if (!File.Exists(installer)) return Fail("no " + installer);
+        var feedName = arch == "arm64" ? "appcast-windows-x64-on-arm64.xml" : "appcast-windows.xml";
 
         // 1. Automatic checks on, never checked: WinSparkle checks as the app starts.
         using (var key = Registry.CurrentUser.CreateSubKey(@"Software\LongyanReader\Updates"))
@@ -51,7 +57,9 @@ static class Program
         if (offer == null) return Fail("no update offered by the automatic check");
         var text = AllText(offer);
         Console.WriteLine("offer: " + text);
-        Check(text.Contains($"Longyan Reader {version} is now available"), $"offers {version}, the newest build for x64");
+        Check(text.Contains($"Longyan Reader {version} is now available"), $"offers {version}, the newest build for {arch}");
+        Check(Read(serverLog).Contains("GET /" + feedName), "read " + feedName);
+        if (arch == "arm64") Check(LogHas("on ARM64, so the ARM64 build next"), "the app knows it's the x64 build on an ARM PC");
         Check(Button(offer, "Install update") != null && Button(offer, "Skip this version") != null, "Install update and Skip this version are there");
         Click(offer, "Remind me later");
         Thread.Sleep(2000);
@@ -88,7 +96,8 @@ static class Program
         Shot("3-installed");
         Check(File.Exists(marker), "Install update ran the installer");
         if (File.Exists(marker)) Console.WriteLine("installer ran: " + File.ReadAllText(marker).Trim());
-        Check(File.Exists(marker) && File.ReadAllText(marker).Contains("--from-update"), "with the feed's sparkle:installerArguments");
+        Check(File.Exists(marker) && File.ReadAllText(marker).Contains(Path.GetFileName(installer)), "the " + arch + " installer");
+        Check(File.Exists(marker) && File.ReadAllText(marker).Contains(UpdateArgs), "silently: " + UpdateArgs);
         Check(app.HasExited, "the app exited for the installer");
         Check(LogHas("exit (update)"), "the app logged its exit for the update");
         if (!app.HasExited) app.Kill();

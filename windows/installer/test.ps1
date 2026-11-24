@@ -1,7 +1,8 @@
 # The installer on a clean Windows (windows-installer.yml): a silent install, the app starts
-# from where it went, an upgrade over the running app (it exits and opens again), then a
-# silent uninstall that leaves no app, shortcut, Settings > Apps entry or sign-in entry, and
-# keeps the reader's data.
+# from where it went, an upgrade over the running app (it exits and opens again), an update as
+# WinSparkle runs it (/OPEN=1, with the app already closed: it opens again), then a silent
+# uninstall that leaves no app, shortcut, Settings > Apps entry, open at login entry or app
+# data, and leaves other folders and keys alone.
 param([Parameter(Mandatory)] [string] $Setup, [string] $Logs = 'installer-logs')
 $ErrorActionPreference = 'Stop'
 New-Item -ItemType Directory -Force $Logs | Out-Null
@@ -13,7 +14,11 @@ $startMenu = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs"
 $lnk = "$startMenu\Longyan Reader.lnk"
 $entry = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{E0CE80DD-FDC0-4DB6-97BE-2EAA3F95E820}_is1'
 $runKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
-$appLog = "$env:LOCALAPPDATA\LongyanReader\logs\longyan.log"
+$data = "$env:LOCALAPPDATA\LongyanReader"
+$appLog = "$data\logs\longyan.log"
+$dataKey = 'HKCU:\Software\LongyanReader'
+# The flags an update runs the installer with (scripts/windows-feed.py UPDATE_ARGS).
+$updateArgs = '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/OPEN=1'
 
 function Fail([string] $why) {
     Write-Host "FAIL: $why"
@@ -31,8 +36,8 @@ function Wait([scriptblock] $done, [int] $seconds, [string] $what) {
     Ok $what
 }
 # Waits for that process only: the setup starts the app, which keeps running.
-function Run([string] $file, [string] $log) {
-    $p = Start-Process $file -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/LOG=`"$Logs\$log`"" -PassThru
+function Run([string] $file, [string] $log, [string[]] $flags = @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART')) {
+    $p = Start-Process $file -ArgumentList ($flags + "/LOG=`"$Logs\$log`"") -PassThru
     $null = $p.Handle
     $clock = [Diagnostics.Stopwatch]::StartNew()
     $p.WaitForExit()
@@ -50,6 +55,7 @@ Write-Host "setup: $Setup, $([Math]::Round((Get-Item $Setup).Length / 1MB)) MB"
 Run $Setup install.log
 if (-not (Test-Path $exe)) { Fail "no $exe" }
 if (-not (Test-Path "$app\Resources\splitter.tsv")) { Fail 'no Resources\splitter.tsv' }
+if (-not (Test-Path "$app\WinSparkle.dll")) { Fail 'no WinSparkle.dll, so no updates' }
 if (-not (Test-Path $lnk)) { Fail "no Start menu shortcut at $lnk" }
 $target = (New-Object -ComObject WScript.Shell).CreateShortcut($lnk).TargetPath
 if ($target -ne $exe) { Fail "the shortcut opens $target" }
@@ -58,7 +64,7 @@ Ok "Settings > Apps: $($e.DisplayName) $($e.DisplayVersion), $($e.Publisher)"
 foreach ($pf in $env:ProgramFiles, ${env:ProgramFiles(x86)}) {
     if (Test-Path "$pf\Longyan Reader") { Fail "something in $pf" }
 }
-if (Get-ItemProperty $runKey -Name 'Longyan Reader' -ErrorAction SilentlyContinue) { Fail 'the install turned on open at sign-in' }
+if (Get-ItemProperty $runKey -Name 'Longyan Reader' -ErrorAction SilentlyContinue) { Fail 'the install turned on open at login' }
 if (Running) { Fail 'a silent first install opened the app' }
 Ok "installed in $app, $([Math]::Round((Get-ChildItem $app -Recurse | Measure-Object Length -Sum).Sum / 1MB)) MB"
 
@@ -80,8 +86,33 @@ Wait { (Running).Count -gt 0 } 30 'the upgrade opened the app again'
 Start-Sleep 10
 if (-not (Running)) { Fail 'the app exited after the upgrade' }
 
-# 4. Uninstall, with open at sign-in on as the welcome window leaves it.
+# 4. An update as WinSparkle runs it: the app exits for the update, then the installer runs
+# with the update flags and opens it again.
+$ev = [Threading.EventWaitHandle]::OpenExisting('LongyanReader.Windows.Quit')
+$null = $ev.Set()
+$ev.Dispose()
+Wait { (Running).Count -eq 0 } 30 'the app exited for the update'
+Run $Setup update.log $updateArgs
+Wait { (Running).Count -gt 0 } 30 'the update opened the app again (/OPEN=1)'
+Start-Sleep 10
+if (-not (Running)) { Fail 'the app exited after the update' }
+
+# 5. Uninstall, with open at login on as the welcome window leaves it, and the reader's data:
+# settings, history, a model, logs and the updater's settings. Next to them, a folder and a key
+# with a longer name that must stay.
 Set-ItemProperty $runKey -Name 'Longyan Reader' -Value "`"$exe`""
+New-Item -ItemType Directory -Force "$data\models", "$data\History" | Out-Null
+Set-Content "$data\models\qwen3.5-4b-q4_k_m.gguf" 'not a model'
+Set-Content "$data\History\lookups.jsonl" '{}'
+if (-not (Test-Path "$data\settings.json")) { Set-Content "$data\settings.json" '{}' }
+$null = New-Item -Force "$dataKey\Updates"
+Set-ItemProperty "$dataKey\Updates" -Name CheckForUpdates -Value '1'
+$neighbour = "$env:LOCALAPPDATA\LongyanReaderKeep"
+$neighbourKey = 'HKCU:\Software\LongyanReaderKeep'
+New-Item -ItemType Directory -Force $neighbour | Out-Null
+Set-Content "$neighbour\keep.txt" 'keep'
+$null = New-Item -Force $neighbourKey
+Copy-Item $appLog $Logs -ErrorAction SilentlyContinue
 $uninstaller = ((Get-ItemProperty $entry).UninstallString).Trim('"')
 Run $uninstaller uninstall.log
 $until = (Get-Date).AddSeconds(60)
@@ -102,7 +133,12 @@ foreach ($pf in $env:ProgramFiles, ${env:ProgramFiles(x86)}, "$env:LOCALAPPDATA\
     $left = Get-ChildItem $pf -Filter '*Longyan*' -ErrorAction SilentlyContinue
     if ($left) { Fail "left in ${pf}: $($left.FullName)" }
 }
-if (Get-ItemProperty $runKey -Name 'Longyan Reader' -ErrorAction SilentlyContinue) { Fail 'open at sign-in is still on' }
-if (-not (Test-Path $appLog)) { Fail 'a silent uninstall deleted the reader''s data' }
-Ok 'uninstalled; the reader''s data is kept'
-Copy-Item $appLog $Logs -ErrorAction SilentlyContinue
+if (Get-ItemProperty $runKey -Name 'Longyan Reader' -ErrorAction SilentlyContinue) { Fail 'open at login is still on' }
+Wait { -not (Test-Path $data) } 30 "the app's data is gone ($data)"
+if (Test-Path $dataKey) { Fail "$dataKey is still there" }
+Ok "$dataKey is gone"
+if (-not (Test-Path "$neighbour\keep.txt")) { Fail "the uninstall deleted $neighbour" }
+if (-not (Test-Path $neighbourKey)) { Fail "the uninstall deleted $neighbourKey" }
+Ok 'other folders and keys are kept'
+Remove-Item -Recurse -Force $neighbour, $neighbourKey
+Ok 'uninstalled, with the app''s data'
