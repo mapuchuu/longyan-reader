@@ -453,8 +453,8 @@
   // The Windows links, once they're live. Until then their buttons pick Windows in the steps
   // below and go nowhere else. STORE is the Microsoft Store page; INSTALLER the GitHub one.
   const WIN = {
-    store: "",
-    installer: "",
+    store: "https://apps.microsoft.com/detail/9MSR9JKZKR50",
+    installer: "https://github.com/mapuchuu/longyan-reader/releases/tag/windows-v1.0.0",
   };
   document.querySelectorAll("[data-store]").forEach((a) => { if (WIN.store) a.href = WIN.store; });
   document.querySelectorAll("[data-installer]").forEach((a) => { if (WIN.installer) a.href = WIN.installer; });
