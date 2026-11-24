@@ -59,9 +59,9 @@
     <h2>On Windows</h2>
     <p>The Windows app works the same way, with these differences.</p>
     <ul>
-      <li>Windows doesn’t ask for a permission. The app reads the selection through UI Automation, or, in apps that don’t share it, copies it with Ctrl+C and then puts back what was on your clipboard. It doesn’t do this in terminals, where Ctrl+C would stop what’s running.</li>
+      <li>There’s no permission to give on Windows. The app reads the selection through UI Automation, or, in apps that don’t share it, copies it with Ctrl+C and then puts back what was on your clipboard. It doesn’t do this in terminals, where Ctrl+C would stop what’s running.</li>
       <li>History, settings and the reading model are kept in <code>%LOCALAPPDATA%\LongyanReader</code>. The Microsoft Store version keeps them in its own folder under <code>%LOCALAPPDATA%\Packages</code>. Clearing history moves the file to the Recycle Bin, or deletes it if the Recycle Bin is off. Uninstalling removes the folder. A history you cleared earlier stays in the Recycle Bin until you empty it.</li>
-      <li>The version from GitHub checks GitHub for updates once a day, after you say yes. The Microsoft Store version doesn’t; the Store updates it.</li>
+      <li>The version from GitHub checks GitHub for updates once a day after you say yes, or when you choose Check for updates. The Microsoft Store version doesn’t; the Store updates it.</li>
       <li>Report a Problem fills in the app version, Windows version, processor and its number of cores, memory, reading model, and the last lines of the app’s log. The log has no text you looked up. Nothing is sent unless you submit it.</li>
       <li>There’s no Ollama or Apple Intelligence fallback. Without the model, cards show the dictionary’s meanings.</li>
     </ul>

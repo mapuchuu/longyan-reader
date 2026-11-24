@@ -48,7 +48,7 @@ Look up 躺平 in a dictionary and you get "to lie stretched out" and "to opt ou
 
 Select a single word and you get its meaning in context, pinyin colored by tone, and the dictionary's other senses underneath in case you want them. Select a phrase or a whole sentence and you get a natural translation first, then every word in it with its meaning there. Any word can be opened to see the rest of its senses or to pick a different one yourself.
 
-Meanings always come from CC-CEDICT, so the model chooses between real dictionary entries and never invents one. On top of that sit 1,040 notes, written ahead of time and checked by hand, on the words where a gloss falls short: 面子, 关系, 内卷, 摸鱼, 正能量 and a thousand more.
+Meanings always come from CC-CEDICT, so the model chooses between real dictionary entries and never invents one. On top of that, 693 words where a gloss falls short have short usage notes, written ahead of time and checked against the dictionary: 面子, 关系, 内卷, 摸鱼, 正能量 and about 690 others.
 
 Every lookup goes into a history with its sentence and the meaning the word had there. You can search it or export it to Anki or a spreadsheet. If Anki is open with the [AnkiConnect](https://ankiweb.net/shared/info/2055492159) add-on, a button on the card adds the word to Anki straight away, with its pinyin, its sentence and the meaning it had there.
 
@@ -102,53 +102,49 @@ Without the model you still get the dictionary, pinyin and notes, with meanings 
 
 ## Windows
 
-<!-- DRAFT (win/launch-docs). Before merging: pick variant A or B under step 2 and delete the
-     other, fill in every [bracketed] value from the release build, and set the version in the
-     download links. Nothing here is live yet. -->
-
-Longyan Reader for Windows has the same cards, dictionary, notes and reading model as the Mac app. It sits in the notification area, and **Ctrl+Alt+L** does what ⌃⌥L does on a Mac.
+Longyan Reader for Windows has the same dictionary, notes and reading model as the Mac app, and cards that look and work the same way. It sits in the notification area, and **Ctrl+Alt+L** does what ⌃⌥L does on a Mac.
 
 ### What you need
 
-- Windows 10 or 11, 64-bit, on an x64 PC or an ARM64 one (Snapdragon X and other Windows on Arm PCs). Each has its own installer.
-- On x64, a processor with AVX2, which most Intel Core and AMD Ryzen processors have; many Celeron and Pentium chips don't. Without it the app still works, with meanings in dictionary order and no translations.
+- Windows 10 (version 1809 or later) or Windows 11, 64-bit, on an x64 PC or an ARM64 one (Snapdragon X and other Windows on Arm PCs).
+- On x64, a processor with AVX2 and FMA, which most Intel Core and AMD Ryzen processors from the last ten years have; many Celeron and Pentium chips don't. Without them the app still works, with meanings in dictionary order and no translations.
 - 8 GB of memory.
-- About 3 GB of free space: 2.7 GB for the reading model and [installed size] for the app.
+- About 4 GB of free space, most of it for the 2.7 GB reading model.
 
-The card comes up at once with the dictionary's meanings; the model's picks and translation follow. They take longer than on a Mac: [typical time for a word card and a phrase, from the beta, with and without the graphics chip].
+The card comes up at once with the dictionary's meanings, and the model's picks and translation follow. They take longer than on a Mac.
 
 ### Install
 
+From the [Microsoft Store](https://apps.microsoft.com/detail/9MSR9JKZKR50). The Store keeps it up to date.
+
+Or from GitHub:
+
 1. Download the installer for your PC: [x64](https://github.com/mapuchuu/longyan-reader/releases/download/windows-v1.0.0/LongyanReader-Setup-1.0.0-x64.exe) or [ARM64](https://github.com/mapuchuu/longyan-reader/releases/download/windows-v1.0.0/LongyanReader-Setup-1.0.0-arm64.exe). Not sure which? Settings > System > About shows it under System type.
-2. Open it. It installs for your account only, so it doesn't ask for an administrator.
+2. Open it. It installs for your account only, so it doesn't ask for an administrator. The installer isn't signed, so Windows shows "Windows protected your PC" with an unknown publisher. Click **More info**, then **Run anyway**. Your browser may also say the file isn't commonly downloaded; choose **Keep**. If Smart App Control is on (Windows 11), it blocks unsigned apps; install the Microsoft Store version instead.
 
-   **[Variant A: the installer is signed. Use this one once the certificate is in place.]**
+Then:
 
-   The installer and the app are signed by [publisher name on the certificate]. If Windows shows "Windows protected your PC", which can happen for a while after a new release, check that the publisher says [publisher name], then click **More info** and **Run anyway**.
+1. The welcome window offers the reading model (2.7 GB). Download it, or get it later in Settings.
+2. Select some Chinese in any app and click the eye, or press Ctrl+Alt+L.
 
-   **[Variant B: the installer isn't signed. Use this one only for a build without the certificate.]**
-
-   The installer isn't signed yet, so Windows shows "Windows protected your PC" with an unknown publisher. Click **More info**, then **Run anyway**. Your browser may also say the file isn't commonly downloaded; choose **Keep**. If Smart App Control is on (Windows 11), it blocks unsigned apps and has no way past it, so wait for a signed release.
-
-3. The welcome window offers the reading model (2.7 GB). Download it, or get it later from the Longyan Reader icon in the notification area.
-4. Select some Chinese in any app and click the eye, or press Ctrl+Alt+L.
-
-Windows doesn't ask for any permission to read the selection. Open at login is on unless you turn it off in the welcome window or in Settings. Once you agree to it, the app checks for updates once a day; when you say yes to one, it installs in the background and the app opens again.
+There's no permission to give. Open at login is on unless you turn it off in the welcome window or in Settings. The GitHub version checks for updates once a day after you agree to it, or when you choose Check for updates; when you say yes to one, it installs in the background and the app opens again.
 
 ### Using it on Windows
 
-It works as on the Mac. Right-click the icon in the notification area for Lookup history, Settings, Report a problem and Exit; double-click it for Settings. You can change the shortcut in Settings. Ctrl and the mouse wheel make a card's text bigger or smaller.
+Right-click the icon in the notification area for Lookup history, Settings, Report a problem and Exit (and Check for updates, in the GitHub version); double-click it for Settings. You can change the shortcut in Settings. On keyboards where Ctrl+Alt+L types a letter, the welcome window picks another. Ctrl and the mouse wheel make a card's text bigger or smaller.
 
-Some things differ:
+Some things differ from the Mac:
 
 - Without the reading model, cards list meanings in dictionary order. There's no Apple Intelligence to fall back on, and the app doesn't use Ollama.
+- Tone colors are fixed. There's no choice of Pleco's, MDBG's or your own yet.
 - Words are split by a splitter of the app's own, trained to split as the Mac does. Cards come out the same on about 99 sentences in 100.
+- The model uses the graphics chip when it passes a quick test, and the processor otherwise.
 - Listen needs a Chinese voice. If there isn't one, the card says how to add it (Settings > Time & language > Speech).
-- In apps that don't share the selection, the app copies it with Ctrl+C and puts your clipboard back.
+- In apps that don't share the selection, the app copies it with Ctrl+C and puts your clipboard back. It doesn't do this in terminals, where Ctrl+C would stop what's running.
 
-Your history, settings and the model are in `%LOCALAPPDATA%\LongyanReader`. The app keeps a log in its `logs` folder with timings and errors, never the text you look up. It goes online for the same three things as on the Mac: the model download, update checks, and Report a problem, which opens a pre-filled GitHub issue in your browser and sends nothing until you submit it.
+Your history, settings and the model are in `%LOCALAPPDATA%\LongyanReader` (the Store version keeps them in its own folder under `%LOCALAPPDATA%\Packages`). The app keeps a log in its `logs` folder with timings and errors, never the text you look up. It goes online for the same things as on the Mac: the model download, update checks in the GitHub version, and Report a problem, which opens a pre-filled GitHub issue in your browser and sends nothing until you submit it.
 
-To uninstall, go to Settings > Apps > Installed apps, find Longyan Reader and choose **Uninstall**. It removes your history, settings and the reading model with the app.
+To uninstall, find Longyan Reader in Settings > Apps > Installed apps (Apps & features on Windows 10) and choose **Uninstall**. It removes your history, settings and the reading model with the app.
 
 ## Privacy
 
@@ -185,7 +181,7 @@ Only to download the reading model once, and for update checks if you turn them 
 <details>
 <summary><b>Why does it need Accessibility?</b></summary>
 
-It's how a Mac app reads text selected in another app, along with the sentence around it. Longyan only reads it when you click the eye or press ⌃⌥L.
+It's how a Mac app reads text selected in another app, along with the sentence around it. Longyan only reads it when you click the eye or press ⌃⌥L. On Windows there's no permission to give.
 </details>
 
 <details>
@@ -203,7 +199,7 @@ Choose **Report a Problem** in the menu, or open a [wrong meaning issue](https:/
 <details>
 <summary><b>The app quit, or something else broke</b></summary>
 
-Choose **Report a Problem** from the menu bar icon. If the app quit on its own, macOS kept a crash report: open Console, choose Crash Reports, find LongyanReader and attach the newest one. The app keeps no other log, and your history is never part of a report unless you paste from it.
+Choose **Report a Problem** from the menu bar icon. If the app quit on its own, macOS kept a crash report: open Console, choose Crash Reports, find LongyanReader and attach the newest one. The app keeps no other log, and your history is never part of a report unless you paste from it. On Windows, the app offers a report the next time it opens, with the end of its log, which never has the text you look up.
 </details>
 
 <details>
