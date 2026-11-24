@@ -86,14 +86,19 @@ section { position: relative; }
 .button:hover { background: #fff; }
 .button:active { transform: scale(.97); }
 
-/* The opening, on the page's own paper: pinned while the sentence gathers into the eye
-   (60vh of scrolling, hero.js), then held a moment on the eye and the headline. The sheets
-   sit low, so the words are on the night and the card has colour to catch; the foot fades to
-   the page's black. */
-.story { height: 185vh; }
-.story-pin { position: sticky; top: 0; height: 100vh; height: 100svh; min-height: 640px; overflow: hidden; background: #000; }
-.hero-paper { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0;
-  -webkit-mask-image: linear-gradient(to bottom, #000 78%, transparent); mask-image: linear-gradient(to bottom, #000 78%, transparent); }
+/* The opening: pinned while the sentence gathers into the eye (85vh of scrolling, hero.js),
+   then held a moment on the eye and the headline. Night, with light coming up from below the
+   screen's foot, like a horizon before dawn: wide and still, the selection's blue going to
+   violet, with a little rose off to one side. It never moves; the words, the card and the eye
+   stay the brightest things. */
+.story { height: 195vh; }
+.story-pin { position: sticky; top: 0; height: 100vh; height: 100svh; min-height: 640px; overflow: hidden;
+  background:
+    radial-gradient(130% 62% at 50% 112%, rgba(58, 96, 255, .46) 0%, rgba(92, 72, 226, .26) 34%, rgba(46, 36, 140, .1) 60%, transparent 78%),
+    radial-gradient(60% 38% at 82% 108%, rgba(214, 110, 196, .2), transparent 72%),
+    radial-gradient(50% 30% at 14% 106%, rgba(30, 150, 255, .14), transparent 72%),
+    linear-gradient(#000 35%, #03040f); }
+.story-pin::after { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none; background-image: var(--grain); background-size: 128px; opacity: .1; mix-blend-mode: overlay; }
 #field { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; display: block; transition: opacity .5s cubic-bezier(.4, 0, .2, 1); }
 /* Once the eye has formed: the headline beside it, on the left (under it on a phone or an
    upright tablet). It answers what the visitor just did: someone who looked a word up reads
@@ -141,12 +146,6 @@ h1 .rise > span { white-space: nowrap; }
   visibility: hidden; transition: opacity .3s ease-out, transform .3s ease-out, visibility 0s .3s;
 }
 .is-formed .try-head { visibility: visible; opacity: 1; transform: translateY(-100%); transition: opacity .9s var(--ease-out), transform 1s var(--ease-out), visibility 0s; }
-/* "This card is draggable": a faint note wrapped round the card's top right corner, along
-   the top and down the side (try.js). */
-.drag-hint { position: fixed; left: 0; top: 0; z-index: 61; pointer-events: none; overflow: visible; opacity: 0; transition: opacity .6s ease-out; }
-.drag-hint.on { opacity: 1; }
-.drag-hint path { fill: none; }
-.drag-hint text { font: italic 500 12.5px var(--text); letter-spacing: .01em; fill: rgba(245, 245, 247, .5); }
 /* On the way in, the sentence's characters rise into place one after another. */
 .motion .line.current .c { animation: char-in .9s var(--glide) both; animation-delay: calc(.3s + var(--i) * 40ms); }
 @keyframes char-in { from { opacity: 0; transform: translateY(.35em); } }
@@ -209,23 +208,24 @@ h1 .rise > span { white-space: nowrap; }
 .lit-progress b { display: block; height: 100%; border-radius: inherit; background: rgba(245, 245, 247, .85); transform: scaleX(0); transform-origin: left; }
 .lit-progress b { transition: transform .15s linear; }
 /* The way on, once the visitor has tried the sentence: a moment after their first look-up,
-   at the foot of the screen, clear of the card. Until then it isn't there at all, to the
-   pointer or the keyboard; scrolling takes them on just the same. */
+   at the end of the column (line, card, button), a little under the card, which stops short
+   of it and scrolls inside, as the app's does. It stays put while the card moves (try.js
+   sets --next-y). Until then it isn't there at all, to the pointer or
+   the keyboard; scrolling takes them on just the same. */
+.try-next { position: absolute; left: 0; right: 0; top: var(--next-y, 80%); display: flex; justify-content: center; pointer-events: none; }
 .try-continue {
-  position: absolute; left: 50%; bottom: max(36px, 5vh);
   display: inline-flex; align-items: center; height: 44px; padding: 0 20px 0 22px; white-space: nowrap;
   font: 500 16px/1 var(--text); letter-spacing: -0.012em; color: #fff;
   background: rgba(0, 0, 0, .22); border: 1px solid rgba(255, 255, 255, .7); border-radius: 999px; cursor: pointer; pointer-events: auto;
-  visibility: hidden; opacity: 0; transform: translate(-50%, 8px);
+  visibility: hidden; opacity: 0;
   transition: opacity .3s ease-out, transform .3s ease-out, visibility 0s .3s, background .2s, border-color .2s;
 }
 .try-continue svg { width: 15px; height: 15px; margin-left: 7px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; transition: transform .3s var(--ease-out); }
 .try-continue:hover { background: rgba(255, 255, 255, .1); border-color: #fff; }
 .try-continue:hover svg { transform: translateY(2px); }
-.try-continue:active { transform: translate(-50%, 0) scale(.97); }
+.try-continue:active { transform: scale(.97); }
 .try-continue:focus-visible { outline: 2px solid var(--t3); outline-offset: 3px; }
-.covered .try-continue { visibility: hidden !important; opacity: 0 !important; transition: opacity .2s ease-out, visibility 0s .2s !important; }
-.is-formed.can-continue .try-continue { visibility: visible; opacity: 1; transform: translate(-50%, 0); transition: opacity .7s var(--ease-out), transform .8s var(--ease-out), visibility 0s, background .2s, border-color .2s; }
+.is-formed.can-continue .try-continue { visibility: visible; opacity: 1; transition: opacity .8s var(--ease-out), visibility 0s, background .2s, border-color .2s; }
 .button:focus-visible { border-radius: 999px; }
 @media (prefers-reduced-motion: reduce) { .cued .line.current .c { animation: none; } }
 
@@ -780,11 +780,56 @@ figcaption b { color: var(--ink); font-weight: 600; }
   background: #0a0b22;
 }
 .glass-box > .paper { position: absolute; z-index: 0; }
+/* Each tile's ground, in the language of a poster: a grid of blocks with crisp seams and a
+   soft light inside each, in the tile's own colours, and a mark of what the tile is about.
+   Same frame, grain and caption on all four. */
+.glass-box > .ground { position: absolute; inset: 0; z-index: 0; }
+.blocks { --row: 17.1875%; overflow: hidden; }
+.blocks i { position: absolute; left: var(--x); top: var(--y); width: var(--w); height: var(--h);
+  background: radial-gradient(var(--rs, 85% 75%) at var(--gx, 50%) var(--gy, 50%), var(--c2), transparent 72%), linear-gradient(var(--ang, 180deg), var(--c1), var(--c3, var(--c1))); }
+.blocks i.o { height: auto; aspect-ratio: 1; border-radius: 50%; }
+/* Notes: a pattern, the way a badge is drawn: the notes' own two symbols ("Lost in
+   translation", "Cultural context") in fine outline on a grid, over a vivid coral-red. */
+.stage-notes { background: radial-gradient(70% 60% at 20% 10%, rgba(255, 196, 168, .55), transparent 70%), linear-gradient(160deg, #ff6a5c, #e8365f 55%, #c42a6a); }
+.note-pattern { background-image: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2296%22 height=%2296%22 viewBox=%220 0 96 96%22%3E%3Cg fill=%22none%22 stroke=%22%23fff%22 stroke-opacity=%22.32%22 stroke-width=%22.7%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath transform=%22translate%2812 12%29 scale%281.5%29%22 d=%22M2.6 1.8h6.6c.9 0 1.6.7 1.6 1.6v4.4c0 .9-.7 1.6-1.6 1.6H6.4L4.2 11.2V9.4H2.6c-.9 0-1.6-.7-1.6-1.6V3.4c0-.9.7-1.6 1.6-1.6zM3.6 3.9h4.6M5.9 3.1v.8M4.5 3.9c.3 1.4 1.3 2.6 2.9 3.1M7.3 3.9c-.3 1.4-1.3 2.6-2.9 3.1M11.6 6.4h1.8c.9 0 1.6.7 1.6 1.6v4.2c0 .9-.7 1.6-1.6 1.6h-.9v1.6l-2-1.6H8.6c-.9 0-1.6-.7-1.6-1.6v-1.6h2.2c1.3 0 2.4-1.1 2.4-2.4zM9.4 12.6l1.6-4.1 1.6 4.1M9.9 11.4h2.2%22/%3E%3Cpath transform=%22translate%2860 60%29 scale%281.5%29%22 d=%22M14.8 8A6.8 6.8 0 1 1 1.2 8a6.8 6.8 0 0 1 13.6 0zM5.1 3.4c1 .2 1.9.9 2 1.8.1.8-.6 1.2-1.3 1.3-.8.1-1 .9-.6 1.5.5.7.2 1.5-.6 1.6-.8.1-1.4-.6-1.6-1.4C2.8 6.6 3.6 4.4 5.1 3.4zM10.4 8.6c.9-.3 1.9.2 2.1 1.1.2 1-.4 2-1.4 2.4-.9.3-1.7-.2-1.7-1.1 0-.6.4-.9.4-1.4 0-.4.2-.8.6-1z%22/%3E%3Cpath transform=%22translate%2860 12%29 scale%281.5%29%22 d=%22M14.8 8A6.8 6.8 0 1 1 1.2 8a6.8 6.8 0 0 1 13.6 0zM5.1 3.4c1 .2 1.9.9 2 1.8.1.8-.6 1.2-1.3 1.3-.8.1-1 .9-.6 1.5.5.7.2 1.5-.6 1.6-.8.1-1.4-.6-1.6-1.4C2.8 6.6 3.6 4.4 5.1 3.4zM10.4 8.6c.9-.3 1.9.2 2.1 1.1.2 1-.4 2-1.4 2.4-.9.3-1.7-.2-1.7-1.1 0-.6.4-.9.4-1.4 0-.4.2-.8.6-1z%22 stroke-opacity=%22.16%22/%3E%3Cpath transform=%22translate%2812 60%29 scale%281.5%29%22 d=%22M2.6 1.8h6.6c.9 0 1.6.7 1.6 1.6v4.4c0 .9-.7 1.6-1.6 1.6H6.4L4.2 11.2V9.4H2.6c-.9 0-1.6-.7-1.6-1.6V3.4c0-.9.7-1.6 1.6-1.6zM3.6 3.9h4.6M5.9 3.1v.8M4.5 3.9c.3 1.4 1.3 2.6 2.9 3.1M7.3 3.9c-.3 1.4-1.3 2.6-2.9 3.1M11.6 6.4h1.8c.9 0 1.6.7 1.6 1.6v4.2c0 .9-.7 1.6-1.6 1.6h-.9v1.6l-2-1.6H8.6c-.9 0-1.6-.7-1.6-1.6v-1.6h2.2c1.3 0 2.4-1.1 2.4-2.4zM9.4 12.6l1.6-4.1 1.6 4.1M9.9 11.4h2.2%22 stroke-opacity=%22.16%22/%3E%3C/g%3E%3C/svg%3E"); background-size: 96px 96px; background-position: center; opacity: .9;
+  -webkit-mask-image: radial-gradient(120% 90% at 50% 50%, #000 40%, rgba(0, 0, 0, .5)); mask-image: radial-gradient(120% 90% at 50% 50%, #000 40%, rgba(0, 0, 0, .5)); }
+/* Tones: the one light tile, a soft mesh of the four tones' colours, the way an iPhone's
+   wallpaper glows: one light behind each column of the panel (tiles.js puts --x1..--x4 at the
+   columns' centres), each set at its tone's pitch: high, rising, low, falling. */
+.stage-tones { background: #fbf7f4; }
+.tone-mesh {
+  background:
+    radial-gradient(52% 78% at var(--x1, 20%) 2%, rgba(255, 120, 92, .95), rgba(255, 120, 92, 0) 70%),
+    radial-gradient(46% 86% at var(--x2, 40%) 40%, rgba(70, 205, 140, .85), rgba(70, 205, 140, 0) 70%),
+    radial-gradient(50% 80% at var(--x3, 60%) 104%, rgba(70, 130, 255, .95), rgba(70, 130, 255, 0) 70%),
+    radial-gradient(52% 84% at var(--x4, 80%) 82%, rgba(170, 110, 255, .92), rgba(170, 110, 255, 0) 70%),
+    linear-gradient(170deg, #ffe3da, #e9e2ff);
+}
+/* On the light tile the panel is the app in its light appearance: white frosted glass, the
+   tones in their light-mode inks. */
+.stage-tones .ui-tones { color: #1d1d1f;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .5), rgba(255, 255, 255, .28)), rgba(255, 255, 255, .38);
+  -webkit-backdrop-filter: blur(30px) saturate(1.6); backdrop-filter: blur(30px) saturate(1.6);
+  box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .7), 0 0 0 .5px rgba(0, 0, 0, .08), 0 30px 70px rgba(60, 40, 120, .22), 0 6px 18px rgba(60, 40, 120, .12); }
+.stage-tones .ui-tones small { color: rgba(29, 29, 31, .55); }
+.stage-tones .ui-tones > div:nth-child(1) { --tc: var(--t1-ink); --ink: var(--t1-ink); }
+.stage-tones .ui-tones > div:nth-child(2) { --tc: var(--t2-ink); --ink: var(--t2-ink); }
+.stage-tones .ui-tones > div:nth-child(3) { --tc: var(--t3-ink); --ink: var(--t3-ink); }
+.stage-tones .ui-tones > div:nth-child(4) { --tc: var(--t4-ink); --ink: var(--t4-ink); }
+.stage-tones .ui .t1 { color: var(--t1-ink); } .stage-tones .ui .t2 { color: var(--t2-ink); }
+.stage-tones .ui .t3 { color: var(--t3-ink); } .stage-tones .ui .t4 { color: var(--t4-ink); }
+
+/* History: blocks of blue on the grid of a spreadsheet, every seam on a line of it. */
+.graph-paper {
+  background-image: linear-gradient(rgba(255, 255, 255, .2) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, .2) 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, .07) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, .07) 1px, transparent 1px);
+  background-size: 12.5% 17.1875%, 12.5% 17.1875%, 3.125% 4.296875%, 3.125% 4.296875%; background-position: 0 0;
+}
 .glass-box::after {
   content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
   background-image: var(--grain); background-size: 128px; opacity: .28; mix-blend-mode: overlay;
 }
-.glass-box > :not(.paper) { position: relative; z-index: 2; }
+.glass-box > :not(.paper):not(.ground) { position: relative; z-index: 2; }
 .tile .glass-box { width: 100%; }
 
 /* Notes: one in front, the two before it stepping back behind it; every few seconds the next
@@ -1108,19 +1153,61 @@ figcaption b { color: var(--ink); font-weight: 600; }
    features and the steps, so it reads as a pause rather than part of either. Cobalt, the
    violet the tiles and the closing don't use at this size, its sheets set low so the line
    sits in the night above them, with the closing's soft dusk behind the words. */
-.trusted { margin-top: 170px; padding: 150px 0; text-align: center; overflow: hidden; background: #07051c; }
-.trusted .paper { z-index: 0; }
+/* Who it's for: the sentence, selected. Each line is a block of the app's selection (system
+   blue with its violet and rose sheen moving through it), with the selection's handles at
+   either end, and the readers in white pills, each with a character in its own tone's colour:
+   外 wài, 家 jiā, 考 kǎo, 教 jiào. */
+.trusted { margin-top: 170px; padding: 150px 0; text-align: center; overflow: hidden; background: #000; position: relative; }
 .trusted .wrap { position: relative; z-index: 2; }
-.trusted .wrap::before { content: ""; position: absolute; z-index: -1; inset: -80px 0; background: radial-gradient(closest-side, rgba(7, 5, 28, .55), rgba(7, 5, 28, 0)); pointer-events: none; }
-.trusted h2 { color: #fff; font-size: 44px; line-height: 1.14; letter-spacing: -0.03em; text-shadow: 0 1px 14px rgba(5, 4, 24, .35); }
+.trusted h2 { color: #fff; font-size: min(50px, 3.5vw); line-height: 1.72; letter-spacing: -0.03em; }
+.trusted .sel {
+  padding: .16em .16em; border-radius: .14em; -webkit-box-decoration-break: clone; box-decoration-break: clone;
+  background: linear-gradient(105deg, #0a84ff 0%, #5474ff 18%, #966ef8 32%, #d676d6 42%, #7884ff 54%, #289cff 68%, #0a84ff 100%);
+  background-size: 200% 100%; animation: hi-sheen 9s linear infinite; position: relative;
+}
+/* The handles, as a selection has them: a bar the line's height, with a dot over the start
+   and under the end. */
+.trusted .knob { position: absolute; height: var(--line-h, 1.5em); width: 3px; border-radius: 2px; background: #0a84ff; }
+.trusted .knob::after { content: ""; position: absolute; left: 50%; width: 13px; height: 13px; margin-left: -6.5px; border-radius: 50%; background: #0a84ff; box-shadow: 0 0 0 2px rgba(255, 255, 255, .9); }
+.trusted .knob-a { left: -2px; top: 0; } .trusted .knob-a::after { top: -11px; }
+.trusted .knob-b { right: -2px; bottom: 0; } .trusted .knob-b::after { bottom: -11px; }
+/* Each reader is plain text on the line, same size and baseline as the words round it, on a
+   white capsule; its character first, in its tone's colour, set in the Chinese face at the
+   text's own weight, then a hairline, then the word. */
+.trusted .pill {
+  display: inline; font: inherit; letter-spacing: inherit; white-space: nowrap; padding: .02em .34em .04em .3em; margin: 0 .04em; border-radius: .6em;
+  -webkit-box-decoration-break: clone; box-decoration-break: clone;
+  background: #fff; color: #1d1d1f; box-shadow: 0 1px 1px rgba(10, 20, 80, .12), 0 4px 14px rgba(10, 20, 80, .16);
+}
+.trusted .pill b { font-family: var(--zh); font-weight: 500; letter-spacing: 0; margin-right: .16em; padding-right: .2em; background: linear-gradient(rgba(29, 29, 31, .14), rgba(29, 29, 31, .14)) right center / 1px .7em no-repeat; }
+.trusted .pill .t1 { color: #d1574a; } .trusted .pill .t3 { color: #3f74c9; } .trusted .pill .t4 { color: #8456c2; }
+@media (prefers-reduced-motion: reduce) { .trusted .sel { animation: none; } }
+/* Typed in as it comes into view (tiles.js). The highlight is drawn as one layer per line,
+   under the text, each clipped to just past the caret, so it grows with the typing; a pill
+   grows the same way, from its character out to the end of its word. The end handle shows
+   once the last letter is in. */
+.trusted-sel { position: relative; }
+.trusted-sel.js .sel { background: none; animation: none; }
+.trusted .hl { position: absolute; z-index: 0; pointer-events: none; border-radius: .14em;
+  background: linear-gradient(105deg, #0a84ff 0%, #5474ff 18%, #966ef8 32%, #d676d6 42%, #7884ff 54%, #289cff 68%, #0a84ff 100%);
+  background-size: 200% 100%; animation: hi-sheen 9s linear infinite; }
+.trusted .pw { display: inline; }
+.trusted .ch.wait { color: transparent; }
+.trusted .knob-b { transition: opacity .3s; }
+.trusted-sel.typing .knob-b { opacity: 0; }
+.trusted .caret { position: relative; display: inline-block; width: 0; height: 1em; vertical-align: -.12em; }
+.trusted .caret::after { content: ""; position: absolute; left: -1px; top: 0; bottom: 0; width: 3px; border-radius: 2px; background: #fff; animation: caret 1.05s steps(1) infinite; }
+.trusted .caret.busy::after { animation: none; }
+.trusted .pill .caret::after { background: #1d1d1f; }
+@keyframes caret { 50% { opacity: 0; } }
 .trusted-line { display: block; }
 .nobr { white-space: nowrap; }
 
 /* Which computer: the statement's segmented control, a size up, under the heading. The rest
    of the section follows it: only the chosen system's download, small print and steps show. */
 .install { padding-top: 150px; }
-.appearance.os-switch { margin: 26px 0 0; }
-.os-switch button { min-width: 124px; height: 34px; font-size: 15px; gap: 7px; }
+.appearance.os-switch { margin: 22px 0 0; }
+.os-switch button { min-width: 96px; gap: 6px; }
 .os-switch .apple, .os-switch .windows { fill: currentColor; stroke: none; }
 .os-switch .apple { width: .753em; height: .925em; margin: 0; translate: 0 -.04em; }
 .os-switch .windows { width: .72em; height: .72em; margin: 0; }
@@ -1450,8 +1537,8 @@ footer a { color: #a1a1a6; }
   h2 { font-size: 32px; }
   .closing h2 { font-size: min(32px, calc((100vw - 40px) / 12.3)); }
   .trusted { margin-top: 110px; padding: 96px 0; }
-  .trusted h2 { font-size: 30px; }
-  .os-switch button { min-width: 112px; }
+  .trusted h2 { font-size: 28px; line-height: 1.6; }
+  .os-switch button { min-width: 92px; }
   .hero-sub, .section-head p, .watch-copy p, .closing p { font-size: 17px; }
   .hide-small { display: none; }
   .bar-links { gap: 18px; }
@@ -1462,6 +1549,9 @@ footer a { color: #a1a1a6; }
   .paper-box, .glass-box { border-radius: 20px; }
   /* Landscape on a phone too, so a tile is a window onto the app and not a poster of it. */
   .tile .glass-box { padding: 16px; aspect-ratio: 4 / 3; }
+  .word-field { font-size: 27px; }
+  .blocks { --row: 16.6667%; }
+  .graph-paper { background-size: 12.5% 16.6667%, 12.5% 16.6667%, 3.125% 4.1667%, 3.125% 4.1667%; }
   .tile .stage-history { padding: 22px 0 0; }
   .stage-history .ui-history { width: 90%; }
   .tile .stage-menu { padding: 16px 8px 12px; }

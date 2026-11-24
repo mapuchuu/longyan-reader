@@ -28,7 +28,7 @@
   // line and land in the eye (each takes FLIGHT, landing between LAND and SPREAD after it),
   // then the rest of the eye grows out from each as it lands, done by GROW_END, each character
   // flashing white for FLASH as it comes.
-  const FLIGHT = 0.17, LAND = 0.158, SPREAD = 0.11, GROW_END = 0.01, FLASH = 0.02;
+  const FLIGHT = 0.1, LAND = 0.225, SPREAD = 0.12, GROW_END = 0.012, FLASH = 0.02;
   const ZH = '"PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif';
   // The hero's inks: the paper's own hues (paper.js), azure through violet and magenta to
   // coral, lightened to read as small characters on black and softened toward a grey lilac,
@@ -235,7 +235,7 @@
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
     narrow = STACKED.matches;
     // The sentence a little above the middle, with the room under it for a whole card.
-    lineY = Math.round(H * (narrow ? 0.4 : 0.43));
+    lineY = Math.round(H * (narrow ? 0.4 : 0.41));
     // The eye: on a wide screen on the right, level with the headline beside it, as big as
     // the column allows; on a phone or an upright tablet, centred over the headline.
     let ew, cx, cy;
@@ -320,20 +320,46 @@
     if (mid.length < 40) mid = all;
     const used = new Set();
     const sentence = demo[current].sentence, home = PAGE.findIndex((p) => p.s === sentence);
+    // When each character leaves: word by word, each at a moment of its own spread over the
+    // scroll (the old opening, played backwards), a word's characters a beat apart.
+    const tokens = demo[current].tokens || [];
+    const plan = [];
     let j = 0;
     for (const l of lines) [...l.text].forEach((ch, k) => {
       j++;
-      if (PUNCT.test(ch)) { flights.push({ line: l, k, ch, g: -1, start: 0.2 }); return; }
-      const pool = hash(j * 5.1 + current * 2.3) < 0.6 ? big : mid;
-      let pick = -1;
-      for (let a = 0; a < 60; a++) {
-        const q = pool[Math.floor(hash(current * 97 + j * 13.1 + a * 0.71) * pool.length)];
+      if (PUNCT.test(ch)) { plan.push({ l, k, ch, punct: true }); return; }
+      const ti = tokens.findIndex((tk) => k >= tk.range[0] && k < tk.range[1]);
+      const at = ti < 0 ? hash(j * 3.3 + current) : hash(ti * 7.7 + current * 1.9 + 0.3);
+      const inWord = ti < 0 ? 0 : k - tokens[ti].range[0];
+      plan.push({ l, k, ch, j, start: LAND - SPREAD * at - 0.0025 * inWord });
+    });
+    // Where each lands: spread evenly over the eye, and taken in the order they land, so each
+    // lands well away from the ones before it (farthest from those already down, leaning
+    // a little to the middle so the first don't all go to the tips). The eye fills in
+    // balanced, from all over at once, never piling up in one place at the end.
+    const centre = (q) => { const g = fine.glyphs[q]; return [g.x + g.w / 2, g.y + g.w / 2]; };
+    const landed = [];
+    for (const e of [...plan].filter((e) => !e.punct).sort((a, b) => b.start - a.start)) {
+      let pick = -1, best = -Infinity;
+      for (const q of big) {
         if (used.has(q)) continue;
-        if (pick < 0) pick = q;
-        if (fine.glyphs[q].ch === ch) { pick = q; break; }
+        const [x, y] = centre(q);
+        const dx = (x - eye.cx) / (eye.w / 2), dy = (y - eye.cy) / (eye.h / 2);
+        let near = 1e9;
+        for (const [lx, ly] of landed) near = Math.min(near, Math.hypot(x - lx, (y - ly) * 1.6));
+        if (!landed.length) near = eye.w;
+        const score = near * (1 - 0.35 * Math.min(1, Math.hypot(dx, dy))) * (0.9 + 0.2 * hash(q * 1.37 + current)) + (fine.glyphs[q].ch === e.ch ? eye.w * 0.04 : 0);
+        if (score > best) { best = score; pick = q; }
       }
-      if (pick < 0) return;
-      used.add(pick);
+      e.g = pick;
+      if (pick >= 0) { used.add(pick); landed.push(centre(pick)); }
+    }
+    for (const e of plan) {
+      const { l, k, ch } = e;
+      // Punctuation isn't in the eye: it goes with the word before it, fading as that lifts off.
+      if (e.punct) { const prev = flights[flights.length - 1]; flights.push({ line: l, k, ch, g: -1, start: prev ? prev.start : LAND }); continue; }
+      const pick = e.g;
+      if (pick < 0) continue;
       const g = fine.glyphs[pick];
       if (g.ch !== ch) {
         // It becomes this character, read in this sentence if it's one of the eye's, else
@@ -343,29 +369,25 @@
         Object.assign(g, { ch }, s >= 0 ? { s, i } : {});
         drawLit(g, true);
       }
-      // Word by word, each at a moment of its own spread over the scroll (the old opening,
-      // played backwards), its characters a beat apart, landing at their places in the eye.
-      const tokens = demo[current].tokens || [];
-      const ti = tokens.findIndex((tk) => k >= tk.range[0] && k < tk.range[1]);
-      const at = ti < 0 ? hash(j * 3.3 + current) : hash(ti * 7.7 + current * 1.9 + 0.3);
-      const inWord = ti < 0 ? 0 : k - tokens[ti].range[0];
-      flights.push({ line: l, k, ch, g: pick, x0: g.x + g.w / 2, y0: g.y + g.w / 2 + g.w * 0.04, size0: g.w * 0.94, col: g.col, wt: g.wt,
-        start: LAND - SPREAD * at - 0.007 * inWord });
-    });
+      flights.push({ line: l, k, ch, g: pick, x0: g.x + g.w / 2, y0: g.y + g.w / 2 + g.w * 0.04, size0: g.w * 0.94, col: g.col, wt: g.wt, start: e.start });
+    }
     // The rest of the eye grows out from where they land: each character comes in (a flash of
     // white, then its tint) as the scroll reaches it, nearest the landed ones first, so the
     // sentence seeds the eye and it spreads from them to its edges.
     // Each spreads from the moment it lands, so the eye grows as they arrive.
     const seeds = flights.filter((f) => f.g >= 0).map((f) => ({ g: fine.glyphs[f.g], at: f.start - FLASH }));
-    const reach = eye.w * 0.42;
+    const reach = eye.w * 0.5;
     for (const g of fine.glyphs) {
       // Whichever landed one reaches it first.
       let best = GROW_END;
       for (const s of seeds) {
         const d = Math.hypot(g.x + g.w / 2 - s.g.x - s.g.w / 2, g.y + g.w / 2 - s.g.y - s.g.w / 2);
-        best = Math.max(best, s.at - (s.at - GROW_END) * clamp(d / reach) ** 0.85);
+        best = Math.max(best, s.at - (s.at - GROW_END) * clamp(d / reach) ** 1.7);
       }
-      g.leave = Math.max(GROW_END, best + (g.rnd - 0.5) * 0.012);
+      // The big ones come a beat ahead of the small round them, so the shape is laid down in
+      // bold strokes and then filled in fine.
+      const small = 1 - clamp(g.w / (fine.unit * 8));
+      g.leave = Math.max(GROW_END, best - small * 0.022 + (g.rnd - 0.5) * 0.01);
     }
     for (const f of flights) if (f.g >= 0) fine.glyphs[f.g].leave = f.start - FLASH;
   }
@@ -463,7 +485,7 @@
       const x1 = f.line.x + (f.k + 0.5) * f.line.size, y1 = f.line.y;
       if (f.g < 0) {
         ctx.font = `400 ${Math.round(f.line.size * 0.9 * 2) / 2}px ${ZH}`;
-        ctx.globalAlpha = (f.line.k === 0 ? 1 : 0.3) * smooth(0.3, 1, u);
+        ctx.globalAlpha = (f.line.k === 0 ? 1 : 0.3) * smooth(0.75, 1, u);
         ctx.fillStyle = rgb(INK);
         ctx.fillText(f.ch, x1, y1);
         continue;
@@ -502,7 +524,7 @@
   // characters back up into the eye (progress 0), with the rest of the eye filling in round
   // them. The pinned stretch after that holds the eye and the headline under it. The shared
   // preview (?og) is the eye.
-  const gather = () => window.innerHeight * 0.6;
+  const gather = () => window.innerHeight * 0.7;
   function progressAt(d) { return og ? 0 : FORMED * (1 - clamp(d / gather())); }
   function readScroll() {
     if (!story) return;

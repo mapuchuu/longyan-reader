@@ -482,7 +482,7 @@
     const vw = window.innerWidth, vh = window.innerHeight, a = card.anchor;
     const natural = card.content.offsetHeight;
     if (first || card.movedTo == null) {
-      const below = vh - a.bottom - 16, above = a.top - 16;
+      const below = vh - a.bottom - 16 - (a.reserveBelow || 0), above = a.top - 16;
       // The opening's sentence asks for below where there's a fair room for it: its card then
       // scrolls inside rather than covering the line over it.
       if (first) card.below = below >= Math.max(natural, 320) || below >= above || (a.preferBelow && below >= 260);

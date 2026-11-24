@@ -109,7 +109,7 @@
     sel = { a, b, start: r[0], end: r[1], word: r[2] === 1, d, el: currentEl() };
     story.classList.add("tried", "has-tried");
     // The way on comes in a moment after the first look-up, once the card has had a look.
-    if (!story.classList.contains("can-continue")) setTimeout(() => story.classList.add("can-continue"), 2200);
+    if (!story.classList.contains("can-continue")) setTimeout(() => { placeNext(); story.classList.add("can-continue"); }, 2200);
     return sel;
   }
 
@@ -137,12 +137,12 @@
       if (opened && opened.pickTarget) pickNote(opened, opened.pickTarget);
     }
     if (!opened) return;
+    if (!tipCard) tipCard = opened;
     const at = selRect().top, s0 = sel;
     opened.anchorStill = () => sel === s0 && story.classList.contains("is-formed") && Math.abs(selRect().top - at) < 2;
     story.classList.add("card-open");
-    dragHint(opened);
     const prevClose = opened.onClose;
-    opened.onClose = () => { if (prevClose) prevClose(); if (!Card().open) story.classList.remove("card-open", "covered"); };
+    opened.onClose = () => { firstClosed = true; if (prevClose) prevClose(); if (!Card().open) story.classList.remove("card-open", "covered"); };
     // The way on to how it picks stays, unless the card is over it.
     const more = root.querySelector(".try-continue");
     (function cover() {
@@ -153,50 +153,20 @@
     })();
   }
 
-  // MARK: "This card is draggable"
+  // MARK: The way on
 
-  // A faint note wrapped round the card's top right corner, with a mouse or trackpad only (a
-  // finger scrolls instead): "This card is" along the top edge, curling round the corner and
-  // down the side into "draggable". It follows the card as it springs open, and goes, for
-  // good, once a card has been dragged.
-  const fine = matchMedia("(hover: hover) and (pointer: fine)");
-  const SVGNS = "http://www.w3.org/2000/svg";
-  let hintEl = null, hintPath = null, dragged = false;
-  // The path in the note's own box: the card's corner is at (CX, CY).
-  const CX = 150, CY = 30, GAP = 5;
-  function dragHint(card) {
-    if (!fine.matches || dragged || reduce) return;
-    if (!hintEl) {
-      hintEl = document.createElementNS(SVGNS, "svg");
-      hintEl.setAttribute("class", "drag-hint");
-      hintEl.setAttribute("aria-hidden", "true");
-      hintEl.setAttribute("width", CX + 30); hintEl.setAttribute("height", CY + 130);
-      hintPath = document.createElementNS(SVGNS, "path");
-      hintPath.id = "drag-hint-path";
-      const text = document.createElementNS(SVGNS, "text"), tp = document.createElementNS(SVGNS, "textPath");
-      tp.setAttribute("href", "#drag-hint-path");
-      tp.textContent = "This card is draggable";
-      text.append(tp);
-      hintEl.append(hintPath, text);
-      document.body.append(hintEl);
-    }
-    // Round the corner at the card's own radius, a few points out from its edge.
-    const rc = parseFloat(getComputedStyle(card.el).borderTopRightRadius) || 20, R = rc + GAP;
-    // The text's length decides where it starts, so the turn falls between "is" and "draggable".
-    const lead = 74;
-    hintPath.setAttribute("d", `M${CX - rc - lead} ${CY - GAP} H${CX - rc} A${R} ${R} 0 0 1 ${CX + GAP} ${CY + rc} V${CY + 130}`);
-    const shownAt = performance.now();
-    hintEl.classList.remove("on");
-    (function follow() {
-      const live = Card() && Card().open === card;
-      if (live && card.wasMoved) dragged = true;
-      if (!live || dragged) { hintEl.classList.remove("on"); return; }
-      const r = card.el.getBoundingClientRect();
-      hintEl.style.transform = `translate(${Math.round(r.right - CX)}px, ${Math.round(r.top - CY)}px)`;
-      hintEl.classList.toggle("on", r.right + 30 < window.innerWidth && performance.now() - shownAt > 900);
-      requestAnimationFrame(follow);
-    })();
+  // "Get Longyan" stays put, two thirds of the way down (and clear of the line): the card
+  // opens at its full height over it if it reaches that far, and never moves it.
+  let nextTop = Infinity;
+  function placeNext() {
+    const line = currentEl();
+    if (!line) return;
+    const r = line.getBoundingClientRect();
+    nextTop = Math.round(Math.min(innerHeight - 44 - 56, Math.max(r.bottom + 150, innerHeight * (innerWidth <= 600 ? 0.72 : 0.66))));
+    root.style.setProperty("--next-y", nextTop + "px");
   }
+  window.addEventListener("resize", placeNext);
+  document.addEventListener("longyan:lines", () => requestAnimationFrame(placeNext));
 
   // MARK: The note beside the card
 
@@ -217,8 +187,11 @@
   let note = null;
   // `target()`: where the pick is now, { scope, chosen, id }, or null while there's none to show.
   const OPENING = 260;
+  // "Picked from context" is a first-time thing: it shows on the first card opened only.
+  let firstClosed = false, tipCard = null;
   function pickNote(card, target) {
     dropNote();
+    if (firstClosed || (tipCard && tipCard !== card)) return;
     const el = document.createElement("div");
     el.className = "pick-note";
     el.innerHTML = `<div class="pick-tip">
@@ -442,6 +415,13 @@
     };
   }
 
+  // Ease in over `a`, an even pace through the middle, ease out over the last `b`: the speed is a
+  // trapezoid with rounded corners, so the middle of the trip (the words in flight) isn't rushed.
+  function cruise(a, b) {
+    const v = 1 / (1 - a / 2 - b / 2);
+    return (u) => u < a ? v * u * u / (2 * a) : u <= 1 - b ? v * (a / 2 + u - a) : 1 - v * (1 - u) ** 2 / (2 * b);
+  }
+
   function glideTo(y, how = {}) {
     const from = window.scrollY, dist = y - from;
     if (reduce || Math.abs(dist) < 2) { window.scrollTo(0, y); return; }
@@ -449,8 +429,11 @@
     // on the first frame after the click and only slows near the end. `story` is for the
     // opening: just as prompt off the mark, but an even pace through the middle and longer in
     // all, so the eye is seen breaking up into the sentence on the way down.
-    const dur = how.story ? 2400 : Math.min(1400, 700 + Math.abs(dist) * 0.25), t0 = performance.now();
-    const ease = how.story ? bezier(0.3, 0.2, 0.3, 1) : bezier(0.25, 0.4, 0.1, 1);
+    // `eye`, from "Get Longyan": the sentence turning into the eye is the show, so it's paced as
+    // one: slow out of the line (the first words are seen peeling off), an unhurried flight
+    // through the middle, and a long settle as the eye fills in and the headline rises (3.8 s).
+    const dur = how.eye ? 3600 : how.story ? 2400 : Math.min(1400, 700 + Math.abs(dist) * 0.25), t0 = performance.now();
+    const ease = how.eye ? cruise(0.24, 0.34) : how.story ? bezier(0.3, 0.2, 0.3, 1) : bezier(0.25, 0.4, 0.1, 1);
     let stopped = false;
     const stop = () => { stopped = true; };
     const opts = { passive: true, once: true };
@@ -484,7 +467,7 @@
   // "Get it on your computer", once the sentence has had its turn: on to the eye and the
   // headline, on the slow glide, so the sentence is seen gathering into the eye on the way.
   function toEye() {
-    if (window.LongyanHero) glideTo(window.LongyanHero.eyeY(), { story: true });
+    if (window.LongyanHero) glideTo(window.LongyanHero.eyeY(), { eye: true });
   }
   document.querySelectorAll("[data-continue]").forEach((b) => b.addEventListener("click", toEye));
   // "How it works", beside the download: on to the statement, which opens on its first line.
