@@ -70,6 +70,16 @@ package final class EmbeddedModel: @unchecked Sendable {
         #endif
     }
     private var snapshots: [Snapshot] = []
+    /// EXPERIMENT: every token read into the context, for the per-row timing lines.
+    private var decodedTotal = 0
+    /// EXPERIMENT: the state after the last progressive pick's shared start (pickEach).
+    private var pickStart: Snapshot?
+    private static let timingRows = ProcessInfo.processInfo.environment["LONGYAN_TIMING_ROWS"] == "1"
+    /// "pickrow I/N: T tok, M ms": row I of N came after T tokens were read and M ms since the request started.
+    private func rowLine(_ i: Int, _ n: Int, from tok: Int, since t: Date) {
+        guard Self.timingRows else { return }
+        FileHandle.standardError.write(Data(String(format: "pickrow %d/%d: %d tok, %.0f ms\n", i + 1, n, decodedTotal - tok, Date().timeIntervalSince(t) * 1000).utf8))
+    }
     /// Each is 58–81 MB (Qwen 3.5 4B's recurrent state is ~53 MB, plus ~0.03 MB a prompt token).
     /// In every test, each reuse was of the latest one; two cover a card's pick and translation.
     private static let maxSnapshots = 2
@@ -183,6 +193,10 @@ package final class EmbeddedModel: @unchecked Sendable {
         let loadStarted = Date()
         var mp = llama_model_default_params()
         mp.n_gpu_layers = 99
+        // EXPERIMENT: LONGYAN_GPU_LAYERS=0 keeps the model on the CPU, as on a PC without a GPU.
+        let cpuOnly = ProcessInfo.processInfo.environment["LONGYAN_GPU_LAYERS"] == "0"
+        var cpuDevices: [ggml_backend_dev_t?] = [ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_CPU), nil]
+        if cpuOnly { mp.n_gpu_layers = 0 }
         #if os(Windows)
         // Exit (shutdown()) during a first load stops it instead of waiting for the whole file.
         mp.progress_callback = { _, _ in !EmbeddedModel.exiting.isSet }
@@ -204,7 +218,10 @@ package final class EmbeddedModel: @unchecked Sendable {
                 mp.use_extra_bufts = false   // else the CPU side repacks the whole table into a copy of its own
             }
             if let r = ProcessInfo.processInfo.environment["LONGYAN_REPACK"] { mp.use_extra_bufts = r == "1" }
-            return llama_model_load_from_file(path, mp)
+            return cpuDevices.withUnsafeMutableBufferPointer { d -> OpaquePointer? in
+                if cpuOnly { mp.devices = d.baseAddress }
+                return llama_model_load_from_file(path, mp)
+            }
         }
         guard let m = loaded else {
             if Self.exiting.isSet { throw CancellationError() }
@@ -240,6 +257,7 @@ package final class EmbeddedModel: @unchecked Sendable {
         if let t = env["LONGYAN_THREADS_BATCH"].flatMap(Int32.init) { cp.n_threads_batch = t }
         if let u = env["LONGYAN_UBATCH"].flatMap(UInt32.init) { cp.n_ubatch = u }
         if let f = env["LONGYAN_FA"].flatMap(Int32.init) { cp.flash_attn_type = llama_flash_attn_type(rawValue: f) }
+        if cpuOnly { cp.op_offload = false }
         guard let c = llama_init_from_model(m, cp) else {
             llama_model_free(m); contextFailedAt = Date(); throw Self.error("couldn't create a context")
         }
@@ -288,7 +306,7 @@ package final class EmbeddedModel: @unchecked Sendable {
         if ProcessInfo.processInfo.environment["LONGYAN_TIMING"] == "1" {
             FileHandle.standardError.write(Data("memory pressure: \(critical ? "critical" : "warning") at \(Date().formatted(date: .omitted, time: .standard))\n".utf8))
         }
-        snapshots = []; prefixes = []
+        snapshots = []; prefixes = []; pickStart = nil
         if critical, ctx != nil { free() }
     }
 
@@ -320,7 +338,7 @@ package final class EmbeddedModel: @unchecked Sendable {
     private func free() {
         if let ctx { llama_free(ctx) }
         if let model { llama_model_free(model) }
-        ctx = nil; model = nil; vocab = nil; cached = []; snapshots = []; prefixes = []
+        ctx = nil; model = nil; vocab = nil; cached = []; snapshots = []; prefixes = []; pickStart = nil
     }
 
     /// Streams a chat reply. `messages` are role/content pairs as sent to Ollama; `grammar`
@@ -551,6 +569,7 @@ package final class EmbeddedModel: @unchecked Sendable {
                     if stop.isSet { throw CancellationError() }
                     try self.loadIfNeeded()
                     let started = Date()
+                    let tok0 = self.decodedTotal
                     let digits = (0...9).map { self.tokenize(String($0)) }
                     guard digits.allSatisfy({ $0.count == 1 }), let first = steps.first else { throw Self.error("digits aren't single tokens") }
                     let tokens = self.tokenize(Self.render(messages) + first.text)
@@ -564,12 +583,85 @@ package final class EmbeddedModel: @unchecked Sendable {
                         if i > 0 { try self.decode(pending + self.tokenize(step.text), startingAt: self.cached.count) }
                         let (pick, rest) = try self.readNumber(upTo: step.count, digits: digits.map { $0[0] })
                         pending = rest
+                        self.rowLine(i, steps.count, from: tok0, since: started)
                         continuation.yield(pick)
                     }
                     if ProcessInfo.processInfo.environment["LONGYAN_TIMING"] == "1" {
                         FileHandle.standardError.write(Data(String(format: "timing: pick, prompt %d tok (%d new) %.0f ms, %d numbers, %.0f ms\n",
                             tokens.count, tokens.count - keep, promptMs, steps.count, Date().timeIntervalSince(started) * 1000).utf8))
                     }
+                    self.noteUse()
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+        }
+    }
+
+    /// EXPERIMENT: one number per item, each asked after the same start. The start (`prefix`,
+    /// which begins with the system turn `systemEnd`) is read once and its state kept; each item
+    /// is its own ending, read from that state, so the first number comes after the start and
+    /// one ending, not after every word's senses.
+    func pickEach(prefix: String, systemEnd: String, items: [(text: String, count: Int)]) -> AsyncThrowingStream<Pick, Error> {
+        AsyncThrowingStream { continuation in
+            let stop = StopFlag()
+            continuation.onTermination = { _ in stop.set() }
+            queued()
+            queue.async {
+                self.started()
+                do {
+                    if stop.isSet { throw CancellationError() }
+                    try self.loadIfNeeded()
+                    guard let ctx = self.ctx else { throw Self.error("not loaded") }
+                    let started = Date()
+                    let tok0 = self.decodedTotal
+                    let digits = (0...9).map { self.tokenize(String($0)) }
+                    guard digits.allSatisfy({ $0.count == 1 }) else { throw Self.error("digits aren't single tokens") }
+                    let start = self.tokenize(prefix)
+                    let memory = llama_get_memory(ctx)
+                    let timing = ProcessInfo.processInfo.environment["LONGYAN_TIMING"] == "1"
+                    var reused = 0
+                    if let p = self.pickStart, p.tokens == start, (llama_memory_clear(memory, true), self.restore(p)).1 {
+                        self.cached = start; reused = start.count
+                    } else {
+                        llama_memory_clear(memory, true)
+                        self.cached = []
+                        let system = self.tokenize(systemEnd)
+                        if start.starts(with: system), let i = self.prefixes.firstIndex(where: { $0.tokens == system }), self.restore(self.prefixes[i]) {
+                            self.prefixes.append(self.prefixes.remove(at: i))
+                            self.cached = system; reused = system.count
+                        } else if start.starts(with: system), system.count >= Self.prefixMin, Self.primesPrefixes || system.count >= 64 {
+                            try self.decode(system, startingAt: 0)
+                            if let p = self.save(system) {
+                                self.prefixes.append(p)
+                                if self.prefixes.count > Self.maxPrefixes { self.prefixes.removeFirst() }
+                            }
+                        }
+                        try self.decode(Array(start[self.cached.count...]), startingAt: self.cached.count)
+                        self.pickStart = self.save(start)
+                    }
+                    let startMs = Date().timeIntervalSince(started) * 1000
+                    for (i, item) in items.enumerated() {
+                        if stop.isSet || Self.exiting.isSet { throw CancellationError() }
+                        if i > 0 {
+                            guard let p = self.pickStart else { throw Self.error("no saved start") }
+                            llama_memory_clear(memory, true)
+                            guard self.restore(p) else { throw Self.error("couldn't restore the start") }
+                            self.cached = start
+                        }
+                        try self.decode(self.tokenize(item.text), startingAt: self.cached.count)
+                        let (pick, _) = try self.readNumber(upTo: item.count, digits: digits.map { $0[0] })
+                        self.rowLine(i, items.count, from: tok0, since: started)
+                        continuation.yield(pick)
+                    }
+                    if timing {
+                        FileHandle.standardError.write(Data(String(format: "timing: pickEach, start %d tok (%d reused) %.0f ms, %d numbers, %.0f ms\n",
+                            start.count, reused, startMs, items.count, Date().timeIntervalSince(started) * 1000).utf8))
+                    }
+                    // What's in the context is no longer any one prompt's state.
+                    llama_memory_clear(memory, true)
+                    self.cached = []
                     self.noteUse()
                     continuation.finish()
                 } catch {
@@ -616,6 +708,7 @@ package final class EmbeddedModel: @unchecked Sendable {
         guard let ctx, !tokens.isEmpty else { return }
         guard decodeRaw(ctx, tokens, at: pos, allLogits: allLogits) else { cached = []; throw Self.error("decode failed") }
         cached += tokens
+        decodedTotal += tokens.count
     }
 
     private func decodeRaw(_ ctx: OpaquePointer, _ tokens: [llama_token], at pos: Int, allLogits: Bool = false) -> Bool {

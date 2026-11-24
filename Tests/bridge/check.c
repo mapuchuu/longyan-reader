@@ -24,6 +24,8 @@ static int64_t ids[MAX];
 static char *last[MAX];
 static int64_t events, seen;
 static int first;
+// CHECK_QUIET=seconds: how long with no event counts as done (default 2; the CPU needs more).
+static int64_t quietNs = 2 * NSEC_PER_SEC;
 
 static int indexOf(const char *json) {
     const char *p = strstr(json, "\"id\":");
@@ -36,14 +38,14 @@ static int indexOf(const char *json) {
 static void quiet(void *ctx) {
     // Done once two seconds pass with no event; then the rows to open (a fourth column), and
     // the same wait again.
-    if (events != seen) { seen = events; dispatch_after_f(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC), dispatch_get_main_queue(), NULL, quiet); return; }
+    if (events != seen) { seen = events; dispatch_after_f(dispatch_time(DISPATCH_TIME_NOW, quietNs), dispatch_get_main_queue(), NULL, quiet); return; }
     if (!expanded) {
         expanded = 1;
         int any = 0;
         for (int i = 0; i < count; i++) if (expands[i] >= 0) { ly_toggle_row(ids[i], expands[i]); any = 1; }
             else if (expands[i] == -2) { ly_toggle_all(ids[i], -1); any = 1; }
             else if (expands[i] <= -100) { ly_pick(ids[i], -1, -100 - expands[i]); any = 1; }
-        if (any) { dispatch_after_f(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC), dispatch_get_main_queue(), NULL, quiet); return; }
+        if (any) { dispatch_after_f(dispatch_time(DISPATCH_TIME_NOW, quietNs), dispatch_get_main_queue(), NULL, quiet); return; }
     }
     for (int i = 0; i < count; i++) printf("%s\n", last[i] ? last[i] : "{\"missing\":true}");
     exit(0);
@@ -51,7 +53,7 @@ static void quiet(void *ctx) {
 
 static void lookups(void *ctx) {
     for (int i = 0; i < count; i++) ids[i] = ly_lookup(passages[i], starts[i], ends[i]);
-    dispatch_after_f(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC), dispatch_get_main_queue(), NULL, quiet);
+    dispatch_after_f(dispatch_time(DISPATCH_TIME_NOW, quietNs), dispatch_get_main_queue(), NULL, quiet);
 }
 
 static void callback(const char *json) {
@@ -80,6 +82,7 @@ int main(int argc, char **argv) {
     }
     fclose(f);
     first = getenv("CHECK_FIRST") != NULL;
+    if (getenv("CHECK_QUIET")) quietNs = (int64_t)atoi(getenv("CHECK_QUIET")) * NSEC_PER_SEC;
     ly_start(argv[1], argc > 3 ? argv[3] : NULL, callback);
     dispatch_main();
 }

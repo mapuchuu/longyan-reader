@@ -186,6 +186,7 @@ package enum LocalModel {
     package static func chooseAll(passage: String, selectionMarked: Bool = false, words: [(word: String, senses: [Sense])],
                           onPick: @MainActor (Int, Int) -> Void = { _, _ in }) async throws -> [Int?] {
         guard !words.isEmpty else { return [] }
+        let words = capped(words)
         // Answer time is nearly all output tokens (~14 ms each; reading the prompt is a few
         // tens of ms once cached), so the reply is one plain line, 等=2 和=1, about a third of
         // the tokens of the JSON object below (which Ollama pretty-prints). Writing each word
@@ -203,25 +204,84 @@ package enum LocalModel {
         return try await chooseAllAsJSON(passage: passage, selectionMarked: selectionMarked, words: words, onPick: onPick)
     }
 
-    private static let chooseAllInstructions = """
+    private static let chooseAllInstructions = pickTerse ? """
+    Pick each Chinese word's sense in the passage: give the number of the matching dictionary sense. Never invent one.
+    """ : """
     You help an English speaker read Chinese. You get a Chinese passage and some of its words, each with numbered dictionary senses. \
     For each word, decide what it means in this passage and give the number of the matching sense. Never invent a sense.
     """
 
+    // MARK: EXPERIMENT (exp/faster-picks): shorter pick prompts and rows one at a time.
+    private static let env = ProcessInfo.processInfo.environment
+    /// LONGYAN_PICK_SENSES=N: offer the model only a word's first N senses (dictionary order,
+    /// which the card already uses), so numbering still matches the full list.
+    static let pickSenseCap = env["LONGYAN_PICK_SENSES"].flatMap(Int.init)
+    /// LONGYAN_PICK_NOEX=1: no example sentence after a sense.
+    static let pickNoExamples = env["LONGYAN_PICK_NOEX"] == "1"
+    /// LONGYAN_PICK_GLOSS=N: glosses cut to their first N "; "-separated parts.
+    static let pickGlossParts = env["LONGYAN_PICK_GLOSS"].flatMap(Int.init)
+    /// LONGYAN_PICK_CLEAN=1: no "(bound form)", "(Tw)" or pinyin cross-references like [yao4 shi5].
+    static let pickClean = env["LONGYAN_PICK_CLEAN"] == "1"
+    /// LONGYAN_PICK_PINYIN=auto: pinyin only on words whose senses don't all share it.
+    static let pickPinyinAuto = env["LONGYAN_PICK_PINYIN"] == "auto"
+    /// LONGYAN_PICK_PINYIN=change: pinyin only on a sense whose reading differs from the one before.
+    static let pickPinyinChange = env["LONGYAN_PICK_PINYIN"] == "change"
+    /// LONGYAN_PICK_TERSE=1: shorter instructions and lead-in.
+    static let pickTerse = env["LONGYAN_PICK_TERSE"] == "1"
+    /// LONGYAN_PICK_NONOTE=1: no note hint after a noted sense.
+    static let pickNoNote = env["LONGYAN_PICK_NONOTE"] == "1"
+    /// LONGYAN_PICK_PROGRESSIVE=1: the passage is read once, then each word is asked with its
+    /// own short ending, from the saved state after the passage (EmbeddedModel.pickEach).
+    static let pickProgressive = env["LONGYAN_PICK_PROGRESSIVE"] == "1"
+    /// LONGYAN_PICK_PROGRESSIVE=chain: one request, but a turn per word: each word's senses are
+    /// read only after the word before it is picked, so row 1 waits for the start and one word,
+    /// and each later word still sees the earlier words and their answers.
+    static let pickChain = env["LONGYAN_PICK_PROGRESSIVE"] == "chain"
+
+    static func capped(_ words: [(word: String, senses: [Sense])]) -> [(word: String, senses: [Sense])] {
+        guard let n = pickSenseCap, n > 0 else { return words }
+        return words.map { ($0.word, Array($0.senses.prefix(n))) }
+    }
+
+    static func shortGloss(_ g: String) -> String {
+        var g = g
+        if pickClean {
+            for p in [#"\[[^\]]*\]"#, #"\((bound form|Tw|Taiwan pr\.[^)]*)\)\s*"#] {
+                g = g.replacingOccurrences(of: p, with: "", options: .regularExpression)
+            }
+            g = g.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression).trimmingCharacters(in: .whitespaces)
+        }
+        guard let n = pickGlossParts, n > 0 else { return g }
+        let parts = g.components(separatedBy: "; ").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        return parts.isEmpty ? g : parts.prefix(n).joined(separator: "; ")
+    }
+
     /// The request's text: the passage, then each word under its label with its numbered senses.
     private static func chooseAllPrompt(_ passage: String, _ selectionMarked: Bool, _ words: [(word: String, senses: [Sense])],
                                         labels: [String]) -> String {
-        let blocks = words.enumerated().map { n, w -> String in
-            let list = w.senses.enumerated().map { i, s -> String in
-                var line = "  \(i + 1). [\(Pinyin.marked(s.pinyin))] \(s.gloss)" + noteHint(w.word, s)
-                let ex = ExamplesStore.examples(w.word, s).prefix(1)
-                if !ex.isEmpty { line += "  e.g. " + ex.joined(separator: " ") }
-                return line
-            }
-            return "\(labels[n]): \(w.word)\n" + list.joined(separator: "\n")
+        chooseAllLead(passage, selectionMarked) + words.enumerated().map { n, w in wordBlock(w, label: labels[n]) }.joined(separator: "\n\n")
+    }
+
+    /// The part of a pick's request before the words: the same for every word of a card.
+    static func chooseAllLead(_ passage: String, _ selectionMarked: Bool) -> String {
+        if pickTerse {
+            return "Passage: \(passage)\n" + (selectionMarked ? "Selected: the part in 【】.\n" : "") + "\n"
         }
         return "Passage: \(passage)\n" + (selectionMarked ? "The reader selected the part in 【】.\n" : "")
-            + "For each word, give the number of the sense it has in this passage.\n\n" + blocks.joined(separator: "\n\n")
+            + "For each word, give the number of the sense it has in this passage.\n\n"
+    }
+
+    static func wordBlock(_ w: (word: String, senses: [Sense]), label: String) -> String {
+        let onePinyin = pickPinyinAuto && Set(w.senses.map { $0.pinyin.lowercased() }).count == 1
+        let list = w.senses.enumerated().map { i, s -> String in
+            let sameAsBefore = pickPinyinChange && i > 0 && w.senses[i - 1].pinyin.lowercased() == s.pinyin.lowercased()
+            var line = "  \(i + 1). " + (onePinyin || sameAsBefore ? "" : "[\(Pinyin.marked(s.pinyin))] ") + shortGloss(s.gloss)
+                + (pickNoNote ? "" : noteHint(w.word, s))
+            let ex = pickNoExamples ? [] : ExamplesStore.examples(w.word, s).prefix(1)
+            if !ex.isEmpty { line += "  e.g. " + ex.joined(separator: " ") }
+            return line
+        }
+        return "\(label): \(w.word)\n" + list.joined(separator: "\n")
     }
 
     private static func chooseAllBody(_ user: String, options: [String: Any], format: [String: Any]? = nil) -> [String: Any] {
@@ -241,8 +301,9 @@ package enum LocalModel {
                                            onPick: @MainActor (Int, Int) -> Void) async throws -> [Int?] {
         let labels = words.indices.map { "w\($0 + 1)" }
         let user = chooseAllPrompt(passage, selectionMarked, words, labels: labels)
-            + "\n\nReply on one line with each word and its sense number, in order, like: "
+            + (pickTerse ? "\n\nReply on one line, like: " : "\n\nReply on one line with each word and its sense number, in order, like: ")
             + words.prefix(2).enumerated().map { "\($1.word)=\($0 + 1)" }.joined(separator: " ")
+        if env["LONGYAN_PICK_DUMP"] == "1" { FileHandle.standardError.write(Data("PROMPT\n\(user)\nEND\n".utf8)) }
         // A cap, so a reply that wanders off can't run on.
         let body = chooseAllBody(user, options: ["temperature": 0, "num_ctx": 2048, "num_predict": 8 * words.count + 8])
         // Each word, then its number, read in order from where the last one ended. A number
@@ -261,6 +322,19 @@ package enum LocalModel {
                 rest = after[digits.endIndex...]
             }
             return out
+        }
+        if usesScoring && pickChain {
+            let reply = { (w: String) in pickTerse ? "\n\nReply like: \(w)=1" : "\n\nReply on one line with each word and its sense number, in order, like: \(w)=1" }
+            let first = chooseAllLead(passage, selectionMarked) + wordBlock(words[0], label: "w1") + reply(words[0].word)
+            let messages = [["role": "system", "content": chooseAllInstructions], ["role": "user", "content": first]]
+            let steps = words.enumerated().map { i, w -> String in
+                i == 0 ? w.word + "=" : "<|im_end|>\n<|im_start|>user\n" + wordBlock(w, label: "w1") + reply(w.word)
+                    + "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n" + w.word + "="
+            }
+            return try await pickByScoring(["messages": messages], words: words, steps: steps, onPick: onPick)
+        }
+        if usesScoring && pickProgressive {
+            return try await pickProgressively(passage: passage, selectionMarked: selectionMarked, words: words, onPick: onPick)
         }
         if usesScoring {
             return try await pickByScoring(body, words: words,
@@ -323,6 +397,36 @@ package enum LocalModel {
         let messages = body["messages"] as? [[String: String]] ?? []
         do {
             for try await p in EmbeddedModel.shared.pick(messages: messages, steps: zip(steps, words).map { ($0, $1.senses.count) }) {
+                try Task.checkCancellation()
+                let i = picks.count
+                record(words[i].word, p.number, p.confidence)
+                picks.append(p.number)
+                await onPick(i, p.number)
+            }
+        } catch { note(error); throw error }
+        note(nil)
+        guard picks.count == words.count else { throw unexpected("\(picks.count) of \(words.count) picks") }
+        return picks
+    }
+
+    /// EXPERIMENT: each word asked on its own, as a one-word pick that shares the card's start
+    /// (instructions and passage), which is read once. Row 1 waits for that start and its own
+    /// ending only; each later row for its own ending.
+    private static func pickProgressively(passage: String, selectionMarked: Bool, words: [(word: String, senses: [Sense])],
+                                          onPick: @MainActor (Int, Int) -> Void) async throws -> [Int?] {
+        let system = "<|im_start|>system\n\(chooseAllInstructions)<|im_end|>\n"
+        // LONGYAN_PICK_WORDLIST=1: the start also names every word the card asks about.
+        let list = env["LONGYAN_PICK_WORDLIST"] == "1" && words.count > 1
+            ? "Words: " + words.map(\.word).joined(separator: " ") + "\n\n" : ""
+        let prefix = system + "<|im_start|>user\n" + chooseAllLead(passage, selectionMarked) + list
+        let items = words.map { w -> (text: String, count: Int) in
+            let ending = wordBlock(w, label: "w1") + (pickTerse ? "\n\nReply like: \(w.word)=1"
+                : "\n\nReply on one line with each word and its sense number, in order, like: \(w.word)=1")
+            return (ending + "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n" + w.word + "=", w.senses.count)
+        }
+        var picks: [Int?] = []
+        do {
+            for try await p in EmbeddedModel.shared.pickEach(prefix: prefix, systemEnd: system, items: items) {
                 try Task.checkCancellation()
                 let i = picks.count
                 record(words[i].word, p.number, p.confidence)
@@ -523,7 +627,7 @@ package enum LocalModel {
         // is prepared while the reader moves to click, while JSON scored a little better
         // (real reading 36/39 against 34/39).
         guard let n = try await chooseAllAsJSON(passage: context.markedPassage, selectionMarked: false,
-                                                words: [(context.word, senses)], onPick: { _, _ in }).first ?? nil
+                                                words: capped([(context.word, senses)]), onPick: { _, _ in }).first ?? nil
         else { throw NoSenseFits() }
         return SenseChoice(senseNumber: n, meaningHere: headlineGloss(senses[n - 1]))
     }
