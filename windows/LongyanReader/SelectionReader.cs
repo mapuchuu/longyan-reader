@@ -160,6 +160,20 @@ static class SelectionReader
             if (counts.Count == 0) return (null, null);
             var (bg, n) = counts.MaxBy(kv => kv.Value);
             if (n * 3 < inside * h) return (null, null);
+            // The highlight, or the highlight under a shadow: Edge's search button, shown over
+            // a double-clicked word, shades the end of its highlight a few per cent darker, and
+            // the edge was read 14 px short. A shadow darkens each channel by the same factor; a
+            // grey highlight is left out, as text's anti-aliasing over the page would pass.
+            int bR = (bg >> 16) & 255, bG = (bg >> 8) & 255, bB = bg & 255;
+            var hued = Math.Max(bR, Math.Max(bG, bB)) - Math.Min(bR, Math.Min(bG, bB)) >= 40;
+            bool Lit(int c)
+            {
+                if (Diff(c, bg) <= 6) return true;
+                if (!hued) return false;
+                int r = (c >> 16) & 255, g = (c >> 8) & 255, bl = c & 255;
+                var k = (double)(r + g + bl) / (bR + bG + bB);
+                return k is >= 0.85 and < 1 && Math.Abs(r - k * bR) <= 3 && Math.Abs(g - k * bG) <= 3 && Math.Abs(bl - k * bB) <= 3;
+            }
             // Its rows: Chromium's is the font's height, less than the line's box.
             int hTop = -1, hBottom = -1;
             for (var y = 0; y < h; y++)
@@ -201,7 +215,7 @@ static class SelectionReader
             for (var y = m0; y <= m1; y++)
                 for (var x = w - 1; x >= 0; x--)
                 {
-                    if (Diff(px[y * w + x], bg) > 6) continue;
+                    if (!Lit(px[y * w + x])) continue;
                     var end = x;
                     while (end + 1 < w && caret[end + 1] && end - x < 3) end++;
                     ends.Add(end);
@@ -218,7 +232,7 @@ static class SelectionReader
             for (var y = hTop; y <= hBottom; y++)
             {
                 int lo = -1, hi = -1;
-                for (var x = 0; x < w; x++) if (Diff(px[y * w + x], bg) <= 6) { if (lo < 0) lo = x; hi = x; }
+                for (var x = 0; x < w; x++) if (Lit(px[y * w + x])) { if (lo < 0) lo = x; hi = x; }
                 if (lo < 0) continue;
                 for (var x = lo + 1; x < Math.Min(hi, last); x++)
                 {

@@ -93,6 +93,16 @@ Streaming from Ollama uses `URLSession.bytes`, which only Apple's Foundation has
 - A normal release that isn't marked latest (it counts in the download total).
 - 1.0 includes History, Anki and pointing at a word without selecting.
 
+## Decisions for launch (2026-11-24)
+
+- Updates install silently. WinSparkle runs the installer with `/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /OPEN=1`, and the app opens again after.
+- Uninstalling always deletes the app's data, with no question: `%LOCALAPPDATA%\LongyanReader` (settings, history, the model, logs) and `HKCU\Software\LongyanReader` (the updater's settings). Nothing else.
+- The wording is "Open at login" everywhere.
+- No letter-by-letter San Francisco widths (notes/windows-parity.md, Fonts).
+- Speed: priming stays on by default; `LONGYAN_PRIME=0` turns it off. The prompts and the too-slow rule stay as they are.
+- Vulkan: `ggml-vulkan.dll` isn't in the app or the installer until it's been tested on a real GPU. CI keeps building it (the `vulkan` job), and the `speed` job keeps checking the CPU fallback with it.
+- The x64 app on an ARM PC moves to the ARM64 build at its next update: it reads `appcast-windows-x64-on-arm64.xml`, the feed's items with the ARM64 installers (DEVELOPMENT.md, Windows updates).
+
 ## Still to build for Windows
 
 - llama.cpp for the app: CI builds it as DLLs, with the CPU kernels once per kind of x64 CPU (ggml-cpu-*.dll, SSE 4.2 up to AVX-512); ggml loads the best one at run time, and the UI check also runs on the SSE 4.2 ones. The GPU through Vulkan (x64) and OpenCL (ARM64), behind a self-test: see GPU below. Not measured on a Windows GPU yet.
@@ -102,7 +112,7 @@ Streaming from Ollama uses `URLSession.bytes`, which only Apple's Foundation has
 - Reading the selection: UI Automation (text pattern and selection bounds) instead of Accessibility. Coverage will vary by app.
 - The card: still missing Add to Anki, History, pointing at a word without selecting. Listen uses a Windows Chinese voice when one is installed.
 - The eye (Chip.cs) is in: Raw Input watches the mouse (no hook), UI Automation reads the selection off the app's thread with a 0.5 s limit, and ly_prepare starts the card's work 0.3 s after the eye appears (cancelled if it goes unclicked). Apps that don't say what's selected get it on a double-click only, in elements that may hold text, never in terminals, dialogs, Excel or full screen. It matches the Mac's drawing (gallery eye.png). CI checks it in Notepad. Needs a real PC: mixed-DPI screens, Chrome and Electron on first use, WeChat, touch and pen.
-- Updates: WinSparkle 0.9.4, with its own feed (appcast-windows.xml on the windows-feed pre-release) and ed25519 signatures. Built and checked in CI (windows.yml's updates job); still needs the real key (scripts/windows-update-key.sh) and the installer. DEVELOPMENT.md has the details.
+- Updates: WinSparkle 0.9.4, with its own feed (appcast-windows.xml on the windows-feed pre-release, and appcast-windows-x64-on-arm64.xml for the x64 app on ARM) and ed25519 signatures. The installer runs silently. Built and checked in CI (windows.yml's updates jobs, x64 and x64 on ARM64); still needs the real key (scripts/windows-update-key.sh). DEVELOPMENT.md has the details.
 - Signing: a Windows code-signing certificate, or SmartScreen warns on every download.
 
 ## GPU (branch win/gpu)
@@ -139,12 +149,12 @@ On the CPU a card reads its prompt at 20 to 40 tokens a second, so a word card t
 
 - Inno Setup, `windows/installer/LongyanReader.iss`. Chosen over WiX: one script, per-user installs without admin are its normal case, it closes and reopens the running app, and it builds on the CI runners as they are. An MSI adds nothing for a free app installed by people, not IT.
 - Per user, no admin prompt: `%LOCALAPPDATA%\Programs\Longyan Reader`, a Start menu shortcut, an entry in Settings > Apps. Pages: Ready, the progress bar, then Finish with "Open Longyan Reader" ticked.
-- Open at sign-in stays the app's own setting: the welcome window's switch, on by default, writes the same Run value Task Manager lists. The installer doesn't ask too. The uninstaller removes the value when it points at the app it removes.
-- Upgrades: the installer sets the event `LongyanReader.Windows.Quit` and the app exits as from its menu (App.cs). After 10 s, Restart Manager closes it. A silent upgrade opens it again if it was open. The whole app folder is replaced, so files an older version had don't stay.
-- Uninstall asks whether to delete history, settings and the model (`%LOCALAPPDATA%\LongyanReader`); the default is to keep them. A silent uninstall keeps them.
+- Open at login stays the app's own setting: the welcome window's switch, on by default, writes the same Run value Task Manager lists. The installer doesn't ask too. The uninstaller removes the value when it points at the app it removes.
+- Upgrades: the installer sets the event `LongyanReader.Windows.Quit` and the app exits as from its menu (App.cs). After 10 s, Restart Manager closes it. A silent upgrade opens it again if it was open, or always with `/OPEN=1`, which updates pass. The whole app folder is replaced, so files an older version had don't stay.
+- Uninstall deletes the app's data without asking: `%LOCALAPPDATA%\LongyanReader` (history, settings, the model, logs) and `HKCU\Software\LongyanReader`. Only those two. The installer check seeds both, with a folder and a key of a longer name beside them, and checks that the two go and the others stay.
 - The model isn't in the installer. The app downloads it on first run from the welcome window (the same file, hosts and checksum as the Mac, resumed from the `.part` file and its `.pieces` list).
 - The version is `<Version>` in `LongyanReader.csproj`; the installer reads it from the exe.
-- `windows-installer.yml` (called from windows.yml) builds `LongyanReader-Setup-<version>-x64.exe`, `-arm64` or one for both, `-x64-arm64`, then installs, upgrades over the running app and uninstalls on a clean runner (`windows/installer/test.ps1`).
+- `windows-installer.yml` (called from windows.yml) builds `LongyanReader-Setup-<version>-x64.exe`, `-arm64` or one for both, `-x64-arm64`, then installs, upgrades over the running app, updates the way WinSparkle does (the app closed, then `/OPEN=1`) and uninstalls on a clean runner (`windows/installer/test.ps1`).
 - Signing: `windows/installer/sign.ps1` signs the app's files, the setup and the uninstaller when the `WINDOWS_CERT_PFX` secret exists, and does nothing until then.
 - A tag `windows-v<version>` makes a draft release, never marked latest.
 
@@ -171,3 +181,28 @@ Fixed on the way:
 - Saved model states use `VirtualAlloc` on Windows, where there's no `mmap`.
 
 Not exercised yet: the model itself, the Anki connection (FoundationNetworking) and parts of speech, which need the table in section 2.
+
+## Windows 10 (branch win/win10)
+
+Supported from Windows 10 1809 (build 17763); the installer refuses older builds. .NET 8 itself needs 1607. No Windows 10 runner or VM exists, so this comes from reading the code and the shipped DLLs' imports, plus CI checks on Windows 11.
+
+What differs, all decided by the build number in `WindowsBuild.cs`:
+
+- Welcome window: a solid background, no Mica (Mica needs 22H2). It already fell back this way.
+- Title bars: Windows 10's own, white or dark. No caption colour (Windows 11 only). Dark title bars use attribute 19 on 1809 to 1909 and 20 from 2004; before, 1809 to 1909 kept a white title bar in dark mode.
+- Corners: square, as Windows 10 draws every window. The app never asked for rounded ones.
+- Fonts: Segoe UI instead of Segoe UI Variable, Segoe MDL2 Assets instead of Segoe Fluent Icons. Every icon the app uses has the same code point in MDL2. The card is drawn by the app and keeps its size: gallery.yml draws it both ways and compares.
+- Nothing else changes. The imports of every shipped DLL (llama.cpp, ggml's CPU kernels, the Swift runtime, WinSparkle) were checked: all exist on 1809. IsWow64Process2 is 1511 and later, the high-resolution timer 1803 and later (it falls back to Task.Delay), per-monitor DPI v2 1703 and later.
+- Windows 10 on ARM: it can't run x64 apps, only ARM64 ones. The x64 installer refuses there (Inno Setup's x64compatible), the ARM64 and combined installers install the ARM64 build.
+
+Checks: `windows/Win10Check` (windows.yml's app job) tests the build gates for each Windows 10 and 11 release, that each icon glyph is in Segoe MDL2 Assets, and the installer's MinVersion. `LONGYAN_WINDOWS_BUILD=19045` makes the app act as on that build (dev and CI only); gallery.yml draws the gallery that way into `windows10/` and compares sizes with the normal drawing.
+
+A Windows 10 beta tester should check:
+
+- The installer runs, and the app opens from the Start menu and at login.
+- The welcome and settings windows: every icon shows (no empty boxes), text isn't cut off, light and dark both look right, and the title bar turns dark with dark mode, also when the mode changes while the window is open.
+- History: the search, menu and check icons show.
+- A card from Notepad, Edge and Chrome, with the shortcut and the eye: same as on Windows 11, including the fade and spring.
+- The notification after closing the welcome window, and the tray icon (it starts in the overflow, behind the arrow).
+- The model download and a card with the model.
+- On 1809 to 1909: dark mode title bars. On a Snapdragon PC with Windows 10: the ARM64 installer.

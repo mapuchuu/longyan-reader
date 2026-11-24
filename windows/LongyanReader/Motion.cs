@@ -180,6 +180,10 @@ static class Motion
     /// is on screen first (a window hidden on the last tick never shows its last step).
     public static void Linear(DependencyObject e, DependencyProperty p, double from, double to, double seconds, Action? done = null, string? trace = null, IEasingFunction? ease = null, bool startNow = false)
     {
+        // One that drew its end and waits for the next frame to finish: finished now. Under x64
+        // emulation on ARM frames came 400 ms apart, Esc's fade-out came first, and the card's
+        // fade-in never finished (its done never ran).
+        if (lines.TryGetValue((e, p), out var ended) && ended.Ended) Finish(ended, Now);
         Stop(e, p);
         lines.Remove((e, p));
         ((IAnimatable)e).BeginAnimation(p, null);
@@ -232,14 +236,7 @@ static class Motion
         foreach (var line in new System.Collections.Generic.List<Line>(lines.Values))
         {
             if (!lines.TryGetValue((line.Target, line.Property), out var l) || l != line) continue;
-            if (line.Ended)
-            {
-                lines.Remove((line.Target, line.Property));
-                if (line.Frames != null)
-                    Core.Log(FormattableString.Invariant($"{{\"event\":\"linear\",\"tag\":\"{line.Trace}\",\"start\":{line.Start * 1000:0.00},\"from\":{line.From:0.0000},\"to\":{line.To:0.0000},\"seconds\":{line.Seconds},\"done\":{now * 1000:0.00},\"frames\":[{string.Join(",", line.Frames.ConvertAll(f => FormattableString.Invariant($"[{f.T * 1000:0.00},{f.X:0.0000}]")))}]}}"));
-                line.Done?.Invoke();
-                continue;
-            }
+            if (line.Ended) { Finish(line, now); continue; }
             // The first frame starts the clock: it is the commit, drawn at the curve's start.
             if (double.IsNaN(line.Start)) line.Start = now;
             var t = line.Seconds <= 0 ? 1 : Math.Min(1, (now - line.Start) / line.Seconds);
@@ -249,6 +246,14 @@ static class Motion
             if (t >= 1) line.Ended = true;
         }
         if (runs.Count == 0 && lines.Count == 0) { ticking = false; CompositionTarget.Rendering -= Tick; }
+    }
+
+    static void Finish(Line line, double now)
+    {
+        lines.Remove((line.Target, line.Property));
+        if (line.Frames != null)
+            Core.Log(FormattableString.Invariant($"{{\"event\":\"linear\",\"tag\":\"{line.Trace}\",\"start\":{line.Start * 1000:0.00},\"from\":{line.From:0.0000},\"to\":{line.To:0.0000},\"seconds\":{line.Seconds},\"done\":{now * 1000:0.00},\"frames\":[{string.Join(",", line.Frames.ConvertAll(f => FormattableString.Invariant($"[{f.T * 1000:0.00},{f.X:0.0000}]")))}]}}"));
+        line.Done?.Invoke();
     }
 
     /// For the UI check: the curve this spring started on, and the value it drew each frame.

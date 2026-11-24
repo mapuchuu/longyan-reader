@@ -11,7 +11,11 @@
 ;
 ; Per user, no admin prompt: %LOCALAPPDATA%\Programs\Longyan Reader, a Start menu shortcut,
 ; and an entry in Settings > Apps. The reading model isn't in here: the app downloads it.
-; Opening at sign-in is the app's own setting (the welcome window, on by default).
+; Open at login is the app's own setting (the welcome window, on by default).
+;
+; Updates (WinSparkle) run this with /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /OPEN=1: no
+; windows, and the app opens again afterwards. Uninstalling deletes the app's data too:
+; %LOCALAPPDATA%\LongyanReader and HKCU\Software\LongyanReader, without asking.
 
 #if !defined(SrcX64) && !defined(SrcArm64)
   #error Pass /DSrcX64=folder, /DSrcArm64=folder or both
@@ -65,7 +69,8 @@ DisableDirPage=yes
 DisableProgramGroupPage=yes
 UsedUserAreasWarning=no
 SetupMutex=LongyanReaderSetup
-MinVersion=10.0
+; Windows 10 1809 or later: .NET 8 needs 1607, and the app is checked from 1809 (notes/windows-plan.md, Windows 10).
+MinVersion=10.0.17763
 
 #if defined(SrcX64) && defined(SrcArm64)
 ArchitecturesAllowed=x64compatible or arm64
@@ -217,7 +222,7 @@ begin
   Result := '';
 end;
 
-{ Open at sign-in, when it opens this copy. }
+{ Open at login, when it opens this copy. }
 procedure RemoveRunValue;
 var
   Command: String;
@@ -227,13 +232,34 @@ begin
   begin
     RegDeleteValue(HKCU, RunKey, RunName);
     RegDeleteValue(HKCU, ApprovedKey, RunName);
-    Log('Removed open at sign-in');
+    Log('Removed open at login');
+  end;
+end;
+
+{ The app's own data, all of it: settings, history, the reading model and logs, in
+  %LOCALAPPDATA%\LongyanReader, and the updater's settings in HKCU\Software\LongyanReader.
+  Only these two: nothing else is touched. }
+procedure DeleteAppData;
+var
+  Data: String;
+begin
+  Data := ExpandConstant('{localappdata}');
+  if Data = '' then exit;
+  Data := Data + '\LongyanReader';
+  if DirExists(Data) then
+  begin
+    if DelTree(Data, True, True, True) then Log('Deleted ' + Data)
+    else Log('Could not delete all of ' + Data);
+  end;
+  if RegKeyExists(HKCU, 'Software\LongyanReader') then
+  begin
+    if RegDeleteKeyIncludingSubkeys(HKCU, 'Software\LongyanReader') then Log('Deleted HKCU\Software\LongyanReader')
+    else Log('Could not delete HKCU\Software\LongyanReader');
   end;
 end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var
-  Data, Question: String;
   Code: Integer;
 begin
   if CurUninstallStep = usUninstall then
@@ -247,20 +273,6 @@ begin
       empty folder). Inno Setup's own try can come too early and leave it. }
     Exec(ExpandConstant('{cmd}'), '/c ping -n 4 127.0.0.1 >nul & rd "' + ExpandConstant('{app}') + '"',
       ExpandConstant('{sys}'), SW_HIDE, ewNoWait, Code);
-    { History, settings, logs and the model. Kept unless the reader says to delete them; a
-      silent uninstall keeps them. }
-    Data := ExpandConstant('{localappdata}\LongyanReader');
-    if DirExists(Data) and not UninstallSilent then
-    begin
-      Question := 'Also delete your lookup history and settings?';
-      if FileExists(Data + '\models\qwen3.5-4b-q4_k_m.gguf') then
-        Question := 'Also delete your lookup history, settings and the reading model (2.7 GB)?';
-      if SuppressibleMsgBox(Question + #13#10#13#10 + 'Keep them if you might install Longyan Reader again.',
-         mbConfirmation, MB_YESNO or MB_DEFBUTTON2, IDNO) = IDYES then
-      begin
-        DelTree(Data, True, True, True);
-        Log('Deleted ' + Data);
-      end;
-    end;
+    DeleteAppData;
   end;
 end;

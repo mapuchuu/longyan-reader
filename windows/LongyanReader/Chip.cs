@@ -125,12 +125,21 @@ static class Chip
         spare = null;
         w.process = app.Process;
         w.path = app.Path;
+        return w;
+    }
+
+    /// Builds the next spare once no eye is on screen. Built while one was coming in (x64 under
+    /// emulation on ARM), the UI thread stopped for 6 s after the eye's second frame: the eye
+    /// stayed at 0.6 of its size and didn't go on the next key.
+    internal static void Restock()
+    {
         Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () =>
         {
-            if (spare != null) return;
+            if (spare != null || shown != null) return;
+            var clock = System.Diagnostics.Stopwatch.StartNew();
             try { spare = new ChipWindow("", ""); spare.Ready(); } catch { spare = null; }
+            Core.Log($"{{\"event\":\"eye-spare\",\"ms\":{clock.ElapsedMilliseconds}}}");
         });
-        return w;
     }
 
     static async Task Read(InputWatch.POINT up, int clicks, bool dragged, ForegroundApp app, int mine, long at)
@@ -199,7 +208,7 @@ static class Chip
         shown = w;
         // Positions only, in device pixels (UiCheck checks them): never the text.
         var bounds = selection?.Bounds is Rect b ? $"[{b.X:0.#},{b.Y:0.#},{b.Width:0.#},{b.Height:0.#}]" : "null";
-        Core.Log($"{{\"event\":\"eye\",\"readable\":{(selection != null ? "true" : "false")},\"up\":[{up.X},{up.Y}],\"bounds\":{bounds},\"window\":[{left},{top},{size}],\"scale\":{ScaleAt(up):0.##},\"oneLine\":{((selection?.OneLine ?? false) ? "true" : "false")},\"drawn\":[{drawn.Right?.ToString("0.#") ?? "null"},{drawn.InkMid?.ToString("0.#") ?? "null"}],\"ms\":{(at == 0 ? -1 : (long)System.Diagnostics.Stopwatch.GetElapsedTime(at).TotalMilliseconds)},\"drawnMs\":{drawnMs},\"warmMs\":{warmMs},\"buildMs\":{buildMs},\"placeMs\":{placeMs},\"lag\":{lag},\"waited\":{waited}}}");
+        Core.Log($"{{\"event\":\"eye\",\"readable\":{(selection != null ? "true" : "false")},\"up\":[{up.X},{up.Y}],\"bounds\":{bounds},\"window\":[{left},{top},{size}],\"settle\":[{w.SettlePx.X:0.###},{w.SettlePx.Y:0.###}],\"scale\":{ScaleAt(up):0.##},\"oneLine\":{((selection?.OneLine ?? false) ? "true" : "false")},\"drawn\":[{drawn.Right?.ToString("0.#") ?? "null"},{drawn.InkMid?.ToString("0.#") ?? "null"}],\"ms\":{(at == 0 ? -1 : (long)System.Diagnostics.Stopwatch.GetElapsedTime(at).TotalMilliseconds)},\"drawnMs\":{drawnMs},\"warmMs\":{warmMs},\"buildMs\":{buildMs},\"placeMs\":{placeMs},\"lag\":{lag},\"waited\":{waited}}}");
         // The card's work starts once the eye has stayed a moment (or on hover): most selections
         // are made to copy, and the model's work costs battery.
         DispatcherTimer? soon = null;
@@ -273,6 +282,9 @@ sealed class ChipWindow : Window
     const double Box = 44, Target = 30, Diameter = 24;
     /// The mark's frame is 13 on the Mac, its eye 12 wide on screen; 12.6 here drew it 11.5.
     const double Mark = 13;
+    /// Where the image's ink centre sits from its frame's centre, in points: 0.06 right and 0.01
+    /// up in the image, and drawn 0.11 higher again on screen (measured live at 200%).
+    const double MarkInkX = 0.061, MarkInkY = -0.12;
 
     public Selected? Selection;
     /// What it was built with (see Look).
@@ -284,6 +296,10 @@ sealed class ChipWindow : Window
     public bool Prepared;
     readonly ScaleTransform scale = new(0.6, 0.6, Target / 2, Target / 2);
     readonly Rectangle mark;
+    /// Moves the circle and the mark together by what snapping the window to whole pixels moved.
+    readonly TranslateTransform settle = new();
+    /// What the circle and the mark were moved by, in device pixels (for the log).
+    public (double X, double Y) SettlePx => (settle.X * s, settle.Y * s);
     readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(6) };
     bool hovering, pressed, leaving, menuOpen;
     public bool MenuOpen => menuOpen;
@@ -313,7 +329,8 @@ sealed class ChipWindow : Window
         mark = markShape;
         button.RenderTransform = scale;
         button.Invoked = () => Chip.Click(this);
-        Content = new Grid { Children = { button } };
+        // Not snapped to pixels inside: the circle and the mark keep the same centre at 125%, 150%, 175%.
+        Content = new Grid { Children = { button }, RenderTransform = settle, UseLayoutRounding = false };
 
         hit.MouseEnter += (_, _) => { Hover(true); Chip.Prepare(this); };
         hit.MouseLeave += (_, _) => Hover(false);
@@ -348,8 +365,8 @@ sealed class ChipWindow : Window
         if (!snapshot) surface.Effect = new DropShadowEffect { BlurRadius = 16, ShadowDepth = 2, Direction = 270, Opacity = 0.24, Color = Colors.Black, RenderingBias = RenderingBias.Quality };
         // A 0.5 border drawn inside the circle, as strokeBorder does.
         var hairline = new Ellipse { Width = Diameter, Height = Diameter, Stroke = Theme.Hairline, StrokeThickness = 0.5 };
-        // SwiftUI puts the image on whole points: half a point right and down of centre.
-        var mark = new Rectangle { Width = Mark, Height = Mark, Fill = Theme.Ink(1), OpacityMask = markBrush, Opacity = InkAlpha(false), RenderTransform = new TranslateTransform(0.5, 0.5), UseLayoutRounding = false };
+        // Centred in the circle by its ink (the image's ink sits 0.06 right of its frame's centre).
+        var mark = new Rectangle { Width = Mark, Height = Mark, Fill = Theme.Ink(1), OpacityMask = markBrush, Opacity = InkAlpha(false), RenderTransform = new TranslateTransform(-MarkInkX, -MarkInkY), UseLayoutRounding = false };
         RenderOptions.SetBitmapScalingMode(mark, BitmapScalingMode.HighQuality);
         // Not quite transparent: a layered window lets clicks through where it has no alpha.
         var hit = new Ellipse { Width = Target, Height = Target, Fill = new SolidColorBrush(Color.FromArgb(1, 0, 0, 0)) };
@@ -390,16 +407,16 @@ sealed class ChipWindow : Window
     /// for longer selections, or with no position, just above and right of where the mouse let
     /// go. Kept on that screen's working area.
     /// `right` and `inkMid`, when known, are the highlight's drawn right edge and the middle of
-    /// the text's ink: the mark (half a point right and down of the circle's centre) goes 19.5
-    /// after the highlight and level with the ink, as on the Mac.
+    /// the text's ink: the mark (centred in the circle) goes 19.5 after the highlight and level
+    /// with the ink, as on the Mac.
     public (int Left, int Top, int Size) Place(InputWatch.POINT up, Rect? selection, bool oneLine = false, double? right = null, double? inkMid = null)
     {
         s = Chip.ScaleAt(up);
         double x = up.X + 6 * s, y = up.Y - 6 * s - Target * s;
         if (selection is Rect b && b.Height > 0 && (oneLine || b.Height < 40 * s))
         {
-            x = (right ?? b.Right) + 4 * s;
-            y = inkMid is double m ? m - 0.5 * s - Target * s / 2 : b.Top + b.Height / 2 - Target * s / 2;
+            x = (right ?? b.Right) + 4.5 * s;
+            y = inkMid is double m ? m - Target * s / 2 : b.Top + b.Height / 2 - Target * s / 2;
         }
         var inset = (Box - Target) / 2 * s;
         x -= inset; y -= inset;
@@ -408,9 +425,9 @@ sealed class ChipWindow : Window
         double cx = Math.Clamp(x, area.Left, area.Right - size), cy = Math.Clamp(y, area.Top, area.Bottom - size);
         left = (int)Math.Round(cx);
         top = (int)Math.Round(cy);
-        // The window snaps to whole pixels; the mark takes up what that rounding moved, so it
-        // lands where the rule puts it (the circle keeps its whole pixels).
-        if (mark.RenderTransform is TranslateTransform shift) { shift.X = 0.5 + (cx - left) / s; shift.Y = 0.5 + (cy - top) / s; }
+        // The window snaps to whole pixels; the circle and the mark take up what that rounding
+        // moved together, so the mark lands where the rule puts it and stays centred.
+        settle.X = (cx - left) / s; settle.Y = (cy - top) / s;
 
         // A small spring in (response 0.3, damping 0.68) and a 0.12 s fade, as on the Mac, from
         // the window's first frame on screen (as the card does): timed from Show, the first
@@ -451,7 +468,7 @@ sealed class ChipWindow : Window
         leaving = true;
         timer.Stop();
         Chip.Forget(this);
-        Motion.Linear(this, OpacityProperty, Opacity, 0, 0.1, () => { Core.Log("{\"event\":\"eye-closed\"}"); Close(); });
+        Motion.Linear(this, OpacityProperty, Opacity, 0, 0.1, () => { Core.Log("{\"event\":\"eye-closed\"}"); Close(); Chip.Restock(); });
     }
 
     void Hover(bool on)

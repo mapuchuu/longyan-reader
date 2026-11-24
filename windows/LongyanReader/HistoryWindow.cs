@@ -59,11 +59,11 @@ sealed class HistoryView : Grid
 
     public HistoryView(bool dark)
     {
-        Look = (ResourceDictionary)System.Windows.Markup.XamlReader.Parse(Styles);
+        Look = (ResourceDictionary)System.Windows.Markup.XamlReader.Parse(WindowsBuild.Is11 ? Styles : Windows10Fonts(Styles));
         Paint(dark);
         Resources.MergedDictionaries.Add(Look);
         SetResourceReference(BackgroundProperty, "WindowFill");
-        TextElement.SetFontFamily(this, new FontFamily("Segoe UI Variable Text, Segoe UI, Microsoft YaHei UI"));
+        TextElement.SetFontFamily(this, new FontFamily(WindowsBuild.Fonts("Segoe UI Variable Text, Segoe UI, Microsoft YaHei UI", "Segoe UI, Microsoft YaHei UI")));
         TextElement.SetFontSize(this, 14);
         TextOptions.SetTextFormattingMode(this, TextFormattingMode.Ideal);
         RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -393,9 +393,14 @@ sealed class HistoryView : Grid
 
     static TextBlock Icon(string glyph, double size, Thickness? margin = null) => new()
     {
-        Text = glyph, FontFamily = new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets"), FontSize = size,
+        Text = glyph, FontFamily = Theme.Icons, FontSize = size,
         VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center, Margin = margin ?? new Thickness(0),
     };
+
+    /// The styles with Windows 10's fonts: Segoe UI Variable and Segoe Fluent Icons are Windows 11's.
+    static string Windows10Fonts(string xaml) => xaml
+        .Replace("Segoe Fluent Icons, Segoe MDL2 Assets", "Segoe MDL2 Assets")
+        .Replace("Segoe UI Variable Text, Segoe UI", "Segoe UI");
 
     /// The colours, Windows 11's for light or dark.
     public void Paint(bool dark)
@@ -713,13 +718,9 @@ sealed class HistoryWindow : Window
 
     void DarkTitleBar()
     {
-        var hwnd = new WindowInteropHelper(this).Handle;
-        if (hwnd == IntPtr.Zero) return;
-        var dark = HistoryView.SystemDark() ? 1 : 0;
-        DwmSetWindowAttribute(hwnd, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, ref dark, sizeof(int));
+        // 20 from Windows 10 20H1, 19 before (WindowsBuild).
+        WindowsBuild.DarkTitleBar(new WindowInteropHelper(this).Handle, HistoryView.SystemDark());
     }
-
-    [DllImport("dwmapi.dll")] static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
 
     // MARK: Drawings for CI
 

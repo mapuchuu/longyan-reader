@@ -21,6 +21,7 @@ static partial class Program
         var start = new ProcessStartInfo(exe) { WorkingDirectory = Path.GetDirectoryName(exe)! };
         foreach (var a in new[] { "--show", json, "200", "150" }) start.ArgumentList.Add(a);
         start.Environment["LONGYAN_CARD_LOG"] = events;
+        CloseStartMenu("before");
         var show = Process.Start(start)!;
         try
         {
@@ -29,6 +30,7 @@ static partial class Program
             while (waited.Elapsed.TotalSeconds < 40 && !show.HasExited && (row = FindText(show, "明朝")) == null) Thread.Sleep(250);
             if (row is not System.Windows.Rect r) { failures.Add("7-show: no card in 40 s" + (show.HasExited ? $" (exited {show.ExitCode})" : "")); Shot("7-show-none"); return; }
             Thread.Sleep(600);
+            CloseStartMenu("over the card");
             Shot("7-show");
             var revealed = File.Exists(events) ? File.ReadLines(events).Select(l => JsonNode.Parse(l) as JsonObject).LastOrDefault(e => (string?)e?["event"] == "revealed") : null;
             if (revealed != null)
@@ -42,6 +44,7 @@ static partial class Program
             // The row's word, not the header (the whole phrase, which has 明朝 in it too).
             if (FindExact(show, "明朝") is System.Windows.Rect word) r = word;
             else { failures.Add("7-show: no 明朝 row"); return; }
+            CloseStartMenu("before the click");
             MoveTo(r.Left + 10, r.Top + r.Height / 2);
             Thread.Sleep(400);
             Click(r.Left + 10, r.Top + r.Height / 2);
@@ -170,5 +173,19 @@ static partial class Program
             foreach (AutomationElement t in w.FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Text)))
                 if (t.Current.Name.Trim() == text) return t.Current.BoundingRectangle;
         return null;
+    }
+
+    /// The Windows 11 runner opens the Start menu by itself now and then (it was open over the
+    /// card in 7-show.png, and the click on the row only closed it). Closed by ending its host,
+    /// not with Esc, which would close the card too; it starts again closed.
+    static void CloseStartMenu(string when)
+    {
+        GetWindowThreadProcessId(GetForegroundWindow(), out var pid);
+        string name;
+        try { name = Process.GetProcessById((int)pid).ProcessName; } catch { return; }
+        if (name is not ("StartMenuExperienceHost" or "SearchHost")) return;
+        Console.WriteLine($"[7-show] {name} in front {when}: closing it");
+        foreach (var p in Process.GetProcessesByName(name)) { try { p.Kill(); } catch { } }
+        Thread.Sleep(1000);
     }
 }

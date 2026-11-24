@@ -402,7 +402,15 @@ static partial class Program
         // last selection gone (Ctrl+End keeps it there), so its highlight isn't either.
         Keys(VK_CONTROL, VK_END);
         clear?.Invoke();
-        WaitForEye(false, 1000);
+        // The last case's eye goes on that key, as on the Mac; one still there would be taken
+        // for this case's.
+        var stale = WaitForEye(false, 1000);
+        if (stale != IntPtr.Zero)
+        {
+            Console.WriteLine($"[{name}] the last eye is still on screen 1 s after Ctrl+End");
+            failures.Add($"{name}: the last eye didn't go on a key press");
+            WaitForEye(false, 8000);
+        }
         Thread.Sleep(300);
         using var before = Capture();
         var skip = Lines();
@@ -439,7 +447,14 @@ static partial class Program
         Thread.Sleep(700);   // the spring in settles
         using var after = Capture();
         after.Save(Path.Combine(outDir, name + ".png"), ImageFormat.Png);
-        GetWindowRect(eye, out var r);
+        if (!GetWindowRect(eye, out var r) || r.Right <= r.Left || r.Bottom <= r.Top)
+        {
+            Shot(name);
+            Console.WriteLine($"[{name}] the eye's window was gone 0.7 s after it showed; logged {Last(skip, "eye")?.ToJsonString() ?? "nothing"}");
+            failures.Add($"{name}: the eye went before it could be measured");
+            first?.Dispose();
+            return null;
+        }
         var s = ScaleOf(eye);
         var rects = SelectionRects(window);
         var trimmedRight = TrimmedRight(window);
@@ -484,7 +499,7 @@ static partial class Program
         // Across, from the highlight's right edge as the app read it off the screen (the `exact`
         // cases check that edge against the screen themselves).
         var drawnRight = logged?["drawn"] is JsonArray da && da.Count == 2 && da[0] is JsonNode dr ? (double?)dr : null;
-        if (beside) { predX = (drawnRight ?? trimmedRight ?? union.Right) + 4 * s + 15 * s; predY = textMid; }
+        if (beside) { predX = (drawnRight ?? trimmedRight ?? union.Right) + 4.5 * s + 15 * s; predY = textMid; }
         else { predX = up.X + 6 * s + 15 * s; predY = up.Y - 6 * s - 15 * s; }
         var area = WorkArea(up);
         predX = Math.Clamp(predX - 22 * s, area.Left, area.Right - 44 * s) + 22 * s;
@@ -499,8 +514,9 @@ static partial class Program
         if (Math.Abs(cx - predX) > tolX) failures.Add($"{name}: the eye's centre is at x {cx:0.#}, the Mac's rule puts it at {predX:0.#}; off by {cx - predX:0.#} px at {s * 100:0}%");
         // Exact: the mark itself, against the text as the eye sees it (the Mac measured 0.0
         // from the ink's centre and 19.5 points after the highlight, 12 points wide).
-        var clamped = Math.Abs(predX - ((drawnRight ?? trimmedRight ?? union.Right) + 19 * s)) > 1 || r.Right >= area.Right;
-        if (exact && beside && lines.Length == 1 && !clamped) Exact(name, after, r, s, textMid, union, top, bottom, trimmedRight);
+        var clamped = Math.Abs(predX - ((drawnRight ?? trimmedRight ?? union.Right) + 19.5 * s)) > 1 || r.Right >= area.Right;
+        var settle = logged?["settle"] is JsonArray sa && sa.Count == 2 ? ((double)sa[0]!, (double)sa[1]!) : (0.0, 0.0);
+        if (exact && beside && lines.Length == 1 && !clamped) Exact(name, after, r, s, textMid, union, top, bottom, trimmedRight, settle);
 
         if (first != null)
         {
@@ -547,7 +563,7 @@ static partial class Program
 
     /// The mark's ink inside the eye's circle (darker or lighter than the circle's surface),
     /// then the eye hidden (Shift) and the highlight's right edge read with nothing over it.
-    static void Exact(string name, Bitmap after, RECT r, double s, double textMid, System.Windows.Rect union, int inkTop, int inkBottom, double? trimmedRight)
+    static void Exact(string name, Bitmap after, RECT r, double s, double textMid, System.Windows.Rect union, int inkTop, int inkBottom, double? trimmedRight, (double X, double Y) settle = default)
     {
         double cx = (r.Left + r.Right) / 2.0, cy = (r.Top + r.Bottom) / 2.0;
         // The circle's surface: the commonest colour on a ring between the mark and the hairline.
@@ -610,8 +626,7 @@ static partial class Program
             for (var y = inkTop + q; y <= inkBottom - q; y++)
                 for (var x = Math.Min(selected.Width - 1, (int)(union.Right + 12 * s)); x >= (int)union.Left; x--)
                 {
-                    var c = selected.GetPixel(x, y);
-                    if (Math.Abs(c.R - hl.R) + Math.Abs(c.G - hl.G) + Math.Abs(c.B - hl.B) <= 6) { ends.Add(x); break; }
+                    if (Highlight(selected.GetPixel(x, y), hl)) { ends.Add(x); break; }
                 }
             ends.Sort();
             var right = ends.Count > 0 ? ends[ends.Count / 2] : -1;
@@ -632,6 +647,41 @@ static partial class Program
         if (Math.Abs(dy) > tol) failures.Add($"{name}: the mark's centre is {dy:+0.##;-0.##} points from the text's ink centre (the Mac: 0)");
         if (dx is double d && Math.Abs(d - 19.5) > tol) failures.Add($"{name}: the mark's centre is {d:0.##} points after the text's end (the Mac: 19.5)");
         if (dx == null) failures.Add($"{name}: couldn't find the highlight's right edge");
+        // The mark in the middle of the circle. The circle is the window's middle moved by what
+        // the app logged (a white circle on a white page has no edge to find); the mark's edges
+        // come from how much of each edge column and row it covers, to a fraction of a pixel.
+        double discX = cx + settle.X, discY = cy + settle.Y;
+        var colSum = new double[n]; var rowSum = new double[n];
+        for (var j = 0; j < n; j++) for (var i = 0; i < n; i++) { colSum[i] += diff[i, j]; rowSum[j] += diff[i, j]; }
+        static (double Lo, double Hi)? Edges(double[] p)
+        {
+            var peak = p.Max(); if (peak <= 0) return null;
+            int lo = Array.FindIndex(p, v => v > peak * 0.05), hi = Array.FindLastIndex(p, v => v > peak * 0.05);
+            if (lo < 1 || hi > p.Length - 2) return null;
+            double inLo = Math.Max(p[lo + 1], 1), inHi = Math.Max(p[hi - 1], 1);
+            return (lo + 1 - Math.Min(1, p[lo] / inLo), hi + Math.Min(1, p[hi] / inHi));
+        }
+        if (Edges(colSum) is (double ml, double mr) && Edges(rowSum) is (double mt, double mb))
+        {
+            double markX = X0 + (ml + mr) / 2, markY = Y0 + (mt + mb) / 2;
+            double offX = (markX - discX) / s, offY = (markY - discY) / s;
+            Console.WriteLine($"[{name}] circle's centre {discX:0.##},{discY:0.##} (window middle moved {settle.X:0.##},{settle.Y:0.##}); mark {markX:0.##},{markY:0.##}; mark minus circle {offX:+0.##;-0.##;0},{offY:+0.##;-0.##;0} points");
+            // A quarter of a point, plus a fifth of a device pixel for reading the edges.
+            var ctol = 0.25 + 0.2 / s;
+            if (Math.Abs(offX) > ctol || Math.Abs(offY) > ctol) failures.Add($"{name}: the mark is {offX:+0.##;-0.##;0},{offY:+0.##;-0.##;0} points from the circle's centre (should be 0,0)");
+        }
+        else failures.Add($"{name}: couldn't find the mark's edges");
+    }
+
+    /// The highlight's colour, or that colour under a shadow (Edge's search button over a
+    /// double-clicked word shades its end a few per cent darker): each channel darker by one
+    /// factor. Not for a grey highlight, where text's anti-aliasing over the page would pass.
+    static bool Highlight(Color c, Color hl)
+    {
+        if (Math.Abs(c.R - hl.R) + Math.Abs(c.G - hl.G) + Math.Abs(c.B - hl.B) <= 6) return true;
+        if (Math.Max(hl.R, Math.Max(hl.G, hl.B)) - Math.Min(hl.R, Math.Min(hl.G, hl.B)) < 40) return false;
+        var k = (double)(c.R + c.G + c.B) / (hl.R + hl.G + hl.B);
+        return k is >= 0.85 and < 1 && Math.Abs(c.R - k * hl.R) <= 3 && Math.Abs(c.G - k * hl.G) <= 3 && Math.Abs(c.B - k * hl.B) <= 3;
     }
 
     /// The eye's circle where `shot` differs from `before` inside `zone` by more than `threshold`

@@ -63,6 +63,10 @@ jobs:
       # carries on at its speed, and matches the Mac's, filmed.
       - name: Motion check
         run: dotnet run --project windows/MotionCheck -c Release
+      # Windows 10 without a Windows 10 runner (windows/Win10Check): the build gates, every icon
+      # glyph in Segoe MDL2 Assets, and the installer's MinVersion.
+      - name: Windows 10 check
+        run: dotnet run --project windows/Win10Check -c Release -- "$(cygpath -w "$PWD")"
       - uses: compnerd/gha-setup-swift@9ff1ee4c44888c5817fc14d1b257ac8cabb4935f # v0.5.1
         with:
           swift-version: swift-6.3.3-release
@@ -429,10 +433,25 @@ jobs:
 
   # An update from a local feed: the release step (scripts/windows-release-feed.sh) writes the
   # feed with a test installer, signed with a key made for this run only, and the app built
-  # with that key finds the update, downloads it, refuses a tampered copy and runs the real one.
+  # with that key finds the update, downloads it, refuses a tampered copy and runs the real one
+  # with the silent update's flags. Also the x64 app on an ARM runner: it reads the feed for
+  # that case and is offered the ARM64 installer (9.10, which only has an ARM64 build).
   updates:
     needs: app
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: x64
+            runner: windows-latest
+            version: '9.9'
+            arch: x64
+          - name: x64-on-arm64
+            runner: windows-11-arm
+            version: '9.10'
+            arch: arm64
+    name: updates (${{ matrix.name }})
+    runs-on: ${{ matrix.runner }}
     defaults:
       run:
         shell: bash
@@ -447,6 +466,17 @@ jobs:
         with:
           name: LongyanReader-windows
           path: dist
+      # As in ui-x64-on-arm64: this image opens with the first-run screens and a WSL prompt.
+      - name: Clear the desktop
+        if: matrix.runner == 'windows-11-arm'
+        shell: pwsh
+        run: |
+          foreach ($n in 'WWAHost','UserOOBEBroker','CloudExperienceHostBroker','wsl','wslhost','StartMenuExperienceHost','SearchHost') {
+            Stop-Process -Name $n -Force -ErrorAction SilentlyContinue
+          }
+          $ifeo = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\wsl.exe'
+          New-Item -Path $ifeo -Force | Out-Null
+          Set-ItemProperty -Path $ifeo -Name Debugger -Value "$env:windir\System32\systray.exe"
       - name: The app with a test key, and a test installer
         run: |
           set -euo pipefail
@@ -459,7 +489,8 @@ jobs:
           echo "UPDATE_PUBLIC_KEY=$pub" >> "$GITHUB_ENV"
           build=$(git rev-list --count HEAD)
           echo "BUILD=$build" >> "$GITHUB_ENV"
-          dotnet publish windows/LongyanReader -c Release -o publish -p:UpdateKey=$pub -p:BuildNumber=$build -p:Version=1.0.0
+          # The x64 app on both runners (on the ARM one it runs emulated, as a copy installed from the x64 setup).
+          dotnet publish windows/LongyanReader -c Release -r win-x64 -o publish -p:UpdateKey=$pub -p:BuildNumber=$build -p:Version=1.0.0
           cp -r publish/* dist/LongyanReader/
           # The test installer: UpdateCheck itself, which only notes that it ran. Not code-signed.
           dotnet publish windows/UpdateCheck -c Release -o updatecheck
@@ -472,10 +503,20 @@ jobs:
           set -euo pipefail
           printf 'A test update.\n\n**New**\n\n- Updates install from the tray menu.\n' > notes.md
           # 9.9 for both arches, then a newer 9.10 for arm64 only, which the x64 app must pass over.
-          INSTALLER_ARGS=--from-update scripts/windows-release-feed.sh feed/appcast-windows.xml 9.9 $((BUILD + 1)) notes.md http://127.0.0.1:8743/ feed
+          scripts/windows-release-feed.sh feed/appcast-windows.xml 9.9 $((BUILD + 1)) notes.md http://127.0.0.1:8743/ feed
           scripts/windows-release-feed.sh feed/appcast-windows.xml 9.10 $((BUILD + 2)) notes.md http://127.0.0.1:8743/ feed
-          cat feed/appcast-windows.xml
+          cat feed/appcast-windows.xml feed/appcast-windows-x64-on-arm64.xml
           [ "$(grep -c 'sparkle:edSignature=' feed/appcast-windows.xml)" = 3 ]
+          [ "$(grep -c 'sparkle:installerArguments="/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /OPEN=1"' feed/appcast-windows.xml)" = 3 ]
+          # The feed for the x64 app on ARM: only the ARM64 installers, each marked windows-x64.
+          arm=feed/appcast-windows-x64-on-arm64.xml
+          [ "$(grep -c '<enclosure' $arm)" = 2 ]
+          [ "$(grep -c 'sparkle:os="windows-x64"' $arm)" = 2 ]
+          [ "$(grep -c -- '-arm64.exe"' $arm)" = 2 ]
+          [ "$(grep -c 'sparkle:edSignature=' $arm)" = 2 ]
+          # An explicit empty INSTALLER_ARGS is the default too.
+          INSTALLER_ARGS= scripts/windows-release-feed.sh args.xml 9.9 $((BUILD + 1)) notes.md http://127.0.0.1:8743/ feed
+          grep -q 'OPEN=1' args.xml
           # Without the key the step still writes the feed, unsigned, and fails when a signature is required.
           WINDOWS_UPDATE_KEY= scripts/windows-release-feed.sh unsigned.xml 9.9 $((BUILD + 1)) notes.md http://127.0.0.1:8743/ feed
           ! grep -q edSignature unsigned.xml
@@ -491,16 +532,17 @@ jobs:
           trap 'kill $server || true' EXIT
           sleep 2
           updatecheck/UpdateCheck.exe "$(cygpath -w "$PWD/dist/LongyanReader/LongyanReader.exe")" "$(cygpath -w "$PWD/feed")" \
-            "$(cygpath -w "$PWD/server.log")" update-out 9.9
+            "$(cygpath -w "$PWD/server.log")" update-out ${{ matrix.version }} ${{ matrix.arch }}
           echo "== requests"; cat server.log
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: update-check
+          name: update-check-${{ matrix.name }}
           path: |
             update-out
             server.log
             feed/appcast-windows.xml
+            feed/appcast-windows-x64-on-arm64.xml
 
 
   # The same app for Windows on Arm (Snapdragon X and the like), built natively: an x64 build
@@ -514,6 +556,9 @@ jobs:
     steps:
       - run: git config --global core.autocrlf false
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The build number updates compare is the commit count, as in app.
+          fetch-depth: 0
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         id: llama
         with:
@@ -630,8 +675,10 @@ jobs:
       - name: Build the app
         run: |
           set -euo pipefail
-          dotnet publish windows/LongyanReader -c Release -r win-arm64 -o publish
+          scripts/fetch-winsparkle.sh
+          dotnet publish windows/LongyanReader -c Release -r win-arm64 -o publish -p:BuildNumber=$(git rev-list --count HEAD)
           cp -r publish/* dist/LongyanReader/
+          ls dist/LongyanReader/WinSparkle.dll
           # Every native DLL and the app itself should be ARM64 (machine type aa64). .NET's
           # IL-only assemblies run on any CPU.
           python - dist/LongyanReader/*.dll dist/LongyanReader/gpu/*.dll dist/LongyanReader/LongyanReader.exe <<'PY'

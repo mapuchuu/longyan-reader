@@ -15,7 +15,15 @@ WinSparkle would take the Mac's items (they have no sparkle:os, which WinSparkle
       Adds the version to FEED (made if missing) as the newest item, one enclosure per arch
       (sparkle:os windows-x64 / windows-arm64, which WinSparkle picks by its own arch). Each
       installer is signed with $WINDOWS_UPDATE_KEY; without the key the item goes in unsigned
-      and the app, which needs a signature, won't install it.
+      and the app, which needs a signature, won't install it. WinSparkle runs the installer with
+      ARGS, by default the silent update: /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /OPEN=1 (no
+      windows, and the app opens again after).
+
+      It also writes the feed for the x64 app on an ARM PC, appcast-windows-x64-on-arm64.xml
+      beside FEED: the same items, each with its ARM64 installer marked windows-x64, so that
+      copy moves to the native build at its next update. WinSparkle can't be told to take the
+      ARM64 enclosure: it picks the one for the arch it was built for. Items with no ARM64
+      installer keep their x64 one.
   windows-feed.py verify FEED PUBLIC_KEY [DIR]
       Checks the newest item's signatures against the files in DIR (by name).
 
@@ -143,6 +151,9 @@ def load_key():
 SPARKLE = "http://www.andymatuschak.org/xml-namespaces/sparkle"
 ET.register_namespace("sparkle", SPARKLE)
 ARCHES = ("x64", "arm64")
+# What WinSparkle runs the installer with: windows/installer/LongyanReader.iss.
+UPDATE_ARGS = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /OPEN=1"
+ON_ARM_NAME = "appcast-windows-x64-on-arm64.xml"
 
 
 def s(name):
@@ -227,6 +238,30 @@ def add(args):
     tree.write(args.feed, encoding="utf-8", xml_declaration=True)
     print(f"{args.feed}: {args.version} (build {args.build}), {', '.join(a for a in ARCHES if a in installers)}"
           + ("" if seed else ", unsigned"))
+    print(f"{write_on_arm(args.feed)}: the same, with the ARM64 installers for the x64 app on ARM")
+
+
+def on_arm_path(feed):
+    return os.path.join(os.path.dirname(feed), ON_ARM_NAME)
+
+
+def write_on_arm(feed):
+    """The feed for the x64 app on an ARM PC, from FEED: each item's ARM64 enclosure in the
+    x64 one's place, so x64 WinSparkle takes it."""
+    tree = ET.parse(feed)
+    for item in tree.getroot().iter("item"):
+        enclosures = item.findall("enclosure")
+        arm = [e for e in enclosures if e.get(s("os")) == "windows-arm64"]
+        if not arm:
+            continue
+        for e in enclosures:
+            item.remove(e)
+        arm[0].set(s("os"), "windows-x64")
+        item.append(arm[0])
+    path = on_arm_path(feed)
+    ET.indent(tree, "  ")
+    tree.write(path, encoding="utf-8", xml_declaration=True)
+    return path
 
 
 def check(args):
@@ -259,7 +294,7 @@ def main():
     a.add_argument("--notes", required=True)
     a.add_argument("--url-prefix", required=True)
     a.add_argument("--installer", action="append", default=[])
-    a.add_argument("--installer-args", default="")
+    a.add_argument("--installer-args", default=UPDATE_ARGS)
     a.add_argument("--require-signature", action="store_true")
     v = sub.add_parser("verify")
     v.add_argument("feed")
