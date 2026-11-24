@@ -1,0 +1,56 @@
+{
+ "alternatives": [
+  "关"
+ ],
+ "contextual": false,
+ "copy": "关系",
+ "kind": "word",
+ "meaning": "guanxi",
+ "note": {
+  "text": "Connections built on favours owed and returned. A job found 靠关系 came through someone calling in a favour.",
+  "title": "Cultural context"
+ },
+ "pinyin": [
+  {
+   "text": "guān",
+   "tone": 1
+  },
+  {
+   "text": "xi",
+   "tone": 5
+  }
+ ],
+ "senses": [
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "relation; relationship; connection",
+   "hasNote": false,
+   "index": 0,
+   "number": 1,
+   "pos": "n.",
+   "tip": "relation; relationship; connection"
+  },
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "to concern; to involve; to affect",
+   "hasNote": false,
+   "index": 1,
+   "number": 2,
+   "pos": "v.",
+   "tip": "to concern; to involve; to affect"
+  },
+  {
+   "chosen": true,
+   "dimmed": false,
+   "gloss": "guanxi (personal connections)",
+   "hasNote": true,
+   "index": 2,
+   "number": 3,
+   "pos": "n.",
+   "tip": "guanxi (personal connections)"
+  }
+ ],
+ "word": "关系"
+}

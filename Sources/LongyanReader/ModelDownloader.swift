@@ -1,5 +1,6 @@
 import CryptoKit
 import Foundation
+import LongyanCore
 import Network
 
 /// Downloads the local model (Qwen 3.5 4B, Q4_K_M, Apache 2.0) into

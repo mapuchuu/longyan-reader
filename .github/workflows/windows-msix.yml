@@ -1,0 +1,116 @@
+# The Microsoft Store package (notes/windows-store.md), from the app folders windows.yml built
+# in the same run. For each arch: the Store build of the app (dotnet publish -p:Store=true: no
+# WinSparkle, Open at login through the package's startup task) laid over that folder, packed
+# into an MSIX (windows/store/pack.ps1), then signed with a throwaway certificate, installed,
+# opened, checked and uninstalled on that arch's runner (windows/store/test.ps1 and
+# UiCheck --packaged). Then both go into one bundle and the .msixupload Partner Center takes,
+# unsigned (the Store signs): the LongyanReader-store artifact. Called from windows.yml.
+#
+# The package's identity comes from windows/store/identity.txt (Partner Center's values).
+name: windows-msix
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            rid: win-x64
+            runner: windows-latest
+            artifact: LongyanReader-windows
+          - arch: arm64
+            rid: win-arm64
+            runner: windows-11-arm
+            artifact: LongyanReader-windows-arm64
+    name: package (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ${{ matrix.artifact }}
+          path: app
+      # Windows on Arm: the runner's desktop opens a "wsl.exe --update" prompt that takes the
+      # focus (as in windows.yml's ui-arm64).
+      - name: Keep the desktop quiet
+        if: matrix.arch == 'arm64'
+        run: |
+          # wsl.exe starts systray.exe instead (it shows nothing and exits), as in ui-arm64.
+          $ifeo = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\wsl.exe'
+          New-Item -Path $ifeo -Force | Out-Null
+          Set-ItemProperty -Path $ifeo -Name Debugger -Value "$env:windir\System32\systray.exe"
+          New-Item -ItemType Directory -Force msix-check | Out-Null
+          Start-Process pwsh -WindowStyle Hidden -ArgumentList '-NoProfile', '-File', "$PWD\windows\UiCheck\close-wsl-prompt.ps1", '-Out', "$PWD\msix-check\wsl-prompt.txt"
+      - name: The Store build of the app
+        run: |
+          dotnet publish windows/LongyanReader -c Release -r ${{ matrix.rid }} -o store-publish -p:Store=true
+          if ($LASTEXITCODE) { exit 1 }
+          Copy-Item -Recurse -Force store-publish/* app/LongyanReader/
+          # The GitHub build's updater: not in the Store package.
+          Remove-Item -Force app/LongyanReader/WinSparkle.dll -ErrorAction SilentlyContinue
+          Get-ChildItem store-publish -Filter *.dll | Where-Object Name -like '*Windows*' | ForEach-Object { "{0} {1:0.0} MB" -f $_.Name, ($_.Length / 1MB) }
+      - name: Pack the MSIX
+        run: |
+          $p = windows/store/pack.ps1 -App app/LongyanReader -Arch ${{ matrix.arch }} -Out out
+          New-Item -ItemType Directory -Force msix | Out-Null
+          Copy-Item $p msix/
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: msix-${{ matrix.arch }}
+          path: msix
+      - run: dotnet build windows/UiCheck -c Release -o uicheck
+      - name: Install, open, check, uninstall
+        shell: powershell
+        run: |
+          $p = Get-ChildItem msix\*.msix | Select-Object -First 1
+          & windows\store\test.ps1 -Package $p.FullName -UiCheck "$PWD\uicheck\UiCheck.exe" -Out "$PWD\msix-check"
+          if ($LASTEXITCODE) { exit 1 }
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: msix-check-${{ matrix.arch }}
+          path: |
+            msix-check
+            out/pri-${{ matrix.arch }}/Assets
+            out/pri-${{ matrix.arch }}/AppxManifest.xml
+
+  bundle:
+    needs: package
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: msix-x64
+          path: packages
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: msix-arm64
+          path: packages
+      - name: Bundle
+        run: |
+          windows/store/bundle.ps1 -Packages packages -Out store | Out-Null
+      # The bundle installs too, and picks the x64 package on an x64 PC.
+      - name: Install the bundle
+        shell: powershell
+        run: |
+          $b = Get-ChildItem store\*.msixbundle | Select-Object -First 1
+          & windows\store\test.ps1 -Package $b.FullName -Out "$PWD\bundle-check"
+          if ($LASTEXITCODE) { exit 1 }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: LongyanReader-store
+          path: store

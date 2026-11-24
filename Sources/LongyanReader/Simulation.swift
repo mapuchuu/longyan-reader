@@ -1,4 +1,5 @@
 import AppKit
+import LongyanCore
 import SwiftUI
 
 #if DEV_TOOLS   // dev builds only (scripts/build-app.sh --dev)

@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import LongyanCore
 import SwiftUI
 
 /// First-run window, in two steps. First Accessibility: why the app needs it, a button to the

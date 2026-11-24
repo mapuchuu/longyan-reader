@@ -1,120 +1,11 @@
 import AppKit
+import LongyanCore
 import SwiftUI
-
-/// Everything the popup shows for one lookup. Filled in two steps:
-/// dictionary data immediately, then the model's choice when it arrives.
-@MainActor
-final class LookupState: ObservableObject {
-    enum Phase: Equatable { case choosing, chosen, dictionaryOnly(String), failed(String) }
-
-    let context: WordInContext
-    let senses: [Sense]
-    @Published var phase: Phase
-    @Published var choice: SenseChoice?
-    @Published var showAllSenses = false
-    var onLayoutChange: () -> Void = {}
-
-    /// The word a lone character belongs to here (彻 in 彻底), with its meaning in the sentence;
-    /// for a word of several meanings that arrives after the character's own.
-    struct PartOf { let word: String; var pinyin: String; var meaning: String? }
-    @Published var partOf: PartOf?
-    /// Opens the card for `partOf`'s word.
-    var openPartOf: () -> Void = {}
-
-    /// Set for 的 and 了, which show a fixed line instead of a chosen sense (`senseNumber` 0).
-    let grammar: GrammarWord?
-
-    /// Set once the reader picks a meaning; a model answer arriving later doesn't replace it.
-    @Published private(set) var userPicked = false
-    /// The model's own answer, kept so the reader can go back to it.
-    @Published var suggested: SenseChoice?
-    /// Called when the reader changes the meaning (for History).
-    var onUserPick: (SenseChoice) -> Void = { _ in }
-
-    /// The reader picks a meaning. Clicking the one already chosen changes nothing, so the
-    /// model's headline (理解: "to understand") isn't swapped for the dictionary's wording.
-    func pick(_ index: Int) {
-        guard senses.indices.contains(index), choice?.senseNumber != index + 1 else { return }
-        if let suggested, suggested.senseNumber == index + 1 {
-            useSuggested()
-            return
-        }
-        userPicked = true
-        choice = SenseChoice(senseNumber: index + 1, meaningHere: headlineGloss(senses[index]))
-        phase = .chosen
-        onLayoutChange()
-        onUserPick(choice!)
-    }
-
-    /// Back to the model's answer, with its own wording.
-    func useSuggested() {
-        guard let suggested else { return }
-        userPicked = false
-        choice = suggested
-        phase = .chosen
-        onLayoutChange()
-        onUserPick(suggested)
-    }
-
-    /// True when the headline is the model's reading of this passage rather than dictionary wording.
-    var isContextual: Bool {
-        guard !userPicked, let choice, let sense = senses[safe: choice.senseNumber - 1] else { return false }
-        let text = choice.meaningHere.lowercased()
-        return !Gloss.readable(sense.gloss).lowercased().contains(text)
-            && !text.contains(headlineGloss(sense).lowercased())
-    }
-
-    /// The model's answer arrived: show it unless the reader has already chosen.
-    func receive(_ answer: SenseChoice) {
-        suggested = answer
-        guard !userPicked else { return }
-        choice = answer
-        phase = .chosen
-    }
-
-    init(context: WordInContext, senses: [Sense], phase: Phase) {
-        self.context = context
-        self.senses = senses
-        self.phase = phase
-        grammar = GrammarWords.entry(context.word, in: context.passage, at: context.wordRange.lowerBound)
-        if let grammar, !senses.isEmpty {
-            suggested = SenseChoice(senseNumber: 0, meaningHere: grammar.summary)
-            choice = suggested
-            self.phase = .chosen
-        }
-    }
-
-    var chosenIndex: Int? { choice.map { $0.senseNumber - 1 } }
-    var headerPinyin: String {
-        if !userPicked, let grammar { return grammar.reading }
-        return senses[safe: chosenIndex ?? 0]?.pinyin ?? ""
-    }
-}
-
-extension LookupState {
-    /// What Copy puts on the clipboard: the word that was looked up, as it appears in the text.
-    var copyText: String { context.word }
-
-    /// What Add to Anki adds: the card as it stands, with the meaning the reader sees.
-    var ankiNote: AnkiNote? {
-        let sense = senses[safe: chosenIndex ?? 0]
-        guard let meaning = choice?.meaningHere ?? sense.map(headlineGloss) else { return nil }
-        let dictionary = sense.map { Gloss.readable($0.gloss) } ?? ""
-        return AnkiNote(chinese: context.word, pinyin: Pinyin.marked(headerPinyin), meaning: meaning,
-                        sentence: context.sentence == context.word ? "" : context.markedSentence,
-                        dictionary: dictionary.lowercased() == meaning.lowercased() ? "" : dictionary,
-                        note: choice.flatMap { NotesStore.note(context.word, senses[safe: $0.senseNumber - 1])?.shown } ?? "")
-    }
-}
-
-extension Array {
-    subscript(safe i: Int) -> Element? { indices.contains(i) ? self[i] : nil }
-}
 
 struct LookupView: View {
     /// The dictionary-order reason for a word with no entry; shown on its own, without the prefix.
-    static let notInDictionary = "not in dictionary"
-    @ObservedObject var state: LookupState
+    static let notInDictionary = Gloss.notInDictionary
+    var state: LookupState
     @Environment(\.cardScale) private var scale
     /// Read so the card redraws when the tone colours change.
     @Environment(\.toneRevision) private var toneRevision
@@ -133,7 +24,8 @@ struct LookupView: View {
             }
             if let note {
                 NuanceView(note: note)
-                    .transition(.opacity.combined(with: .offset(y: -4 * scale)))
+                    .scriptTarget("note") {}
+                    .transition(.opacity.combined(with: .offset(y: -4 * scale)).traced("note-box", slide: -4 * scale))
                     .id(note.note)
             }
             senses
@@ -200,7 +92,8 @@ struct LookupView: View {
 
     @ViewBuilder private var partOf: some View {
         if let part = state.partOf {
-            Button { state.openPartOf() } label: {
+            let open = { state.openPartOf() }
+            Button(action: open) {
                 HStack(alignment: .firstTextBaseline, spacing: Space.xs * scale) {
                     Text("Part of").foregroundStyle(.secondary)
                     Text(part.word).cardFont(TextSize.body, .medium)
@@ -213,6 +106,7 @@ struct LookupView: View {
                 .cardFont(TextSize.callout)
             }
             .buttonStyle(CardRowStyle(bleed: Space.xs, vertical: Space.xxs))
+            .scriptTarget("partof", action: open)
             .fixedSize()
             .help("Look up \(part.word)")
         }
@@ -220,14 +114,16 @@ struct LookupView: View {
 
     @ViewBuilder private var status: some View {
         if state.userPicked, let suggested = state.suggested, suggested.senseNumber != state.choice?.senseNumber {
-            Button { withAnimation(cardMotion) { state.useSuggested() } } label: {
+            let back = { withAnimation(cardMotion) { state.useSuggested() } }
+            Button(action: back) {
                 Label("Back to “\(suggested.meaningHere)”", systemImage: "arrow.uturn.backward")
                     .cardFont(TextSize.callout)
                     .lineLimit(1)
             }
             .buttonStyle(.plain)
+            .scriptTarget("back", action: back)
             .foregroundStyle(Color.accentColor)
-            .transition(.opacity)
+            .transition(AnyTransition.opacity.traced("back-to"))
         }
         switch state.phase {
         case .choosing:
@@ -266,7 +162,8 @@ struct LookupView: View {
                     if headed && SenseLine.startsReading(shown, at: position) {
                         ReadingHeader(pinyin: sense.pinyin, first: position == 0)
                     }
-                    Button { withAnimation(cardMotion) { state.pick(i) } } label: {
+                    let pick = { withAnimation(cardMotion) { state.pick(i) } }
+                    Button(action: pick) {
                         HStack(alignment: .center, spacing: Space.s * scale) {
                             SenseLine(number: i + 1, total: state.senses.count,
                                       gloss: listed?.contains(sense) == true ? Gloss.short(sense.gloss) : Gloss.listed(sense.gloss),
@@ -279,22 +176,26 @@ struct LookupView: View {
                         }
                     }
                     .buttonStyle(CardRowStyle())
+                    .scriptTarget("row\(position + 1)", action: pick)
                     .help(hasNote ? "Use this meaning · has a note" : "Use this meaning")
                     .accessibilityAddTraits(chosen ? .isSelected : [])
                 }
                 if state.senses.count > collapsed.count {
-                    Button {
+                    let toggle = {
                         withAnimation(cardMotion) { state.showAllSenses.toggle() }
                         state.onLayoutChange()
-                    } label: {
+                    }
+                    Button(action: toggle) {
                         HStack(spacing: Space.xs * scale) {
                             Text(state.showAllSenses ? "Show Fewer" : "Show All \(state.senses.count)")
                             Image(systemName: "chevron.down").cardFont(TextSize.footnote, .semibold)
                                 .rotationEffect(.degrees(state.showAllSenses ? 180 : 0))
+                                .traceProbe("showall-chevron", "rotation", state.showAllSenses ? 180 : 0)
                         }
                         .cardFont(TextSize.callout, .medium).foregroundStyle(Color.accentColor)
                     }
                     .buttonStyle(CardRowStyle())
+                    .scriptTarget("showall", action: toggle)
                 }
             }
             if !state.context.alternatives.isEmpty {
@@ -372,6 +273,8 @@ final class FirstMouseHostingView<Content: View>: NSHostingView<Content> {
 @MainActor
 final class PopupController {
     private var panel: PopupPanel?
+    /// The card's window, for --show --trace (CardTrace).
+    var window: NSWindow? { panel }
     private var hosting: NSView?
     private var layout: CardLayout?
     private var anchor: NSRect = .zero        // AppKit coordinates
@@ -488,12 +391,10 @@ final class PopupController {
         // for other apps, so clicks and drags inside the card are unaffected.
         if let m = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .scrollWheel],
                                                      handler: { [weak self] e in
-            guard let self, !self.ignoresOutsideInput, !self.pinned else { return }
-            if e.type == .scrollWheel { self.scrolledOutside() } else { self.close() }
+            if e.type == .scrollWheel { self?.outside(scroll: true) } else { self?.outside() }
         }) { monitors.append(m) }
         if let m = NSEvent.addGlobalMonitorForEvents(matching: [.keyDown], handler: { [weak self] e in
-            guard let self, !self.ignoresOutsideInput, !self.pinned else { return }
-            if e.keyCode == 53 { self.close() }
+            if e.keyCode == 53 { self?.outside() }
         }) { monitors.append(m) }
         if let m = NSEvent.addLocalMonitorForEvents(matching: [.keyDown], handler: { [weak self] e in
             // Only Esc meant for the card: in History, a save panel or onboarding it's theirs.
@@ -501,6 +402,16 @@ final class PopupController {
             self.close(); return nil
         }) { monitors.append(m) }
     }
+
+    /// A click, scroll or Esc in another app (or one a script makes, CardScript): closes the
+    /// card unless it's pinned.
+    func outside(scroll: Bool = false) {
+        guard !ignoresOutsideInput, !pinned else { return }
+        if scroll { scrolledOutside() } else { close() }
+    }
+
+    /// Called as each card starts to appear (for --script, CardShow.swift).
+    var onReveal: (() -> Void)?
 
     /// The first measurement: the side can be settled now that the height is known, and
     /// the card shows a frame later, once that has been drawn.
@@ -546,6 +457,7 @@ final class PopupController {
                 panel.animator().alphaValue = 1
             }, completionHandler: { old.orderOut(nil) })
             announce(layout)
+            onReveal?()
             return
         }
         NSAnimationContext.runAnimationGroup { ctx in
@@ -554,6 +466,7 @@ final class PopupController {
         }
         withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) { layout.appeared = true }
         announce(layout)
+        onReveal?()
     }
 
     /// The card never takes focus (it would pull it from what you're reading), so VoiceOver

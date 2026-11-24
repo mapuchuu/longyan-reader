@@ -1,0 +1,53 @@
+{
+ "alternatives": [
+  "中华",
+  "中"
+ ],
+ "contextual": false,
+ "copy": "中华人民共和国",
+ "kind": "word",
+ "meaning": "People's Republic of China",
+ "note": null,
+ "pinyin": [
+  {
+   "text": "Zhōng",
+   "tone": 1
+  },
+  {
+   "text": "huá",
+   "tone": 2
+  },
+  {
+   "text": "Rén",
+   "tone": 2
+  },
+  {
+   "text": "mín",
+   "tone": 2
+  },
+  {
+   "text": "Gòng",
+   "tone": 4
+  },
+  {
+   "text": "hé",
+   "tone": 2
+  },
+  {
+   "text": "guó",
+   "tone": 2
+  }
+ ],
+ "senses": [
+  {
+   "chosen": true,
+   "dimmed": false,
+   "gloss": "People's Republic of China",
+   "hasNote": false,
+   "index": 0,
+   "number": 1,
+   "tip": "People's Republic of China"
+  }
+ ],
+ "word": "中华人民共和国"
+}

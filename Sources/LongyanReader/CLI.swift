@@ -1,7 +1,8 @@
 import AppKit
-import SwiftUI
 import Foundation
+import LongyanCore
 import PDFKit
+import SwiftUI
 
 /// Command-line modes for testing the pipeline without the hotkey or screen.
 ///   --status
@@ -9,6 +10,7 @@ import PDFKit
 ///   --phrase "<text>"
 ///   --render "<passage>" <word> <out.png>
 ///   --render-phrase "<text>" <out.png> [word-to-expand]
+///   --show <card.json> <x> <y>   (a live card from a saved card JSON, for filming: CardShow.swift)
 ///   --site-json "<sentence>"   (everything longyan.app's demo cards show, as JSON)
 ///   --site-words "<sentence>"  (the same for just its words, for the hero's eye)
 ///   --parts "<sentence>"       (the translation of every run of its words, in the sentence)
@@ -217,6 +219,22 @@ enum CLI {
                 let senses = dict.senses(for: word)
                 print("\(word)\t\(senses.count)")
                 for (i, s) in senses.enumerated() { print("  \(i + 1). [\(s.pinyin)] \(s.gloss)\(s.rare ? "  (rare)" : "")") }
+            }
+        case "--gloss-table" where args.count >= 3:
+            // Every distinct definition in the dictionary text (and extra-words.u8 beside it), with
+            // what the card makes of it: readable, short, listed and the part of speech, tab
+            // separated. A reference for checking a change to Gloss or PartOfSpeech touches nothing else.
+            let url = URL(fileURLWithPath: args[2])
+            var seen = Set<String>(), lines: [String] = []
+            for file in [url, url.deletingLastPathComponent().appendingPathComponent("extra-words.u8")] {
+                guard let text = try? String(contentsOf: file, encoding: .utf8) else { continue }
+                text.enumerateLines { line, _ in
+                    guard let e = CEDict.parse(line) else { return }
+                    for d in e.definitions where seen.insert(d).inserted { lines.append(d) }
+                }
+            }
+            for d in lines {
+                print([d, Gloss.readable(d), Gloss.short(d), Gloss.listed(d), PartOfSpeech.guess(d)?.rawValue ?? "-"].joined(separator: "\t"))
             }
         case "--senses" where args.count >= 3:
             // A word's senses as the model sees them, numbered: --senses 等 [more words…]
@@ -689,8 +707,11 @@ enum CLI {
         if click.count == 1 { ctx = Segmenter.context(for: at..<(at + 1), in: Array(passage)) }
         let senses = dict.senses(for: ctx.word)
         let state = LookupState(context: ctx, senses: senses, phase: .choosing)
+        // LONGYAN_RENDER_STATE: "reading" (before the model's pick), "all" (Show All open),
+        // "pinned" (the pin on). For comparing the Windows card's states (scripts/card-gallery.sh).
+        let look = ProcessInfo.processInfo.environment["LONGYAN_RENDER_STATE"] ?? ""
         _ = await LocalModel.isAvailable()
-        if SenseChooser.canChoose, !senses.isEmpty, state.grammar == nil {
+        if look != "reading", SenseChooser.canChoose, !senses.isEmpty, state.grammar == nil {
             state.choice = try await SenseChooser.choose(for: ctx, senses: senses)
             if let wording = ProcessInfo.processInfo.environment["LONGYAN_RENDER_MEANING"] { state.choice?.meaningHere = wording }
             state.phase = .chosen
@@ -701,6 +722,16 @@ enum CLI {
             state.partOf = .init(word: whole.word, pinyin: ws[safe: (c?.senseNumber ?? 1) - 1]?.pinyin ?? "",
                                  meaning: c?.meaningHere ?? ws.first.map { Gloss.short($0.gloss) })
         }
+        if look == "all" { state.showAllSenses = true }
+        // LONGYAN_RENDER_PICK=N: the reader picked meaning N (0-based) over the model's, which
+        // shows Back to (the gallery's word-picked).
+        if let n = ProcessInfo.processInfo.environment["LONGYAN_RENDER_PICK"].flatMap(Int.init) {
+            state.suggested = state.choice
+            state.pick(n)
+        }
+        let wasPinned = CardPin.shared.isOn
+        if look == "pinned" { CardPin.shared.isOn = true }
+        defer { if look == "pinned" { CardPin.shared.isOn = wasPinned } }
         try await writePNG(CardChrome(layout: renderLayout(.word)) { LookupView(state: state) }, to: url)
         print("wrote \(url.path)")
     }
@@ -743,7 +774,7 @@ enum CLI {
                 let s = Selection(passage: passage, range: a..<b, bounds: nil, source: .accessibility, appName: nil).trimmed()
                 guard s.hasChinese else { continue }
                 let w = s.wholeWords(dict: dict)
-                let single = w.text.count == 1 || (w.text.allSatisfy(isCJK) && dict.contains(w.text))
+                let single = w.isOneWord(dict: dict)
                 if single { wordRanges.insert(w.range) } else { phraseRanges.insert(w.range) }
                 selections["\(a)-\(b)"] = [w.range.lowerBound, w.range.upperBound, single ? 1 : 0]
             }
@@ -847,9 +878,15 @@ enum CLI {
         let passage = Array(text)
         let selection = Selection(passage: passage, range: 0..<passage.count, bounds: nil, source: .accessibility, appName: "Safari")
         let state = PhraseState(selection: selection, dict: dict)
-        state.translation = await LocalModel.isAvailable() ? try? await LocalModel.translate(text) : try? await Translator.translate(text)
+        let look = ProcessInfo.processInfo.environment["LONGYAN_RENDER_STATE"] ?? ""
+        if look != "translating" {
+            state.translation = await LocalModel.isAvailable() ? try? await LocalModel.translate(text) : try? await Translator.translate(text)
+        }
+        // LONGYAN_RENDER_TRANSLATION: this wording instead of the model's, so the gallery's two
+        // drawings of a card show the same text.
+        if let t = ProcessInfo.processInfo.environment["LONGYAN_RENDER_TRANSLATION"], !t.isEmpty, look != "translating" { state.translation = t }
         // LONGYAN_RENDER_PENDING=1 draws the card as it looks while senses are still being chosen.
-        if ProcessInfo.processInfo.environment["LONGYAN_RENDER_PENDING"] == "1" { state.resolving = true }
+        if ProcessInfo.processInfo.environment["LONGYAN_RENDER_PENDING"] == "1" || look == "pending" || look == "translating" { state.resolving = true }
         else { state.apply(await PhraseState.resolve(state.tokens, in: passage, dict: dict)) }
         if let expand, let token = state.tokens.first(where: { $0.text == expand }) {
             state.toggle(token)
@@ -889,7 +926,14 @@ enum CLI {
         }
         host.frame = NSRect(origin: .zero, size: host.fittingSize)
         host.layoutSubtreeIfNeeded()
-        guard let rep = host.bitmapImageRepForCachingDisplay(in: host.bounds) else { return }
+        // Drawn in sRGB, as on screen: the default bitmap is Generic RGB, which blends
+        // translucent fills and text lighter than the screen does.
+        guard let cached = host.bitmapImageRepForCachingDisplay(in: host.bounds),
+              let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: cached.pixelsWide, pixelsHigh: cached.pixelsHigh,
+                                         bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+                                         colorSpaceName: .calibratedRGB, bytesPerRow: 0, bitsPerPixel: 0)?.retagging(with: .sRGB)
+        else { return }
+        rep.size = host.bounds.size
         host.cacheDisplay(in: host.bounds, to: rep)
         try rep.representation(using: .png, properties: [:])?.write(to: url)
     }

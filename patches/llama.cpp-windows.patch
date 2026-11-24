@@ -1,0 +1,35 @@
+Applied after llama.cpp-output-tokens.patch on Windows only (.github/workflows/core.yml and
+windows.yml): fences the page release there, which uses POSIX calls, and puts the kept output
+rows on the device of the model's last layer, not on any GPU ggml has registered (the Windows
+app registers its GPU backend but may load the model on the CPU only). The Mac's build doesn't
+use this.
+
+--- a/src/llama-model.cpp
++++ b/src/llama-model.cpp
+@@ -3778,7 +3778,9 @@ bool llama_model_set_output_tokens(llama_model * model, const llama_token * toke
+     // the kept rows go in the GPU's own memory, even when the full table was loaded on the CPU side
+     // (kept out of the GPU's mapped, wired range, so that its unused rows are never resident)
+     ggml_backend_buffer_type_t buft = ggml_backend_buffer_get_type(out->buffer);
+-    if (ggml_backend_dev_t gpu = ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_GPU)) {
++    // on Windows, the device the model's last layer is on: none when the model loaded CPU only
++    // with a GPU backend registered, and an integrated GPU too
++    if (ggml_backend_dev_t gpu = model->dev_output(); gpu != nullptr && ggml_backend_dev_type(gpu) != GGML_BACKEND_DEVICE_TYPE_CPU) {
+         buft = ggml_backend_dev_buffer_type(gpu);
+     } else if (ggml_backend_dev_t dev = ggml_backend_buft_get_device(buft)) {
+         buft = ggml_backend_dev_buffer_type(dev);
+@@ -3806,6 +3808,7 @@ bool llama_model_set_output_tokens(llama_model * model, const llama_token * toke
+     }
+     // the full table is read no more (only the input side looks up a few rows of it, when the
+     // weights are shared): its pages, mapped from the file, can go back to the system
++#if defined(__APPLE__) || defined(__unix__)
+     if (out->data != nullptr && ggml_backend_buffer_is_host(out->buffer)) {
+         const uintptr_t page  = (uintptr_t) sysconf(_SC_PAGESIZE);
+         const uintptr_t begin = ((uintptr_t) out->data + page - 1) & ~(page - 1);
+@@ -3815,6 +3818,7 @@ bool llama_model_set_output_tokens(llama_model * model, const llama_token * toke
+             msync((void *) begin, end - begin, MS_INVALIDATE);
+         }
+     }
++#endif
+     model->output_keep     = t;
+     model->output_norm_keep = norm_keep;
+     model->output_keep_ids.assign(tokens, tokens + n_tokens);

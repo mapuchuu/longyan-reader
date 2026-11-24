@@ -15,6 +15,25 @@ The first build also builds llama.cpp into `Vendor/` (`scripts/build-llama.sh`, 
 
 Local builds are ad-hoc signed with a designated requirement on the bundle ID only, so the Accessibility permission carries over between rebuilds. Release builds don't do this, because that requirement would let any app with the same bundle ID inherit the permission.
 
+## Code layout
+
+The package has two targets.
+
+- `Sources/LongyanCore` is everything that decides what a card says: the dictionary, the segmenter, glosses, notes and cues, the model prompts and their fallbacks, Anki, and the cards' state (`LookupState`, `PhraseState`, `PhrasePrep`). It's plain Swift and Foundation, so an app on another platform can build the same logic. Its declarations are `package`, visible to the app but not an API.
+- `Sources/LongyanReader` is the Mac app: reading the selection through Accessibility, the eye, the cards' SwiftUI views, the menu, windows, updates and the CLI.
+
+The few things the core needs from the system come through `Platform` (`Platform.swift`): a Chinese word splitter, an English part-of-speech tagger, a fallback sense picker and a translator. On the Mac, `AppleServices.swift` fills them with NLTokenizer, NLTagger, Apple's on-device model and the Translation framework, at the start of `Main`. The cards' state classes use Observation (`@Observable`), which SwiftUI reads directly.
+
+`scripts/parity.py` checks that a change to the core, or another platform's build, gives the same results. It runs about 940 sentences through the segmenter, every one-character click, every two to five character selection, every word's senses and every dictionary definition's card wording and part of speech, and writes them to a folder. Run it before and after, then compare the folders, or pass `--against` the earlier folder:
+
+```bash
+python3 scripts/parity.py .build/release/LongyanReader /tmp/before
+# …change something, swift build -c release…
+python3 scripts/parity.py .build/release/LongyanReader /tmp/after --against /tmp/before
+```
+
+It takes about four minutes and doesn't use the model. `scripts/evals.sh` covers the model's side.
+
 ## How a lookup works
 
 1. **Trigger.** When you finish a selection (a drag or a double-click) the eye button appears near the pointer. It goes away on the next click, key press or scroll, or after 6 seconds. ⌃⌥L does the same from the keyboard, and with nothing selected it looks up the word under the pointer.
@@ -166,6 +185,33 @@ Releases up to 0.1 were signed with a self-signed certificate (`longyan-codesign
 Sparkle's tools (2.10.1) are in the same folder. `release.sh` signs the feed with `sparkle-private-key.txt` when it's there, so it doesn't wait on a keychain prompt.
 
 The binary's developer commands (`--notes-submit` and the other notes jobs) call the Anthropic API with a key from the environment or the `longyan-anthropic` keychain item. They only run from a terminal; the app itself never goes online except for the model download and update checks. (It also talks to Ollama and AnkiConnect, but only on this Mac.)
+
+### Windows updates
+
+The Windows app updates through [WinSparkle](https://winsparkle.org) 0.9.4 (MIT), which reads the same appcast format as Sparkle. `scripts/fetch-winsparkle.sh` puts its `WinSparkle.dll` for x64 and ARM64 in `Vendor/winsparkle/`, and the csproj copies the one for the build's arch. `windows/LongyanReader/Updates.cs` starts it. As on the Mac, it does nothing on the first launch, asks on the second whether to check automatically, then checks once a day. The tray has Check for updates…, and Settings has the switch and Check now.
+
+Windows has its own feed: `appcast-windows.xml` on the `windows-feed` pre-release (`https://github.com/mapuchuu/longyan-reader/releases/download/windows-feed/appcast-windows.xml`). It can't be the Mac's feed: Windows releases aren't marked latest, `generate_appcast` rewrites the Mac's feed from scratch at every release, and WinSparkle would offer the Mac's zip, since an item without `sparkle:os` counts as any OS. Each Windows item has one enclosure per arch (`sparkle:os` `windows-x64` and `windows-arm64`), and WinSparkle takes the one for its own arch. The Mac's Sparkle never reads this feed (and it skips items whose `sparkle:os` isn't macOS anyway).
+
+Updates install silently: the feed's `sparkle:installerArguments` are `/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /OPEN=1`, so no installer window shows, and `/OPEN=1` (in `windows/installer/LongyanReader.iss`) opens the app again after, since it has already exited for the update.
+
+The x64 app on an ARM PC moves to the native ARM64 build at its next update. WinSparkle picks the enclosure for the arch it was built for, and the x64 app can't be told otherwise, so `scripts/windows-feed.py` also writes `appcast-windows-x64-on-arm64.xml` beside the feed: the same items, each with its ARM64 installer marked `windows-x64`. An x64 app that finds itself on ARM64 (`IsWow64Process2` in `Updates.cs`) reads that one. Copies built before this read `appcast-windows.xml` and move on the update after.
+
+Every installer is signed with ed25519, as the Mac's zips are, and the app runs only one whose signature matches the public key in `windows/update-key.txt`. Without that file (or a build number, which `windows.yml` passes as `-p:BuildNumber=$(git rev-list --count HEAD)`), the build has no updates: WinSparkle would run unsigned installers. To make the key, once, on the Mac with the signing folder:
+
+```bash
+scripts/windows-update-key.sh
+```
+
+It writes the private half to `~/Library/Application Support/LongyanReader-signing/windows-update-key.txt`, sets the repo's `WINDOWS_UPDATE_KEY` secret and writes the public half to `windows/update-key.txt`. Commit that file and back up the private one with the others: if it's lost, installed copies can never be updated.
+
+To release:
+
+1. Build both installers at one commit with the build number, and attach `LongyanReader-Setup-<version>-x64.exe` and `LongyanReader-Setup-<version>-arm64.exe` to a draft release tagged `windows-v<version>`, with what's new as its notes (shown in the update window).
+2. Run the `windows-release` workflow with the version. It signs the installers, adds the version to the top of the live feed and attaches the result to the draft. Look at it.
+3. Publish the release, not as latest: `gh release edit windows-v<version> --draft=false --latest=false`. The Mac's feed is the latest release's.
+4. Run `windows-release` again with publish_feed. It replaces the live feed, which is what ships the update, and checks the live copy.
+
+`windows.yml`'s updates job runs the same step on a local feed with a test installer and a key made for that run, then drives the app: the automatic check offers the x64 build and passes over a newer arm64-only one, a tampered installer is refused, and Install update runs the real one with the silent flags and the app exits for it. It runs again with the x64 app on an ARM runner, which reads the ARM feed and is offered the arm64-only version. The installer check (`windows/installer/test.ps1`) runs the real installer the way an update does and checks that the app opens again. To try one by hand, serve a feed from `127.0.0.1` and put `"updateFeed": "http://127.0.0.1:8743/appcast-windows.xml"` in `%LOCALAPPDATA%\LongyanReader\settings.json` (the Windows `SUFeedURL`); remove it afterwards. WinSparkle keeps its own settings in `HKCU\Software\LongyanReader\Updates`.
 
 ## Website
 

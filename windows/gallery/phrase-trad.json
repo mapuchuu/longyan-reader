@@ -1,0 +1,126 @@
+{
+ "copy": "他們覺得這個問題很難",
+ "kind": "phrase",
+ "rows": [
+  {
+   "dim": false,
+   "gloss": "they",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": false,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "tā",
+     "tone": 1
+    },
+    {
+     "text": "men",
+     "tone": 5
+    }
+   ],
+   "text": "他們",
+   "token": 0
+  },
+  {
+   "dim": false,
+   "gloss": "to think that ...",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": true,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "jué",
+     "tone": 2
+    },
+    {
+     "text": "de",
+     "tone": 5
+    }
+   ],
+   "text": "覺得",
+   "token": 1
+  },
+  {
+   "dim": false,
+   "gloss": "this",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": true,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "zhè",
+     "tone": 4
+    },
+    {
+     "text": "ge",
+     "tone": 5
+    }
+   ],
+   "text": "這個",
+   "token": 2
+  },
+  {
+   "dim": false,
+   "gloss": "problem",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": true,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "wèn",
+     "tone": 4
+    },
+    {
+     "text": "tí",
+     "tone": 2
+    }
+   ],
+   "text": "問題",
+   "token": 3
+  },
+  {
+   "dim": false,
+   "gloss": "very",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": true,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "hěn",
+     "tone": 3
+    }
+   ],
+   "text": "很",
+   "token": 4
+  },
+  {
+   "dim": false,
+   "gloss": "difficult",
+   "guess": false,
+   "hasNote": false,
+   "open": false,
+   "opens": true,
+   "pending": false,
+   "pinyin": [
+    {
+     "text": "nán",
+     "tone": 2
+    }
+   ],
+   "text": "難",
+   "token": 5
+  }
+ ],
+ "text": "他們覺得這個問題很難",
+ "translation": "They think this problem is tough."
+}

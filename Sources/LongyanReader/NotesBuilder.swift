@@ -1,4 +1,5 @@
 import Foundation
+import LongyanCore
 
 /// Build-time nuance notes, written by Claude through the Message Batches API.
 ///

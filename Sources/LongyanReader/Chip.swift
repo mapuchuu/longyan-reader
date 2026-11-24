@@ -1,4 +1,5 @@
 import AppKit
+import LongyanCore
 import SwiftUI
 
 /// The small Longyan button that appears next to a fresh selection.

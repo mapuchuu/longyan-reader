@@ -1,0 +1,170 @@
+{
+ "alternatives": [],
+ "contextual": false,
+ "copy": "行",
+ "kind": "word",
+ "meaning": "line of business",
+ "more": "Show Fewer",
+ "note": null,
+ "pinyin": [
+  {
+   "text": "háng",
+   "tone": 2
+  }
+ ],
+ "senses": [
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "all right; OK!; will do",
+   "hasNote": false,
+   "index": 0,
+   "number": 1,
+   "pos": "adj.",
+   "reading": "xíng",
+   "tip": "all right; OK!; will do"
+  },
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "capable; competent",
+   "hasNote": false,
+   "index": 1,
+   "number": 2,
+   "pos": "adj.",
+   "tip": "capable; competent"
+  },
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "to walk; to go; to travel",
+   "hasNote": false,
+   "index": 2,
+   "number": 3,
+   "pos": "v.",
+   "tip": "to walk; to go; to travel"
+  },
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "to do; to perform",
+   "hasNote": false,
+   "index": 3,
+   "number": 4,
+   "pos": "v.",
+   "tip": "to do; to perform"
+  },
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "behavior; conduct (Taiwan pronounced xìng)",
+   "hasNote": false,
+   "index": 8,
+   "number": 9,
+   "pos": "n.",
+   "tip": "behavior; conduct (Taiwan pronounced xìng)"
+  },
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "current; in circulation",
+   "hasNote": false,
+   "index": 10,
+   "number": 11,
+   "pos": "adj.",
+   "tip": "current; in circulation"
+  },
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "temporary; makeshift",
+   "hasNote": false,
+   "index": 11,
+   "number": 12,
+   "pos": "adj.",
+   "tip": "temporary; makeshift"
+  },
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "(literary) trip; journey; visit",
+   "hasNote": false,
+   "index": 13,
+   "number": 14,
+   "pos": "n.",
+   "tip": "(literary) trip; journey; visit"
+  },
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "(literary) about to; soon",
+   "hasNote": false,
+   "index": 14,
+   "number": 15,
+   "pos": "adv.",
+   "tip": "(literary) about to; soon"
+  },
+  {
+   "chosen": true,
+   "dimmed": false,
+   "gloss": "line of business; trade; profession",
+   "hasNote": false,
+   "index": 4,
+   "number": 5,
+   "pos": "n.",
+   "reading": "háng",
+   "tip": "line of business; trade; profession"
+  },
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "classifier for rows or lines",
+   "hasNote": false,
+   "index": 5,
+   "number": 6,
+   "pos": "m.w.",
+   "tip": "classifier for rows or lines"
+  },
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "(in data tables) row; (Tw) column",
+   "hasNote": false,
+   "index": 6,
+   "number": 7,
+   "pos": "n.",
+   "tip": "(in data tables) row; (Tw) column"
+  },
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "row; line",
+   "hasNote": false,
+   "index": 7,
+   "number": 8,
+   "pos": "n.",
+   "tip": "row; line"
+  },
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "commercial firm",
+   "hasNote": false,
+   "index": 9,
+   "number": 10,
+   "pos": "n.",
+   "tip": "commercial firm"
+  },
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "to rank (first, second and so on) among one's siblings (by age)",
+   "hasNote": false,
+   "index": 12,
+   "number": 13,
+   "pos": "v.",
+   "tip": "to rank (first, second and so on) among one's siblings (by age)"
+  }
+ ],
+ "word": "行"
+}

@@ -1,0 +1,48 @@
+{
+ "alternatives": [],
+ "contextual": false,
+ "copy": "了",
+ "kind": "word",
+ "meaning": "action done, or a new situation",
+ "more": "Show All 7",
+ "note": null,
+ "pinyin": [
+  {
+   "text": "le",
+   "tone": 5
+  }
+ ],
+ "senses": [
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "action finished",
+   "hasNote": false,
+   "index": 0,
+   "number": 1,
+   "pos": "part.",
+   "tip": "(completed action marker)"
+  },
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "now changed; a new situation",
+   "hasNote": false,
+   "index": 1,
+   "number": 2,
+   "pos": "part.",
+   "tip": "(modal particle indicating change of state, situation now)"
+  },
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "adds emphasis",
+   "hasNote": false,
+   "index": 2,
+   "number": 3,
+   "pos": "part.",
+   "tip": "(modal particle intensifying preceding clause)"
+  }
+ ],
+ "word": "了"
+}

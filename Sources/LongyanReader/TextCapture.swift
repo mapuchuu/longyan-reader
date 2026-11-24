@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import LongyanCore
 
 /// Text around a screen point, and which character the point is on.
 /// Used when ⌃⌥L is pressed with nothing selected.

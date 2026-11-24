@@ -1,0 +1,146 @@
+llama: backend ready, llama_model_set_output_tokens linked
+dictionary: 125308 entries, longest word 19
+notes: 1040, cues: 91 words, examples: 600
+
+# pinyin
+xue2 sheng1 -> xué shēng tones [2, 1]
+lu:4 se4 -> lǜ sè tones [4, 4]
+Nu:3 er2 -> Nǚ ér tones [3, 2]
+ni3 hao3 ma5 -> nǐ hǎo ma tones [3, 3, 5]
+er4 -> èr tones [4]
+liang3 -> liǎng tones [3]
+zhuang4 yuan2 -> zhuàng yuán tones [4, 2]
+r5 -> r tones [5]
+
+# words
+长: 12 senses, model sees 11, everyday #1, short "long"
+  1. cháng | long | long | long | -
+  2. zhǎng | to grow | to grow | to grow | v.
+  3. zhǎng | to develop | to develop | to develop | v.
+  4. zhǎng | to increase | to increase | to increase | v.
+  5. zhǎng | chief | chief | chief | -
+  6. zhǎng | head | head | head | -
+行: 15 senses, model sees 14, everyday #1, short "all right"
+  1. xíng | all right; OK!; will do | all right; OK!; will do | all right | -
+  2. xíng | capable; competent | capable; competent | capable | -
+  3. xíng | (bound form) to walk; to go; to travel | to walk; to go; to travel | to walk | v.
+  4. xíng | (bound form) to do; to perform | to do; to perform | to do | v.
+  5. háng | (bound form) line of business; trade; profession | line of business; trade; profession | line of business | -
+  6. háng | classifier for rows or lines | classifier for rows or lines | measure word for rows or lines | m.w.
+了: 7 senses, model sees 7, everyday #1, short "action finished"
+  1. le | (completed action marker) | (completed action marker) | action finished | part.
+  2. le | (modal particle indicating change of state, situation now) | (modal particle indicating change of state, situation now) | now changed; a new situation | part.
+  3. le | (modal particle intensifying preceding clause) | (modal particle intensifying preceding clause) | adds emphasis | part.
+  4. liǎo | to finish | to finish | to finish | v.
+  5. liǎo | (used with 得[de2] or 不[bu4] after a verb to express (im)possibility, as in 忘不了[wang4 bu5 liao3] "cannot forget") | can / can't (after a verb) | can / can't (after a verb) | -
+  6. liǎo | (bound form) clear in one's mind; to understand clearly | clear in one's mind; to understand clearly | clear in one's mind | v.
+的: 7 senses, model sees 7, everyday #1, short "'s; of"
+  1. de | of; ~'s (possessive particle) | of; ~'s (possessive particle) | 's; of | part.
+  2. de | (used after an attribute when it modifies a noun) | (used after an attribute when it modifies a noun) | links a description to a noun | -
+  3. de | (used at the end of a declarative sentence for emphasis) | (used at the end of a declarative sentence for emphasis) | adds emphasis at the end | -
+  4. de | (used after a noun, verb or adjective to form a nominal expression, as in 皮革的[pi2 ge2 de5] "one made of leather" or 跑堂兒的|跑堂儿的[pao3 tang2 r5 de5] "a waiter (literally, one who runs back and forth in a restaurant)" or 新的[xin1 de5] "new one") | the one that… (新的 = the new one) | the one that… (新的 = the new one) | -
+  5. dí | really and truly | really and truly | really and truly | -
+  6. dī | (bound form) a taxi; a cab (abbr. for 的士[di1 shi4]) | a taxi; a cab (short for 的士) | a taxi | n.
+打: 5 senses, model sees 5, everyday #1, short "to hit"
+  1. dǎ | to hit; to strike | to hit; to strike | to hit | v.
+  2. dǎ | (in many expressions) a semantically light transitive verb used with various objects to form expressions with a wide range of meanings, e.g. 打傘|打伞[da3 san3] "to hold an umbrella", 打電話|打电话[da3 dian4 hua4] "to make a phone call", 打針|打针[da3 zhen1] "to get an injection" | do (general verb: 打电话 = make a call) | do (general verb: 打电话 = make a call) | -
+  3. dǎ | to fight | to fight | to fight | v.
+  4. dǎ | (coll.) from; since | (coll.) from; since | from | -
+  5. dá | (loanword) dozen | (loanword) dozen | dozen | -
+关系: 3 senses, model sees 3, everyday #1, short "relation"
+  1. guān xi | relation; relationship; connection | relation; relationship; connection | relation | -
+  2. guān xi | to concern; to involve; to affect | to concern; to involve; to affect | to concern | v.
+  3. guān xi | guanxi (personal connections) | guanxi (personal connections) | guanxi | - | note[cultural_context] Connections built on favours owed and returned. A job found 靠关系 came through someone calling in a favour.
+關係: 3 senses, model sees 3, everyday #1, short "relation"
+  1. guān xi | relation; relationship; connection | relation; relationship; connection | relation | -
+  2. guān xi | to concern; to involve; to affect | to concern; to involve; to affect | to concern | v.
+  3. guān xi | guanxi (personal connections) | guanxi (personal connections) | guanxi | - | note[cultural_context] Connections built on favours owed and returned. A job found 靠关系 came through someone calling in a favour.
+意思: 10 senses, model sees 10, everyday #3, short "idea"
+  1. yì si | idea | idea | idea | -
+  2. yì si | opinion | opinion | opinion | -
+  3. yì si | meaning | meaning | meaning | -
+  4. yì si | wish | wish | wish | -
+  5. yì si | desire | desire | desire | -
+  6. yì si | interest | interest | interest | -
+躺平: 2 senses, model sees 2, everyday #1, short "to lie stretched out"
+  1. tǎng píng | to lie stretched out | to lie stretched out | to lie stretched out | v.
+  2. tǎng píng | (neologism, attested by 2021) to opt out of the rat race | (neologism, attested by 2021) to opt out of the rat race | to opt out of the rat race | v. | note[cultural_context] Online slang for opting out: a modest life instead of wearing oneself out for a promotion. Often set against 内卷.
+摸鱼: 2 senses, model sees 2, everyday #1, short "to catch fish"
+  1. mō yú | to catch fish | to catch fish | to catch fish | v.
+  2. mō yú | (fig.) to loaf on the job; to be slack; to take it easy | (figuratively) to loaf on the job; to be slack; to take it easy | to loaf on the job | v. | note[lost_in_translation] Office slang, often self-mocking: 上班摸鱼 means scrolling a phone or chatting when there's work to do.
+研究生: 3 senses, model sees 3, everyday #1, short "graduate student"
+  1. yán jiū shēng | graduate student | graduate student | graduate student | -
+  2. yán jiū shēng | postgraduate student | postgraduate student | postgraduate student | -
+  3. yán jiū shēng | research student | research student | research student | -
+闭关锁国: 2 senses, model sees 2, everyday #1, short "to close the passes and seal off the country"
+  1. bì guān suǒ guó | to close the passes and seal off the country | to close the passes and seal off the country | to close the passes and seal off the country | v. | note[cultural_context] Usually aimed at the Ming and Qing sea bans, as shorthand for how China fell behind the West. Also used against any inward-looking policy.
+  2. bì guān suǒ guó | to close a country to exclude foreign contact | to close a country to exclude foreign contact | to close a country to exclude foreign contact | v. | note[cultural_context] Usually aimed at the Ming and Qing sea bans, as shorthand for how China fell behind the West. Also used against any inward-looking policy.
+干活儿: 1 senses, model sees 1, everyday #1, short "to work"
+  1. gàn huó r | to work; to be employed | to work; to be employed | to work | v.
+冡: 18 senses, model sees 14, everyday #1, short "drizzle"
+  1. méng | drizzle | drizzle | drizzle | -
+  2. méng | mist | mist | mist | -
+  3. méng | to deceive | to deceive | to deceive | v.
+  4. méng | to cheat | to cheat | to cheat | v.
+  5. méng | to hoodwink | to hoodwink | to hoodwink | v.
+  6. méng | to make a wild guess | to make a wild guess | to make a wild guess | v.
+态: 7 senses, model sees 7, everyday #1, short "appearance"
+  1. tài | appearance | appearance | appearance | -
+  2. tài | shape | shape | shape | -
+  3. tài | form | form | form | -
+  4. tài | state | state | state | -
+  5. tài | attitude | attitude | attitude | -
+  6. tài | (grammar) voice | (grammar) voice | voice | -
+里: 8 senses, model sees 6, everyday #1, short "inside"
+  1. lǐ | inside | inside | inside | -
+  2. lǐ | interior | interior | interior | -
+  3. lǐ | lining | lining | lining | -
+  4. lǐ | internal | internal | internal | -
+  5. lǐ | neighborhood | neighborhood | neighborhood | -
+  6. lǐ | li, ancient measure of length, approx. 500 m | li, ancient measure of length, about 500 m | li, ancient measure of length, about 500 m | -
+地: 7 senses, model sees 7, everyday #2, short "-ly"
+  1. de | -ly | -ly | -ly | -
+  2. de | structural particle: used before a verb or adjective, linking it to preceding modifying adverbial adjunct | -ly; turns a phrase into an adverb | -ly; turns a phrase into an adverb | part.
+  3. dì | earth | earth | earth | -
+  4. dì | ground | ground | ground | -
+  5. dì | field | field | field | -
+  6. dì | place | place | place | -
+
+# glosses
+to do sth for sb -> to do something for someone / to do something for someone / v.
+erhua variant of 幹活|干活[gan4 huo2] -> erhua variant of 干活 / erhua variant of 干活 / -
+also written 裏|里[li3] -> also written 里 (traditional 裏) / also written 里 / -
+(bound form) state; condition -> state; condition / state / -
+opposite: passive 被動|被动[bei4 dong4] -> not passive (opposite of 被动) / not passive / -
+also pr. [di4] or [di5] in poetry -> also pronounced dì or di in poetry / also pronounced dì or di in poetry / -
+(of a person) clever; bright -> (of a person) clever; bright / clever / -
+classifier for books -> classifier for books / measure word for books / m.w.
+abbr. for 中國|中国[Zhong1 guo2], China -> short for 中国, China / short for 中国, China / -
+lit. to lie flat; fig. to give up, etc -> literally to lie flat; figuratively to give up, and so on / literally to lie flat / -
+
+# segmenter (one character per token)
+他长得很高。 -> 他 | 长 | 得 | 很 | 高
+  clicks: 他=他 长=长得 得=得很 很=很 高=高
+行不行，这一行很难 -> 行 | 不行 | 这 | 一行 | 很 | 难
+  clicks: 行=行 不=不行 行=行 这=这 一=一行 行=行 很=很 难=难
+把门的合页撬歪了 -> 把 | 门 | 的 | 合页 | 撬 | 歪 | 了
+  clicks: 把=把门 门=门 的=的(de5) 合=合页 页=页 撬=撬 歪=歪 了=了(le5)
+他得了感冒，吃不了饭。 -> 他 | 得 | 了 | 感冒 | 吃 | 不 | 了 | 饭
+  clicks: 他=他 得=得 了=了(le5) 感=感冒 冒=冒 吃=吃 不=不 了=了(liao3) 饭=饭
+他們覺得這個問題很難。 -> 他 | 們 | 覺 | 得 | 這個 | 問題 | 很 | 難
+  clicks: 他=他們 們=們 覺=覺得 得=得 這=這個 個=個 問=問題 題=題 很=很 難=難
+明朝实行海禁，闭关锁国。 -> 明朝 | 实行 | 海禁 | 闭关锁国
+  clicks: 明=明朝 朝=朝 实=实行 行=行 海=海禁 禁=禁 闭=闭关锁国 关=闭关锁国 锁=闭关锁国 国=闭关锁国
+快递员每天晚上都要上夜班分拣包裹。 -> 快递员 | 每天 | 晚 | 上都 | 要 | 上 | 夜班 | 分拣 | 包裹
+  clicks: 快=快递员 递=递 员=员 每=每天 天=天 晚=晚上 上=上都 都=都 要=要 上=上夜 夜=夜班 班=班 分=分拣 拣=拣 包=包裹 裹=裹
+2023年我在iPhone上用App学中文。 -> 年 | 我 | 在 | 上 | 用 | 学 | 中文
+  clicks: 年=年 我=我 在=在 上=上 用=用 学=学 中=中文 文=文
+我❤️你，真的。 -> 我 | 你 | 真 | 的
+  clicks: 我=我 你=你 真=真的 的=的(de5)
+
+# anki
+chinese 闭关锁国 | pinyin bì guān suǒ guó | meaning to close the country to the outside world
+sentence 明朝实行海禁，闭关锁国。 | marked 明朝实行海禁，【闭关锁国】。
+
+# every headword
+headwords 121511, senses 198039, hash 30c09dffce8123d5

@@ -1,0 +1,52 @@
+{
+ "alternatives": [],
+ "contextual": false,
+ "copy": "研",
+ "kind": "word",
+ "meaning": "study",
+ "note": null,
+ "partOf": {
+  "meaning": "to research",
+  "pinyin": "yán jiū",
+  "word": "研究"
+ },
+ "pinyin": [
+  {
+   "text": "yán",
+   "tone": 2
+  }
+ ],
+ "senses": [
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "to grind",
+   "hasNote": false,
+   "index": 0,
+   "number": 1,
+   "pos": "v.",
+   "tip": "to grind"
+  },
+  {
+   "chosen": true,
+   "dimmed": false,
+   "gloss": "study",
+   "hasNote": false,
+   "index": 1,
+   "number": 2,
+   "pos": "n.",
+   "tip": "study"
+  },
+  {
+   "chosen": false,
+   "dimmed": true,
+   "gloss": "research",
+   "hasNote": false,
+   "index": 2,
+   "number": 3,
+   "pos": "n.",
+   "tip": "research"
+  }
+ ],
+ "word": "研"
+}
