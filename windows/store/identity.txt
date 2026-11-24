@@ -1,0 +1,7 @@
+# The Store package's identity. Copy the three values from Partner Center after reserving the
+# name: Apps and games > Longyan Reader > Product management > Product identity.
+# Until then these are placeholders, and the package can't be submitted.
+# CI signs its test package with a throwaway certificate made for Publisher.
+IdentityName=PLACEHOLDER.LongyanReader
+Publisher=CN=PLACEHOLDER-PUBLISHER-ID
+PublisherDisplayName=PLACEHOLDER Publisher Name

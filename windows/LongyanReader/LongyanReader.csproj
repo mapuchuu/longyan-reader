@@ -26,6 +26,13 @@
     <TieredPGO>true</TieredPGO>
     <ApplicationIcon>LongyanReader.ico</ApplicationIcon>
   </PropertyGroup>
+  <!-- The Microsoft Store build (Store.cs, notes/windows-store.md): dotnet publish -p:Store=true,
+       which windows-msix.yml packs into an MSIX. The Windows 10 SDK's API for the package's
+       startup task (Open at login), and no WinSparkle: the Store updates the app. -->
+  <PropertyGroup Condition="'$(Store)' == 'true'">
+    <TargetFramework>net8.0-windows10.0.17763.0</TargetFramework>
+    <DefineConstants>$(DefineConstants);STORE</DefineConstants>
+  </PropertyGroup>
   <!-- Updates (Updates.cs): the feed, the public half of the update key and the build number
        WinSparkle compares, the commit count (windows.yml passes -p:BuildNumber). Without a key
        or a build number the app has no updates. scripts/windows-update-key.sh writes the key. -->
@@ -42,7 +49,7 @@
     <AssemblyMetadata Include="UpdateFeed" Value="$(UpdateFeed)" />
     <AssemblyMetadata Include="UpdateKey" Value="$(UpdateKey)" />
     <AssemblyMetadata Include="BuildNumber" Value="$(BuildNumber)" />
-    <None Include="$(WinSparkleDll)" Link="WinSparkle.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Condition="Exists('$(WinSparkleDll)')" />
+    <None Include="$(WinSparkleDll)" Link="WinSparkle.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Condition="Exists('$(WinSparkleDll)') And '$(Store)' != 'true'" />
   </ItemGroup>
   <ItemGroup>
     <None Include="LongyanReader.ico" CopyToOutputDirectory="PreserveNewest" />

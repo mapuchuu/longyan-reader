@@ -309,7 +309,7 @@ sealed class HistoryView : Grid
 
     static void OpenFolder()
     {
-        try { System.Diagnostics.Process.Start("explorer.exe", "/select,\"" + History.FilePath + "\""); }
+        try { System.Diagnostics.Process.Start("explorer.exe", "/select,\"" + Store.RealPath(History.FilePath) + "\""); }
         catch (Exception e) { Diagnostics.Write("history: couldn't open the folder: " + e.GetType().Name); }
     }
 

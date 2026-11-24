@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Store package's manifest. pack.ps1 fills in the values in brackets: the identity from
+     identity.txt, the version from LongyanReader.exe, the arch from the build. -->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap5="http://schemas.microsoft.com/appx/manifest/uap/windows10/5"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap uap5 rescap">
+
+  <Identity Name="$(IdentityName)" Publisher="$(Publisher)" Version="$(Version)" ProcessorArchitecture="$(Arch)" />
+
+  <Properties>
+    <DisplayName>Longyan Reader</DisplayName>
+    <PublisherDisplayName>$(PublisherDisplayName)</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+
+  <!-- The same Windows as the installer: Windows 10 1809 and later. -->
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+
+  <Applications>
+    <Application Id="App" Executable="LongyanReader.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+        DisplayName="Longyan Reader"
+        Description="Select Chinese text in any app to see what it means."
+        BackgroundColor="#FFFFFF"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" Square71x71Logo="Assets\SmallTile.png" Square310x310Logo="Assets\LargeTile.png" />
+      </uap:VisualElements>
+      <Extensions>
+        <!-- Open at login (LoginItem.cs). Off until the app turns it on: the welcome window's switch. -->
+        <uap5:Extension Category="windows.startupTask" Executable="LongyanReader.exe" EntryPoint="Windows.FullTrustApplication">
+          <uap5:StartupTask TaskId="LongyanReaderAtLogin" Enabled="false" DisplayName="Longyan Reader" />
+        </uap5:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+
+  <!-- A desktop app with full trust: it reads the selection in other apps (UI Automation),
+       watches the shortcut and the mouse, sits in the notification area and downloads its
+       model, none of which an app container allows. Nothing else is declared. -->
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>
