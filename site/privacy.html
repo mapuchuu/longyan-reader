@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Privacy · Longyan Reader</title>
-<meta name="description" content="What Longyan Reader reads, what it keeps on your Mac, and the only times it goes online.">
+<meta name="description" content="What Longyan Reader reads, what it keeps on your computer, and the only times it goes online.">
 <meta name="theme-color" content="#000000">
 <link rel="icon" href="favicon.ico" sizes="32x32">
 <link rel="icon" href="images/tab-icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="images/touch-icon.png">
 <link rel="canonical" href="https://longyan.app/privacy.html">
 <meta property="og:title" content="Privacy · Longyan Reader">
-<meta property="og:description" content="What Longyan Reader reads, what it keeps on your Mac, and the only times it goes online.">
+<meta property="og:description" content="What Longyan Reader reads, what it keeps on your computer, and the only times it goes online.">
 <meta property="og:url" content="https://longyan.app/privacy.html">
 <meta property="og:image" content="https://longyan.app/images/og-3.jpg">
 <meta name="twitter:card" content="summary_large_image">
@@ -32,9 +32,9 @@
 <main class="doc">
   <div class="doc-wrap">
     <h1>Privacy</h1>
-    <p class="doc-date">Updated 18 November 2026</p>
+    <p class="doc-date">Updated 24 November 2026</p>
 
-    <p class="doc-lead">Longyan Reader runs on your Mac. What you highlight and look up stays on your Mac. There’s no account, no analytics and no tracking.</p>
+    <p class="doc-lead">Longyan Reader runs on your Mac or PC. What you highlight and look up stays on it. There’s no account, no analytics and no tracking.</p>
 
     <h2>What the app reads</h2>
     <p>With the Accessibility permission you give it, the app reads the text you highlight and the sentence around it, in whatever app you’re reading. When you finish a selection, it reads it to check whether it’s Chinese and to decide whether to show the eye. Nothing is kept unless you open a card. The one exception: when a lookup finds no Chinese to read, history notes the app’s name and why, without any text.</p>
@@ -55,6 +55,16 @@
     </ul>
     <p>Without the downloaded model, the app checks whether Ollama is running on your Mac with <code>qwen3.5:4b</code>, and uses it if so. That check never leaves your Mac. On macOS 26 with Apple Intelligence on, Apple’s on-device models can fill in; they also run on your Mac.</p>
     <p>If Anki is open with the AnkiConnect add-on, each card asks Anki whether its word is already in your deck, and when you click Add to Anki it gives Anki that card. Anki runs on your Mac, so this never leaves it either.</p>
+
+    <h2>On Windows</h2>
+    <p>The Windows app works the same way, with these differences.</p>
+    <ul>
+      <li>Windows doesn’t ask for a permission. The app reads the selection through UI Automation, or, in apps that don’t share it, copies it with Ctrl+C and puts back what was on your clipboard. That copy is marked to stay out of clipboard history and cloud sync.</li>
+      <li>History, settings and the reading model are kept in <code>%LOCALAPPDATA%\LongyanReader</code>. The Microsoft Store version keeps them in its own folder under <code>%LOCALAPPDATA%\Packages</code>. Clearing history moves the file to the Recycle Bin. Uninstalling removes all of it.</li>
+      <li>The version from GitHub checks GitHub for updates once a day, after you say yes. The Microsoft Store version doesn’t; the Store updates it.</li>
+      <li>Report a Problem fills in the app version, Windows version, processor, memory and reading model. Nothing is sent unless you submit it.</li>
+      <li>There’s no Ollama or Apple Intelligence fallback. Without the model, cards show the dictionary’s meanings.</li>
+    </ul>
 
     <h2>This website</h2>
     <p>longyan.app is a static page hosted on GitHub Pages, and the download comes from GitHub. The site sets no cookies and has no analytics. GitHub may keep standard server logs, as described in <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">its privacy statement</a>.</p>
