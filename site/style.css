@@ -113,8 +113,9 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .button svg { width: 15px; height: 15px; margin-left: 7px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; transition: transform .3s var(--ease-out); }
 .button:hover svg { transform: translateY(2px); }
 .hero-actions .button-quiet { height: 46px; }
-/* Who it runs on, under the buttons: before anyone downloads it for an Intel Mac. */
-.hero-fine { flex-basis: 100%; margin: -16px 0 0; font-size: 14px; line-height: 1.5; color: rgba(245, 245, 247, .5); letter-spacing: -0.01em; }
+/* The small print belongs to the download, so it sits under it, on its left edge. */
+.hero-dl { display: flex; flex-direction: column; align-items: flex-start; }
+.hero-fine { margin: -6px 0 0; font-size: 14px; line-height: 1.5; color: rgba(245, 245, 247, .5); letter-spacing: -0.01em; }
 .button-quiet { display: inline-flex; align-items: center; gap: 6px; font-size: 17px; font-weight: 500; text-decoration: none; color: rgba(245, 245, 247, .86); transition: color .2s; }
 .button-quiet svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: transform .3s var(--ease-out); }
 .button-quiet:hover { color: #fff; }
@@ -765,7 +766,7 @@ figcaption b { color: var(--ink); font-weight: 600; }
    the same grain as every other backdrop, so the four read as part of the page and not as a
    set of cards dropped on it. On each, a piece of the app in its dark appearance, placed
    where it would be: notes come and go, the tones are said in turn, words arrive in a
-   History that runs off the foot, and the menu drops from the eye in the menu bar. */
+   History that runs off the foot, and the menu opens from the eye. */
 .glass-box {
   position: relative; overflow: hidden; isolation: isolate; border-radius: 26px;
   aspect-ratio: 11 / 8; display: grid; place-items: center; padding: 36px; box-sizing: border-box;
@@ -862,22 +863,22 @@ figcaption b { color: var(--ink); font-weight: 600; }
   to { margin-top: 0; opacity: 1; background: transparent; }
 }
 
-/* Menu: the eye in a menu bar across the top, and its menu dropped from it, its right edge
-   held in from the tile's as macOS holds a menu in from the screen's. It opens, and the
-   highlight runs down. */
-.tile .stage-menu { place-items: start end; padding: 35px 10px 16px; }
-.stage-menu .menubar {
-  position: absolute; z-index: 3; left: 0; right: 0; top: 0; height: 30px; display: flex; justify-content: flex-end; align-items: center; gap: 16px; padding: 0 18px;
-  font-size: 13px; font-weight: 500; color: #fff;
-  background: rgba(16, 14, 40, .28); -webkit-backdrop-filter: blur(20px) saturate(1.6); backdrop-filter: blur(20px) saturate(1.6);
-  box-shadow: inset 0 -.5px 0 rgba(255, 255, 255, .12);
+/* Menu: the eye, and its menu opened from it, as either app has it (in the menu bar on a
+   Mac, by the clock on Windows): no bar, no clock, nothing that belongs to one system. The
+   eye stands at the menu's top right, where a click would have opened it. The menu opens,
+   and the highlight runs down. */
+.tile .stage-menu { padding: 24px 10px 20px; }
+.menu-stack { display: grid; justify-items: end; gap: 8px; }
+.menu-eye {
+  display: grid; place-items: center; width: 40px; height: 26px; border-radius: 8px; color: #fff;
+  background: rgba(255, 255, 255, .2); -webkit-backdrop-filter: blur(20px) saturate(1.6); backdrop-filter: blur(20px) saturate(1.6);
+  box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .18), 0 6px 16px rgba(2, 3, 18, .25);
 }
-.menubar-eye { display: grid; place-items: center; width: 34px; height: 22px; border-radius: 6px; background: rgba(255, 255, 255, .22); }
-.menubar-eye svg { width: 20px; height: auto; }
-.motion .ui-menu { opacity: 0; transform: scale(.97) translateY(-4px); transform-origin: 80% 0; transition: opacity .35s ease-out, transform .5s var(--ease-out); }
+.menu-eye svg { width: 22px; height: auto; }
+.motion .ui-menu { opacity: 0; transform: scale(.97) translateY(-4px); transform-origin: 100% 0; transition: opacity .35s ease-out, transform .5s var(--ease-out); }
 .motion .in .ui-menu { opacity: 1; transform: none; transition-delay: .7s; }
 .ui-menu .menu-item:nth-of-type(3) { --k: 1; } .ui-menu .menu-item:nth-of-type(4) { --k: 2; }
-.ui-menu .menu-item:nth-of-type(5) { --k: 3; } .ui-menu .menu-item:nth-of-type(6) { --k: 4; }
+.ui-menu .menu-item:nth-of-type(5) { --k: 3; }
 .motion .ui-menu .menu-item:not(.dim) { animation: hover-row 9s steps(1) infinite; animation-delay: calc(var(--k, 0) * 1.1s + 1.8s); animation-play-state: paused; }
 .motion .live .ui-menu .menu-item:not(.dim) { animation-play-state: running; }
 @keyframes hover-row { 0% { background: #0a84ff; color: #fff; } 12%, 100% { background: transparent; color: inherit; } }
@@ -922,7 +923,6 @@ figcaption b { color: var(--ink); font-weight: 600; }
 .started-done { color: var(--t2); }
 .started a { color: #f5f5f7; text-decoration: none; }
 .started a:hover { text-decoration: underline; }
-.install.downloading .install-get .button { visibility: hidden; }
 .install.downloading .section-head .started { display: block; }
 .section-head .install-fine { margin: 18px auto 0; max-width: none; font-size: 14px; line-height: 1.5; color: rgba(245, 245, 247, .5); letter-spacing: -0.01em; }
 
@@ -1091,10 +1091,257 @@ figcaption b { color: var(--ink); font-weight: 600; }
 .s2 .ob-a .default { animation: press-ob 7.2s steps(1) both; }
 @keyframes press-ob { 0% { background: #0a84ff; } 23% { background: #0062cc; } 28%, 100% { background: #0a84ff; } }
 
+/* The Windows mark, set as the apple is: four panes as tall as the capitals, standing on the
+   baseline (the buttons align their contents by baseline). */
+.windows, .button .windows { width: .7em; height: .7em; overflow: visible; fill: currentColor; stroke: none; flex: none; margin: 0 .5em 0 0; }
+.button:hover .windows { transform: none; }
+.button:has(.windows) { flex-wrap: wrap; align-content: center; align-items: baseline; padding-left: 20px; }
+
+/* Who it's for: one line on a full-bleed sheet of the page's paper, its own band between the
+   features and the steps, so it reads as a pause rather than part of either. Cobalt, the
+   violet the tiles and the closing don't use at this size, its sheets set low so the line
+   sits in the night above them, with the closing's soft dusk behind the words. */
+.trusted { margin-top: 170px; padding: 150px 0; text-align: center; overflow: hidden; background: #07051c; }
+.trusted .paper { z-index: 0; }
+.trusted .wrap { position: relative; z-index: 2; }
+.trusted .wrap::before { content: ""; position: absolute; z-index: -1; inset: -80px 0; background: radial-gradient(closest-side, rgba(7, 5, 28, .55), rgba(7, 5, 28, 0)); pointer-events: none; }
+.trusted h2 { color: #fff; font-size: 44px; line-height: 1.14; letter-spacing: -0.03em; text-shadow: 0 1px 14px rgba(5, 4, 24, .35); }
+.trusted-line { display: block; }
+.nobr { white-space: nowrap; }
+
+/* Which computer: the statement's segmented control, a size up, under the heading. The rest
+   of the section follows it: only the chosen system's download, small print and steps show. */
+.install { padding-top: 150px; }
+.appearance.os-switch { margin: 26px 0 0; }
+.os-switch button { min-width: 124px; height: 34px; font-size: 15px; gap: 7px; }
+.os-switch .apple, .os-switch .windows { fill: currentColor; stroke: none; }
+.os-switch .apple { width: .753em; height: .925em; margin: 0; translate: 0 -.04em; }
+.os-switch .windows { width: .72em; height: .72em; margin: 0; }
+.install[data-os="win"] .os-switch .appearance-thumb { transform: translateX(100%); }
+.install:not([data-os="win"]) [data-for="win"], .install[data-os="win"] [data-for="mac"] { display: none !important; }
+.install .swapped { animation: os-in .55s var(--ease-out) both; }
+@keyframes os-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .install .swapped { animation: none; } }
+.get-pair { display: flex; align-items: center; justify-content: center; gap: 28px; flex-wrap: wrap; }
+.get-pair .button-quiet { height: 46px; }
+.install.downloading .install-get .get-pair { visibility: hidden; }
+
+/* Installing on Windows, played on the same screen: the Microsoft Store, the welcome window,
+   then the notification and the eye by the clock. Windows 11 in its light appearance, its
+   own fonts where the visitor has them. Laid out on the Mac's desk (760 by 475), but on a
+   phone, where the desk is 620 wide, nothing is cut off: what sits in the middle moves in by
+   --cx and what sits by the clock by --rx, the taskbar spanning the whole width. */
+.wdesk { --cx: 0px; --rx: 0px; --accent: #005fb8; font-family: "Segoe UI Variable Text", "Segoe UI", var(--text); color: #1b1b1b; }
+.w11 {
+  position: absolute; overflow: hidden; border-radius: 8px; background: rgba(243, 243, 246, .97);
+  box-shadow: 0 0 0 .5px rgba(0, 0, 0, .28), 0 18px 50px rgba(0, 0, 0, .42), 0 4px 12px rgba(0, 0, 0, .2);
+}
+.w11-bar { height: 30px; display: flex; align-items: center; padding-left: 12px; font-size: 11px; position: relative; }
+.w11-bar b { font-weight: 400; }
+.caps { margin-left: auto; display: flex; height: 100%; }
+.caps i { position: relative; width: 34px; height: 100%; }
+.caps i::before, .caps i::after { content: ""; position: absolute; left: 50%; top: 50%; background: #1b1b1b; }
+.c-min::before { width: 9px; height: 1px; margin: 0 0 0 -4.5px; }
+.c-max::before { width: 8px; height: 8px; margin: -4px 0 0 -4px; background: none !important; box-shadow: inset 0 0 0 1px #1b1b1b; border-radius: 1.5px; }
+.c-x::before, .c-x::after { width: 11px; height: 1px; margin-left: -5.5px; transform: rotate(45deg); }
+.c-x::after { transform: rotate(-45deg); }
+.wb { display: inline-grid; place-items: center; height: 25px; padding: 0 13px; border-radius: 4px; font-size: 11.5px; background: #fbfbfb; box-shadow: inset 0 0 0 .5px rgba(0, 0, 0, .14), inset 0 -.5px 0 rgba(0, 0, 0, .14); white-space: nowrap; }
+.wb-accent { background: var(--accent); color: #fff; box-shadow: inset 0 -.5px 0 rgba(0, 0, 0, .3); }
+.w-icon { display: grid; place-items: center; background: #fff; color: #000; }
+.w-icon svg, .wl-mark svg, .t-icon svg, .tb-app svg, .fly-eye svg { display: block; width: 100%; height: auto; }
+
+/* The taskbar: Start, search, the Store and the app in the middle; by the clock, the arrow
+   that opens the hidden icons. */
+.tb {
+  position: absolute; z-index: 4; left: 0; right: 0; bottom: 0; height: 36px;
+  background: rgba(238, 240, 246, .84); -webkit-backdrop-filter: blur(24px) saturate(1.4); backdrop-filter: blur(24px) saturate(1.4);
+  box-shadow: inset 0 .5px 0 rgba(255, 255, 255, .5), 0 -.5px 0 rgba(0, 0, 0, .1);
+  height: 40px;
+}
+.tb-mid { position: absolute; left: 50%; top: 4px; display: flex; gap: 3px; transform: translateX(-50%); }
+.tb-mid > i, .tb-chev, .tb-sys { position: relative; display: grid; place-items: center; height: 32px; border-radius: 4px; }
+.tb-mid > i { width: 34px; }
+.tb-mid svg { width: 18px; height: 18px; }
+.tb-start svg { fill: #0a6fd8; }
+.tb-search svg, .tb-chev svg, .tb-sys svg { fill: none; stroke: #1b1b1b; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
+.tb-store svg { fill: #1e6fd6; stroke: #1e6fd6; stroke-width: 1; stroke-linejoin: round; }
+.tb-store svg path + path { fill: none; stroke: #1b1b1b; }
+.tb-app { opacity: 0; overflow: hidden; transition: opacity .3s, width .35s var(--ease-out), margin .35s var(--ease-out); }
+.tb-mid .tb-app svg { width: 21px; height: auto; color: #000; }
+/* Running, and in front: the small pill under an app's icon, longer and blue when it's the
+   one in front. */
+.tb-store::after, .tb-app::after { content: ""; position: absolute; bottom: 1px; left: 50%; width: 6px; height: 3px; margin-left: -3px; border-radius: 2px; background: #8a8a8a; opacity: 0; transition: opacity .3s, width .3s, margin .3s, background .3s; }
+.wdesk.s0 .tb-store, .wdesk.s1 .tb-store { background: rgba(255, 255, 255, .55); }
+.wdesk.s0 .tb-store::after { opacity: 1; width: 14px; margin-left: -7px; background: var(--accent); }
+.wdesk.s1 .tb-app, .wdesk.s2 .tb-app { opacity: 1; }
+.wdesk.s1 .tb-app { background: rgba(255, 255, 255, .55); }
+.wdesk.s1 .tb-app::after { opacity: 1; width: 14px; margin-left: -7px; background: var(--accent); }
+.wdesk.s2 .tb-app { opacity: 0; width: 0; margin-left: -3px; }
+.tb-chev { position: absolute; right: 140px; top: 4px; width: 24px; }
+.tb-chev svg { width: 13px; height: 13px; }
+.tb-sys { position: absolute; right: 72px; top: 4px; width: 64px; display: flex; justify-content: center; gap: 5px; }
+.tb-sys svg { width: 13px; height: 13px; }
+.tb-sys .fill { fill: #1b1b1b; stroke: none; }
+.tb-clock { position: absolute; right: 8px; top: 7px; width: 62px; font-size: 10.5px; line-height: 1.25; text-align: right; }
+
+/* 1. The Store's page for the app: Get, a moment of downloading, then Open. */
+.store { left: calc(var(--cx) + 100px); top: 48px; width: 560px; height: 318px; }
+.store-search { position: absolute; left: 50%; top: 5px; width: 210px; height: 20px; margin-left: -105px; border-radius: 5px; background: #fbfbfb; box-shadow: inset 0 0 0 .5px rgba(0, 0, 0, .1), inset 0 -.5px 0 rgba(0, 0, 0, .18); font-size: 9.5px; font-style: normal; line-height: 20px; padding-left: 10px; color: #6b6b6b; text-align: left; }
+.store-rail { position: absolute; left: 0; top: 30px; width: 48px; display: grid; justify-items: center; gap: 4px; padding-top: 6px; }
+.store-rail i { position: relative; display: grid; place-items: center; width: 38px; height: 32px; border-radius: 4px; }
+.store-rail i.on { background: rgba(0, 0, 0, .05); }
+.store-rail i.on::before { content: ""; position: absolute; left: 0; top: 10px; width: 3px; height: 12px; border-radius: 2px; background: var(--accent); }
+.store-rail svg { width: 15px; height: 15px; fill: none; stroke: #1b1b1b; stroke-width: 1.15; stroke-linejoin: round; }
+.store-rail i.on svg { fill: var(--accent); stroke: var(--accent); }
+.store-main { position: absolute; left: 48px; top: 30px; right: 0; bottom: 0; border-radius: 8px 0 0 0; background: #f9f9fb; box-shadow: inset .5px .5px 0 rgba(0, 0, 0, .07); }
+.store-info { position: absolute; left: 20px; top: 20px; width: 176px; display: flex; flex-direction: column; align-items: flex-start; }
+.store-info .w-icon { width: 64px; height: 64px; border-radius: 12px; padding: 0 12px; box-shadow: 0 0 0 .5px rgba(0, 0, 0, .1), 0 2px 6px rgba(0, 0, 0, .1); }
+.store-info > b { margin-top: 12px; font: 600 16px/1.2 "Segoe UI Variable Display", "Segoe UI", var(--display); letter-spacing: -0.005em; }
+.store-pub { margin-top: 2px; font-size: 11.5px; color: var(--accent); }
+.get-btn { position: relative; display: grid; width: 100%; height: 28px; margin-top: 14px; border-radius: 5px; background: var(--accent); color: #fff; box-shadow: inset 0 -.5px 0 rgba(0, 0, 0, .3); }
+.get-btn em { grid-area: 1 / 1; display: grid; place-items: center; font-size: 12px; font-weight: 600; font-style: normal; opacity: 0; }
+.get-btn .g-get { opacity: 1; }
+.g-bar { width: 128px; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, .3); overflow: hidden; }
+.g-bar b { display: block; height: 100%; border-radius: inherit; background: #fff; transform: scaleX(0); transform-origin: left; }
+.store-info small { margin-top: 7px; font-size: 11px; color: #6b6b6b; }
+.store-shot { position: absolute; left: 218px; right: 20px; top: 20px; height: 214px; display: grid; place-items: center; border-radius: 8px; overflow: hidden; background: radial-gradient(120% 90% at 20% 0%, #3b5bdb, #1d2a8a 55%, #0e1250); }
+.shot-card { width: 196px; padding: 12px 14px; border-radius: 12px; color: #f5f5f7; background: rgba(30, 30, 34, .82); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .16), 0 12px 30px rgba(0, 0, 0, .4); font-family: var(--text); }
+.shot-card b { display: block; font: 500 26px/1.1 var(--zh); }
+.shot-card i { display: block; margin-top: 3px; font-style: normal; font-size: 10.5px; color: rgba(255, 255, 255, .62); }
+.shot-card p { margin: 6px 0 0; font-size: 12px; font-weight: 600; line-height: 1.25; }
+.shot-card .t2 { color: var(--t2); } .shot-card .t3 { color: var(--t3); }
+.store-desc { position: absolute; left: 218px; right: 20px; top: 246px; margin: 0; text-wrap: balance; font-size: 12px; line-height: 1.4; color: #3d3d3d; }
+
+/* 2. The welcome window, in its real words. */
+.welcome { left: calc(var(--cx) + 180px); top: 16px; width: 400px; }
+.welcome .w11-bar { font-size: 11px; color: #1b1b1b; }
+.wl-body { padding: 10px 20px 14px; }
+.wl-mark { display: block; width: 24px; color: #1b1b1b; }
+.wl-title { display: block; margin: 8px 0 4px; font: 600 18px/1.2 "Segoe UI Variable Display", "Segoe UI", var(--display); letter-spacing: -0.008em; }
+.wl-body > p { margin: 0; font-size: 11.5px; line-height: 1.4; }
+.wl-ways { margin: 10px 0 0; padding: 0; list-style: none; }
+.wl-ways li { display: grid; grid-template-columns: 14px 1fr; column-gap: 9px; margin-bottom: 5px; font-size: 11.5px; line-height: 1.4; }
+.wl-ways svg { width: 13px; height: 13px; margin-top: 2px; fill: none; stroke: var(--accent); stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
+.wl-model { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 14px; margin-top: 10px; padding: 9px 12px; border-radius: 4px; background: #fbfbfb; box-shadow: inset 0 0 0 1px #e5e5e5; }
+.wl-model-text b { display: block; font-size: 11.5px; font-weight: 400; }
+.wl-model-text small { display: block; margin-top: 1px; font-size: 10.5px; line-height: 1.38; color: rgba(0, 0, 0, .606); font-variant-numeric: tabular-nums; }
+.wl-model .wb { grid-area: 1 / 2; }
+.wl-during, .wl-stop { opacity: 0; }
+/* The two captions share one place, so the card keeps its height as the download starts. */
+.wl-model-text { display: grid; }
+.wl-model-text b { grid-area: 1 / 1; }
+.wl-model-text small { grid-area: 2 / 1; }
+.wl-bar { grid-column: 1 / -1; height: 3px; margin: 9px 0 2px; border-radius: 2px; background: linear-gradient(rgba(0, 0, 0, .3), rgba(0, 0, 0, .3)) 0 50% / 100% 1px no-repeat; opacity: 0; }
+.wl-bar b { display: block; height: 100%; border-radius: 1.5px; background: var(--accent); transform: scaleX(.04); transform-origin: left; }
+.wl-foot { display: flex; align-items: center; gap: 9px; padding: 10px 20px; background: #eeeeee; box-shadow: inset 0 1px 0 rgba(0, 0, 0, .08); font-size: 11.5px; }
+.w-toggle { position: relative; width: 30px; height: 15px; border-radius: 8px; background: var(--accent); }
+.w-toggle::after { content: ""; position: absolute; right: 3px; top: 3px; width: 9px; height: 9px; border-radius: 50%; background: #fff; }
+.wl-done { margin-left: auto; min-width: 90px; }
+
+/* 3. The notification, the hidden icons, and the eye's menu. */
+.toast {
+  position: absolute; right: 12px; bottom: 52px; width: 290px; padding: 11px 14px 13px; border-radius: 8px;
+  background: rgba(249, 249, 251, .96); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px);
+  box-shadow: 0 0 0 .5px rgba(0, 0, 0, .2), 0 14px 36px rgba(0, 0, 0, .3); font-size: 11.5px; line-height: 1.4;
+}
+.toast-head { display: flex; align-items: center; gap: 7px; font-size: 10.5px; color: #3d3d3d; margin-bottom: 9px; }
+.t-icon { width: 13px; color: #000; }
+.toast-x { position: relative; margin-left: auto; width: 9px; height: 9px; }
+.toast-x::before, .toast-x::after { content: ""; position: absolute; left: -1px; top: 4px; width: 11px; height: 1px; background: #555; transform: rotate(45deg); }
+.toast-x::after { transform: rotate(-45deg); }
+.toast b { display: block; font-weight: 600; }
+.toast p { margin: 1px 0 0; color: #3d3d3d; }
+.flyout {
+  position: absolute; right: 110px; bottom: 48px; display: grid; grid-template-columns: repeat(3, 24px); gap: 2px; padding: 6px;
+  border-radius: 8px; background: rgba(249, 249, 251, .94); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px);
+  box-shadow: 0 0 0 .5px rgba(0, 0, 0, .2), 0 10px 28px rgba(0, 0, 0, .28);
+}
+.flyout i { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 4px; }
+.flyout svg { width: 13px; height: 13px; fill: none; stroke: #1b1b1b; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
+.flyout .fly-eye svg { width: 16px; fill: #000; stroke: none; }
+.w11-menu {
+  position: absolute; right: 176px; bottom: 90px; display: flex; flex-direction: column; padding: 4px; border-radius: 8px;
+  background: rgba(249, 249, 251, .97); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px);
+  box-shadow: 0 0 0 .5px rgba(0, 0, 0, .2), 0 10px 28px rgba(0, 0, 0, .28); font-size: 11.5px; white-space: nowrap;
+}
+.w11-menu > span, .w11-menu > b { height: 24px; display: flex; align-items: center; padding: 0 22px 0 12px; border-radius: 4px; }
+.w11-menu b { font-weight: 600; }
+.w11-menu .dim { color: rgba(0, 0, 0, .4); }
+.w11-menu hr { border: 0; height: 1px; margin: 3px 0; background: rgba(0, 0, 0, .08); }
+.wpointer { transform: translate(calc(var(--rx) + 700px), 250px); }
+
+/* The three, in time. */
+.wdesk .w11, .toast, .flyout, .w11-menu { opacity: 0; }
+.wdesk.s0 .store { animation: w-win 5.6s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes w-win { 0% { opacity: 0; transform: scale(.96); } 7%, 100% { opacity: 1; transform: none; } }
+.wdesk.s0 .wpointer { animation: wcur0 5.6s cubic-bezier(.45, 0, .25, 1) both; }
+@keyframes wcur0 {
+  0% { transform: translate(calc(var(--rx) + 700px), 250px); }
+  20%, 30% { transform: translate(var(--get-x), var(--get-y)); }
+  52%, 80% { transform: translate(calc(var(--get-x) + 6px), calc(var(--get-y) + 2px)); }
+  100% { transform: translate(calc(var(--rx) + 700px), 250px); }
+}
+.wdesk.s0 .get-btn { animation: w-get 5.6s steps(1) both; }
+@keyframes w-get { 0% { background: var(--accent); } 23% { background: #00498e; } 26% { background: var(--accent); } 76% { background: #00498e; } 79%, 100% { background: var(--accent); } }
+.wdesk.s0 .g-get { animation: w-l1 5.6s steps(1) both; }
+@keyframes w-l1 { 0% { opacity: 1; } 25%, 100% { opacity: 0; } }
+.wdesk.s0 .g-busy { animation: w-l2 5.6s steps(1) both; }
+@keyframes w-l2 { 0% { opacity: 0; } 25% { opacity: 1; } 62%, 100% { opacity: 0; } }
+.wdesk.s0 .g-open { animation: w-l3 5.6s steps(1) both; }
+@keyframes w-l3 { 0% { opacity: 0; } 62%, 100% { opacity: 1; } }
+.wdesk.s0 .g-bar b { animation: w-fill 5.6s cubic-bezier(.4, 0, .4, 1) both; }
+@keyframes w-fill { 0%, 26% { transform: scaleX(0); } 60%, 100% { transform: scaleX(1); } }
+
+.wdesk.s1 .welcome { animation: w-win2 7.6s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes w-win2 { 0% { opacity: 0; transform: scale(.96); } 6%, 88% { opacity: 1; transform: none; } 94%, 100% { opacity: 0; transform: scale(.98); } }
+.wdesk.s1 .wpointer { animation: wcur1 7.6s cubic-bezier(.45, 0, .25, 1) both; }
+@keyframes wcur1 {
+  0%, 8% { transform: translate(calc(var(--rx) + 700px), 250px); }
+  22%, 30% { transform: translate(var(--dl-x), var(--dl-y)); }
+  62%, 80% { transform: translate(var(--dn-x), var(--dn-y)); }
+  100% { transform: translate(calc(var(--rx) + 700px), 250px); }
+}
+.wdesk.s1 .wl-download { animation: w-dl 7.6s steps(1) both; }
+@keyframes w-dl { 0% { opacity: 1; background: var(--accent); } 25% { background: #00498e; } 27%, 100% { opacity: 0; } }
+.wdesk.s1 .wl-stop, .wdesk.s1 .wl-during, .wdesk.s1 .wl-bar { animation: w-on 7.6s steps(1) both; }
+@keyframes w-on { 0% { opacity: 0; } 27%, 100% { opacity: 1; } }
+.wdesk.s1 .wl-before { animation: w-off 7.6s steps(1) both; }
+@keyframes w-off { 0% { opacity: 1; } 27%, 100% { opacity: 0; } }
+.wdesk.s1 .wl-done { animation: w-done 7.6s steps(1) both; }
+@keyframes w-done { 0% { background: #fbfbfb; } 76% { background: #e9e9ec; } 79%, 100% { background: #fbfbfb; } }
+
+.wdesk.s2 .toast { animation: w-toast 7.6s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes w-toast { 0% { opacity: 0; transform: translateX(24px); } 5%, 40% { opacity: 1; transform: none; } 46%, 100% { opacity: 0; transform: none; } }
+.wdesk.s2 .wpointer { animation: wcur2 7.6s cubic-bezier(.45, 0, .25, 1) both; }
+@keyframes wcur2 {
+  0%, 30% { transform: translate(calc(var(--rx) + 700px), 250px); }
+  44%, 48% { transform: translate(var(--chev-x), var(--chev-y)); }
+  58%, 62% { transform: translate(var(--eye-x), var(--eye-y)); }
+  74%, 88% { transform: translate(var(--hist-x), var(--hist-y)); }
+  100% { transform: translate(calc(var(--rx) + 700px), 250px); }
+}
+.wdesk.s2 .tb-chev { animation: w-chev 7.6s steps(1) both; }
+@keyframes w-chev { 0% { background: none; } 46% { background: rgba(255, 255, 255, .7); } 92%, 100% { background: none; } }
+.wdesk.s2 .tb-chev svg { animation: w-chev-turn 7.6s steps(1) both; }
+@keyframes w-chev-turn { 0% { transform: none; } 47% { transform: rotate(180deg); } 92%, 100% { transform: none; } }
+.wdesk.s2 .flyout { animation: w-fly 7.6s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes w-fly { 0%, 47% { opacity: 0; transform: translateY(8px); } 51%, 90% { opacity: 1; transform: none; } 95%, 100% { opacity: 0; transform: none; } }
+.wdesk.s2 .fly-eye { animation: w-eye 7.6s steps(1) both; }
+@keyframes w-eye { 0% { background: none; } 60% { background: rgba(0, 0, 0, .06); } 92%, 100% { background: none; } }
+.wdesk.s2 .w11-menu { animation: w-menu 7.6s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes w-menu { 0%, 63% { opacity: 0; transform: translateY(6px); } 67%, 90% { opacity: 1; transform: none; } 95%, 100% { opacity: 0; transform: none; } }
+.wdesk.s2 .m-hist { animation: w-row 7.6s steps(1) both; }
+@keyframes w-row { 0% { background: none; } 74% { background: rgba(0, 0, 0, .06); } 84% { background: rgba(0, 0, 0, .1); } 86% { background: rgba(0, 0, 0, .06); } 92%, 100% { background: none; } }
+
 /* Stopped: off screen, or by a click on a step while motion is reduced. */
 .desk.paused, .desk.paused * { animation-play-state: paused !important; }
 .desk.still *, .desk.still { animation: none !important; transition: none !important; }
 .desk.still .ob-a { opacity: 0; }
+.wdesk.still.s0 .store, .wdesk.still.s1 .welcome, .wdesk.still.s2 .flyout, .wdesk.still.s2 .w11-menu { opacity: 1; }
+.wdesk.still.s1 .wl-download { opacity: 1; }
+.wdesk.still.s0 .wpointer { transform: translate(var(--get-x), var(--get-y)); }
+.wdesk.still.s1 .wpointer { transform: translate(var(--dl-x), var(--dl-y)); }
+.wdesk.still.s2 .wpointer { transform: translate(var(--hist-x), var(--hist-y)); }
 
 /* Closing */
 .closing { padding: 112px 0 116px; text-align: center; overflow: hidden; background: #252a6c; }
@@ -1192,6 +1439,9 @@ footer a { color: #a1a1a6; }
   h1 { font-size: 42px; }
   h2 { font-size: 32px; }
   .closing h2 { font-size: min(32px, calc((100vw - 40px) / 12.3)); }
+  .trusted { margin-top: 110px; padding: 96px 0; }
+  .trusted h2 { font-size: 30px; }
+  .os-switch button { min-width: 112px; }
   .hero-sub, .section-head p, .watch-copy p, .closing p { font-size: 17px; }
   .hide-small { display: none; }
   .bar-links { gap: 18px; }
@@ -1204,8 +1454,8 @@ footer a { color: #a1a1a6; }
   .tile .glass-box { padding: 16px; aspect-ratio: 4 / 3; }
   .tile .stage-history { padding: 22px 0 0; }
   .stage-history .ui-history { width: 90%; }
-  .tile .stage-menu { padding: 34px 8px 10px; }
-  .stage-menu .menubar { padding: 0 12px; }
+  .tile .stage-menu { padding: 16px 8px 12px; }
+  .menu-stack { gap: 6px; }
   .notes-stack { height: 136px; margin-top: 24px; }
   .notes-stack .note { height: 136px; padding: 12px 14px; }
   .notes-stack .note p { font-size: 13.5px; line-height: 1.42; }
@@ -1222,6 +1472,8 @@ footer a { color: #a1a1a6; }
   .mac-screen { aspect-ratio: 620 / 450; }
   .desk { width: 620px; height: 450px; }
   .layer { transform: translateX(-70px); }
+  .wdesk { --cx: -70px; --rx: -140px; }
+  .wdesk .layer { transform: none; }
   .mac-screen { border-radius: 12px; box-shadow: 0 0 0 1px rgba(255, 255, 255, .06), 0 0 0 6px #0e0e11, 0 0 0 7px rgba(255, 255, 255, .22), 0 30px 60px rgba(0, 0, 0, .6); }
   .closing { padding: 84px 0 88px; }
   .closing-mark { width: 76px; margin-bottom: 22px; }
@@ -1230,6 +1482,7 @@ footer a { color: #a1a1a6; }
      neither looks out of line. */
   .hero-actions { flex-direction: column; align-items: stretch; gap: 12px; }
   .hero-actions .button-quiet { justify-content: center; height: 46px; border: 1px solid rgba(255, 255, 255, .3); border-radius: 999px; }
+  .hero-dl { align-items: stretch; gap: 12px; }
   .hero-fine { margin: 2px 0 0; text-align: center; font-size: 13px; }
   .eyebrow { font-size: 16px; margin-bottom: 12px; }
   .try-head p { font-size: 16px; }

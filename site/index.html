@@ -3,19 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Longyan Reader: the Chinese pop-up reader for Mac</title>
-<meta name="description" content="A Chinese pop-up reader for Mac. Highlight Chinese in any app and see what it means in that context. Free, open source, and works offline.">
+<title>Longyan Reader: the Chinese pop-up reader for Mac and Windows</title>
+<meta name="description" content="A Chinese pop-up reader for Mac and Windows. Highlight Chinese in any app and see what it means in that context. Free, open source, and works offline.">
 <meta name="theme-color" content="#000000">
 <meta property="og:title" content="Longyan Reader">
-<meta property="og:description" content="The Chinese pop-up reader for Mac. Highlight Chinese in any app and see what it means in that context.">
+<meta property="og:description" content="The Chinese pop-up reader for Mac and Windows. Highlight Chinese in any app and see what it means in that context.">
 <link rel="canonical" href="https://longyan.app/">
-<meta property="og:image" content="https://longyan.app/images/og-3.jpg">
+<meta property="og:image" content="https://longyan.app/images/og-4.jpg">
 <meta property="og:url" content="https://longyan.app/">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="favicon.ico" sizes="32x32">
 <link rel="icon" href="images/tab-icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="images/touch-icon.png">
-<link rel="stylesheet" href="style.css?v=1123a">
+<link rel="stylesheet" href="style.css?v=1124a">
 <script>
   // Scroll motion, unless the visitor asked for less (or ?still, for screenshots).
   if (!matchMedia("(prefers-reduced-motion: reduce)").matches && !/[?&]still/.test(location.search)) document.documentElement.classList.add("motion");
@@ -30,7 +30,7 @@
       <a class="hide-small" href="#features">Features</a>
       <a class="hide-small" href="#install">Install</a>
       <a class="bar-gh" href="https://github.com/mapuchuu/longyan-reader" aria-label="GitHub" title="GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
-      <a class="bar-download" href="https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip" data-download><svg class="apple" viewBox="4.04 2.97 14.75 18.11" aria-hidden="true"><path d="M16.37 12.6c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.77-3.32-1.8-1.41-.14-2.76.83-3.47.83-.72 0-1.82-.81-2.99-.79-1.54.02-2.96.9-3.75 2.27-1.6 2.78-.41 6.88 1.15 9.13.76 1.1 1.67 2.34 2.86 2.3 1.15-.05 1.58-.74 2.97-.74 1.39 0 1.78.74 2.99.72 1.24-.02 2.02-1.12 2.77-2.23.87-1.28 1.23-2.52 1.25-2.58-.03-.01-2.4-.92-2.42-3.65zM14.1 5.86c.63-.77 1.06-1.83.94-2.89-.91.04-2.02.61-2.67 1.37-.58.67-1.1 1.76-.96 2.8 1.02.08 2.06-.52 2.69-1.28z"/></svg>Download<i class="grow" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M8 2.6v10.8M3.9 9.3 8 13.4l4.1-4.1"/></svg></i></a>
+      <a class="bar-download" href="#install" data-glide>Download<i class="grow" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M8 2.6v10.8M3.9 9.3 8 13.4l4.1-4.1"/></svg></i></a>
     </div>
   </div>
 </nav>
@@ -40,13 +40,15 @@
   <div class="story-pin" id="top">
     <canvas id="field" aria-hidden="true"></canvas>
     <div class="hero-copy">
-      <p class="eyebrow">The offline Chinese pop-up reader for macOS</p>
+      <p class="eyebrow">The offline Chinese pop-up reader <span class="nobr">for Mac and Windows</span></p>
       <h1><span class="rise"><span>Read &amp; learn</span></span> <span class="rise"><span>Chinese anywhere.</span></span></h1>
       <p class="hero-sub">Highlight Chinese in any app, and Longyan shows you what it means in the context of that sentence.</p>
       <div class="hero-actions">
         <a class="button" href="#try" data-try>Try it in your browser<i class="grow" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M8 2.6v10.8M3.9 9.3 8 13.4l4.1-4.1"/></svg></i></a>
-        <a class="button-quiet" href="https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip" data-download><span class="for-mac">Download for Mac</span><span class="for-phone">Send to your Mac</span> <svg class="for-mac" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5"/></svg></a>
-        <p class="hero-fine"><span class="fine-pair">Free · Notarized by Apple</span><span class="fine-sep"> · </span><span class="fine-pair">Apple silicon · macOS 15 or later</span></p>
+        <div class="hero-dl">
+          <a class="button-quiet" href="#install" data-glide>Download <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5"/></svg></a>
+          <p class="hero-fine">Free and open source</p>
+        </div>
       </div>
     </div>
     <div class="try" id="try">
@@ -93,8 +95,8 @@
 <section class="watch">
   <canvas class="paper" data-paper="azure" data-drop=".16" data-live aria-hidden="true"></canvas>
   <div class="wrap watch-copy" data-reveal>
-    <h2>Longyan works everywhere on your Mac.</h2>
-    <p>Safari, Chrome, Mail, Notes, PDFs, you name it. Highlight some Chinese text, click the eye, and the smart card opens up.</p>
+    <h2>Longyan works everywhere you read.</h2>
+    <p>Your browser, your email, PDFs, you name it. Highlight some Chinese text, click the eye, and the smart card opens up.</p>
   </div>
   <div class="screen-wrap">
     <figure class="screen" id="screen">
@@ -142,7 +144,7 @@
           <div><svg class="contour" viewBox="0 0 40 30" aria-hidden="true"><path class="base" d="M7 5L33 26"/><path class="draw" pathLength="1" d="M7 5L33 26"/></svg><span class="t4">骂</span><i class="t4">mà</i><small>to scold</small></div>
         </div>
       </div>
-      <figcaption><b>Every tone in its own color.</b> Characters and pinyin are colored by tone, so you start to hear a word as you read it. Choose from two color sets, or pick your own.</figcaption>
+      <figcaption><b>Every tone in its own color.</b> Characters and pinyin are colored by tone, so you start to hear a word as you read it. On a Mac, choose from two color sets or pick your own.</figcaption>
     </figure>
 
     <figure class="tile" data-reveal>
@@ -166,36 +168,56 @@
     <figure class="tile" data-reveal>
       <div class="glass-box tone-violet stage-menu">
         <canvas class="paper" data-paper="cobalt" data-seed="9.3" data-drop="-.2" aria-hidden="true"></canvas>
-        <div class="menubar" aria-hidden="true"><span class="menubar-eye"><svg viewBox="0 0 1200 848.53"><path fill="currentColor" fill-rule="evenodd" d="M0 424.26L300 124.26A424.26 424.26 0 0 1 900 124.26L1200 424.26L900 724.26A424.26 424.26 0 0 1 300 724.26ZM225 424.26L412.5 236.76A265.17 265.17 0 0 1 787.5 236.76L975 424.26L787.5 611.76A265.17 265.17 0 0 1 412.5 611.76ZM471.43 424.26L535.71 359.98A90.91 90.91 0 0 1 664.29 359.98L728.57 424.26L664.29 488.55A90.91 90.91 0 0 1 535.71 488.55ZM728.57 424.26L975 424.26L851.79 547.48Z"/></svg></span><span>Tue 9:41</span></div>
+        <div class="menu-stack">
+        <span class="menu-eye" aria-hidden="true"><svg viewBox="0 0 1200 848.53"><path fill="currentColor" fill-rule="evenodd" d="M0 424.26L300 124.26A424.26 424.26 0 0 1 900 124.26L1200 424.26L900 724.26A424.26 424.26 0 0 1 300 724.26ZM225 424.26L412.5 236.76A265.17 265.17 0 0 1 787.5 236.76L975 424.26L787.5 611.76A265.17 265.17 0 0 1 412.5 611.76ZM471.43 424.26L535.71 359.98A90.91 90.91 0 0 1 664.29 359.98L728.57 424.26L664.29 488.55A90.91 90.91 0 0 1 535.71 488.55ZM728.57 424.26L975 424.26L851.79 547.48Z"/></svg></span>
         <div class="ui ui-menu">
-          <div class="menu-item dim">Highlight Chinese text, then click the eye or press ⌃⌥L</div>
+          <div class="menu-item dim">Highlight Chinese text, then click the eye</div>
           <hr>
           <div class="menu-item">Dictionary: 198,488 entries</div>
           <div class="menu-item">Reading model: Qwen 3.5 4B</div>
-          <div class="menu-item">Accessibility: on</div>
           <hr>
+          <div class="menu-item">Lookup History</div>
           <div class="menu-item">Open at Login<span class="check">✓</span></div>
-          <div class="menu-item">Lookup History<span class="key">⌘Y</span></div>
+        </div>
         </div>
       </div>
-      <figcaption><b>Nothing leaves your Mac.</b> The dictionary and the reading model both run on your Mac. No account, and what you look up is never sent anywhere.</figcaption>
+      <figcaption><b>Nothing leaves your computer.</b> The dictionary and the reading model both run on it. No account, and what you look up is never sent anywhere.</figcaption>
     </figure>
 
+  </div>
+</section>
+
+<section class="trusted" id="trusted">
+  <canvas class="paper" data-paper="cobalt" data-seed="6.2" data-drop=".1" data-live aria-hidden="true"></canvas>
+  <div class="wrap" data-reveal>
+    <h2><span class="trusted-line">Trusted by expats, heritage speakers,</span> <span class="trusted-line"><span class="nobr">HSK test-takers</span>, and educators</span></h2>
   </div>
 </section>
 
 <section class="install" id="install">
   <div class="wrap section-head center" data-reveal>
     <h2>Installation</h2>
-    <div class="install-get">
-      <a class="button" href="https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip" data-download><svg class="apple" viewBox="4.04 2.97 14.75 18.11" aria-hidden="true"><path d="M16.37 12.6c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.77-3.32-1.8-1.41-.14-2.76.83-3.47.83-.72 0-1.82-.81-2.99-.79-1.54.02-2.96.9-3.75 2.27-1.6 2.78-.41 6.88 1.15 9.13.76 1.1 1.67 2.34 2.86 2.3 1.15-.05 1.58-.74 2.97-.74 1.39 0 1.78.74 2.99.72 1.24-.02 2.02-1.12 2.77-2.23.87-1.28 1.23-2.52 1.25-2.58-.03-.01-2.4-.92-2.42-3.65zM14.1 5.86c.63-.77 1.06-1.83.94-2.89-.91.04-2.02.61-2.67 1.37-.58.67-1.1 1.76-.96 2.8 1.02.08 2.06-.52 2.69-1.28z"/></svg><span class="for-mac">Download for Mac</span><span class="for-phone">Send to your Mac</span></a>
-      <p class="started" id="started" role="status"><span class="started-done">Your download has started.</span> Didn’t start? <a href="https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip">Try again</a></p>
+    <div class="appearance os-switch" role="radiogroup" aria-label="Your computer">
+      <i class="appearance-thumb" aria-hidden="true"></i>
+      <button type="button" role="radio" aria-checked="true" data-os="mac"><svg class="apple" viewBox="4.04 2.97 14.75 18.11" aria-hidden="true"><path d="M16.37 12.6c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.77-3.32-1.8-1.41-.14-2.76.83-3.47.83-.72 0-1.82-.81-2.99-.79-1.54.02-2.96.9-3.75 2.27-1.6 2.78-.41 6.88 1.15 9.13.76 1.1 1.67 2.34 2.86 2.3 1.15-.05 1.58-.74 2.97-.74 1.39 0 1.78.74 2.99.72 1.24-.02 2.02-1.12 2.77-2.23.87-1.28 1.23-2.52 1.25-2.58-.03-.01-2.4-.92-2.42-3.65zM14.1 5.86c.63-.77 1.06-1.83.94-2.89-.91.04-2.02.61-2.67 1.37-.58.67-1.1 1.76-.96 2.8 1.02.08 2.06-.52 2.69-1.28z"/></svg><span>Mac</span></button>
+      <button type="button" role="radio" aria-checked="false" tabindex="-1" data-os="win"><svg class="windows" viewBox="0 0 16 16" aria-hidden="true"><path d="M0 0h7.55v7.55H0zM8.45 0H16v7.55H8.45zM0 8.45h7.55V16H0zM8.45 8.45H16V16H8.45z"/></svg><span>Windows</span></button>
     </div>
-    <p class="install-fine"><span class="fine-line"><span class="fine-pair">Free · Notarized by Apple</span><span class="fine-sep"> · </span><span class="fine-pair">Apple silicon · macOS 15 or later</span></span><span class="fine-line">34&nbsp;MB, plus an optional 2.7&nbsp;GB reading model.</span></p>
+    <div class="install-get">
+      <div class="get-pair" data-for="mac">
+        <a class="button" href="https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip" data-download data-get="mac"><svg class="apple" viewBox="4.04 2.97 14.75 18.11" aria-hidden="true"><path d="M16.37 12.6c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.77-3.32-1.8-1.41-.14-2.76.83-3.47.83-.72 0-1.82-.81-2.99-.79-1.54.02-2.96.9-3.75 2.27-1.6 2.78-.41 6.88 1.15 9.13.76 1.1 1.67 2.34 2.86 2.3 1.15-.05 1.58-.74 2.97-.74 1.39 0 1.78.74 2.99.72 1.24-.02 2.02-1.12 2.77-2.23.87-1.28 1.23-2.52 1.25-2.58-.03-.01-2.4-.92-2.42-3.65zM14.1 5.86c.63-.77 1.06-1.83.94-2.89-.91.04-2.02.61-2.67 1.37-.58.67-1.1 1.76-.96 2.8 1.02.08 2.06-.52 2.69-1.28z"/></svg><span class="for-mac">Download for Mac</span><span class="for-phone">Send to your Mac</span></a>
+      </div>
+      <div class="get-pair" data-for="win">
+        <a class="button" href="#install" data-download data-get="win" data-store><svg class="windows" viewBox="0 0 16 16" aria-hidden="true"><path d="M0 0h7.55v7.55H0zM8.45 0H16v7.55H8.45zM0 8.45h7.55V16H0zM8.45 8.45H16V16H8.45z"/></svg><span class="for-mac">Get it from the Microsoft Store</span><span class="for-phone">Send to your PC</span></a>
+        <a class="button-quiet for-mac" href="#install" data-download data-get="win" data-installer>Installer on GitHub <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg></a>
+      </div>
+      <p class="started" id="started" role="status"><span class="started-done">Your download has started.</span> <span class="started-again">Didn’t start?</span> <a href="https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip">Try again</a></p>
+    </div>
+    <p class="install-fine" data-for="mac"><span class="fine-line"><span class="fine-pair">Free · Notarized by Apple</span><span class="fine-sep"> · </span><span class="fine-pair">Apple silicon · macOS 15 or later</span></span><span class="fine-line">34&nbsp;MB, plus an optional 2.7&nbsp;GB reading model.</span></p>
+    <p class="install-fine" data-for="win"><span class="fine-line">Free · Windows 10 or 11</span><span class="fine-line">The 2.7&nbsp;GB reading model is optional.</span></p>
   </div>
-  <div class="wrap install-grid" data-reveal>
+  <div class="wrap install-grid" data-for="mac" data-reveal>
     <div class="steps-col">
-    <ol class="steps" id="steps">
+    <ol class="steps">
       <li><button type="button" data-step="0" aria-pressed="true">Open the zip and drag <b>Longyan&nbsp;Reader</b> to Applications.</button><i class="step-bar"><b></b></i></li>
       <li><button type="button" data-step="1" aria-pressed="false">Open it. macOS asks if you’re sure, since it came from the internet. Click <b>Open</b>.</button><i class="step-bar"><b></b></i></li>
       <li><button type="button" data-step="2" aria-pressed="false">Turn on Accessibility when the app asks. Then download the 2.7&nbsp;GB reading model, or click <b>Later</b> and get it from the menu bar any time.</button><i class="step-bar"><b></b></i></li>
@@ -204,7 +226,7 @@
     <div class="mac" aria-hidden="true">
       <div class="mac-screen">
         <canvas class="paper" data-paper="indigo" data-seed="5.2" data-live></canvas>
-        <div class="desk s0" id="desk">
+        <div class="desk s0">
           <div class="mb"><b class="mb-app">Finder</b><span class="mb-menus"><span>File</span><span>Edit</span><span>View</span><span>Go</span><span>Window</span><span>Help</span></span><span class="mb-right"><i class="mb-eye"><svg viewBox="0 0 1200 848.53"><path fill="currentColor" fill-rule="evenodd" d="M0 424.26L300 124.26A424.26 424.26 0 0 1 900 124.26L1200 424.26L900 724.26A424.26 424.26 0 0 1 300 724.26ZM225 424.26L412.5 236.76A265.17 265.17 0 0 1 787.5 236.76L975 424.26L787.5 611.76A265.17 265.17 0 0 1 412.5 611.76ZM471.43 424.26L535.71 359.98A90.91 90.91 0 0 1 664.29 359.98L728.57 424.26L664.29 488.55A90.91 90.91 0 0 1 535.71 488.55ZM728.57 424.26L975 424.26L851.79 547.48Z"/></svg></i>Tue 9:41</span></div>
 
           <div class="layer">
@@ -269,9 +291,97 @@
       </div>
     </div>
   </div>
+  <div class="wrap install-grid" data-for="win" data-reveal>
+    <div class="steps-col">
+    <ol class="steps">
+      <li><button type="button" data-step="0" aria-pressed="true">Get <b>Longyan&nbsp;Reader</b> from the Microsoft Store, then click <b>Open</b>.</button><i class="step-bar"><b></b></i></li>
+      <li><button type="button" data-step="1" aria-pressed="false">The welcome window offers the 2.7&nbsp;GB reading model. Click <b>Download</b>, or click <b>Done</b> and get it from the notification area any time.</button><i class="step-bar"><b></b></i></li>
+      <li><button type="button" data-step="2" aria-pressed="false">Longyan waits in the notification area, by the clock. Select Chinese text in any app, then click the eye or press <b>Ctrl+Alt+L</b>.</button><i class="step-bar"><b></b></i></li>
+    </ol>
+    </div>
+    <div class="mac" aria-hidden="true">
+      <div class="mac-screen">
+        <canvas class="paper" data-paper="azure" data-seed="3.4" data-live></canvas>
+        <div class="desk wdesk s0">
+          <div class="layer">
+
+          <!-- 1. The Microsoft Store: Get, then Open. -->
+          <div class="scene sc0">
+            <div class="w11 store">
+              <div class="w11-bar"><b>Microsoft Store</b><i class="store-search">Search apps, games, movies and more</i><span class="caps"><i class="c-min"></i><i class="c-max"></i><i class="c-x"></i></span></div>
+              <div class="store-rail"><i class="on"><svg viewBox="0 0 16 16"><path d="M2.5 7.2 8 2.6l5.5 4.6V13a.8.8 0 0 1-.8.8H9.8V10H6.2v3.8H3.3a.8.8 0 0 1-.8-.8z"/></svg></i><i><svg viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="4.5" height="4.5" rx="1"/><rect x="9" y="2.5" width="4.5" height="4.5" rx="1"/><rect x="2.5" y="9" width="4.5" height="4.5" rx="1"/><rect x="9" y="9" width="4.5" height="4.5" rx="1"/></svg></i><i><svg viewBox="0 0 16 16"><path d="M4.6 5h6.8a3 3 0 0 1 2.9 3.6l-.5 2.6a1.6 1.6 0 0 1-2.8.7L9.8 10.5H6.2L5 11.9a1.6 1.6 0 0 1-2.8-.7l-.5-2.6A3 3 0 0 1 4.6 5z"/></svg></i><i><svg viewBox="0 0 16 16"><rect x="2" y="3.5" width="12" height="9" rx="1.5"/><path d="M6.6 6.2v3.6L9.8 8z"/></svg></i></div>
+              <div class="store-main">
+                <div class="store-info">
+                  <i class="w-icon"><svg viewBox="0 0 1200 848.53"><path fill="currentColor" fill-rule="evenodd" d="M0 424.26L300 124.26A424.26 424.26 0 0 1 900 124.26L1200 424.26L900 724.26A424.26 424.26 0 0 1 300 724.26ZM225 424.26L412.5 236.76A265.17 265.17 0 0 1 787.5 236.76L975 424.26L787.5 611.76A265.17 265.17 0 0 1 412.5 611.76ZM471.43 424.26L535.71 359.98A90.91 90.91 0 0 1 664.29 359.98L728.57 424.26L664.29 488.55A90.91 90.91 0 0 1 535.71 488.55ZM728.57 424.26L975 424.26L851.79 547.48Z"/></svg></i>
+                  <b>Longyan Reader</b>
+                  <span class="store-pub">Mapuchu</span>
+                  <span class="get-btn"><em class="g-get">Get</em><em class="g-busy"><i class="g-bar"><b></b></i></em><em class="g-open">Open</em></span>
+                  <small>Free</small>
+                </div>
+                <div class="store-shot">
+                  <div class="shot-card" lang="zh-CN"><b><span class="t3">躺</span><span class="t2">平</span></b><i>tǎng píng</i><p>to opt out of the rat race</p></div>
+                </div>
+                <p class="store-desc">Select Chinese text in any app to see what it means.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. The app's welcome window: the ways to look up, then the reading model. -->
+          <div class="scene sc1">
+            <div class="w11 welcome">
+              <div class="w11-bar"><span>Welcome to Longyan Reader</span><span class="caps"><i class="c-x"></i></span></div>
+              <div class="wl-body">
+                <i class="wl-mark"><svg viewBox="0 0 1200 848.53"><path fill="currentColor" fill-rule="evenodd" d="M0 424.26L300 124.26A424.26 424.26 0 0 1 900 124.26L1200 424.26L900 724.26A424.26 424.26 0 0 1 300 724.26ZM225 424.26L412.5 236.76A265.17 265.17 0 0 1 787.5 236.76L975 424.26L787.5 611.76A265.17 265.17 0 0 1 412.5 611.76ZM471.43 424.26L535.71 359.98A90.91 90.91 0 0 1 664.29 359.98L728.57 424.26L664.29 488.55A90.91 90.91 0 0 1 535.71 488.55ZM728.57 424.26L975 424.26L851.79 547.48Z"/></svg></i>
+                <b class="wl-title">Welcome to Longyan Reader</b>
+                <p>Meanings, pinyin and translations for Chinese text in any app. It all runs on this PC.</p>
+                <ul class="wl-ways">
+                  <li><svg viewBox="0 0 16 16"><path d="M1 8s2.6-4.6 7-4.6S15 8 15 8s-2.6 4.6-7 4.6S1 8 1 8z"/><circle cx="8" cy="8" r="2.2"/></svg>Select Chinese text in any app, then click the eye that appears beside it.</li>
+                  <li><svg viewBox="0 0 16 16"><rect x="1.5" y="4" width="13" height="8" rx="1.3"/><path d="M4 6.6h.1M6.4 6.6h.1M8.8 6.6h.1M11.2 6.6h.1M5 9.4h6"/></svg>Or select it and press Ctrl+Alt+L.</li>
+                </ul>
+                <div class="wl-model">
+                  <div class="wl-model-text"><b>Reading model</b><small class="wl-before">Recommended. It picks the meaning each word has in its sentence and translates phrases. It’s a 2.7&nbsp;GB download and runs on this PC.</small><small class="wl-during">Downloading: 0.1 of 2.7 GB</small></div>
+                  <span class="wb wb-accent wl-download">Download</span><span class="wb wl-stop">Stop</span>
+                  <i class="wl-bar"><b></b></i>
+                </div>
+              </div>
+              <div class="wl-foot"><span>Open at login</span><i class="w-toggle"></i><span class="wb wl-done">Done</span></div>
+            </div>
+          </div>
+
+          <!-- 3. Done: a notification says where it is, and the eye waits by the clock. -->
+          <div class="scene sc2">
+            <div class="toast">
+              <div class="toast-head"><i class="t-icon"><svg viewBox="0 0 1200 848.53"><path fill="currentColor" fill-rule="evenodd" d="M0 424.26L300 124.26A424.26 424.26 0 0 1 900 124.26L1200 424.26L900 724.26A424.26 424.26 0 0 1 300 724.26ZM225 424.26L412.5 236.76A265.17 265.17 0 0 1 787.5 236.76L975 424.26L787.5 611.76A265.17 265.17 0 0 1 412.5 611.76ZM471.43 424.26L535.71 359.98A90.91 90.91 0 0 1 664.29 359.98L728.57 424.26L664.29 488.55A90.91 90.91 0 0 1 535.71 488.55ZM728.57 424.26L975 424.26L851.79 547.48Z"/></svg></i>Longyan Reader<span class="toast-x"></span></div>
+              <b>Longyan Reader</b>
+              <p>Longyan Reader is running in the notification area. Select Chinese text in any app, then press Ctrl+Alt+L. The reading model keeps downloading.</p>
+            </div>
+            <div class="flyout"><i class="fly-eye"><svg viewBox="0 0 1200 848.53"><path fill="currentColor" fill-rule="evenodd" d="M0 424.26L300 124.26A424.26 424.26 0 0 1 900 124.26L1200 424.26L900 724.26A424.26 424.26 0 0 1 300 724.26ZM225 424.26L412.5 236.76A265.17 265.17 0 0 1 787.5 236.76L975 424.26L787.5 611.76A265.17 265.17 0 0 1 412.5 611.76ZM471.43 424.26L535.71 359.98A90.91 90.91 0 0 1 664.29 359.98L728.57 424.26L664.29 488.55A90.91 90.91 0 0 1 535.71 488.55ZM728.57 424.26L975 424.26L851.79 547.48Z"/></svg></i><i><svg viewBox="0 0 16 16"><path d="M5 4.6 11 10.4 8 13.2V2.8l3 2.8L5 11.4"/></svg></i><i><svg viewBox="0 0 16 16"><path d="M4.6 12.4h7.2a2.6 2.6 0 0 0 .3-5.2 3.6 3.6 0 0 0-6.9-.9 3.1 3.1 0 0 0-.6 6.1z"/></svg></i></div>
+            <div class="w11-menu">
+              <span class="dim">Select Chinese text or point at a word, then press Ctrl+Alt+L</span>
+              <span>Downloading the reading model: 43% (click to stop)</span>
+              <hr>
+              <span class="m-hist">Lookup history…</span>
+              <b>Settings…</b>
+              <span>Report a problem</span>
+              <hr>
+              <span>Exit</span>
+            </div>
+          </div>
+
+          <div class="tb">
+            <div class="tb-mid"><i class="tb-start"><svg viewBox="0 0 16 16"><path d="M0 0h7.55v7.55H0zM8.45 0H16v7.55H8.45zM0 8.45h7.55V16H0zM8.45 8.45H16V16H8.45z"/></svg></i><i class="tb-search"><svg viewBox="0 0 16 16"><circle cx="6.8" cy="6.8" r="4.3"/><path d="m10 10 3.6 3.6"/></svg></i><i class="tb-store"><svg viewBox="0 0 16 16"><path d="M2.6 5.2h10.8l-.7 8.1a1 1 0 0 1-1 .9H4.3a1 1 0 0 1-1-.9z"/><path d="M5.6 5.2V4.4a2.4 2.4 0 0 1 4.8 0v.8"/></svg></i><i class="tb-app"><svg viewBox="0 0 1200 848.53"><path fill="currentColor" fill-rule="evenodd" d="M0 424.26L300 124.26A424.26 424.26 0 0 1 900 124.26L1200 424.26L900 724.26A424.26 424.26 0 0 1 300 724.26ZM225 424.26L412.5 236.76A265.17 265.17 0 0 1 787.5 236.76L975 424.26L787.5 611.76A265.17 265.17 0 0 1 412.5 611.76ZM471.43 424.26L535.71 359.98A90.91 90.91 0 0 1 664.29 359.98L728.57 424.26L664.29 488.55A90.91 90.91 0 0 1 535.71 488.55ZM728.57 424.26L975 424.26L851.79 547.48Z"/></svg></i></div>
+            <div class="tb-right"><i class="tb-chev"><svg viewBox="0 0 16 16"><path d="M4.5 9.8 8 6.3l3.5 3.5"/></svg></i><i class="tb-sys"><svg viewBox="0 0 16 16"><path d="M1.8 6.4a9 9 0 0 1 12.4 0M3.9 8.6a6 6 0 0 1 8.2 0M6 10.8a3 3 0 0 1 4 0"/><circle cx="8" cy="13" r=".6"/></svg><svg viewBox="0 0 16 16"><path d="M2.5 6.2h2.3L8 3.4v9.2L4.8 9.8H2.5z"/><path d="M10.6 5.6a3.4 3.4 0 0 1 0 4.8M12.4 3.9a5.8 5.8 0 0 1 0 8.2"/></svg><svg viewBox="0 0 16 16"><rect x="1.5" y="5" width="11.5" height="6.4" rx="1.4"/><path d="M14.5 7v2.4"/><rect x="3" y="6.5" width="6.5" height="3.4" rx=".5" class="fill"/></svg></i><span class="tb-clock">9:41 AM<br>11/24/2026</span></div>
+          </div>
+
+          <svg class="pointer wpointer" viewBox="0 0 20 28"><path d="M2 2v20.6l5-4.8 3.3 7.7 3.1-1.3-3.2-7.6h7z" fill="#fff" stroke="#000" stroke-width="1.3" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
 
-<section class="closing" id="download">
+<section class="closing">
   <canvas class="paper" data-paper="dawn" data-live aria-hidden="true"></canvas>
   <div class="wrap" data-reveal>
     <svg class="closing-mark" viewBox="0 0 1200 848.53" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M0 424.26L300 124.26A424.26 424.26 0 0 1 900 124.26L1200 424.26L900 724.26A424.26 424.26 0 0 1 300 724.26ZM225 424.26L412.5 236.76A265.17 265.17 0 0 1 787.5 236.76L975 424.26L787.5 611.76A265.17 265.17 0 0 1 412.5 611.76ZM471.43 424.26L535.71 359.98A90.91 90.91 0 0 1 664.29 359.98L728.57 424.26L664.29 488.55A90.91 90.91 0 0 1 535.71 488.55ZM728.57 424.26L975 424.26L851.79 547.48Z"/></svg>
@@ -291,13 +401,13 @@
   </div>
 </footer>
 
-<script src="data.js?v=1123a"></script>
-<script src="card.js?v=1123a"></script>
-<script src="hero.js?v=1123a"></script>
-<script src="try.js?v=1123a"></script>
-<script src="paper.js?v=1123a"></script>
-<script src="motion.js?v=1123a"></script>
-<script src="tiles.js?v=1123a"></script>
-<script src="install.js?v=1123a"></script>
+<script src="data.js?v=1124a"></script>
+<script src="card.js?v=1124a"></script>
+<script src="hero.js?v=1124a"></script>
+<script src="try.js?v=1124a"></script>
+<script src="paper.js?v=1124a"></script>
+<script src="motion.js?v=1124a"></script>
+<script src="tiles.js?v=1124a"></script>
+<script src="install.js?v=1124a"></script>
 </body>
 </html>

@@ -450,19 +450,31 @@
     glideTo(t.getBoundingClientRect().top + window.scrollY);
   }));
 
-  // Every Download downloads. On a Mac the link does it, and the page glides to the install
-  // steps, where a note says it has started (with a way to try again). A phone can't run the
-  // app: there the buttons open the share sheet (AirDrop, Messages, Mail) to send this page to
-  // a Mac, or copy its link where there's no share sheet, and the nav's Download takes it to
-  // the steps.
+  // The Windows links, once they're live. Until then their buttons pick Windows in the steps
+  // below and go nowhere else. STORE is the Microsoft Store page; INSTALLER the GitHub one.
+  const WIN = {
+    store: "",
+    installer: "",
+  };
+  document.querySelectorAll("[data-store]").forEach((a) => { if (WIN.store) a.href = WIN.store; });
+  document.querySelectorAll("[data-installer]").forEach((a) => { if (WIN.installer) a.href = WIN.installer; });
+
+  // Every download button is for one system. On a computer it picks that system in the
+  // steps, the link does the rest (downloads the zip or the installer, or opens the Store),
+  // and the page glides to the steps, where a note says it has started, with a way to try
+  // again. A phone can't run the app: there the buttons open the share sheet (AirDrop,
+  // Messages, Mail) to send this page to a computer, or copy its link where there's no
+  // share sheet.
   const phone = matchMedia("(hover: none) and (pointer: coarse)");
   const install = document.getElementById("install");
+  const started = document.getElementById("started");
   const toInstall = () => glideTo(install.getBoundingClientRect().top + window.scrollY);
   const PAGE = "https://longyan.app/#install";
   const SHARE = { title: "Longyan Reader", url: PAGE };
   const canShare = !!(navigator.share && (!navigator.canShare || navigator.canShare(SHARE)));
-  const PHONE_LABEL = canShare ? "Send to your Mac" : "Copy link for your Mac";
-  document.querySelectorAll("[data-download] .for-phone").forEach((l) => { l.textContent = PHONE_LABEL; });
+  const NAME = { mac: "Mac", win: "PC" };
+  const phoneLabel = (a) => `${canShare ? "Send to" : "Copy link for"} your ${NAME[a.dataset.get] || "computer"}`;
+  document.querySelectorAll("[data-download] .for-phone").forEach((l) => { l.textContent = phoneLabel(l.closest("a")); });
   function copy(text) {
     if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text).then(() => true, () => copyOld(text));
     return Promise.resolve(copyOld(text));
@@ -481,21 +493,28 @@
     copy(PAGE).then((ok) => {
       if (!label) return;
       clearTimeout(a._copied);
-      label.textContent = ok ? "Link copied" : "Couldn’t copy. Open longyan.app on your Mac";
-      a._copied = setTimeout(() => { label.textContent = PHONE_LABEL; }, ok ? 2200 : 4000);
+      label.textContent = ok ? "Link copied" : "Couldn’t copy. Open longyan.app on your computer";
+      a._copied = setTimeout(() => { label.textContent = phoneLabel(a); }, ok ? 2200 : 4000);
     });
   }
   document.querySelectorAll("[data-download]").forEach((a) => a.addEventListener("click", (e) => {
     if (phone.matches) {
       e.preventDefault();
-      if (a.classList.contains("bar-download")) { toInstall(); return; }
       // Closing the sheet is an AbortError: nothing to do. Any other failure copies instead.
       if (canShare) navigator.share(SHARE).catch((err) => { if (!err || err.name !== "AbortError") copyWithNote(a); });
       else copyWithNote(a);
       return;
     }
-    install.classList.add("downloading");
-    if (!install.contains(a)) setTimeout(toInstall, 300);
+    if (window.LongyanInstall && a.dataset.get) window.LongyanInstall.pick(a.dataset.get);
+    const live = !a.getAttribute("href").startsWith("#");
+    if (live) {
+      const store = a.hasAttribute("data-store");
+      started.querySelector(".started-done").textContent = store ? "The Microsoft Store is opening." : "Your download has started.";
+      started.querySelector(".started-again").textContent = store ? "Didn’t open?" : "Didn’t start?";
+      started.querySelector("a").href = a.href;
+      install.classList.add("downloading");
+    } else e.preventDefault();
+    if (!install.contains(a)) setTimeout(toInstall, live ? 300 : 0);
   }));
 
   if (window.LongyanHero && window.LongyanHero.lines().length) build({ lines: window.LongyanHero.lines(), current: 0 });

@@ -139,6 +139,9 @@ void main(){
     for (const e of entries) {
       const it = items.find((x) => x.canvas === e.target);
       it.visible = e.isIntersecting;
+      // A backdrop that was hidden (the install steps for the other computer) had no size
+      // when the page drew it: draw it again at the size it has now.
+      if (it.visible) { const { w, h } = it; size(it); if (it.w !== w || it.h !== h) render(it, (performance.now() - t0) / 1000 + 40); }
     }
     wake();
   }, { rootMargin: "100px" });
