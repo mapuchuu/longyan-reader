@@ -167,6 +167,19 @@
   }
   window.addEventListener("resize", placeNext);
   document.addEventListener("longyan:lines", () => requestAnimationFrame(placeNext));
+  // A card is never behind the button: while any card (opening, open or fading out) covers
+  // its place, the button steps out of the way, and comes back once the card has gone.
+  let watching = false;
+  function watchCards() {
+    const cards = [...document.querySelectorAll("body > .lc-card")];
+    const btn = story.querySelector(".try-continue");
+    if (!btn || !cards.length) { story.classList.remove("under-card"); watching = false; return; }
+    const b = btn.getBoundingClientRect();
+    const over = b.height > 0 && cards.some((c) => { const r = c.getBoundingClientRect(); return r.bottom > b.top - 8 && r.top < b.bottom + 8 && r.right > b.left && r.left < b.right; });
+    story.classList.toggle("under-card", over);
+    requestAnimationFrame(watchCards);
+  }
+  new MutationObserver(() => { if (!watching && document.querySelector("body > .lc-card")) { watching = true; requestAnimationFrame(watchCards); } }).observe(document.body, { childList: true });
 
   // MARK: The note beside the card
 
@@ -431,8 +444,8 @@
     // all, so the eye is seen breaking up into the sentence on the way down.
     // `eye`, from "Get Longyan": the sentence turning into the eye is the show, so it's paced as
     // one: slow out of the line (the first words are seen peeling off), an unhurried flight
-    // through the middle, and a long settle as the eye fills in and the headline rises (3.8 s).
-    const dur = how.eye ? 4000 : how.story ? 2400 : Math.min(1400, 700 + Math.abs(dist) * 0.25), t0 = performance.now();
+    // through the middle, and a long settle as the eye fills in and the headline rises (2.9 s).
+    const dur = how.eye ? 2900 : how.story ? 2400 : Math.min(1400, 700 + Math.abs(dist) * 0.25), t0 = performance.now();
     const ease = how.eye ? cruise(0.24, 0.34) : how.story ? bezier(0.3, 0.2, 0.3, 1) : bezier(0.25, 0.4, 0.1, 1);
     let stopped = false;
     const stop = () => { stopped = true; };

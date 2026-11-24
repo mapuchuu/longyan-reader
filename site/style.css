@@ -87,15 +87,16 @@ section { position: relative; }
 .button:active { transform: scale(.97); }
 
 /* The opening: pinned while the sentence gathers into the eye (75vh of scrolling, hero.js),
-   then held a moment on the eye and the headline. True black, like a stage, and one light with
-   a source: the eye itself. A small copy of the whole eye, blurred wide (#aura; hero.js draws
-   it), glows where the eye will form from the first moment, so the colour behind the sentence
-   is the mark waiting to be made; as the words come down, the eye sharpens out of its own glow. */
+   then held a moment on the eye and the headline. The night is built the way the page's
+   tiles are (History, the menu, after Photon's banners): big blocks of deep navy, indigo and
+   violet meeting at crisp seams on the tiles' grid, each lit softly from one side, with a
+   fine grain. No glow, nothing loose: the colour sits in the blocks, dark enough that the
+   words, the card and the eye stay the brightest things, and the seams give the dark a
+   structure the sentence and the eye sit on. */
 .story { height: 200vh; }
-.story-pin { position: sticky; top: 0; height: 100vh; height: 100svh; min-height: 640px; overflow: hidden; background: #000; }
-#aura { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; pointer-events: none;
-  filter: blur(56px) saturate(1.3); transform: scale(1.15); opacity: .5; animation: aura-in 2.6s ease .4s both; }
-@keyframes aura-in { from { opacity: 0; } }
+.story-pin { position: sticky; top: 0; height: 100vh; height: 100svh; min-height: 640px; overflow: hidden; background: #060a1c; }
+.blocks.night { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.blocks.night::after { content: ""; position: absolute; inset: 0; background-image: var(--grain); background-size: 128px; opacity: .2; mix-blend-mode: overlay; }
 #field { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; display: block; transition: opacity .5s cubic-bezier(.4, 0, .2, 1); }
 /* Once the eye has formed: the headline beside it, on the left (under it on a phone or an
    upright tablet). It answers what the visitor just did: someone who looked a word up reads
@@ -223,6 +224,7 @@ h1 .rise > span { white-space: nowrap; }
 .try-continue:active { transform: scale(.97); }
 .try-continue:focus-visible { outline: 2px solid var(--t3); outline-offset: 3px; }
 .is-formed.can-continue .try-continue { visibility: visible; opacity: 1; transition: opacity .8s var(--ease-out), visibility 0s, background .2s, border-color .2s; }
+.is-formed.can-continue.under-card .try-continue { visibility: hidden; opacity: 0; transition: opacity .12s ease-out, visibility 0s .12s; }
 .button:focus-visible { border-radius: 999px; }
 @media (prefers-reduced-motion: reduce) { .cued .line.current .c { animation: none; } }
 

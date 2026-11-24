@@ -15,9 +15,6 @@
   const story = document.getElementById("story");
   if (!canvas || !window.LONGYAN) return;
   const ctx = canvas.getContext("2d");
-  // The only light behind the opening is the eye's own (drawAura).
-  const aura = document.getElementById("aura"), actx = aura && aura.getContext("2d");
-  const AURA = 1 / 8;
   const demo = window.LONGYAN.demo;
   const PAGE = window.LONGYAN.page || demo.map((d) => ({ s: d.sentence, w: [] }));
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -32,7 +29,7 @@
   // and takes a long, unhurried FLIGHT down into the eye, landing between LAND and LAND +
   // SPREAD; the eye spreads out from each as it lands, done by GROW_END, each character
   // flashing white for FLASH as it comes.
-  const FLIGHT = 0.16, LAND = 0.065, SPREAD = 0.1, GROW_END = 0.012, FLASH = 0.02;
+  const FLIGHT = 0.16, LAND = 0.075, SPREAD = 0.095, GROW_END = 0.012, FLASH = 0.02;
   const ZH = '"PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif';
   // The hero's inks: the paper's own hues (paper.js), azure through violet and magenta to
   // coral, lightened to read as small characters on black and softened toward a grey lilac,
@@ -237,7 +234,6 @@
     dpr = Math.min(window.devicePixelRatio || 1, 2);
     W = canvas.clientWidth; H = canvas.clientHeight;
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
-    if (aura) { aura.width = Math.max(1, Math.round(W * AURA)); aura.height = Math.max(1, Math.round(H * AURA)); }
     narrow = STACKED.matches;
     // The sentence a little above the middle, with the room under it for a whole card.
     lineY = Math.round(H * (narrow ? 0.4 : 0.41));
@@ -334,6 +330,10 @@
       if (PUNCT.test(ch)) { plan.push({ l, k, ch, punct: true }); return; }
       plan.push({ l, k, ch, j, start: LAND + hash(j * 3.3 + current) * SPREAD });
     });
+    // The last few to land each get a beat of their own: no two of the final four closer than
+    // a clear step, so the eye takes them one at a time.
+    const last = plan.filter((e) => !e.punct).sort((a, b) => a.start - b.start);
+    for (let i = Math.min(3, last.length - 1); i > 0; i--) last[i - 1].start = Math.min(last[i - 1].start, last[i].start - 0.016);
     // Where each lands: spread evenly over the eye, and taken in the order they land, so each
     // lands well away from the ones before it (farthest from those already down, leaning
     // a little to the middle so the first don't all go to the tips). The eye fills in
@@ -378,19 +378,33 @@
     // ahead of the small round them. Round a character still in the air the eye waits for
     // it, so none drops into a hole left for it: it lands, and the eye blooms out from it.
     const seeds = flights.filter((f) => f.g >= 0).map((f) => ({ g: fine.glyphs[f.g], at: f.start - FLASH }));
-    const reach = eye.w * 0.5, hold = eye.w * 0.09;
+    const reach = eye.w * 0.5;
     const cx = (g) => g.x + g.w / 2, cy = (g) => g.y + g.w / 2;
     for (const g of fine.glyphs) {
       let best = GROW_END, cap = 1;
       for (const s of seeds) {
         const d = Math.hypot(cx(g) - cx(s.g), cy(g) - cy(s.g));
         best = Math.max(best, s.at - (s.at - GROW_END) * clamp(d / reach) ** 1.7);
-        if (d < hold) cap = Math.min(cap, s.at - 0.012 * (1 - d / hold) + 0.004);
+        // Nothing round a character still in the air comes in before it lands; then the eye
+        // spreads out from it, ring by ring, so it pushes out rather than being closed in on.
+        const hold = Math.max(s.g.w * 1.5, eye.w * 0.09);
+        if (d < hold) cap = Math.min(cap, s.at - 0.004 - 0.022 * (d / hold));
       }
       const small = 1 - clamp(g.w / (fine.unit * 8));
       g.leave = Math.max(GROW_END, Math.min(cap, best - small * 0.022 + (g.rnd - 0.5) * 0.01));
+      g.cap = cap;
     }
-    for (const f of flights) if (f.g >= 0) fine.glyphs[f.g].leave = f.start - FLASH;
+    // That sets the order; the pace is set for the whole eye, so it never stalls between
+    // landings: from the first landing to GROW_END the eye fills at a pace that eases off but
+    // never stops, each character in its place in that order (and never before the one it
+    // waits for).
+    const p0 = Math.max(...seeds.map((s) => s.at)), order = fine.glyphs.slice().sort((a, b) => b.leave - a.leave);
+    order.forEach((g, k) => {
+      const x = 1 - (1 - (k + 0.5) / order.length) ** (1 / 1.5);
+      g.leave = Math.max(GROW_END, Math.min(g.cap, p0 - (p0 - GROW_END) * x));
+    });
+    for (const g of fine.glyphs) g.seed = false;
+    for (const f of flights) if (f.g >= 0) { fine.glyphs[f.g].leave = f.start - FLASH; fine.glyphs[f.g].seed = true; }
   }
 
   // MARK: Drawing
@@ -419,8 +433,8 @@
           const at = 0.5 + glideAt(clamp((g.x - eye.x) / eye.w + (g.rnd - 0.5) * 0.14)) * SWEEP, leave = g.leave == null ? 0.035 + g.rnd * 0.15 : g.leave;
           if ((!still && t < at) || p > leave + FLASH || flying.has(k)) continue;
           if ((!still && t < at + 0.2) || p > leave) {
-            // Coming in: white, a touch large, settling to its size as it takes its tint.
-            const pop = p > leave ? 1 + 0.22 * clamp((p - leave) / FLASH) : 1;
+            // Coming in: white, opening out from a little small to its size as it takes its tint.
+            const pop = p > leave && !g.seed ? 1 - 0.3 * clamp((p - leave) / FLASH) : 1;
             ctx.font = `600 ${g.w * 0.94 * pop}px ${ZH}`;
             ctx.fillText(g.ch, g.x + g.w / 2, g.y + g.w / 2 + g.w * 0.04);
           } else ctx.drawImage(lit, g.x * dpr, g.y * dpr, g.w * dpr, g.w * dpr, g.x, g.y, g.w, g.w);
@@ -430,7 +444,6 @@
     }
 
     drawFlights(p);
-    drawAura();
 
     if (story) {
       const cls = story.classList;
@@ -474,25 +487,6 @@
     else if (u < CUE - 0.4) cls.remove("cued");
     if (u >= TRY) cls.add("try-done");
     else if (u < TRY - 0.4) cls.remove("try-done");
-  }
-
-  // The light: the whole eye, small and blurred wide (by CSS), glowing where it will form,
-  // from the first moment; as the eye gathers it sharpens out of its own glow.
-  // It's the eye's shape filled solid, each character's square in a deeper, purer version of
-  // its own tint, so the blur comes out as colour rather than the grey of thin strokes on black.
-  let auraFor = null;
-  function drawAura() {
-    if (!actx || !fine || auraFor === fine) return;
-    auraFor = fine;
-    actx.clearRect(0, 0, aura.width, aura.height);
-    actx.save();
-    actx.scale(AURA, AURA);
-    for (const g of fine.glyphs) {
-      const c = g.col, m = (c[0] + c[1] + c[2]) / 3;
-      actx.fillStyle = rgb(c.map((v) => Math.max(0, Math.min(255, Math.round((m + (v - m) * 2.6) * 0.85)))));
-      actx.fillRect(g.x, g.y, g.w, g.w);
-    }
-    actx.restore();
   }
 
   // The eye's characters floating out into the lines: up and over in an arc, growing, their
@@ -545,7 +539,7 @@
   // characters back up into the eye (progress 0), with the rest of the eye filling in round
   // them. The pinned stretch after that holds the eye and the headline under it. The shared
   // preview (?og) is the eye.
-  const gather = () => window.innerHeight * 0.75;
+  const gather = () => window.innerHeight * 0.54;
   function progressAt(d) { return og ? 0 : FORMED * (1 - clamp(d / gather())); }
   function readScroll() {
     if (!story) return;

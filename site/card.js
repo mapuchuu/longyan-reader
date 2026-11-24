@@ -518,6 +518,9 @@
     const z = card.zoom, band = above ? card.slotBottom || 0 : 0;
     const m = `linear-gradient(to bottom, transparent ${band}px, ${above ? "transparent" : "#000"} ${band}px, #000 ${band + 14 * z}px, #000 calc(100% - ${36 * z}px), ${below ? "transparent" : "#000"} 100%)`;
     s.style.webkitMaskImage = m; s.style.maskImage = m;
+    // Only a card with more to show keeps a swipe to itself; on one that fits, a swipe
+    // scrolls the page, so a card on a phone never traps the finger.
+    s.style.overscrollBehavior = s.scrollHeight - s.clientHeight > 2 ? "contain" : "auto";
   }
 
   function relayout(card, animated = true) {
