@@ -164,10 +164,9 @@ static class Updates
         if (obj != OBJID_WINDOW || hwnd == IntPtr.Zero || thread == uiThread || GetAncestor(hwnd, GA_ROOT) != hwnd) return;
         var cls = new StringBuilder(64);
         GetClassName(hwnd, cls, cls.Capacity);
-        var style = GetWindowLong(hwnd, GWL_STYLE);
-        Diagnostics.Write($"updates: a window showed on WinSparkle's thread, {cls} {style:x8}");
-        if ((style & WS_CAPTION) != WS_CAPTION) return;
-        if (!cls.ToString().StartsWith("wx", StringComparison.Ordinal)) return;   // wxWidgets, which WinSparkle is drawn with
+        // WinSparkle's windows are wxWidgets dialogs, which use Windows' dialog class. The app's
+        // own windows and message boxes are all on its UI thread.
+        if (cls.ToString() != "#32770" || (GetWindowLong(hwnd, GWL_STYLE) & WS_CAPTION) != WS_CAPTION) return;
         // Posted, not sent: WinSparkle's thread never waits on this one.
         if (smallIcon != IntPtr.Zero) PostMessage(hwnd, WM_SETICON, ICON_SMALL, smallIcon);
         if (bigIcon != IntPtr.Zero) PostMessage(hwnd, WM_SETICON, ICON_BIG, bigIcon);
