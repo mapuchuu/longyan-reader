@@ -166,6 +166,25 @@
     root.style.setProperty("--next-y", nextTop + "px");
   }
   window.addEventListener("resize", placeNext);
+  // The practice grid behind the opening (style.css .tianzige): one square per character, a
+  // row of them exactly under the sentence.
+  function placeGrid() {
+    const line = currentEl(), pin = story.querySelector(".story-pin"), c = line && line.querySelector(".c");
+    if (!c || !pin) return;
+    const p = pin.getBoundingClientRect(), r = c.getBoundingClientRect(), lr = line.getBoundingClientRect();
+    const size = r.width, x = r.left - p.left, y = r.top - p.top + r.height / 2 - size / 2;
+    const mod = (v) => ((v % size) + size) % size;
+    pin.style.setProperty("--grid-cell", size + "px");
+    pin.style.setProperty("--grid-x", mod(x) + "px");
+    pin.style.setProperty("--grid-y", mod(y) + "px");
+    pin.style.setProperty("--grid-mx", Math.round(lr.left - p.left + lr.width / 2) + "px");
+    pin.style.setProperty("--grid-my", Math.round(y + size / 2) + "px");
+  }
+  window.addEventListener("resize", () => requestAnimationFrame(placeGrid));
+  document.addEventListener("longyan:lines", () => requestAnimationFrame(placeGrid));
+  if (document.fonts) document.fonts.ready.then(() => requestAnimationFrame(placeGrid));
+  // Again once the line has risen into place.
+  [1200, 2600].forEach((ms) => setTimeout(placeGrid, ms));
   document.addEventListener("longyan:lines", () => requestAnimationFrame(placeNext));
   // A card is never behind the button: while any card (opening, open or fading out) covers
   // its place, the button steps out of the way, and comes back once the card has gone.

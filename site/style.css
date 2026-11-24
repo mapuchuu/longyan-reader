@@ -94,9 +94,21 @@ section { position: relative; }
    words, the card and the eye stay the brightest things, and the seams give the dark a
    structure the sentence and the eye sit on. */
 .story { height: 200vh; }
-.story-pin { position: sticky; top: 0; height: 100vh; height: 100svh; min-height: 640px; overflow: hidden; background: #060a1c; }
-.blocks.night { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
-.blocks.night::after { content: ""; position: absolute; inset: 0; background-image: var(--grain); background-size: 128px; opacity: .2; mix-blend-mode: overlay; }
+.story-pin { position: sticky; top: 0; height: 100vh; height: 100svh; min-height: 640px; overflow: hidden; background: #060a1d; }
+/* Behind the opening, the paper Chinese is learned on: a 田字格 practice grid, each square
+   split by a dashed cross, set so the sentence sits exactly in a row of its squares (try.js
+   lines it up with the line). Hairlines, faint, fading out away from the line, so it's felt
+   rather than seen; it dims further once the sentence has flown into the eye. */
+.tianzige {
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M0 .5H100M.5 0V100' stroke='%23a6b0ff' stroke-opacity='.2' stroke-width='1' vector-effect='non-scaling-stroke' fill='none'/><path d='M50 0V100M0 50H100' stroke='%23a6b0ff' stroke-opacity='.12' stroke-width='1' stroke-dasharray='3 3' vector-effect='non-scaling-stroke' fill='none'/></svg>");
+  background-size: var(--grid-cell, 56px) var(--grid-cell, 56px);
+  background-position: var(--grid-x, 0) var(--grid-y, 0);
+  -webkit-mask-image: radial-gradient(ellipse 62% 70% at var(--grid-mx, 50%) var(--grid-my, 42%), #000 20%, rgba(0, 0, 0, .35) 60%, transparent 100%);
+  mask-image: radial-gradient(ellipse 62% 70% at var(--grid-mx, 50%) var(--grid-my, 42%), #000 20%, rgba(0, 0, 0, .35) 60%, transparent 100%);
+  transition: opacity 1.2s var(--ease-out);
+}
+.story:not(.is-away) .tianzige { opacity: .6; }
 #field { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; display: block; transition: opacity .5s cubic-bezier(.4, 0, .2, 1); }
 /* Once the eye has formed: the headline beside it, on the left (under it on a phone or an
    upright tablet). It answers what the visitor just did: someone who looked a word up reads
