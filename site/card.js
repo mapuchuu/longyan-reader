@@ -518,9 +518,6 @@
     const z = card.zoom, band = above ? card.slotBottom || 0 : 0;
     const m = `linear-gradient(to bottom, transparent ${band}px, ${above ? "transparent" : "#000"} ${band}px, #000 ${band + 14 * z}px, #000 calc(100% - ${36 * z}px), ${below ? "transparent" : "#000"} 100%)`;
     s.style.webkitMaskImage = m; s.style.maskImage = m;
-    // Only a card with more to show keeps a swipe to itself; on one that fits, a swipe
-    // scrolls the page, so a card on a phone never traps the finger.
-    s.style.overscrollBehavior = s.scrollHeight - s.clientHeight > 2 ? "contain" : "auto";
   }
 
   function relayout(card, animated = true) {
@@ -564,6 +561,21 @@
     card.ro = new ResizeObserver(() => relayout(card, !card.resizing));
     card.ro.observe(card.content);
     if (card.inline) return;
+
+    // On a touch screen a swipe on the card is the card's: it scrolls the card when the card
+    // has more to show and does nothing past its ends, but never scrolls the page under it,
+    // which would put the card away mid-read. (overscroll-behavior alone doesn't hold on a
+    // card that fits, or on iOS.)
+    let touchY = 0;
+    el.addEventListener("touchstart", (e) => { touchY = e.touches[0].clientY; }, { passive: true });
+    el.addEventListener("touchmove", (e) => {
+      if (e.touches.length !== 1) return;
+      const s = card.scroll, y = e.touches[0].clientY, dy = touchY - y;
+      touchY = y;
+      const room = s.scrollHeight - s.clientHeight;
+      const can = room > 1 && (dy > 0 ? s.scrollTop < room - 1 : s.scrollTop > 0);
+      if (!can || !e.target.closest(".lc-scroll")) e.preventDefault();
+    }, { passive: false });
 
     let press = null;
     el.addEventListener("pointerdown", (e) => {
