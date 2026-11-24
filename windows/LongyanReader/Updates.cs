@@ -154,15 +154,19 @@ static class Updates
             bigIcon = LoadImage(IntPtr.Zero, ico, IMAGE_ICON, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), LR_LOADFROMFILE);
         }
         onShow = OnShow;
-        SetWinEventHook(EVENT_OBJECT_SHOW, EVENT_OBJECT_SHOW, IntPtr.Zero, onShow, (uint)Environment.ProcessId, 0, WINEVENT_OUTOFCONTEXT);
+        if (SetWinEventHook(EVENT_OBJECT_SHOW, EVENT_OBJECT_SHOW, IntPtr.Zero, onShow, (uint)Environment.ProcessId, 0, WINEVENT_OUTOFCONTEXT) == IntPtr.Zero)
+            Diagnostics.Write("updates: can't watch for WinSparkle's windows");
+        if (smallIcon == IntPtr.Zero || bigIcon == IntPtr.Zero) Diagnostics.Write("updates: couldn't load the app's icon for WinSparkle's windows");
     }
 
     static void OnShow(IntPtr hook, uint e, IntPtr hwnd, int obj, int child, uint thread, uint time)
     {
         if (obj != OBJID_WINDOW || hwnd == IntPtr.Zero || thread == uiThread || GetAncestor(hwnd, GA_ROOT) != hwnd) return;
-        if ((GetWindowLong(hwnd, GWL_STYLE) & WS_CAPTION) != WS_CAPTION) return;
         var cls = new StringBuilder(64);
         GetClassName(hwnd, cls, cls.Capacity);
+        var style = GetWindowLong(hwnd, GWL_STYLE);
+        Diagnostics.Write($"updates: a window showed on WinSparkle's thread, {cls} {style:x8}");
+        if ((style & WS_CAPTION) != WS_CAPTION) return;
         if (!cls.ToString().StartsWith("wx", StringComparison.Ordinal)) return;   // wxWidgets, which WinSparkle is drawn with
         // Posted, not sent: WinSparkle's thread never waits on this one.
         if (smallIcon != IntPtr.Zero) PostMessage(hwnd, WM_SETICON, ICON_SMALL, smallIcon);
