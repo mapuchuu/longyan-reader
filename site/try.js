@@ -432,7 +432,7 @@
     // `eye`, from "Get Longyan": the sentence turning into the eye is the show, so it's paced as
     // one: slow out of the line (the first words are seen peeling off), an unhurried flight
     // through the middle, and a long settle as the eye fills in and the headline rises (3.8 s).
-    const dur = how.eye ? 3600 : how.story ? 2400 : Math.min(1400, 700 + Math.abs(dist) * 0.25), t0 = performance.now();
+    const dur = how.eye ? 4000 : how.story ? 2400 : Math.min(1400, 700 + Math.abs(dist) * 0.25), t0 = performance.now();
     const ease = how.eye ? cruise(0.24, 0.34) : how.story ? bezier(0.3, 0.2, 0.3, 1) : bezier(0.25, 0.4, 0.1, 1);
     let stopped = false;
     const stop = () => { stopped = true; };

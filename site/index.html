@@ -15,7 +15,7 @@
 <link rel="icon" href="favicon.ico" sizes="32x32">
 <link rel="icon" href="images/tab-icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="images/touch-icon.png">
-<link rel="stylesheet" href="style.css?v=1124y">
+<link rel="stylesheet" href="style.css?v=1125d">
 <script>
   // Scroll motion, unless the visitor asked for less (or ?still, for screenshots).
   if (!matchMedia("(prefers-reduced-motion: reduce)").matches && !/[?&]still/.test(location.search)) document.documentElement.classList.add("motion");
@@ -38,6 +38,7 @@
      characters up into the Longyan eye, set in Chinese characters, with the headline under it. -->
 <section class="story" id="story">
   <div class="story-pin" id="top">
+    <canvas id="aura" aria-hidden="true"></canvas>
     <canvas id="field" aria-hidden="true"></canvas>
     <div class="hero-copy">
       <h1><span class="rise"><span><span class="if-tried">Now do that</span><span class="if-fresh">Read Chinese</span></span></span> <span class="rise"><span><span class="if-tried">in any app.</span><span class="if-fresh">in any app.</span></span></span></h1>
@@ -114,7 +115,7 @@
 
     <figure class="tile" data-reveal>
       <div class="glass-box tone-rose stage-notes">
-        <div class="ground note-pattern" aria-hidden="true"></div>
+        <div class="ground glosses" aria-hidden="true"></div>
         <div class="notes-stack">
           <div class="note lost n-front"><div class="note-head"><span><svg viewBox="0 0 16 16" aria-hidden="true"><path class="lc-fill" d="M2.6 1.8h6.6c.9 0 1.6.7 1.6 1.6v4.4c0 .9-.7 1.6-1.6 1.6H6.4L4.2 11.2V9.4H2.6c-.9 0-1.6-.7-1.6-1.6V3.4c0-.9.7-1.6 1.6-1.6z"/><path class="lc-knock" d="M3.6 3.9h4.6M5.9 3.1v.8M4.5 3.9c.3 1.4 1.3 2.6 2.9 3.1M7.3 3.9c-.3 1.4-1.3 2.6-2.9 3.1"/><path class="lc-fill" d="M11.6 6.4h1.8c.9 0 1.6.7 1.6 1.6v4.2c0 .9-.7 1.6-1.6 1.6h-.9v1.6l-2-1.6H8.6c-.9 0-1.6-.7-1.6-1.6v-1.6h2.2c1.3 0 2.4-1.1 2.4-2.4z"/><path class="lc-knock" d="M9.4 12.6l1.6-4.1 1.6 4.1M9.9 11.4h2.2"/></svg></span>Lost in translation</div>
             <p><span lang="zh-CN">卷</span>: online and office slang, short for <span lang="zh-CN">内卷</span>. <span lang="zh-CN">别卷了</span> (“stop overdoing it”) is said to colleagues who stay until midnight.</p></div>
@@ -398,13 +399,13 @@
   </div>
 </footer>
 
-<script src="data.js?v=1124y"></script>
-<script src="card.js?v=1124y"></script>
-<script src="hero.js?v=1124y"></script>
-<script src="try.js?v=1124y"></script>
-<script src="paper.js?v=1124y"></script>
-<script src="motion.js?v=1124y"></script>
-<script src="tiles.js?v=1124y"></script>
-<script src="install.js?v=1124y"></script>
+<script src="data.js?v=1125d"></script>
+<script src="card.js?v=1125d"></script>
+<script src="hero.js?v=1125d"></script>
+<script src="try.js?v=1125d"></script>
+<script src="paper.js?v=1125d"></script>
+<script src="motion.js?v=1125d"></script>
+<script src="tiles.js?v=1125d"></script>
+<script src="install.js?v=1125d"></script>
 </body>
 </html>
