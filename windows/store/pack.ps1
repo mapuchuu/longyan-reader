@@ -46,6 +46,10 @@ Push-Location $pri
 try {
     & $makepri createconfig /cf priconfig.xml /dq en-US /pv 10.0.0 /o | Out-Host
     if ($LASTEXITCODE) { throw "makepri createconfig failed ($LASTEXITCODE)" }
+    # One resources.pri for the whole package, not split per scale (the images are small).
+    $config = [xml](Get-Content -Raw priconfig.xml)
+    foreach ($p in @($config.SelectNodes('//packaging'))) { [void]$p.ParentNode.RemoveChild($p) }
+    $config.Save((Join-Path $PWD 'priconfig.xml'))
     & $makepri new /pr . /cf priconfig.xml /mn AppxManifest.xml /of resources.pri /o | Out-Host
     if ($LASTEXITCODE) { throw "makepri new failed ($LASTEXITCODE)" }
 } finally { Pop-Location }

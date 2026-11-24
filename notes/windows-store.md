@@ -27,7 +27,7 @@ The GitHub build is the same as before. `Store.Packaged` is checked at run time 
 
 ## The package
 
-- `windows/store/identity.txt`: the three identity values. **Placeholders until you reserve the name.**
+- `windows/store/identity.txt`: the identity from Partner Center (Store ID 9MSR9JKZKR50): `Mapuchu.LongyanReader`, publisher `CN=C4844210-E46B-4ED7-BD3A-C88143816909`, display name `Mapuchu`. CI checks the installed package's family name is `Mapuchu.LongyanReader_qxst12vwamc5m`, as Partner Center lists it.
 - `windows/store/AppxManifest.xml`: Windows 10 1809 (10.0.17763) and later, as the installer. One capability, `runFullTrust`: a normal desktop app. It needs it to read selected text in other apps (UI Automation), watch the shortcut and the mouse, sit in the notification area and download the model. Nothing else is declared.
 - `windows/store/assets.ps1`: the tile and icon images. Taskbar and Start icons are the frames of `LongyanReader.ico`; tiles and the Store logo are the mark from `Resources/longyan-mark.png` on white. No new art.
 
@@ -47,14 +47,9 @@ Not checked: a real login (CI can't log out and back in), the Store's own instal
 
 ## What you do in Partner Center
 
-1. Sign up at storedeveloper.microsoft.com as an **individual** developer. Individual accounts have been free since 2025; check the fee it shows before paying anything. It checks your identity, which can take a few days.
-2. Apps and games > New product > **MSIX or PWA app**. Reserve the name **Longyan Reader**.
-3. Product management > **Product identity**. Copy these three into `windows/store/identity.txt`:
-   - `Package/Identity/Name` into `IdentityName`
-   - `Package/Identity/Publisher` (starts with `CN=`) into `Publisher`
-   - `Package/Properties/PublisherDisplayName` into `PublisherDisplayName`
-
-   Tell me and I'll push it. Then take `LongyanReader_<version>_x64_arm64.msixupload` from the `LongyanReader-store` artifact of a green run.
+1. Done: an individual developer account.
+2. Done: the name **Longyan Reader** reserved as an MSIX app.
+3. Done: its identity is in `windows/store/identity.txt`. Take `LongyanReader_<version>_x64_arm64.msixupload` from the `LongyanReader-store` artifact of a green run.
 4. **Pricing and availability**: free, the markets you want.
 5. **Properties**: category (Education, or Books and reference). Privacy policy URL: `https://longyan.app/privacy.html`. That page only covers the Mac today, so add Windows first (the data folder, the model download, no update check in the Store build).
 6. **Age ratings**: fill in the questionnaire. No user content, no chat, no purchases.

@@ -41,6 +41,7 @@ $pkg = Get-AppxPackage -Name $id.IdentityName
 if (-not $pkg) { throw "$($id.IdentityName) isn't installed after Add-AppxPackage" }
 "installed {0} ({1}) at {2}" -f $pkg.PackageFullName, $pkg.Architecture, $pkg.InstallLocation | Out-Host
 $family = $pkg.PackageFamilyName
+if ($id.PackageFamilyName -and $family -ne $id.PackageFamilyName) { $failures.Add("the package family is $family, not Partner Center's $($id.PackageFamilyName)") }
 $cpu = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'Arm64' } else { 'X64' }
 if ("$($pkg.Architecture)" -ne $cpu) { $failures.Add("installed the $($pkg.Architecture) package on a $cpu PC") }
 foreach ($f in 'LongyanReader.exe', 'LongyanBridge.dll', 'llama.dll', 'Resources', 'resources.pri', 'Assets\StoreLogo.scale-100.png') {

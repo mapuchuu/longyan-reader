@@ -6,8 +6,7 @@
 # UiCheck --packaged). Then both go into one bundle and the .msixupload Partner Center takes,
 # unsigned (the Store signs): the LongyanReader-store artifact. Called from windows.yml.
 #
-# The package's identity comes from windows/store/identity.txt: placeholders until the name is
-# reserved in Partner Center.
+# The package's identity comes from windows/store/identity.txt (Partner Center's values).
 name: windows-msix
 
 on:

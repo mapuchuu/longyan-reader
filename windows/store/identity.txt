@@ -1,7 +1,9 @@
-# The Store package's identity. Copy the three values from Partner Center after reserving the
-# name: Apps and games > Longyan Reader > Product management > Product identity.
-# Until then these are placeholders, and the package can't be submitted.
+# The Store package's identity, from Partner Center: Apps and games > Longyan Reader >
+# Product management > Product identity (Store ID 9MSR9JKZKR50).
+# PackageFamilyName isn't put in the package: Windows derives it from the other two, and
+# test.ps1 checks the installed package gets this one.
 # CI signs its test package with a throwaway certificate made for Publisher.
-IdentityName=PLACEHOLDER.LongyanReader
-Publisher=CN=PLACEHOLDER-PUBLISHER-ID
-PublisherDisplayName=PLACEHOLDER Publisher Name
+IdentityName=Mapuchu.LongyanReader
+Publisher=CN=C4844210-E46B-4ED7-BD3A-C88143816909
+PublisherDisplayName=Mapuchu
+PackageFamilyName=Mapuchu.LongyanReader_qxst12vwamc5m
