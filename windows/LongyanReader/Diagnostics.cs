@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Threading;
 using Microsoft.Win32;
@@ -47,11 +48,20 @@ static class Diagnostics
     }
 
     static readonly string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+    /// Any C:\Users\name, however its slashes are written, in case the profile path differs.
+    static readonly Regex userFolder = new(@"(?i)\b[a-z]:(?:\\{1,2}|/)users(?:\\{1,2}|/)[^\\/""'\s]+", RegexOptions.Compiled);
 
     /// No Chinese text (it could only have come from a selection or a card) and no user name.
     static string Clean(string s)
     {
-        if (home.Length > 3) s = s.Replace(home, "%USERPROFILE%", StringComparison.OrdinalIgnoreCase);
+        if (home.Length > 3)
+        {
+            // As written, JSON-escaped, and with forward slashes.
+            s = s.Replace(home, "%USERPROFILE%", StringComparison.OrdinalIgnoreCase);
+            s = s.Replace(home.Replace("\\", "\\\\"), "%USERPROFILE%", StringComparison.OrdinalIgnoreCase);
+            s = s.Replace(home.Replace('\\', '/'), "%USERPROFILE%", StringComparison.OrdinalIgnoreCase);
+        }
+        s = userFolder.Replace(s, "%USERPROFILE%");
         var b = new StringBuilder(s.Length);
         for (var i = 0; i < s.Length; i++)
         {
