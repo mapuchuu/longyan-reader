@@ -33,3 +33,7 @@
 大幾百 大几百 [da4 ji3 bai3] /(coll.) several hundred (toward the upper end)/
 高德 高德 [Gao1 de2] /Gaode (AutoNavi), Chinese digital map company and maps app/
 中建 中建 [Zhong1 jian4] /China State Construction Engineering (abbr.)/
+# Everyday meanings CC-CEDICT's entry lacks: it has only 不想 "unexpectedly" and 小林 "Kobayashi".
+# sense-order.tsv puts these first; the model still picks the others in context.
+不想 不想 [bu4 xiang3] /don't want to; not to feel like (doing sth)/
+小林 小林 [Xiao3 Lin2] /Xiao Lin (familiar name for sb surnamed Lin)/
