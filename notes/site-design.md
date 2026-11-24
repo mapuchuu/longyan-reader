@@ -50,6 +50,7 @@ Backdrops (`paper.js`, for the statement's card, the recording, the menu tile, t
 - The story is scrubbed by scroll, smoothed a little each frame so a wheel step doesn't jump. The sentence turning into the eye takes 0.6 of a screen of scrolling. On the eye screen the headline rises line by line, then the line under it and the buttons. The card is the app's, with its springs: it scales in from the selection, its height follows its content, and rows slide open.
 - Below the story, sections rise into place once, and the recording lifts out of its backdrop as it comes into view.
 - `prefers-reduced-motion`: no flight, no rise, the hero drawn still. `?still` does the same for screenshots.
+- The link preview (images/og-5.jpg, 2400×1260) is the eye screen as it stands, with Download and How it works: `?og` at 1200×630, 2x, no top bar. A new preview gets a new file name, since apps cache the old one by URL.
 
 ## The card
 

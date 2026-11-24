@@ -1512,7 +1512,7 @@ footer a { color: #a1a1a6; }
 .motion .grid .tile[data-reveal].in .glass-box > :not(.ground):not(.paper) { opacity: 1; transform: none; }
 
 /* The social preview (?og): the eye, the land and the headline. */
-.og .bar, .og .hero-actions { display: none; }
+.og .bar { display: none; }
 .og .story { height: auto; }
 .og .story-pin { height: 630px; min-height: 0; }
 
