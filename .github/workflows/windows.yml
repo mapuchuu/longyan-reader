@@ -554,7 +554,7 @@ jobs:
           CL="$T/opencl"
           for r in OpenCL-Headers OpenCL-ICD-Loader; do
             curl -fsSL -o "$T/$r.tar.gz" "https://github.com/KhronosGroup/$r/archive/refs/tags/v2024.10.24.tar.gz"
-            mkdir -p "$T/$r" && tar -xzf "$T/$r.tar.gz" -C "$T/$r" --strip-components 1
+            mkdir -p "$T/$r" && (cd "$T" && tar -xzf "$r.tar.gz" -C "$r" --strip-components 1)
           done
           cmake -S "$T/OpenCL-Headers" -B "$T/OpenCL-Headers/build" "${arm[@]}" -DBUILD_TESTING=OFF -DOPENCL_HEADERS_BUILD_TESTING=OFF \
             -DOPENCL_HEADERS_BUILD_CXX_TESTS=OFF -DCMAKE_INSTALL_PREFIX="$CL"

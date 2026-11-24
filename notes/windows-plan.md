@@ -95,7 +95,7 @@ Streaming from Ollama uses `URLSession.bytes`, which only Apple's Foundation has
 
 ## Still to build for Windows
 
-- llama.cpp for the app: CI builds it CPU-only as DLLs, with the CPU kernels once per kind of x64 CPU (ggml-cpu-*.dll, SSE 4.2 up to AVX-512); ggml loads the best one at run time, and the UI check also runs on the SSE 4.2 ones. Vulkan (and maybe CUDA) for speed.
+- llama.cpp for the app: CI builds it as DLLs, with the CPU kernels once per kind of x64 CPU (ggml-cpu-*.dll, SSE 4.2 up to AVX-512); ggml loads the best one at run time, and the UI check also runs on the SSE 4.2 ones. The GPU through Vulkan (x64) and OpenCL (ARM64), behind a self-test: see GPU below. Not measured on a Windows GPU yet.
 - Fold the Windows fence (patches/llama.cpp-windows.patch) into the output-tokens patch, which needs a Mac llama rebuild. Until then the output table's pages aren't given back on Windows.
 - Run the real model on Windows: load the GGUF, pick a sense, translate, and compare with the Mac.
 - Memory pressure: Windows has its own low-memory signal to call `EmbeddedModel.relieve`.
@@ -104,6 +104,36 @@ Streaming from Ollama uses `URLSession.bytes`, which only Apple's Foundation has
 - The eye (Chip.cs) is in: Raw Input watches the mouse (no hook), UI Automation reads the selection off the app's thread with a 0.5 s limit, and ly_prepare starts the card's work 0.3 s after the eye appears (cancelled if it goes unclicked). Apps that don't say what's selected get it on a double-click only, in elements that may hold text, never in terminals, dialogs, Excel or full screen. It matches the Mac's drawing (gallery eye.png). CI checks it in Notepad. Needs a real PC: mixed-DPI screens, Chrome and Electron on first use, WeChat, touch and pen.
 - Updates: WinSparkle 0.9.4, with its own feed (appcast-windows.xml on the windows-feed pre-release) and ed25519 signatures. Built and checked in CI (windows.yml's updates job); still needs the real key (scripts/windows-update-key.sh) and the installer. DEVELOPMENT.md has the details.
 - Signing: a Windows code-signing certificate, or SmartScreen warns on every download.
+
+## GPU (branch win/gpu)
+
+On the CPU a card reads its prompt at 20 to 40 tokens a second, so a word card takes about 15 s. The Mac's GPU reads about 1500 a second.
+
+- What ships: `gpu\ggml-vulkan.dll` in the x64 app, `gpu\ggml-opencl.dll` in the ARM64 app, in the installers too. The gpu folder is out of the folders `ggml_backend_load_all` reads, so the app never loads a GPU backend until the self-test has passed on this PC. No driver, or a broken one, can't take the app down at start.
+- The self-test (windows/LongyanReader/Gpu.cs, `EmbeddedModel.gpuSelfTest`): a minute after the model is ready, the app runs `LongyanReader.exe --gpu-test <backend> <file>`, a process of its own. It loads the backend and looks for a GPU (none: done in about a second). Then one fixed word card pick (他得了感冒, three words, a 277-token prompt like a card's) on the CPU, then twice on the GPU (the first run builds the shaders). The GPU is kept only if its three numbers equal the CPU's and its second run is at least 10% faster. A crash, a hang over 6 minutes, a load that fails or a different answer all mean the CPU.
+- Memory: the device's free memory (for an integrated GPU, its share of the PC's memory) is read first. With less than the model's 2.7 GB plus 768 MB, only as many layers as fit go on the GPU; under a quarter of them, no GPU. If the load still fails, half as many.
+- It runs once, and again when the app or a display driver changes (the "fingerprint": the app's version, its DLLs' sizes and each display adapter's driver version from the registry). Until a new test passes, the CPU.
+- The choice is "gpu" in settings.json. In the app: if the GPU fails to load, or a decode fails on it, that run goes on with the CPU and the setting is turned off. While the model is on the GPU the core keeps `%LOCALAPPDATA%\LongyanReader\gpu-in-use`; a run that ended badly with it there turns the GPU off at the next start.
+- Overrides: `LONGYAN_GPU=0` keeps the CPU, `LONGYAN_GPU=1` uses the GPU without the test (`LONGYAN_GPU_BACKEND`, `LONGYAN_GPU_LAYERS`). `LongyanReader.exe --gpu-check` runs the test now and saves its choice.
+- Fix on the way: llama.cpp-output-tokens.patch put the kept output rows on whatever GPU ggml had registered. With a GPU backend registered and the model on the CPU only, that aborted (seen on the Mac with Metal). llama.cpp-windows.patch now puts them on the device of the model's last layer.
+- CI has no GPU. The gpu job checks the fallback with the app itself: no device (the CPU, and why), a fake vulkan-1.dll that crashes in every call (the test process dies, the app keeps the CPU and never loads ggml-vulkan.dll), and the crash marker. The speed job checks that `LONGYAN_GPU=1` with no device gives the CPU's cards. ui-arm64 runs `--gpu-check` with no OpenCL driver.
+- A real GPU number, from the Mac (M5 Pro, Metal, the same test code and the same patched llama.cpp, not Windows or Vulkan): CPU 1.9 to 3.1 s, GPU 0.29 to 0.36 s, the same picks, 6.6x to 8.9x. With 16 of 33 layers on the GPU, 1.7x. Free runners have no GPU, and nothing paid was used, so there's no Windows number yet.
+
+### ARM64 (Snapdragon)
+
+- OpenCL is llama.cpp's backend for Adreno: its docs list the Adreno X1-85 (Snapdragon X Elite) on Windows 11 ARM64 as verified, with Q4_K and Q6_K (this model's types) supported, and it has every op Qwen 3.5 uses (gated delta net, ssm_conv, solve_tri, cumsum). So app-arm64 builds ggml-opencl.dll with clang against Khronos's headers and loader; OpenCL.dll comes with the Adreno driver and isn't shipped.
+- Vulkan isn't shipped for ARM64: in llama.cpp's Snapdragon X discussion (ggml-org/llama.cpp #8336) Qualcomm's Windows Vulkan driver crashed in a Vulkan call, and another build gave unusable output. ggml-vulkan's own code turns on fast matrix paths for Adreno only with Qualcomm's newest extensions. Worth trying behind the same test later.
+- Unknown until a Snapdragon PC runs it: whether OpenCL beats 8 to 12 fast CPU cores for Q4_K (on phones it was sometimes slower than the CPU). The self-test decides either way.
+
+### What a beta tester checks
+
+1. Use the app until a card has picked a meaning, then wait a minute (or run `LongyanReader.exe --gpu-check` from the app's folder, `%LOCALAPPDATA%\Programs\Longyan Reader`).
+2. Open `%LOCALAPPDATA%\LongyanReader\logs\longyan.log` and find the lines that start with `gpu`:
+   - `gpu test: {...}` has the device, `freeMB`, `layers` of `layerCount`, `cpuMs`, `gpuFirstMs`, `gpuMs`, `cpuPicks` and `gpuPicks`, and `why`.
+   - `gpu: GPU (vulkan, <device>, 33 of 33 layers, 400 ms against 3000 ms on the CPU)` means it's on. `gpu: CPU (...)` says why not.
+   - After the next start, `gpu at start: GPU (...)`, then `gpu: loaded on the GPU: <device>, 33 of 33 layers` at the first card.
+3. Expected, as a guess from the Mac's 6.6x to 8.9x (not measured on Windows): on a discrete GPU the test pick 5x to 10x faster than the CPU, and a word card in 2 to 3 s instead of about 15. On an integrated Intel or AMD GPU, less, perhaps 2x to 4x. If `gpuPicks` differs from `cpuPicks`, or it says the GPU is no faster, the CPU is right for that PC; send the line anyway.
+4. Report a problem includes "runs on the GPU (...)" or "runs on the CPU (...)". `logs\gpu-test-vulkan.txt` (or `-opencl`) has llama.cpp's timing lines from the test; attach it.
 
 ## Installer (branch win/installer)
 
