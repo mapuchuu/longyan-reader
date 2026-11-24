@@ -261,7 +261,7 @@ sealed class FakeAnkiConnect : IDisposable
             if (n <= 0) return;
             read += n;
         }
-        var read = DateTime.Now;
+        var gotIt = DateTime.Now;
         var request = JsonNode.Parse(body) as JsonObject ?? new JsonObject();
         JsonNode? result;
         string? error = null;
@@ -278,7 +278,7 @@ sealed class FakeAnkiConnect : IDisposable
         if ((string?)request["action"] != "version" || request["params"] != null)
             lock (requests) File.AppendAllText(record, request.ToJsonString(new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }) + "\n");
         // When each request came and went: a late one looks like Anki not answering to the app.
-        Console.WriteLine($"[4-anki] stand-in: {request["action"]} accepted {accepted:HH:mm:ss.fff}, read {read:HH:mm:ss.fff}, answered {answered:HH:mm:ss.fff}");
+        Console.WriteLine($"[4-anki] stand-in: {request["action"]} accepted {accepted:HH:mm:ss.fff}, read {gotIt:HH:mm:ss.fff}, answered {answered:HH:mm:ss.fff}");
     }
 
     JsonNode? Act(string action, JsonObject p, ref string? error)
