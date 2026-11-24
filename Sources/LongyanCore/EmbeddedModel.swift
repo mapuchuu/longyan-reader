@@ -873,6 +873,8 @@ extension EmbeddedModel {
     /// Loads gpu\ggml-<backend>.dll once and finds its device: a discrete GPU first, else an
     /// integrated one (llama.cpp's own order).
     fileprivate static func device(_ backend: String) -> Result<GPUDevice, GPUProblem> {
+        // The CPU kernels first: they load only while no other backend is registered.
+        _ = cpu
         let reg: OpaquePointer
         if let r = gpuRegs[backend] {
             reg = r
