@@ -113,9 +113,11 @@ h1 { font-size: min(72px, 4.7vw); line-height: 1; letter-spacing: -0.04em; }
 .button svg { width: 15px; height: 15px; margin-left: 7px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; transition: transform .3s var(--ease-out); }
 .button:hover svg { transform: translateY(2px); }
 .hero-actions .button-quiet { height: 46px; }
-/* The small print belongs to the download, so it sits under it, on its left edge. */
-.hero-dl { display: flex; flex-direction: column; align-items: flex-start; }
-.hero-fine { margin: -6px 0 0; font-size: 14px; line-height: 1.5; color: rgba(245, 245, 247, .5); letter-spacing: -0.01em; }
+/* The small print belongs to the download: a second line of its label, the two set as one
+   block centred on the button beside it, so the row keeps one height. */
+.hero-dl { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; height: 46px; }
+.hero-dl .button-quiet { height: auto; line-height: 1.2; }
+.hero-fine { margin: 2px 0 0; font-size: 14px; line-height: 1.5; color: rgba(245, 245, 247, .5); letter-spacing: -0.01em; }
 .button-quiet { display: inline-flex; align-items: center; gap: 6px; font-size: 17px; font-weight: 500; text-decoration: none; color: rgba(245, 245, 247, .86); transition: color .2s; }
 .button-quiet svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: transform .3s var(--ease-out); }
 .button-quiet:hover { color: #fff; }
@@ -1482,7 +1484,8 @@ footer a { color: #a1a1a6; }
      neither looks out of line. */
   .hero-actions { flex-direction: column; align-items: stretch; gap: 12px; }
   .hero-actions .button-quiet { justify-content: center; height: 46px; border: 1px solid rgba(255, 255, 255, .3); border-radius: 999px; }
-  .hero-dl { align-items: stretch; gap: 12px; }
+  .hero-dl { align-items: stretch; gap: 12px; height: auto; }
+  .hero-dl .button-quiet { height: 46px; }
   .hero-fine { margin: 2px 0 0; text-align: center; font-size: 13px; }
   .eyebrow { font-size: 16px; margin-bottom: 12px; }
   .try-head p { font-size: 16px; }

@@ -447,7 +447,11 @@
     const t = document.querySelector(a.getAttribute("href"));
     if (!t) return;
     e.preventDefault();
-    glideTo(t.getBoundingClientRect().top + window.scrollY);
+    // To the section's heading, a little below the bar, not its top: the sections open with
+    // a lot of night above their headings.
+    const head = t.querySelector("h2");
+    const y = head ? head.getBoundingClientRect().top - 120 : t.getBoundingClientRect().top;
+    glideTo(Math.max(0, y + window.scrollY));
   }));
 
   // The Windows links, once they're live. Until then their buttons pick Windows in the steps
