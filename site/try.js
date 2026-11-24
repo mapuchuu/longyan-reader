@@ -107,7 +107,9 @@
     const d = demo[indexOf(0)], r = d.selections[`${a}-${b}`];
     if (!r) return null;
     sel = { a, b, start: r[0], end: r[1], word: r[2] === 1, d, el: currentEl() };
-    story.classList.add("tried");
+    story.classList.add("tried", "has-tried");
+    // The way on comes in a moment after the first look-up, once the card has had a look.
+    if (!story.classList.contains("can-continue")) setTimeout(() => story.classList.add("can-continue"), 2200);
     return sel;
   }
 
@@ -118,7 +120,7 @@
     root.classList.add("used");
     const { d, start, end, word, el } = sel, size = sizeOf(el), box = el.getBoundingClientRect();
     // Where the selection will be once it has settled, not where it is mid-way.
-    const r = { left: box.left + sel.a * size, right: box.left + sel.b * size, top: selRect().top, bottom: selRect().bottom };
+    const r = { left: box.left + sel.a * size, right: box.left + sel.b * size, top: selRect().top, bottom: selRect().bottom, preferBelow: true };
     const key = `${start}-${end}`;
     let opened = null;
     if (word) {
@@ -138,6 +140,7 @@
     const at = selRect().top, s0 = sel;
     opened.anchorStill = () => sel === s0 && story.classList.contains("is-formed") && Math.abs(selRect().top - at) < 2;
     story.classList.add("card-open");
+    dragHint(opened);
     const prevClose = opened.onClose;
     opened.onClose = () => { if (prevClose) prevClose(); if (!Card().open) story.classList.remove("card-open", "covered"); };
     // The way on to how it picks stays, unless the card is over it.
@@ -147,6 +150,51 @@
       const a = opened.el.getBoundingClientRect(), b = more.getBoundingClientRect();
       story.classList.toggle("covered", a.left < b.right + 12 && a.right > b.left - 12 && a.top < b.bottom + 12 && a.bottom > b.top - 12);
       requestAnimationFrame(cover);
+    })();
+  }
+
+  // MARK: "This card is draggable"
+
+  // A faint note wrapped round the card's top right corner, with a mouse or trackpad only (a
+  // finger scrolls instead): "This card is" along the top edge, curling round the corner and
+  // down the side into "draggable". It follows the card as it springs open, and goes, for
+  // good, once a card has been dragged.
+  const fine = matchMedia("(hover: hover) and (pointer: fine)");
+  const SVGNS = "http://www.w3.org/2000/svg";
+  let hintEl = null, hintPath = null, dragged = false;
+  // The path in the note's own box: the card's corner is at (CX, CY).
+  const CX = 150, CY = 30, GAP = 5;
+  function dragHint(card) {
+    if (!fine.matches || dragged || reduce) return;
+    if (!hintEl) {
+      hintEl = document.createElementNS(SVGNS, "svg");
+      hintEl.setAttribute("class", "drag-hint");
+      hintEl.setAttribute("aria-hidden", "true");
+      hintEl.setAttribute("width", CX + 30); hintEl.setAttribute("height", CY + 130);
+      hintPath = document.createElementNS(SVGNS, "path");
+      hintPath.id = "drag-hint-path";
+      const text = document.createElementNS(SVGNS, "text"), tp = document.createElementNS(SVGNS, "textPath");
+      tp.setAttribute("href", "#drag-hint-path");
+      tp.textContent = "This card is draggable";
+      text.append(tp);
+      hintEl.append(hintPath, text);
+      document.body.append(hintEl);
+    }
+    // Round the corner at the card's own radius, a few points out from its edge.
+    const rc = parseFloat(getComputedStyle(card.el).borderTopRightRadius) || 20, R = rc + GAP;
+    // The text's length decides where it starts, so the turn falls between "is" and "draggable".
+    const lead = 74;
+    hintPath.setAttribute("d", `M${CX - rc - lead} ${CY - GAP} H${CX - rc} A${R} ${R} 0 0 1 ${CX + GAP} ${CY + rc} V${CY + 130}`);
+    const shownAt = performance.now();
+    hintEl.classList.remove("on");
+    (function follow() {
+      const live = Card() && Card().open === card;
+      if (live && card.wasMoved) dragged = true;
+      if (!live || dragged) { hintEl.classList.remove("on"); return; }
+      const r = card.el.getBoundingClientRect();
+      hintEl.style.transform = `translate(${Math.round(r.right - CX)}px, ${Math.round(r.top - CY)}px)`;
+      hintEl.classList.toggle("on", r.right + 30 < window.innerWidth && performance.now() - shownAt > 900);
+      requestAnimationFrame(follow);
     })();
   }
 
@@ -433,14 +481,19 @@
     }
   }));
 
-  // "How it picks the meaning", once the sentence has had its turn: on to the statement, the
-  // same slow glide.
-  // The statement's first line comes in as its pinned stretch reaches the top.
-  function toStatement() {
-    const st = document.getElementById("statement");
-    if (st) glideTo(st.getBoundingClientRect().top + window.scrollY);
+  // "Get it on your computer", once the sentence has had its turn: on to the eye and the
+  // headline, on the slow glide, so the sentence is seen gathering into the eye on the way.
+  function toEye() {
+    if (window.LongyanHero) glideTo(window.LongyanHero.eyeY(), { story: true });
   }
-  document.querySelectorAll("[data-continue]").forEach((b) => b.addEventListener("click", toStatement));
+  document.querySelectorAll("[data-continue]").forEach((b) => b.addEventListener("click", toEye));
+  // "How it works", beside the download: on to the statement, which opens on its first line.
+  document.querySelectorAll("[data-statement]").forEach((a) => a.addEventListener("click", (e) => {
+    const st = document.getElementById("statement");
+    if (!st) return;
+    e.preventDefault();
+    glideTo(st.getBoundingClientRect().top + window.scrollY);
+  }));
 
   // In-page links: down to where they point, on the same glide. Without script they're plain links.
   document.querySelectorAll("[data-glide]").forEach((a) => a.addEventListener("click", (e) => {

@@ -1,8 +1,7 @@
-// The opening: the Longyan eye over a range of mountains, all of it in Chinese characters.
-//
-// The mountains are drawn the way a halftone draws, by how much ink each character has:
-// light characters (一, 人) where it's dim, dense ones where it's bright, none where it's
-// dark, on a 4×4 ordered dither. A few faint characters are stars.
+// The opening: the Longyan eye, set in Chinese characters, over the page's paper. It plays
+// once, on its own, in seconds: the eye comes in, its characters float out of it from all
+// over into the demo sentence, which try.js then lets you read (and selects a word in, the
+// way you would).
 //
 // The eye is set in everyday sentences, in characters of many sizes: big ones where the mark
 // is thick, smaller and smaller toward its edges. Every character is whole and sits inside
@@ -10,8 +9,6 @@
 // where the characters are, traced finely by the smallest. Characters with too little ink to
 // fill their square (一, 人, 了…) are left out. Pointing at a character shows the word it's
 // part of and what it means in its sentence: the app's own reading (scripts/site-data.py).
-// Scrolling breaks the eye up, and characters float out of it from all over into the demo
-// sentence, which try.js lets you read.
 (function () {
   "use strict";
   const canvas = document.getElementById("field");
@@ -27,6 +24,11 @@
   const still = reduce || og;
 
   const FORMED = 0.33;     // story progress at which the sentences have formed
+  // Scrolling down, progress runs from FORMED to 0: the sentence's characters lift off the
+  // line and land in the eye (each takes FLIGHT, landing between LAND and SPREAD after it),
+  // then the rest of the eye grows out from each as it lands, done by GROW_END, each character
+  // flashing white for FLASH as it comes.
+  const FLIGHT = 0.17, LAND = 0.158, SPREAD = 0.11, GROW_END = 0.01, FLASH = 0.02;
   const ZH = '"PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif';
   // The hero's inks: the paper's own hues (paper.js), azure through violet and magenta to
   // coral, lightened to read as small characters on black and softened toward a grey lilac,
@@ -55,21 +57,6 @@
   const hash = (i) => { const s = Math.sin(i * 12.9898) * 43758.5453; return s - Math.floor(s); };
   const mix = (a, b, u) => a.map((v, k) => Math.round(v + (b[k] - v) * clamp(u)));
   const rgb = (c, a = 1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
-
-  // Noise for the mountains and the mist.
-  const h1 = (x) => { const s = Math.sin(x * 127.1) * 43758.5453; return s - Math.floor(s); };
-  const n1 = (x) => { const i = Math.floor(x); let f = x - i; f = f * f * (3 - 2 * f); return h1(i) + (h1(i + 1) - h1(i)) * f; };
-  const h2 = (x, y) => { const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return s - Math.floor(s); };
-  function n2(x, y) {
-    const ix = Math.floor(x), iy = Math.floor(y);
-    let fx = x - ix, fy = y - iy; fx = fx * fx * (3 - 2 * fx); fy = fy * fy * (3 - 2 * fy);
-    const a = h2(ix, iy), b = h2(ix + 1, iy), c = h2(ix, iy + 1), d = h2(ix + 1, iy + 1);
-    return a + (b - a) * fx + (c - a) * fy + (a - b - c + d) * fx * fy;
-  }
-  function fbm(x, y) { let s = 0, a = 0.5; for (let i = 0; i < 4; i++) { s += a * n2(x, y); x = x * 2.02 + 9.7; y = y * 2.02 + 9.7; a *= 0.5; } return s; }
-  function ridge(x) { let v = 0, a = 0.55, f = 1; for (let i = 0; i < 5; i++) { v += a * (1 - Math.abs(2 * n1(x * f) - 1)); a *= 0.48; f *= 2.13; } return v; }
-  // 4×4 ordered-dither thresholds, 0..1.
-  const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map((v) => (v + 0.5) / 16);
 
   // MARK: The mark
 
@@ -103,9 +90,6 @@
     }
     return info;
   });
-  // The characters the mountains are drawn with: every one in the sentences.
-  const CHARS = [...new Set(PAGE.map((p) => p.s).join(""))].filter((ch) => !PUNCT.test(ch));
-
   // A shuffled order of the sentences for each pass through them, so the repeats don't line up.
   function order(pass) {
     const o = PAGE.map((_, k) => k);
@@ -237,76 +221,38 @@
   let lit = null;                      // the eye's text, pre-drawn
   let current = 0, lines = [], flights = [];
   let started = performance.now(), running = false, visible = true, raf = 0;
-  let progress = 0, target = 0;
+  let progress = 0, target = 0, lineY = 0;
   let hover = null;                    // { k }: the eye's character pointed at
-
-  // The mountains' grid, and an atlas of the characters in four tints, by ink.
-  let cell = 12, cols = 0, rows = 0, zh = 10, tile = 24, landBase = 0.8;
-  let order_ = [], landAtlas = [], star = null, tops = [], copyBand = null;
-  const atlasCols = 32;
 
   function markMatrix() {
     const s = eye.s;
     return [s, 0, 0, s, eye.cx - MC[0] * s, eye.cy - MC[1] * s];
   }
 
-  function buildAtlas() {
-    tile = Math.max(8, Math.round(cell * dpr));
-    const white = document.createElement("canvas");
-    white.width = atlasCols * tile; white.height = Math.ceil(CHARS.length / atlasCols) * tile;
-    const g = white.getContext("2d", { willReadFrequently: true });
-    g.fillStyle = "#fff"; g.textAlign = "center"; g.textBaseline = "middle";
-    g.font = `400 ${Math.round(zh * dpr)}px ${ZH}`;
-    CHARS.forEach((ch, k) => g.fillText(ch, (k % atlasCols) * tile + tile / 2, ((k / atlasCols) | 0) * tile + tile / 2 + dpr * 0.5));
-    // Ink per character, measured once.
-    const data = g.getImageData(0, 0, white.width, white.height).data;
-    const ink = CHARS.map((_, k) => {
-      const x0 = (k % atlasCols) * tile, y0 = ((k / atlasCols) | 0) * tile;
-      let s = 0;
-      for (let y = y0; y < y0 + tile; y++) for (let x = x0; x < x0 + tile; x++) s += data[(y * white.width + x) * 4 + 3];
-      return s;
-    });
-    order_ = CHARS.map((_, k) => k).sort((a, b) => ink[a] - ink[b]);
-    landAtlas = [0, 1, 2, 3].map((k) => {
-      const a = document.createElement("canvas");
-      a.width = white.width; a.height = white.height;
-      const t = a.getContext("2d");
-      t.drawImage(white, 0, 0);
-      t.globalCompositeOperation = "source-in";
-      t.fillStyle = rgb(mix(AZURE, VIOLET, k / 3)); t.fillRect(0, 0, a.width, a.height);
-      return a;
-    });
-  }
-  // A character with about `u` (0..1) of the most ink, varied by `seed`; reflected at the
-  // ends rather than clamped, so the densest isn't picked half the time.
-  function byInk(u, seed, spread = 0.08) {
-    let v = u + (seed - 0.5) * spread * 2;
-    if (v > 1) v = 2 - v; else if (v < 0) v = -v;
-    return order_[Math.round(clamp(v) * (order_.length - 1))];
-  }
-  function blit(atlas, k, c, r) {
-    ctx.drawImage(atlas, (k % atlasCols) * tile, ((k / atlasCols) | 0) * tile, tile, tile, c * cell, r * cell, cell, cell);
-  }
-
   function layout() {
     dpr = Math.min(window.devicePixelRatio || 1, 2);
     W = canvas.clientWidth; H = canvas.clientHeight;
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
-    // Stacked, as style.css lays out the headline: phones, and tablets held upright.
     narrow = STACKED.matches;
-    // The eye: on wide screens, beside the headline and second to it, about as tall as the
-    // headline and the line under it, centred on the text; on narrow ones, at the top.
+    // The sentence a little above the middle, with the room under it for a whole card.
+    lineY = Math.round(H * (narrow ? 0.4 : 0.43));
+    // The eye: on a wide screen on the right, level with the headline beside it, as big as
+    // the column allows; on a phone or an upright tablet, centred over the headline.
     let ew, cx, cy;
-    if (narrow) {
-      const copy = document.querySelector(".hero-copy");
-      const top = 60, bottom = copy ? copy.getBoundingClientRect().top - canvas.getBoundingClientRect().top : H * 0.55;
-      ew = Math.min(W * 0.8, (bottom - top - 48) * (MW / MH)); cx = W / 2; cy = (top + bottom) / 2 - 10;
-    } else {
-      ew = Math.min(W * 0.26, H * 0.42 * (MW / MH), 470);
-      cx = Math.min(W * 0.7, (W + 1120) / 2 - ew / 2 + 20); cy = H * 0.45;
+    if (narrow) { ew = Math.min(W - 72, 560, H * 0.28 * (MW / MH)); cx = W / 2; cy = H * 0.3; }
+    else {
+      // The headline and the eye are one group, centred on the screen: the eye as tall as the
+      // words beside it (headline, line and button), a fixed gap between, the words' column
+      // as style.css sets it. The group sits a little above the middle, where the eye rests.
+      const copyW = Math.min(540, W * 0.29), gap = Math.round(Math.min(110, W * 0.06));
+      ew = Math.min(clamp(H * 0.38, 240, 420) * (MW / MH), W * 0.36, W - 56 - copyW - gap);
+      const left = Math.round((W - (copyW + gap + ew)) / 2);
+      cx = left + copyW + gap + ew / 2; cy = H * 0.48;
+      if (story) story.style.setProperty("--copy-left", left + "px");
     }
     const eh = ew * (MH / MW);
     eye = { w: ew, h: eh, cx, cy, x: cx - ew / 2, y: cy - eh / 2, s: ew / MW };
+    if (story) story.style.setProperty("--eye-bottom", Math.round(cy + eh / 2) + "px");
 
     // The eye's text: the smallest whole characters about 58 to the eye's width (fewer on a
     // small eye, so they stay characters rather than dust).
@@ -322,33 +268,6 @@
       drawLit(g);
     }
 
-    // The mountains, under the eye.
-    cell = narrow ? 10 : W < 1200 ? 11 : 12;
-    zh = cell * 0.88;
-    cols = Math.ceil(W / cell); rows = Math.ceil(H / cell);
-    buildAtlas();
-    tops = [];
-    // The ranges start just under the eye, so it stands over them; on a wide screen, under
-    // the headline's last line too.
-    landBase = Math.min(narrow ? 0.74 : 0.84, (eye.y + eye.h) / H + (narrow ? 0.1 : 0.085));
-    const copyEl = document.querySelector(".hero-copy");
-    if (!narrow && copyEl) {
-      const cb = copyEl.getBoundingClientRect(), top = canvas.getBoundingClientRect().top;
-      landBase = Math.min(0.86, Math.max(landBase, (cb.bottom - top) / H + 0.075));
-    }
-    // On a phone the headline sits over the mountains: they go quiet behind it.
-    const copy = document.querySelector(".hero-copy");
-    if (narrow && copy) {
-      const cb = copy.getBoundingClientRect(), top = canvas.getBoundingClientRect().top;
-      copyBand = [cb.top - top - 10, cb.bottom - top + 10];
-    } else copyBand = null;
-    star = new Float32Array(cols * rows);
-    const skyBottom = landBase * H - 30, pad = cell * 3;
-    for (let i = 0; i < star.length; i++) {
-      const x = (i % cols) * cell, y = ((i / cols) | 0) * cell;
-      const nearEye = x > eye.x - pad && x < eye.x + eye.w + pad && y > eye.y - pad && y < eye.y + eye.h + pad;
-      if (y < skyBottom && !nearEye && hash(i) < (narrow ? 0.005 : 0.0045)) star[i] = 0.5 + hash(i + 7) * 6.28;
-    }
     placeLines();
   }
 
@@ -376,8 +295,7 @@
   function placeLines() {
     const s = demo[current].sentence;
     const size = Math.floor(Math.min(narrow ? 40 : 64, (W - (narrow ? 32 : 240)) / s.length));
-    // High enough to leave the room below it for a whole card.
-    const y = Math.round(H * (narrow ? 0.31 : 0.33));
+    const y = lineY;
     // Centred on its ink: a closing 。 or ！ sits in the left of its square, so the line is
     // nudged right by the blank part of that square.
     const tail = /[。！？，]$/.test(s) ? size * 0.28 : 0;
@@ -425,75 +343,34 @@
         Object.assign(g, { ch }, s >= 0 ? { s, i } : {});
         drawLit(g, true);
       }
+      // Word by word, each at a moment of its own spread over the scroll (the old opening,
+      // played backwards), its characters a beat apart, landing at their places in the eye.
+      const tokens = demo[current].tokens || [];
+      const ti = tokens.findIndex((tk) => k >= tk.range[0] && k < tk.range[1]);
+      const at = ti < 0 ? hash(j * 3.3 + current) : hash(ti * 7.7 + current * 1.9 + 0.3);
+      const inWord = ti < 0 ? 0 : k - tokens[ti].range[0];
       flights.push({ line: l, k, ch, g: pick, x0: g.x + g.w / 2, y0: g.y + g.w / 2 + g.w * 0.04, size0: g.w * 0.94, col: g.col, wt: g.wt,
-        start: 0.04 + hash(j * 3.3 + current) * 0.1 });
+        start: LAND - SPREAD * at - 0.007 * inWord });
     });
+    // The rest of the eye grows out from where they land: each character comes in (a flash of
+    // white, then its tint) as the scroll reaches it, nearest the landed ones first, so the
+    // sentence seeds the eye and it spreads from them to its edges.
+    // Each spreads from the moment it lands, so the eye grows as they arrive.
+    const seeds = flights.filter((f) => f.g >= 0).map((f) => ({ g: fine.glyphs[f.g], at: f.start - FLASH }));
+    const reach = eye.w * 0.42;
+    for (const g of fine.glyphs) {
+      // Whichever landed one reaches it first.
+      let best = GROW_END;
+      for (const s of seeds) {
+        const d = Math.hypot(g.x + g.w / 2 - s.g.x - s.g.w / 2, g.y + g.w / 2 - s.g.y - s.g.w / 2);
+        best = Math.max(best, s.at - (s.at - GROW_END) * clamp(d / reach) ** 0.85);
+      }
+      g.leave = Math.max(GROW_END, best + (g.rnd - 0.5) * 0.012);
+    }
+    for (const f of flights) if (f.g >= 0) fine.glyphs[f.g].leave = f.start - FLASH;
   }
 
   // MARK: Drawing
-
-  // The mountains: four ranges, far to near, each a ridge line with a bright rim that fades
-  // into the body below it, and mist drifting through the valleys.
-  function drawLand(t, sink) {
-    const intro = still ? 0 : (1 - glide(clamp(t / 1.4))) * 0.25;
-    const asp = W / H;
-    if (!tops.length || tops[0].length !== cols) tops = [0, 1, 2, 3].map(() => new Float32Array(cols));
-    let highest = 1;
-    // The ridges are measured against the screen's height, as on a phone, so a wide screen
-    // gets broad ranges rather than more, smaller bumps. On a wide screen they stay low under
-    // the headline, and open into a valley under the eye, so it floats clear over it with
-    // ranges rising either side. The layers spread further down, to the bottom of the screen.
-    // As the story plays they fall away and fade, the near ranges fastest. (On a phone they
-    // fade by falling behind the headline's quiet band; a wide screen fades them outright.)
-    const fade = narrow ? 1 : 1 - 0.72 * sink;
-    const span = narrow ? H : H * 1.7, step = narrow ? 0.055 : 0.068;
-    for (let k = 0; k < 4; k++) {
-      const amp = (narrow ? 0.15 : 0.18) - 0.028 * k;
-      const base = landBase + step * k + intro + sink * 1.9 * (0.06 + 0.05 * k);
-      for (let c = 0; c < cols; c++) {
-        const px = (c + 0.5) * cell, x = px / span;
-        const env = narrow ? 1 : (0.38 + 0.62 * smooth(W * 0.28, eye.x, px)) * (1 - 0.6 * Math.exp(-Math.pow((px - eye.cx) / (eye.w * 0.34), 2)));
-        tops[k][c] = base - amp * env * ridge(x * (0.85 + 0.45 * k) + k * 13.7);
-        if (tops[k][c] < highest) highest = tops[k][c];
-      }
-    }
-    const r0 = Math.max(0, Math.floor((highest * H) / cell) - 1);
-    for (let r = r0; r < rows; r++) {
-      const y = ((r + 0.5) * cell) / H;
-      const quiet = copyBand ? 1 - 0.7 * smooth(copyBand[0] - 40, copyBand[0] + 10, y * H) * (1 - smooth(copyBand[1] - 10, copyBand[1] + 40, y * H)) : 1;
-      const band = smooth(landBase - 0.05, landBase + 0.12, y) * (1 - smooth(landBase + 0.12, 1, y)) * (1 - sink * 0.6);
-      for (let c = 0; c < cols; c++) {
-        let layer = -1, depth = 0;
-        for (let k = 0; k < 4; k++) if (y > tops[k][c]) { layer = k; depth = y - tops[k][c]; }
-        if (layer < 0) continue;
-        let L = Math.exp(-depth * 80) * (0.46 - 0.04 * layer) + Math.exp(-depth * (14 + 3 * layer)) * (0.16 - 0.02 * layer);
-        if (band > 0.01) L += Math.max(0, fbm(((c + 0.5) / cols) * asp * 1.6 - t * 0.025, y * 7 + t * 0.01) - 0.5) * 0.7 * band;
-        const v = L * 2.3;
-        if (v < BAYER[(r & 3) * 4 + (c & 3)] * 0.85 + 0.06) continue;
-        // Quantized, so a cell keeps its character until the light on it really changes.
-        const level = Math.min(7, Math.floor(v * 6));
-        // As the ranges fall, what's left of them fades out toward the bottom edge, so the
-        // last ridge doesn't sit there as a lone line.
-        const floor = 1 - sink * smooth(0.8, 0.97, y);
-        ctx.globalAlpha = Math.min(1, 0.32 + v * 0.5) * quiet * fade * floor;
-        blit(landAtlas[layer], byInk(level / 9, hash((r * cols + c) * 1.7 + level), 0.06), c, r);
-      }
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  function drawStars(t, p) {
-    const fade = (1 - smooth(0.02, 0.2, p)) * (still ? 1 : glide(clamp(t - 0.2)));
-    if (fade < 0.02) return;
-    for (let i = 0; i < star.length; i++) {
-      if (!star[i]) continue;
-      const a = (0.16 + 0.12 * Math.sin(t * 0.7 + star[i])) * fade;
-      if (a < 0.03) continue;
-      ctx.globalAlpha = a;
-      blit(landAtlas[1], byInk(0.25, hash(i * 7.7 + 3), 0.2), i % cols, (i / cols) | 0);
-    }
-    ctx.globalAlpha = 1;
-  }
 
   function draw(t) {
     if (!lit) return;
@@ -502,8 +379,6 @@
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    drawStars(t, p);
-    drawLand(t, smooth(0.02, 0.3, p));
 
     // The eye comes in from left to right, each character flashing white as it arrives; on
     // scroll its characters go, all over at once, the same way. Nothing masks it: its shape is
@@ -511,17 +386,19 @@
     if (p < 0.24) {
       ctx.save();
       const settled = still || t > 0.5 + SWEEP + 0.25;
-      if (settled && p <= 0.035) ctx.drawImage(lit, 0, 0, W, H);
+      if (settled && p <= 0.002) ctx.drawImage(lit, 0, 0, W, H);
       else {
         const flying = new Set();
         for (const f of flights) if (p > f.start) flying.add(f.g);
         ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = "#fff";
         for (let k = 0; k < fine.glyphs.length; k++) {
           const g = fine.glyphs[k];
-          const at = 0.5 + glideAt(clamp((g.x - eye.x) / eye.w + (g.rnd - 0.5) * 0.14)) * SWEEP, leave = 0.035 + g.rnd * 0.15;
-          if ((!still && t < at) || p > leave + 0.02 || flying.has(k)) continue;
+          const at = 0.5 + glideAt(clamp((g.x - eye.x) / eye.w + (g.rnd - 0.5) * 0.14)) * SWEEP, leave = g.leave == null ? 0.035 + g.rnd * 0.15 : g.leave;
+          if ((!still && t < at) || p > leave + FLASH || flying.has(k)) continue;
           if ((!still && t < at + 0.2) || p > leave) {
-            ctx.font = `600 ${g.w * 0.94}px ${ZH}`;
+            // Coming in: white, a touch large, settling to its size as it takes its tint.
+            const pop = p > leave ? 1 + 0.22 * clamp((p - leave) / FLASH) : 1;
+            ctx.font = `600 ${g.w * 0.94 * pop}px ${ZH}`;
             ctx.fillText(g.ch, g.x + g.w / 2, g.y + g.w / 2 + g.w * 0.04);
           } else ctx.drawImage(lit, g.x * dpr, g.y * dpr, g.w * dpr, g.w * dpr, g.x, g.y, g.w, g.w);
         }
@@ -534,6 +411,7 @@
     if (story) {
       const cls = story.classList;
       cls.toggle("is-away", p > 0.03);
+      cls.toggle("is-eye", p < 0.06);
       cls.toggle("is-formed", p >= FORMED);
       holdAt(p);
     }
@@ -577,11 +455,11 @@
   // The eye's characters floating out into the lines: up and over in an arc, growing, their
   // ink turning to white as they land.
   function drawFlights(p) {
-    if (!flights.length || p < 0.035 || p >= FORMED) return;
+    if (!flights.length || p >= FORMED) return;
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
     for (const f of flights) {
       if (p <= f.start) continue;
-      const u = easeInOut(clamp((p - f.start) / 0.18));
+      const u = easeInOut(clamp((p - f.start) / FLIGHT));
       const x1 = f.line.x + (f.k + 0.5) * f.line.size, y1 = f.line.y;
       if (f.g < 0) {
         ctx.font = `400 ${Math.round(f.line.size * 0.9 * 2) / 2}px ${ZH}`;
@@ -619,29 +497,23 @@
   function stop() { running = false; if (raf) cancelAnimationFrame(raf); raf = 0; }
   const kick = () => { if (!raf && visible) raf = requestAnimationFrame(frame); };
 
-  // Scroll to story progress. The eye breaking up and its characters flying into the sentence
-  // take three quarters of a screen of scrolling, unhurried but not a chore; the rest of the
-  // story (about 0.6 of a screen) holds the sentence still to try before the page moves on.
-  const formDist = () => window.innerHeight * 0.75;
-  function progressAt(d) {
-    const travel = story.offsetHeight - window.innerHeight, f = formDist();
-    if (travel <= 0) return 0;
-    if (d <= f) return clamp(d / f) * FORMED;
-    return clamp(FORMED + ((d - f) / Math.max(1, travel - f)) * (1 - FORMED));
-  }
-  function scrollFor(p) {
-    const travel = story.offsetHeight - window.innerHeight, f = formDist();
-    return story.offsetTop + (p <= FORMED ? (p / FORMED) * f : f + ((p - FORMED) / (1 - FORMED)) * Math.max(1, travel - f));
-  }
+  // Scroll to story progress, the other way round from a story told forwards: the page opens
+  // on the sentence (progress FORMED), and the first stretch of scrolling gathers its
+  // characters back up into the eye (progress 0), with the rest of the eye filling in round
+  // them. The pinned stretch after that holds the eye and the headline under it. The shared
+  // preview (?og) is the eye.
+  const gather = () => window.innerHeight * 0.6;
+  function progressAt(d) { return og ? 0 : FORMED * (1 - clamp(d / gather())); }
   function readScroll() {
     if (!story) return;
     target = progressAt(-story.getBoundingClientRect().top);
     if (target > 0.02) setHover(null);
-    if (reduce) kick();
+    kick();
   }
 
-  // Where to scroll to see the sentences formed.
-  function formedY() { return scrollFor(FORMED) + window.innerHeight * 0.03; }
+  // Where the sentence is, and where the eye has formed under the headline.
+  function formedY() { return story.offsetTop; }
+  function eyeY() { return story.offsetTop + gather() + window.innerHeight * 0.05; }
 
   // MARK: Pointing
 
@@ -672,6 +544,7 @@
   window.LongyanHero = {
     lines: () => lines.map((l) => ({ ...l })),
     formedY,
+    eyeY,
     setCurrent(k) { current = k; placeLines(); kick(); },
   };
 
@@ -715,9 +588,8 @@
     showCopy();
     lastW = window.innerWidth;
     layout();
-    // ?t=5 starts five seconds in and ?p=0.6 jumps to that point of the story, for screenshots.
+    // ?t=5 starts five seconds in, for screenshots.
     started = performance.now() - (+params.get("t") || 0) * 1000;
-    if (params.has("p")) window.scrollTo(0, scrollFor(+params.get("p")));
     readScroll();
     progress = target;
     if (reduce) draw(100); else start();
