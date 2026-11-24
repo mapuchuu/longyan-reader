@@ -31,7 +31,8 @@ static class Updates
     static bool started;
 
     /// Only in a built app with its key: without one WinSparkle would run any installer it's given.
-    public static bool Available { get; } = key.Length > 0 && build.Length > 0 && build != "0"
+    /// Never in the Store build or any packaged copy: the Store updates those.
+    public static bool Available { get; } = !Store.Build && !Store.Packaged && key.Length > 0 && build.Length > 0 && build != "0"
         && File.Exists(Path.Combine(Core.AppDirectory, "WinSparkle.dll"));
 
     /// The feed: settings.json's "updateFeed" to try an update from a local server (DEVELOPMENT.md),

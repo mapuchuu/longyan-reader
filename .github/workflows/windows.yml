@@ -19,6 +19,7 @@ on:
       - patches/**
       - windows/**
       - .github/workflows/windows-installer.yml
+      - .github/workflows/windows-msix.yml
       - scripts/bridge-check*
       - scripts/speed-check.txt
       - scripts/eval-lookups.py
@@ -194,6 +195,13 @@ jobs:
       arm64-artifact: LongyanReader-windows-arm64
       runner: windows-11-arm
     secrets: inherit
+
+  # The Microsoft Store package (notes/windows-store.md): an MSIX for each arch, installed,
+  # opened and uninstalled on that arch's runner, then the .msixupload for Partner Center (the
+  # LongyanReader-store artifact). Nothing is submitted from here.
+  msix:
+    needs: [app, app-arm64]
+    uses: ./.github/workflows/windows-msix.yml
 
   # A tag windows-v<version> makes a draft release with the installer. It's never marked
   # latest, so the Mac's releases/latest/download link keeps working: publish it with

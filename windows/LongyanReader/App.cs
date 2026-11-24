@@ -222,6 +222,7 @@ static class Program
         }
         MakeTray();
         MenuChanged();
+        if (Store.Packaged) Diagnostics.Write("packaged: " + Store.PackageFullName + (Store.Build ? ", the Store build, so the Store updates it" : ""));
         LoginItem.Refresh();
         Updates.Start();
         Shortcut.Start(LookUp, (text, pick) => { Balloon(text, pick ? ShortcutWindow.Open : null); if (pick) ShortcutWindow.Open(); });

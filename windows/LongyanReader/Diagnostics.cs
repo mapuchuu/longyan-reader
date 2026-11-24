@@ -166,7 +166,7 @@ static class Diagnostics
 
             ---
             """ + $"\nLongyan Reader {Version} for Windows, {WindowsVersion}, {Processor}, {Memory}, {Environment.ProcessorCount} cores, reading model: {modelStatus}\n";
-        var tail = "\nThe whole log is in %LOCALAPPDATA%\\LongyanReader\\logs, if you'd like to attach it.";
+        var tail = "\nThe whole log is in " + Store.DataFolderForPeople + "\\logs, if you'd like to attach it.";
         const string start = "https://github.com/mapuchuu/longyan-reader/issues/new?body=";
         const int limit = 2000;
         var lines = LastLines(40);

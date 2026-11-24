@@ -114,6 +114,7 @@ Streaming from Ollama uses `URLSession.bytes`, which only Apple's Foundation has
 - The eye (Chip.cs) is in: Raw Input watches the mouse (no hook), UI Automation reads the selection off the app's thread with a 0.5 s limit, and ly_prepare starts the card's work 0.3 s after the eye appears (cancelled if it goes unclicked). Apps that don't say what's selected get it on a double-click only, in elements that may hold text, never in terminals, dialogs, Excel or full screen. It matches the Mac's drawing (gallery eye.png). CI checks it in Notepad. Needs a real PC: mixed-DPI screens, Chrome and Electron on first use, WeChat, touch and pen.
 - Updates: WinSparkle 0.9.4, with its own feed (appcast-windows.xml on the windows-feed pre-release, and appcast-windows-x64-on-arm64.xml for the x64 app on ARM) and ed25519 signatures. The installer runs silently. Built and checked in CI (windows.yml's updates jobs, x64 and x64 on ARM64); still needs the real key (scripts/windows-update-key.sh). DEVELOPMENT.md has the details.
 - Signing: a Windows code-signing certificate, or SmartScreen warns on every download.
+- Microsoft Store: an MSIX the Store signs, beside the unsigned GitHub installer. Built and checked in CI (windows-msix.yml); notes/windows-store.md has the differences and the Partner Center steps.
 
 ## GPU (branch win/gpu)
 

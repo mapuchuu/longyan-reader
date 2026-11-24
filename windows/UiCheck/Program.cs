@@ -28,6 +28,7 @@ static partial class Program
         // Device pixels throughout, as the app works in (per-monitor aware), for the scalings.
         SetProcessDpiAwarenessContext((IntPtr)(-4));
         if (args.Length == 3 && args[0] == "--first-run") return FirstRun(args[1], args[2]);   // FirstRun.cs
+        if (args.Length == 3 && args[0] == "--packaged") return Packaged(args[1], args[2]);   // PackagedCheck.cs
         var exe = args[0];
         outDir = Path.GetFullPath(args[1]);
         Directory.CreateDirectory(outDir);

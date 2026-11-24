@@ -5,9 +5,61 @@ namespace Longyan;
 
 /// Open at login: a value under HKCU\...\CurrentVersion\Run with the exe's quoted path, the
 /// way Windows lists startup apps (Settings > Apps > Startup and Task Manager, where it can be
-/// turned off too). The registry is the setting: nothing else remembers it.
+/// turned off too). The registry is the setting: nothing else remembers it. The Store build
+/// uses its package's startup task instead (below).
 static class LoginItem
 {
+#if STORE
+    // The Store build: the package's startup task (windows.startupTask in
+    // windows/store/AppxManifest.xml). It shows in the same places (Settings > Apps > Startup,
+    // Task Manager), and Windows removes it with the app. Turned off there, the app can't turn it
+    // back on (DisabledByUser): only the reader can, in those places.
+    const string TaskId = "LongyanReaderAtLogin";
+    static Windows.ApplicationModel.StartupTask? task;
+    static bool looked;
+
+    static Windows.ApplicationModel.StartupTask? Task
+    {
+        get
+        {
+            if (looked) return task;
+            looked = true;
+            try { task = Windows.ApplicationModel.StartupTask.GetAsync(TaskId).AsTask().GetAwaiter().GetResult(); }
+            catch (Exception e) { Diagnostics.Write("open at login: no startup task (" + e.Message + ")"); }
+            return task;
+        }
+    }
+
+    public static bool Available => Task != null;
+
+    public static bool IsEnabled
+    {
+        get
+        {
+            try { return Task?.State is Windows.ApplicationModel.StartupTaskState.Enabled or Windows.ApplicationModel.StartupTaskState.EnabledByPolicy; }
+            catch { return false; }
+        }
+    }
+
+    public static void Set(bool on)
+    {
+        try
+        {
+            if (Task is not { } t) return;
+            if (on) t.RequestEnableAsync().AsTask().GetAwaiter().GetResult();
+            else t.Disable();
+            Diagnostics.Write("open at login " + (on ? "on" : "off") + " (startup task: " + t.State + ")");
+        }
+        catch (Exception e) { Diagnostics.Write("couldn't change open at login: " + e.Message); }
+    }
+
+    /// The package's path doesn't change with updates, so there's nothing to point anywhere.
+    public static void Refresh()
+    {
+        try { if (Task is { } t) Diagnostics.Write("open at login: startup task " + t.State); }
+        catch (Exception e) { Diagnostics.Write("couldn't check open at login: " + e.Message); }
+    }
+#else
     const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
     // Where Task Manager and Settings note a startup app they turned off.
     const string ApprovedKey = @"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run";
@@ -63,4 +115,5 @@ static class LoginItem
         }
         catch (Exception e) { Diagnostics.Write("couldn't check open at login: " + e.Message); }
     }
+#endif
 }
