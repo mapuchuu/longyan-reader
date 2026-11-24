@@ -73,7 +73,7 @@ static partial class Program
             if (!started) failures.Add($"packaged: the download didn't write {part}");
             if (Find(root, "ModelButton") is AutomationElement stop && stop.Current.Name == "Stop" && stop.GetCurrentPattern(InvokePattern.Pattern) is InvokePattern s) s.Invoke();
             WaitFor(() => Find(root, "ModelButton")?.Current.Name == "Resume", 30);
-            if (!File.Exists(part + ".pieces")) failures.Add("packaged: no list of pieces after Stop");
+            if (!File.Exists(Path.Combine(models, "qwen3.5-4b-q4_k_m.gguf.pieces"))) failures.Add("packaged: no list of pieces after Stop");
             if (Directory.Exists(Path.Combine(real, "models"))) failures.Add("packaged: the model went to the real %LOCALAPPDATA%");
         }
         else failures.Add($"packaged: the model's button says \"{button?.Current.Name}\", not Download");
