@@ -152,7 +152,9 @@
   });
   let saved = null;
   try { saved = localStorage.getItem("ly-os"); } catch (_) {}
-  if (saved === "win") pick("win", false);
+  // A PC opens on Windows unless this device picked the Mac before.
+  const onWindows = /Windows/.test(navigator.userAgent) && !/Windows Phone/.test(navigator.userAgent);
+  if (saved === "win" || (!saved && onWindows)) pick("win", false);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(aim);
   window.addEventListener("resize", aim);
   aim();
