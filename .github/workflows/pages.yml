@@ -17,11 +17,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  # Built and deployed in two jobs: deploy-pages looks the artifact up once, and in the same
+  # job straight after the upload it sometimes isn't listed yet ("No artifacts named
+  # github-pages"). A second job only starts once the first has finished.
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       # The videos aren't in git (each version added 25-36 MB to every clone); they're
@@ -34,5 +34,12 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - id: deployment
         uses: actions/deploy-pages@v4

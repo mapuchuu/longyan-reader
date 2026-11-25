@@ -1205,7 +1205,7 @@ figcaption b { color: var(--ink); font-weight: 600; }
    sun through haze. It's the page's one burst of daylight between the night sections, so the
    line about people reads warm and open. The selection over the words turns to frosted glass
    so it doesn't vanish into the blue. */
-.trusted { margin-top: 170px; padding: 170px 0; text-align: center; overflow: hidden; position: relative; isolation: isolate;
+.trusted { margin-top: 170px; padding: 104px 0; text-align: center; overflow: hidden; position: relative; isolation: isolate;
   background:
     radial-gradient(55% 60% at 22% 18%, rgba(200, 230, 255, .55), transparent 70%),
     radial-gradient(60% 70% at 100% 100%, rgba(150, 110, 248, .85), rgba(150, 110, 248, .3) 45%, transparent 72%),
@@ -1478,7 +1478,7 @@ figcaption b { color: var(--ink); font-weight: 600; }
 .wdesk.still.s2 .wpointer { transform: translate(var(--hist-x), var(--hist-y)); }
 
 /* Closing */
-.closing { padding: 112px 0 116px; text-align: center; overflow: hidden; background: #252a6c; }
+.closing { padding: 68px 0 72px; text-align: center; overflow: hidden; background: #252a6c; }
 .closing .paper { z-index: 0; }
 .closing .wrap { position: relative; z-index: 2; }
 /* A soft dusk behind the words, so they read even where the sheets are at their brightest. */
@@ -1590,7 +1590,7 @@ footer a { color: #a1a1a6; }
   h1 { font-size: 42px; }
   h2 { font-size: 32px; }
   .closing h2 { font-size: min(32px, calc((100vw - 40px) / 12.3)); }
-  .trusted { margin-top: 110px; padding: 96px 0; }
+  .trusted { margin-top: 110px; padding: 66px 0; }
   .trusted h2 { font-size: 28px; line-height: 1.6; }
   .os-switch button { min-width: 92px; }
   .hero-sub, .section-head p, .watch-copy p, .closing p { font-size: 17px; }
@@ -1629,7 +1629,7 @@ footer a { color: #a1a1a6; }
   .wdesk { --cx: -70px; --rx: -140px; }
   .wdesk .layer { transform: none; }
   .mac-screen { border-radius: 12px; box-shadow: 0 0 0 1px rgba(255, 255, 255, .06), 0 0 0 6px #0e0e11, 0 0 0 7px rgba(255, 255, 255, .22), 0 30px 60px rgba(0, 0, 0, .6); }
-  .closing { padding: 84px 0 88px; }
+  .closing { padding: 58px 0 62px; }
   .closing-mark { width: 76px; margin-bottom: 22px; }
   .hero-sub { margin: 14px auto 22px; }
   .hero-actions { gap: 16px; }
