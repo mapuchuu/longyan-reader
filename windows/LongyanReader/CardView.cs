@@ -530,14 +530,15 @@ sealed class CardView
         title.Height = lost ? 15 : LineHeight(11);
         var label = Label((string?)note["title"] ?? "", 11, Theme.Secondary, FontWeights.SemiBold);
         label.VerticalAlignment = VerticalAlignment.Center;
-        // The symbol as the Mac's sits (measured at 10x): its ink centred on the label's text
-        // ink, its side bearing before it (1.0, 1.4), and 5.8 or 6.5 of ink gap to the text.
+        // The symbol where the Mac card draws it on a 2x screen (the gallery's Mac cards): its ink
+        // centred on the label's text ink (the globe 0.2 lower), 1.0 or 0.9 in from the row's
+        // left, and 6.2 or 6.0 of ink gap to the text's ink.
         var symbol = lost ? Icons.Translate : Icons.Globe;
         var icon = symbol.Shape(lost ? Theme.NoteLost : Theme.NoteCulture);
         var ink = TextInk(label.Text, 11, FontWeights.SemiBold);
-        var middle = (title.Height - LineHeight(11)) / 2 + ink.Top + ink.Height / 2;
+        var middle = (title.Height - LineHeight(11)) / 2 + ink.Top + ink.Height / 2 + (lost ? 0 : 0.2);
         icon.VerticalAlignment = VerticalAlignment.Top;
-        icon.Margin = new Thickness(lost ? 1.4 : 1.0, middle - symbol.Height / 2, (lost ? 6.5 : 5.8) - ink.Left, 0);
+        icon.Margin = new Thickness(lost ? 0.9 : 1.0, middle - symbol.Height / 2, (lost ? 6.0 : 6.2) - ink.Left, 0);
         title.Children.Add(icon);
         title.Children.Add(label);
         stack.Children.Add(title);
