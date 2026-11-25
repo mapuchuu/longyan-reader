@@ -171,6 +171,18 @@ static partial class Program
         using (var k = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Avalon.Graphics"))
             k.DeleteValue("DisableHWAcceleration", false);
 
+        // The display's scaling changed while Settings is open (as when a VM's window is
+        // resized), then started again at the larger scaling.
+        var (offered, was) = Scaling.Read();
+        var big = offered.Where(p => p > was).DefaultIfEmpty(was).Max();
+        Console.WriteLine($"[history-scaled] scalings {string.Join(", ", offered)}; now {was}%, trying {big}%");
+        HistoryCheck.FromSettings(() => OpenAgain(exe), app, outDir, failures, "9-history-rescaled", beforeOpen: () => Scaling.SetTo(big));
+        try { app.Kill(); app.WaitForExit(10000); } catch { }
+        app = Process.Start(start)!;
+        Thread.Sleep(12000);
+        HistoryCheck.FromSettings(() => OpenAgain(exe), app, outDir, failures, "10-history-scaled");
+        Scaling.SetTo(was);
+
         try { notepad.Kill(); } catch { }
         try { app.Kill(); } catch { }
         Latencies();

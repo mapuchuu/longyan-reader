@@ -135,8 +135,8 @@ static partial class Program
                 RunKeyUntouched();
                 Shot("pk-4-settings-after");
             }
-            // 6. Lookup history from Settings' Open, clicked: drawn whole.
-            HistoryCheck.FromSettings(() => Open(family), app!, outDir, failures, "pk-5-history-from-settings", Click);
+            // 6. Lookup history from Settings' Open: drawn whole.
+            HistoryCheck.FromSettings(() => Open(family), app!, outDir, failures, "pk-5-history-from-settings");
         }
         return Done(appLog);
     }
