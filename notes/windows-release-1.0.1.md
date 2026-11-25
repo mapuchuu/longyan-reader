@@ -5,6 +5,7 @@ A small update to Longyan Reader for Windows.
 - The question "Check for updates automatically?" could open behind other windows on the second launch. It now comes to the front, or flashes in the taskbar when Windows won't give it the focus.
 - The update windows show the app's icon in their title bar instead of WinSparkle's.
 - 不想 now reads "don't want to" and 小林 "Xiao Lin". The dictionary only had 不想 "unexpectedly" and 小林 "Kobayashi". Those meanings are still there and are picked when the sentence calls for them.
+- 31 more common words had only a rare meaning, a name or the wrong reading, so the card could give the wrong sense: 到底 "to the last", 一家 "group", 山下 "Yamashita", 海里 "nautical mile" and others. They now have their everyday meanings.
 
 **Which file**
 
