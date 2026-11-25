@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.Json.Nodes;
 
 namespace Longyan;
@@ -97,6 +98,7 @@ static class Updates
             win_sparkle_set_update_cancelled_callback(cancelled);
             win_sparkle_set_update_skipped_callback(skipped);
             win_sparkle_set_update_postponed_callback(postponed);
+            WatchWindows();
             win_sparkle_init();
             started = true;
             Diagnostics.Write($"updates: build {build}, {RuntimeInformation.ProcessArchitecture}{(X64OnArm64 ? " on ARM64, so the ARM64 build next" : "")}, automatic checks {(Automatic ? "on" : "off")}"
@@ -131,6 +133,71 @@ static class Updates
         started = false;
         win_sparkle_cleanup();
     }
+
+    // WinSparkle's windows open on its own thread, often while another app is in front: the
+    // second launch's question comes as the app starts, and Windows doesn't give the focus to an
+    // app the reader isn't using, so it opened behind. Each one is brought forward as it shows,
+    // with the focus if Windows allows it, otherwise above the other windows with its taskbar
+    // button flashing. Its title bar gets the app's icon: WinSparkle puts its own there, from its
+    // DLL (the icon inside the window is the exe's first one, which is already the app's).
+    static WinEventProc? onShow;   // kept alive while the hook is set
+    static IntPtr smallIcon, bigIcon;
+    static uint uiThread;
+
+    static void WatchWindows()
+    {
+        uiThread = GetCurrentThreadId();
+        var ico = Path.Combine(Core.AppDirectory, "LongyanReader.ico");
+        if (File.Exists(ico))
+        {
+            smallIcon = LoadImage(IntPtr.Zero, ico, IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_LOADFROMFILE);
+            bigIcon = LoadImage(IntPtr.Zero, ico, IMAGE_ICON, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), LR_LOADFROMFILE);
+        }
+        onShow = OnShow;
+        if (SetWinEventHook(EVENT_OBJECT_SHOW, EVENT_OBJECT_SHOW, IntPtr.Zero, onShow, (uint)Environment.ProcessId, 0, WINEVENT_OUTOFCONTEXT) == IntPtr.Zero)
+            Diagnostics.Write("updates: can't watch for WinSparkle's windows");
+        if (smallIcon == IntPtr.Zero || bigIcon == IntPtr.Zero) Diagnostics.Write("updates: couldn't load the app's icon for WinSparkle's windows");
+    }
+
+    static void OnShow(IntPtr hook, uint e, IntPtr hwnd, int obj, int child, uint thread, uint time)
+    {
+        if (obj != OBJID_WINDOW || hwnd == IntPtr.Zero || thread == uiThread || GetAncestor(hwnd, GA_ROOT) != hwnd) return;
+        var cls = new StringBuilder(64);
+        GetClassName(hwnd, cls, cls.Capacity);
+        // WinSparkle's windows are wxWidgets dialogs, which use Windows' dialog class. The app's
+        // own windows and message boxes are all on its UI thread.
+        if (cls.ToString() != "#32770" || (GetWindowLong(hwnd, GWL_STYLE) & WS_CAPTION) != WS_CAPTION) return;
+        // Posted, not sent: WinSparkle's thread never waits on this one.
+        if (smallIcon != IntPtr.Zero) PostMessage(hwnd, WM_SETICON, ICON_SMALL, smallIcon);
+        if (bigIcon != IntPtr.Zero) PostMessage(hwnd, WM_SETICON, ICON_BIG, bigIcon);
+        if (SetForegroundWindow(hwnd) && GetForegroundWindow() == hwnd) return;
+        const uint flags = SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE;
+        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, flags);
+        SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, flags);   // above the other windows, but not kept on top
+        var flash = new FLASHWINFO { cbSize = (uint)Marshal.SizeOf<FLASHWINFO>(), hwnd = hwnd, dwFlags = FLASHW_ALL | FLASHW_TIMERNOFG };
+        FlashWindowEx(ref flash);
+        Diagnostics.Write("updates: another app has the focus, so the update window is on top with its taskbar button flashing");
+    }
+
+    delegate void WinEventProc(IntPtr hook, uint e, IntPtr hwnd, int obj, int child, uint thread, uint time);
+    [StructLayout(LayoutKind.Sequential)]
+    struct FLASHWINFO { public uint cbSize; public IntPtr hwnd; public uint dwFlags; public uint uCount; public uint dwTimeout; }
+    const uint EVENT_OBJECT_SHOW = 0x8002, WINEVENT_OUTOFCONTEXT = 0, IMAGE_ICON = 1, LR_LOADFROMFILE = 0x10, WM_SETICON = 0x80, GA_ROOT = 2;
+    const uint SWP_NOSIZE = 1, SWP_NOMOVE = 2, SWP_NOACTIVATE = 0x10, FLASHW_ALL = 3, FLASHW_TIMERNOFG = 12;
+    const int OBJID_WINDOW = 0, SM_CXICON = 11, SM_CYICON = 12, SM_CXSMICON = 49, SM_CYSMICON = 50, GWL_STYLE = -16, WS_CAPTION = 0xC00000;
+    static readonly IntPtr ICON_SMALL = 0, ICON_BIG = 1, HWND_TOPMOST = -1, HWND_NOTOPMOST = -2;
+    [DllImport("user32.dll")] static extern IntPtr SetWinEventHook(uint min, uint max, IntPtr module, WinEventProc proc, uint pid, uint thread, uint flags);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern IntPtr LoadImage(IntPtr instance, string name, uint type, int cx, int cy, uint load);
+    [DllImport("user32.dll")] static extern int GetSystemMetrics(int index);
+    [DllImport("user32.dll")] static extern IntPtr GetAncestor(IntPtr hwnd, uint flags);
+    [DllImport("user32.dll")] static extern int GetWindowLong(IntPtr hwnd, int index);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetClassName(IntPtr hwnd, StringBuilder name, int max);
+    [DllImport("user32.dll")] static extern bool PostMessage(IntPtr hwnd, uint msg, IntPtr w, IntPtr l);
+    [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr hwnd);
+    [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr hwnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
+    [DllImport("user32.dll")] static extern bool FlashWindowEx(ref FLASHWINFO info);
+    [DllImport("kernel32.dll")] static extern uint GetCurrentThreadId();
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)] delegate int CanShutdown();
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)] delegate void Callback();

@@ -45,13 +45,25 @@ static class Program
         if (!File.Exists(installer)) return Fail("no " + installer);
         var feedName = arch == "arm64" ? "appcast-windows-x64-on-arm64.xml" : "appcast-windows.xml";
 
-        // 1. Automatic checks on, never checked: WinSparkle checks as the app starts.
+        // 0. The second launch: WinSparkle asks whether to check automatically. The question is
+        // in front, with the app's icon in its title bar, and Check automatically checks at once.
         using (var key = Registry.CurrentUser.CreateSubKey(@"Software\LongyanReader\Updates"))
         {
-            key.SetValue("CheckForUpdates", "1");
+            key.SetValue("DidRunOnce", "1");
+            key.DeleteValue("CheckForUpdates", false);
             key.DeleteValue("LastCheckTime", false);
         }
         var app = Process.Start(new ProcessStartInfo(exe) { WorkingDirectory = Path.GetDirectoryName(exe)! })!;
+        var ask = WaitForUpdateWindow(TimeSpan.FromSeconds(120), "Check for updates automatically?");
+        Thread.Sleep(1000);
+        Shot("0-ask");
+        if (ask == null) return Fail("no question on the second launch");
+        var hwnd = (IntPtr)ask.Current.NativeWindowHandle;
+        Check(InFront(hwnd), "the question is in front (" + (GetForegroundWindow() == hwnd ? "with the focus" : "without the focus") + ")");
+        Check(SameIcon(hwnd, Path.Combine(Path.GetDirectoryName(exe)!, "LongyanReader.ico")), "the question has the app's icon in its title bar");
+        Click(ask, "Check automatically");
+
+        // 1. Automatic checks on, never checked: WinSparkle checks at once.
         var offer = WaitForUpdateWindow(TimeSpan.FromSeconds(120), "is now available");
         Shot("1-automatic-offer");
         if (offer == null) return Fail("no update offered by the automatic check");
@@ -192,6 +204,46 @@ static class Program
         foreach (var p in Process.GetProcessesByName("LongyanReader")) p.Kill();
         return 1;
     }
+
+    /// The window has the focus, or is the first visible window under the always-on-top ones (the taskbar).
+    static bool InFront(IntPtr hwnd)
+    {
+        if (GetForegroundWindow() == hwnd) return true;
+        var first = IntPtr.Zero;
+        EnumWindows((h, _) =>
+        {
+            if (!IsWindowVisible(h) || (GetWindowLong(h, -20) & 8) != 0) return true;   // GWL_EXSTYLE, WS_EX_TOPMOST
+            first = h;
+            return false;
+        }, IntPtr.Zero);
+        return first == hwnd;
+    }
+
+    /// The window's title bar icon is the one in `ico`, pixel for pixel.
+    static bool SameIcon(IntPtr hwnd, string ico)
+    {
+        var shown = SendMessage(hwnd, 0x7F, 0, 0);   // WM_GETICON, ICON_SMALL
+        var size = GetSystemMetrics(49);   // SM_CXSMICON
+        var app = LoadImage(IntPtr.Zero, ico, 1, size, size, 0x10);   // IMAGE_ICON, LR_LOADFROMFILE
+        if (shown == IntPtr.Zero || app == IntPtr.Zero) return false;
+        using var a = Icon.FromHandle(shown).ToBitmap();
+        using var b = Icon.FromHandle(app).ToBitmap();
+        if (a.Size != b.Size) { Console.WriteLine($"icon sizes {a.Size} and {b.Size}"); return false; }
+        for (var y = 0; y < a.Height; y++)
+            for (var x = 0; x < a.Width; x++)
+                if (a.GetPixel(x, y) != b.GetPixel(x, y)) return false;
+        return true;
+    }
+
+    delegate bool EnumProc(IntPtr hwnd, IntPtr data);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
+    [System.Runtime.InteropServices.DllImport("user32.dll")] static extern bool EnumWindows(EnumProc proc, IntPtr data);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr hwnd);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] static extern int GetWindowLong(IntPtr hwnd, int index);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] static extern IntPtr SendMessage(IntPtr hwnd, uint msg, IntPtr w, IntPtr l);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] static extern int GetSystemMetrics(int index);
+    [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+    static extern IntPtr LoadImage(IntPtr instance, string name, uint type, int cx, int cy, uint load);
 
     static void Shot(string name)
     {
