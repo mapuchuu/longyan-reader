@@ -118,25 +118,33 @@ static class HistoryCheck
             if (!File.Exists(Path.Combine(drawn, name + ".png"))) Fail($"no {name}.png drawn");
     }
 
-    /// The window opened from Settings' Open, in a copy that has shown nothing else yet (as
-    /// at login, then the app opened again from Start): drawn as from --history, with its
-    /// tabs, search box, More options and column names, on its grey.
-    public static void FromSettings(string exe, Process app, string outDir, List<string> failures)
+    /// The window opened from Settings' Open (Settings from opening the app again, as from
+    /// Start): drawn as from --history, with its tabs, search box, More options and column
+    /// names, on its grey. Open is invoked, or clicked with the mouse when `click` is given.
+    public static void FromSettings(string exe, Process app, string outDir, List<string> failures, string name, Action<double, double>? click = null)
     {
-        void Fail(string why) { failures.Add("7-history-from-settings: " + why); Console.WriteLine("[7-history-from-settings] FAILED " + why); }
+        void Fail(string why) { failures.Add(name + ": " + why); Console.WriteLine($"[{name}] FAILED " + why); }
         using (var p = Process.Start(new ProcessStartInfo(exe) { WorkingDirectory = Path.GetDirectoryName(exe)! })!) p.WaitForExit(10000);
         var settings = WaitForWindow(app, "Longyan Reader settings", 10000);
-        if (settings == null) { Fail("opening the app again didn't open Settings"); Shot(outDir, "7-no-settings"); return; }
+        if (settings == null) { Fail("opening the app again didn't open Settings"); Shot(outDir, name + "-no-settings"); return; }
         Thread.Sleep(1000);
         if (settings.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.AutomationIdProperty, "OpenHistory")) is not AutomationElement open
             || !open.TryGetCurrentPattern(InvokePattern.Pattern, out var ip)) { Fail("no Open button for history in Settings"); return; }
-        ((InvokePattern)ip).Invoke();
+        if (click == null) ((InvokePattern)ip).Invoke();
+        else
+        {
+            if (open.TryGetCurrentPattern(ScrollItemPattern.Pattern, out var scroll)) ((ScrollItemPattern)scroll).ScrollIntoView();
+            Thread.Sleep(600);
+            Shot(outDir, name + "-settings");
+            var r = open.Current.BoundingRectangle;
+            click(r.Left + r.Width / 2, r.Top + r.Height / 2);
+        }
         var window = WaitForWindow(app, "Lookup history", 10000);
-        if (window == null) { Fail("Open didn't open the window"); Shot(outDir, "7-history-none"); }
+        if (window == null) { Fail("Open didn't open the window"); Shot(outDir, name + "-none"); }
         else
         {
             Thread.Sleep(1500);
-            Shot(outDir, "7-history-from-settings");
+            Shot(outDir, name);
             var undrawn = Undrawn(window);
             foreach (var why in undrawn) Fail(why);
             if (undrawn.Count > 0)
@@ -144,17 +152,22 @@ static class HistoryCheck
                 // Told to paint again: whether it's the drawing or the colours that are missing.
                 RedrawWindow((IntPtr)window.Current.NativeWindowHandle, IntPtr.Zero, IntPtr.Zero, 0x1 | 0x4 | 0x80 | 0x100);
                 Thread.Sleep(1000);
-                Shot(outDir, "7-history-from-settings-repainted");
+                Shot(outDir, name + "-repainted");
                 var still = Undrawn(window);
-                Console.WriteLine($"[7-history-from-settings] painted again: {(still.Count == 0 ? "all drawn" : string.Join("; ", still))}");
+                Console.WriteLine($"[{name}] painted again: {(still.Count == 0 ? "all drawn" : string.Join("; ", still))}");
             }
+            // A setting changed in Windows (the window paints its colours again): still drawn.
+            SendMessageTimeout((IntPtr)0xFFFF, 0x001A /* WM_SETTINGCHANGE */, IntPtr.Zero, "ImmersiveColorSet", 2, 2000, out _);
+            Thread.Sleep(1500);
+            Shot(outDir, name + "-setting-changed");
+            foreach (var why in Undrawn(window)) Fail("after a setting change, " + why);
             if (window.TryGetCurrentPattern(WindowPattern.Pattern, out var wp)) ((WindowPattern)wp).Close();
         }
         var appLog = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LongyanReader", "logs", "longyan.log");
         try
         {
             using var f = new FileStream(appLog, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            foreach (var l in new StreamReader(f).ReadToEnd().Split('\n').Where(l => l.Contains("history: drawn"))) Console.WriteLine("[7-history-from-settings log] " + l.Trim());
+            foreach (var l in new StreamReader(f).ReadToEnd().Split('\n').Where(l => l.Contains("history: drawn")).TakeLast(1)) Console.WriteLine($"[{name} log] " + l.Trim());
         }
         catch { }
         if (settings.TryGetCurrentPattern(WindowPattern.Pattern, out var sp)) ((WindowPattern)sp).Close();
@@ -166,8 +179,6 @@ static class HistoryCheck
     static List<string> Undrawn(AutomationElement window)
     {
         var o = new List<string>();
-        try { SetForegroundWindow((IntPtr)window.Current.NativeWindowHandle); } catch { }
-        Thread.Sleep(300);
         var parts = new (string Name, ControlType Type, string What)[]
         {
             ("All", ControlType.RadioButton, "the All tab"),
@@ -221,7 +232,7 @@ static class HistoryCheck
         return bmp.GetPixel(0, 0);
     }
 
-    [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr h);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern IntPtr SendMessageTimeout(IntPtr h, uint msg, IntPtr w, string l, uint flags, uint timeout, out IntPtr result);
     [DllImport("user32.dll")] static extern bool RedrawWindow(IntPtr h, IntPtr rect, IntPtr region, uint flags);
 
     static List<JsonObject> Records(string file)

@@ -157,8 +157,19 @@ static partial class Program
         Thread.Sleep(12000);
         Focus(window);
         FirstEye(app, window, "6-first-eye-again");
-        HistoryCheck.FromSettings(exe, app, outDir, failures);
+        HistoryCheck.FromSettings(exe, app, outDir, failures, "7-history-from-settings");
         EyeScalings(app);
+
+        // Once more with WPF drawing in software, as in a VM without a GPU for it, and Open
+        // clicked with the mouse.
+        try { app.Kill(); app.WaitForExit(10000); } catch { }
+        using (var k = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Avalon.Graphics"))
+            k.SetValue("DisableHWAcceleration", 1, Microsoft.Win32.RegistryValueKind.DWord);
+        app = Process.Start(start)!;
+        Thread.Sleep(12000);
+        HistoryCheck.FromSettings(exe, app, outDir, failures, "8-history-software", Click);
+        using (var k = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Avalon.Graphics"))
+            k.DeleteValue("DisableHWAcceleration", false);
 
         try { notepad.Kill(); } catch { }
         try { app.Kill(); } catch { }
