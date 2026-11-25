@@ -13,6 +13,9 @@ Serve the repo root first: `python3 -m http.server 8793` from the repo.
   `node shootfilm.js <frames> 2`, then
   `swift ../../film/encode.swift <frames> hero.mp4 h264 12000000 60 1920 1080`.
   `node shootfilm.js <dir> 2 5.5` draws one frame (t = 5.5 s), for its thumbnail.
+- Super hero art (16:9, artwork only, no headline): the video's frame at 5.5 s without its
+  words, so the page goes from the video's end to the same picture.
+  `BARE=1 node shootfilm.js <dir> 4 5.5` (3840×2160; the card and browser are drawn, so 4× is sharp).
 - Logo art, black mark on white (box art 2160 and 1080, the 300 px tile, the 2:3 poster):
   `node logo.js <outdir>`.
 

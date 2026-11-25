@@ -97,3 +97,4 @@ body { -webkit-font-smoothing: auto; }
 #frame > .glass-box { will-change: opacity, transform; }
 /* Frame by frame, so nothing may ease on its own. */
 .filming #frame *, .filming #frame > * { transition: none !important; animation: none !important; }
+.bare .copy { display: none; }

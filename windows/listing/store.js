@@ -140,6 +140,8 @@
     const build = (n) => { const i = frame.children.length; const after = SHOTS[n](); const box = frame.children[i]; if (n !== 1) keep(box); return { box, after }; };
     const scenes = [];
     document.documentElement.classList.add("filming");
+    // ?film&bare: no headlines, for the super hero art (a still of the video, artwork only).
+    if (q.has("bare")) document.documentElement.classList.add("bare");
 
     // 1. The browser: the drag, the eye, the click, the card.
     {

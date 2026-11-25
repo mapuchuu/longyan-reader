@@ -9,7 +9,7 @@ fs.mkdirSync(out, { recursive: true });
   const b = await chromium.launch({ channel: 'chrome' });
   const p = await (await b.newContext({ viewport: { width: 960, height: 540 }, deviceScaleFactor: Number(scale) })).newPage();
   p.on('pageerror', (e) => console.log('error', e.message));
-  await p.goto(`${process.env.STORE_URL || 'http://127.0.0.1:8793/windows/listing/'}?film`, { waitUntil: 'load' });
+  await p.goto(`${process.env.STORE_URL || 'http://127.0.0.1:8793/windows/listing/'}?film${process.env.BARE ? "&bare" : ""}`, { waitUntil: 'load' });
   await p.waitForFunction(() => document.body.dataset.ready === '1', null, { timeout: 15000 });
   await p.waitForTimeout(300);
   const { T, FPS } = await p.evaluate(() => ({ T: window.film.T, FPS: window.film.FPS }));
