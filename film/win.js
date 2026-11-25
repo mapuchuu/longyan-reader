@@ -46,6 +46,7 @@
   const CAPS = `<span class="caps"><b>&#xE921;</b><b>&#xE922;</b><b>&#xE8BB;</b></span>`;
   const G = (c) => `<i class="fl">${c}</i>`;
   document.addEventListener("DOMContentLoaded", () => {
+    if (!document.getElementById("stage")) return;   // only the film's set has these
     const bar = (id) => document.querySelector(`${id} .bar`);
     // A browser: one tab in the title bar, the toolbar under it.
     bar("#w-a").innerHTML =
