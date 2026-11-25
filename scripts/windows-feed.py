@@ -160,17 +160,26 @@ def s(name):
     return "{%s}%s" % (SPARKLE, name)
 
 
+def _inline(t):
+    """Bold, `code` and [text](url) links, on escaped text."""
+    t = html.escape(t, quote=False)
+    t = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", t)
+    t = re.sub(r"`([^`]+)`", r"<code>\1</code>", t)
+    t = re.sub(r"\[([^\]]+)\]\((https?://[^)\s\"]+)\)", r'<a href="\2">\1</a>', t)
+    return t
+
+
 def notes_html(markdown):
-    """The release notes as the small HTML WinSparkle's window shows: paragraphs, bold and lists."""
+    """The release notes as the small HTML WinSparkle's window shows: paragraphs, lists, bold, code and links."""
     out = []
     for block in re.split(r"\n\s*\n", markdown.strip()):
         lines = [l.rstrip() for l in block.splitlines() if l.strip()]
-        inline = lambda t: re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", html.escape(t, quote=False))
+        inline = _inline
         if lines and all(l.lstrip().startswith(("- ", "* ")) for l in lines):
             out.append("<ul>" + "".join("<li>%s</li>" % inline(l.lstrip()[2:]) for l in lines) + "</ul>")
         else:
             out.append("<p>%s</p>" % inline(" ".join(lines)))
-    style = "<style>body{font-family:'Segoe UI',sans-serif;font-size:14px;line-height:1.4}</style>"
+    style = "<style>body{font-family:'Segoe UI',sans-serif;font-size:14px;line-height:1.4}code{font-family:Consolas,monospace;font-size:13px}</style>"
     return style + "\n".join(out)
 
 
