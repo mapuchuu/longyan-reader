@@ -98,6 +98,7 @@ static class Program
         0xE721, // Search
         0xE73E, // CheckMark
         0xE765, // KeyboardClassic
+        0xE774, // Globe (the card's cultural note)
         0xE7E8, // PowerButton
         0xE81C, // History
         0xE890, // View
@@ -106,6 +107,7 @@ static class Program
         0xE8F1, // Library
         0xE962, // Mouse
         0xED15, // Feedback
+        0xF2B7, // LocaleLanguage (the card's lost-in-translation note)
     };
 
     static GlyphTypeface? Typeface(string path)
