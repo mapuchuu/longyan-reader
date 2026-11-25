@@ -51,6 +51,7 @@ static class HistoryCheck
         {
             Thread.Sleep(1500);
             Shot(outDir, "4-history");
+            foreach (var why in Undrawn(window)) Fail("from --history, " + why);
             var rows = Rows(window);
             Console.WriteLine($"[4-history] the window lists {rows.Count} lookups");
             var expected = new[] { "感冒", "明朝实行海禁，闭关锁国", eye == null ? "海禁" : Str(eye, "word") };
@@ -116,6 +117,112 @@ static class HistoryCheck
         foreach (var name in new[] { "history", "history-dark", "history-empty", "history-off", "history-search", "history-clear-dark" })
             if (!File.Exists(Path.Combine(drawn, name + ".png"))) Fail($"no {name}.png drawn");
     }
+
+    /// The window opened from Settings' Open, in a copy that has shown nothing else yet (as
+    /// at login, then the app opened again from Start): drawn as from --history, with its
+    /// tabs, search box, More options and column names, on its grey.
+    public static void FromSettings(string exe, Process app, string outDir, List<string> failures)
+    {
+        void Fail(string why) { failures.Add("7-history-from-settings: " + why); Console.WriteLine("[7-history-from-settings] FAILED " + why); }
+        using (var p = Process.Start(new ProcessStartInfo(exe) { WorkingDirectory = Path.GetDirectoryName(exe)! })!) p.WaitForExit(10000);
+        var settings = WaitForWindow(app, "Longyan Reader settings", 10000);
+        if (settings == null) { Fail("opening the app again didn't open Settings"); Shot(outDir, "7-no-settings"); return; }
+        Thread.Sleep(1000);
+        if (settings.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.AutomationIdProperty, "OpenHistory")) is not AutomationElement open
+            || !open.TryGetCurrentPattern(InvokePattern.Pattern, out var ip)) { Fail("no Open button for history in Settings"); return; }
+        ((InvokePattern)ip).Invoke();
+        var window = WaitForWindow(app, "Lookup history", 10000);
+        if (window == null) { Fail("Open didn't open the window"); Shot(outDir, "7-history-none"); }
+        else
+        {
+            Thread.Sleep(1500);
+            Shot(outDir, "7-history-from-settings");
+            var undrawn = Undrawn(window);
+            foreach (var why in undrawn) Fail(why);
+            if (undrawn.Count > 0)
+            {
+                // Told to paint again: whether it's the drawing or the colours that are missing.
+                RedrawWindow((IntPtr)window.Current.NativeWindowHandle, IntPtr.Zero, IntPtr.Zero, 0x1 | 0x4 | 0x80 | 0x100);
+                Thread.Sleep(1000);
+                Shot(outDir, "7-history-from-settings-repainted");
+                var still = Undrawn(window);
+                Console.WriteLine($"[7-history-from-settings] painted again: {(still.Count == 0 ? "all drawn" : string.Join("; ", still))}");
+            }
+            if (window.TryGetCurrentPattern(WindowPattern.Pattern, out var wp)) ((WindowPattern)wp).Close();
+        }
+        var appLog = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LongyanReader", "logs", "longyan.log");
+        try
+        {
+            using var f = new FileStream(appLog, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            foreach (var l in new StreamReader(f).ReadToEnd().Split('\n').Where(l => l.Contains("history: drawn"))) Console.WriteLine("[7-history-from-settings log] " + l.Trim());
+        }
+        catch { }
+        if (settings.TryGetCurrentPattern(WindowPattern.Pattern, out var sp)) ((WindowPattern)sp).Close();
+        Thread.Sleep(500);
+    }
+
+    /// What of the window's bar, header and fill isn't on screen: each part must show ink
+    /// (pixels well off its own commonest colour), and the window its grey.
+    static List<string> Undrawn(AutomationElement window)
+    {
+        var o = new List<string>();
+        try { SetForegroundWindow((IntPtr)window.Current.NativeWindowHandle); } catch { }
+        Thread.Sleep(300);
+        var parts = new (string Name, ControlType Type, string What)[]
+        {
+            ("All", ControlType.RadioButton, "the All tab"),
+            ("Phrases", ControlType.RadioButton, "the Phrases tab"),
+            ("Search", ControlType.Edit, "the search box"),
+            ("More options", ControlType.Button, "More options"),
+            ("Chinese", ControlType.Text, "the Chinese column's name"),
+            ("When", ControlType.Text, "the When column's name"),
+        };
+        System.Windows.Rect? tab = null;
+        foreach (var (name, type, what) in parts)
+        {
+            var e = window.FindFirst(TreeScope.Descendants, new AndCondition(
+                new PropertyCondition(AutomationElement.NameProperty, name), new PropertyCondition(AutomationElement.ControlTypeProperty, type)));
+            if (e == null) { o.Add($"no {what}"); continue; }
+            var r = e.Current.BoundingRectangle;
+            if (name == "All") tab = r;
+            var ink = Ink(r);
+            Console.WriteLine($"[history drawn] {what}: {ink} ink pixels in {r.Width:0}x{r.Height:0}");
+            if (ink < 12) o.Add($"{what} isn't drawn ({ink} ink pixels)");
+        }
+        if (tab is System.Windows.Rect t)
+        {
+            // Left of the first tab, in the bar's margin: the window's own colour.
+            var c = Pixel((int)t.Left - 6, (int)(t.Top + t.Height / 2));
+            var grey = c.R == c.G && c.G == c.B && (c.R is >= 0xEE and <= 0xF6 || c.R is >= 0x1C and <= 0x24);
+            Console.WriteLine($"[history drawn] the window's fill: #{c.R:X2}{c.G:X2}{c.B:X2}");
+            if (!grey) o.Add($"the window's fill is #{c.R:X2}{c.G:X2}{c.B:X2}, not its grey");
+        }
+        return o;
+    }
+
+    static int Ink(System.Windows.Rect r)
+    {
+        var w = Math.Max(1, (int)r.Width);
+        var h = Math.Max(1, (int)r.Height);
+        using var bmp = new Bitmap(w, h);
+        using (var g = Graphics.FromImage(bmp)) g.CopyFromScreen((int)r.Left, (int)r.Top, 0, 0, new Size(w, h));
+        var counts = new Dictionary<int, int>();
+        var px = new List<Color>();
+        for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) { var c = bmp.GetPixel(x, y); px.Add(c); counts[c.ToArgb()] = counts.GetValueOrDefault(c.ToArgb()) + 1; }
+        var common = Color.FromArgb(counts.MaxBy(kv => kv.Value).Key);
+        double L(Color c) => 0.299 * c.R + 0.587 * c.G + 0.114 * c.B;
+        return px.Count(c => Math.Abs(L(c) - L(common)) > 40);
+    }
+
+    static Color Pixel(int x, int y)
+    {
+        using var bmp = new Bitmap(1, 1);
+        using (var g = Graphics.FromImage(bmp)) g.CopyFromScreen(x, y, 0, 0, new Size(1, 1));
+        return bmp.GetPixel(0, 0);
+    }
+
+    [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr h);
+    [DllImport("user32.dll")] static extern bool RedrawWindow(IntPtr h, IntPtr rect, IntPtr region, uint flags);
 
     static List<JsonObject> Records(string file)
     {

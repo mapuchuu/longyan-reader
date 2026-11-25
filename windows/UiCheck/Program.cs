@@ -157,6 +157,7 @@ static partial class Program
         Thread.Sleep(12000);
         Focus(window);
         FirstEye(app, window, "6-first-eye-again");
+        HistoryCheck.FromSettings(exe, app, outDir, failures);
         EyeScalings(app);
 
         try { notepad.Kill(); } catch { }

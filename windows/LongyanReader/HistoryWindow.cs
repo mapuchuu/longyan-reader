@@ -178,6 +178,7 @@ sealed class HistoryView : Grid
 
     public string Search { get => search.Text; set => search.Text = value; }
     public void FocusSearch() => search.Focus();
+    public string Probe() => $"all {all.Foreground} {ReferenceEquals(all.Style, Look["Tab"])} {all.ActualWidth:0} {all.IsVisible} {VisualTreeHelper.GetChildrenCount(all)}, more {more.Foreground}, search {search.Foreground} {VisualTreeHelper.GetChildrenCount(search)}, export {export.Foreground}, find {TryFindResource("TextSecondary")}, op {Opacity} {Visibility}";
 
     IEnumerable<HistoryEntry> Shown
     {
@@ -658,6 +659,7 @@ sealed class HistoryWindow : Window
         History.Changed += Reload;
         SystemEvents.UserPreferenceChanged += ThemeChanged;
         SourceInitialized += (_, _) => DarkTitleBar();
+        ContentRendered += (_, _) => Diagnostics.Write($"history: drawn, tier {RenderCapability.Tier >> 16}, fill {Background}, view {view.Background}, look {view.Look.Count} {view.Look["Text"]}, {view.Probe()}, windows {string.Join(" ", Application.Current.Windows.Cast<Window>().Select(w => w.GetType().Name))}");
         PreviewKeyDown += (_, e) =>
         {
             if (e.Key == Key.F && Keyboard.Modifiers == ModifierKeys.Control) { view.FocusSearch(); e.Handled = true; }
