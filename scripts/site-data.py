@@ -15,8 +15,9 @@ BIN = os.path.join(ROOT, ".build/release/LongyanReader")
 
 DEMO = [
     "最近工作太卷了，我想躺平。",
-    "她看到男朋友给别人点赞，有点吃醋。",
+    "今天我请客，你们随便点。",
     "他上班摸鱼，被老板发现了。",
+    "过年回家，爷爷给了我一个大红包。",
 ]
 
 # The page the hero is printed from: everyday sentences, the demo ones among them. Keep
@@ -29,6 +30,7 @@ PAGE = [
     "我妈每天晚上都给我发语音，问我吃饭了没有。",
     "他上班摸鱼，被老板发现了。",
     "这家小店的面很好吃，价格也不贵。",
+    "今天我请客，你们随便点。",
     "下雨的时候，街上的人少了很多。",
     "说实话，这部剧的结局让我有点失望。",
     "奶奶养的那只猫又胖了。",
@@ -39,6 +41,7 @@ PAGE = [
     "我把手机忘在出租车上了。",
     "这个周末你有空吗？我们去看电影吧。",
     "他每天跑步五公里，已经坚持了三年。",
+    "过年回家，爷爷给了我一个大红包。",
     "老师说这次考试不难，可是大家都没考好。",
     "春节快到了，火车票越来越难买。",
     "别着急，慢慢来，事情总会解决的。",
@@ -94,24 +97,64 @@ def written(d):
 # (CC-CEDICT) or plain wording of it. Remove a line once the app gets it right on its own.
 #
 # The demo: word -> (sense number in its card's list, 1-based; meaning shown, or None for the
-# sense's own short gloss). It applies to the word's card, to "Part of" rows, and to its row
-# in every phrase card.
+# sense's own short gloss; 0 for none ticked, with the meaning written out). It applies to the word's card, to "Part of" rows, and to its row
+# in every phrase card. "word@start" limits it to the word at that character position, where
+# the same word comes twice in a sentence with different meanings.
 DEMO_FIX = {
     "最近工作太卷了，我想躺平。": {
         "太": (1, None),               # was "very": the translation itself says "too cutthroat"
-        "工作": (3, None),             # was "task" in the selections starting at 最近
+        "工作": (4, None),             # "work", as every translation has it (was "task", then "job")
         "想": (2, "to want (to)"),     # was "to desire": the translation says "want to"
         "最": (1, None),               # in 最近: "most", not "best or most extreme example"
         "近": (1, None),               # in 最近: "near"
         "躺": (2, None),               # in 躺平: "to lie down"
         "平": (1, None),               # in 躺平: "flat", not "calm"
+        "了": ("g", 'with 太: "too …"'),  # the 太…了 frame, not "action done"
     },
+    "他上班摸鱼，被老板发现了。": {
+        "摸鱼": (2, None),             # some phrase cards had "to catch fish"
+        "摸": (1, "to feel around (for)"),  # in 摸鱼 (from 浑水摸鱼, feeling for fish); not "to grope"
+        "老": (0, 'a prefix here, not "old" (as in 老师)'),  # no sense in the list fits; none ticked
+        "板": (0, "the simplified form of 闆, as in 老闆"),  # none ticked
+        "发现": (1, "to find out"),    # the boss noticed him: sense 1 "to notice", not "to discover"
+        "上班": (2, "to be at work"),  # 上班摸鱼: slacking while at work, not "to go to work"
+        "上": (4, "to go to (work)"),  # in 上班; sense 4 is "to attend"
+        "发": (0, "to bring out, to reveal"),  # in 发现; no sense in the list fits ("to show" was ticked)
+    },
+    "今天我请客，你们随便点。": {
+        "请客": (3, "to treat (someone) to a meal"),  # was "to give a dinner party": here it means paying
+        "你们": (1, "you (plural)"),    # was "you": the plural is the point
+        "今": (5, None),               # in 今天: "this" (this day)
+        "客": (1, "guest"),            # in 请客: "customer, guest", not the measure word
+        "随": (1, None),               # in 随便: "to follow", not "to allow"
+        "便": (4, None),               # in 随便: "convenient", not "informal"
+    },
+    "过年回家，爷爷给了我一个大红包。": {
+        "红": (1, None),               # in 红包: "red", not "bonus"
+        "大": (1, "big (lots of money inside)"),  # 大红包: a generous one; some phrase cards had "greatly"
+        "年": (1, "year, here the New Year"),  # in 过年
+        "包": (13, None),              # in 红包: "packet", not "bag"
+        "了": ("g", "action done"),    # 给了: only completion here
+    },
+}
+# Dictionary senses reworded where the ticked one says the opposite of the card:
+# (sentence, word, sense number) -> wording.
+SENSE_FIX = {
+    ("今天我请客，你们随便点。", "请客", 3): "to treat (someone) to a meal",  # was "to invite to dinner", which its note rules out
+}
+# Notes reworded: word -> (old start, new start).
+NOTE_FIX = {
+    "过年": ("Means going home", "Usually means going home"),  # 过年 is to celebrate the New Year; going home is what most do
 }
 # The eye's sentences (pointing at a word shows its meaning): (sentence, start) -> meaning.
 PAGE_FIX = {
     ("周末早上，楼下的咖啡店总是排着长队。", 13): "to line up",
     ("最近工作太卷了，我想躺平。", 4): "too",
     ("最近工作太卷了，我想躺平。", 9): "to want (to)",
+    ("今天我请客，你们随便点。", 3): "to treat (someone) to a meal",
+    ("最近工作太卷了，我想躺平。", 2): "work",
+    ("他上班摸鱼，被老板发现了。", 9): "to find out",
+    ("他上班摸鱼，被老板发现了。", 1): "to be at work",
     ("我妈每天晚上都给我发语音，问我吃饭了没有。", 1): "mom",
     ("我妈每天晚上都给我发语音，问我吃饭了没有。", 18): "haven't",
     ("下雨的时候，街上的人少了很多。", 3): "time",
@@ -135,19 +178,65 @@ PAGE_FIX = {
 }
 
 
+def widen(d):
+    """A selection that starts or ends inside a word reads the whole word. The app does this for
+    most cuts but not all (年回 read 年回家, splitting 过年), so the site makes sure of it."""
+    toks = [t["range"] for t in d["tokens"]]
+    for k, (a, b, one) in list(d["selections"].items()):
+        if one:
+            continue
+        a2 = next((s for s, e in toks if s < a < e), a)
+        b2 = next((e for s, e in toks if s < b < e), b)
+        if (a2, b2) != (a, b) and f"{a2}-{b2}" in d["phrases"]:
+            d["selections"][k] = [a2, b2, 0]
+    used = {f"{a}-{b}" for a, b, one in d["selections"].values() if not one}
+    for k in [k for k in d["phrases"] if k not in used]:
+        del d["phrases"][k]
+
+
 def fix(data):
     for d in data["demo"]:
-        for word, (n, meaning) in DEMO_FIX.get(d["sentence"], {}).items():
+        for (sent, word, n), text in SENSE_FIX.items():
+            if sent == d["sentence"]:
+                d["words"][word][n - 1].update(short=text, listed=text, readable=text)
+        for word, (old, new) in NOTE_FIX.items():
+            for sn in d["words"].get(word, []):
+                if sn.get("note") and sn["note"]["text"].startswith(old):
+                    sn["note"]["text"] = new + sn["note"]["text"][len(old):]
+        widen(d)
+        # A grammar word's card lists its senses in plain words; a phrase row opening the same
+        # word should read the same, not the dictionary's "(completed action marker)".
+        for c in d["cards"].values():
+            if c.get("grammar") and c["grammar"].get("listed"):
+                for i in c["grammar"]["listed"]:
+                    sn = d["words"][c["word"]][i]
+                    sn["listed"] = sn["short"]
+        for key, (n, meaning) in DEMO_FIX.get(d["sentence"], {}).items():
+            word, _, at = key.partition("@")
+            at = int(at) if at else None
+            if n == "g":
+                # A grammar word: its summary, on its card and in every phrase row.
+                for c in d["cards"].values():
+                    if c["word"] == word and c.get("grammar"):
+                        c["grammar"]["summary"] = c["meaning"] = meaning
+                for p in d["phrases"].values():
+                    for r in p["rows"]:
+                        if r["text"] == word and r.get("grammar"):
+                            r["grammar"] = r["gloss"] = meaning
+                continue
             senses = d["words"][word]
             text = meaning or senses[n - 1]["short"]
-            for c in d["cards"].values():
-                if c["word"] == word and not c.get("grammar"):
+            for k, c in d["cards"].items():
+                if c["word"] == word and not c.get("grammar") and (at is None or int(k.split("-")[0]) == at):
                     c["chosen"], c["meaning"] = n, text
-                if c.get("partOf") and c["partOf"]["word"] == word:
+                if c.get("partOf") and c["partOf"]["word"] == word and (at is None or c["partOf"]["range"][0] == at):
                     c["partOf"]["meaning"] = text
             for p in d["phrases"].values():
                 for r in p["rows"]:
-                    if r["text"] == word and not r.get("grammar"):
+                    if r["text"] == word and not r.get("grammar") and (at is None or r["start"] == at):
+                        if n == 0:
+                            r["gloss"], r["shown"] = text, None
+                            continue
                         r["shown"], r["gloss"] = n - 1, text
                         if n - 1 not in r["collapsed"]:
                             r["collapsed"] = sorted(r["collapsed"] + [n - 1])

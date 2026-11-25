@@ -18,7 +18,7 @@
   const Card = () => window.LongyanCard;
   const N = demo.length;
 
-  let lines = [], current = 0, els = [], sel = null;
+  let lines = [], current = 0, els = [], sel = null, swapping = false;
   const indexOf = (k) => (((current + k) % N) + N) % N;
   const currentEl = () => els.find((e) => e.dataset.k === "0");
   const sizeOf = (el) => parseFloat(el.style.getPropertyValue("--size"));
@@ -38,7 +38,7 @@
     els = lines.map((l) => {
       const d = demo[indexOf(l.k)];
       const el = document.createElement("div");
-      el.className = "line" + (l.k === 0 ? " current" : "");
+      el.className = "line" + (l.k === 0 ? " current" : "") + (swapping && l.k === 0 ? " swap" : "");
       el.dataset.k = l.k;
       el.style.left = l.x + "px";
       el.style.top = l.y - l.size * 0.65 + "px";
@@ -107,7 +107,9 @@
     const d = demo[indexOf(0)], r = d.selections[`${a}-${b}`];
     if (!r) return null;
     sel = { a, b, start: r[0], end: r[1], word: r[2] === 1, d, el: currentEl() };
-    story.classList.add("tried");
+    story.classList.add("tried", "has-tried");
+    // The way on comes in a moment after the first look-up, once the card has had a look.
+    if (!story.classList.contains("can-continue")) setTimeout(() => { placeNext(); story.classList.add("can-continue"); }, 2200);
     return sel;
   }
 
@@ -118,7 +120,7 @@
     root.classList.add("used");
     const { d, start, end, word, el } = sel, size = sizeOf(el), box = el.getBoundingClientRect();
     // Where the selection will be once it has settled, not where it is mid-way.
-    const r = { left: box.left + sel.a * size, right: box.left + sel.b * size, top: selRect().top, bottom: selRect().bottom };
+    const r = { left: box.left + sel.a * size, right: box.left + sel.b * size, top: selRect().top, bottom: selRect().bottom, preferBelow: true };
     const key = `${start}-${end}`;
     let opened = null;
     if (word) {
@@ -135,11 +137,12 @@
       if (opened && opened.pickTarget) pickNote(opened, opened.pickTarget);
     }
     if (!opened) return;
+    if (!tipCard) tipCard = opened;
     const at = selRect().top, s0 = sel;
     opened.anchorStill = () => sel === s0 && story.classList.contains("is-formed") && Math.abs(selRect().top - at) < 2;
     story.classList.add("card-open");
     const prevClose = opened.onClose;
-    opened.onClose = () => { if (prevClose) prevClose(); if (!Card().open) story.classList.remove("card-open", "covered"); };
+    opened.onClose = () => { firstClosed = true; if (prevClose) prevClose(); if (!Card().open) story.classList.remove("card-open", "covered"); };
     // The way on to how it picks stays, unless the card is over it.
     const more = root.querySelector(".try-continue");
     (function cover() {
@@ -149,6 +152,71 @@
       requestAnimationFrame(cover);
     })();
   }
+
+  // MARK: Another sentence
+
+  // The next of the four, in place: the card and selection go, the grid is ruled again for
+  // the new line's size, and the line rises in.
+  function another() {
+    if (!window.LongyanHero) return;
+    clear(true);
+    swapping = true;
+    story.querySelector(".story-pin").classList.remove("grid-set");
+    window.LongyanHero.setCurrent((current + 1) % N);
+    swapping = false;
+  }
+  document.querySelectorAll("[data-another]").forEach((b) => b.addEventListener("click", another));
+
+  // MARK: The way on
+
+  // "Get Longyan" stays put, two thirds of the way down (and clear of the line): the card
+  // opens at its full height over it if it reaches that far, and never moves it.
+  let nextTop = Infinity;
+  function placeNext() {
+    const line = currentEl();
+    if (!line) return;
+    const r = line.getBoundingClientRect();
+    nextTop = Math.round(Math.min(innerHeight - 44 - 56, Math.max(r.bottom + 150, innerHeight * (innerWidth <= 600 ? 0.72 : 0.66))));
+    root.style.setProperty("--next-y", nextTop + "px");
+  }
+  window.addEventListener("resize", placeNext);
+  // The practice grid behind the opening (style.css .tianzige): one square per character, a
+  // row of them exactly under the sentence.
+  // Measured from where the characters sit in the layout, not where they're drawn: while
+  // they rise in they're drawn lower, and measuring that put the grid off by the rise and
+  // jumped it into place a second later. It shows once it's placed (.grid-set).
+  function placeGrid() {
+    const line = currentEl(), pin = story.querySelector(".story-pin"), c = line && line.querySelector(".c");
+    if (!c || !pin) return;
+    const p = pin.getBoundingClientRect(), lr = line.getBoundingClientRect();
+    let ox = 0, oy = 0;
+    for (let e = c; e && e !== line; e = e.offsetParent) { ox += e.offsetLeft; oy += e.offsetTop; }
+    const size = c.offsetWidth, x = lr.left - p.left + ox, y = lr.top - p.top + oy + c.offsetHeight / 2 - size / 2;
+    if (!size) return;
+    const mod = (v) => ((v % size) + size) % size;
+    pin.style.setProperty("--grid-cell", size + "px");
+    pin.style.setProperty("--grid-x", mod(x) + "px");
+    pin.style.setProperty("--grid-y", mod(y) + "px");
+    pin.style.setProperty("--grid-mx", Math.round(lr.left - p.left + lr.width / 2) + "px");
+    pin.style.setProperty("--grid-my", Math.round(y + size / 2) + "px");
+    pin.classList.add("grid-set");
+  }
+  window.addEventListener("resize", () => requestAnimationFrame(placeGrid));
+  document.addEventListener("longyan:lines", () => requestAnimationFrame(placeGrid));
+  if (document.fonts) document.fonts.ready.then(() => requestAnimationFrame(placeGrid));
+  document.addEventListener("longyan:lines", () => requestAnimationFrame(placeNext));
+  // A card is never behind the button: while any card (opening, open or fading out) covers
+  // its place, the button steps out of the way, and comes back once the card has gone.
+  let watching = false;
+  function watchCards() {
+    const cards = [...document.querySelectorAll("body > .lc-card")];
+    const btns = [...story.querySelectorAll(".try-continue, .try-another")];
+    if (!btns.length || !cards.length) { story.classList.remove("under-card"); watching = false; return; }
+    const over = btns.some((btn) => { const b = btn.getBoundingClientRect(); return b.height > 0 && cards.some((c) => { const r = c.getBoundingClientRect(); return r.bottom > b.top - 8 && r.top < b.bottom + 8 && r.right > b.left && r.left < b.right; }); });
+    story.classList.toggle("under-card", over);
+    requestAnimationFrame(watchCards);
+  }
+  new MutationObserver(() => { if (!watching && document.querySelector("body > .lc-card")) { watching = true; requestAnimationFrame(watchCards); } }).observe(document.body, { childList: true });
 
   // MARK: The note beside the card
 
@@ -169,8 +237,11 @@
   let note = null;
   // `target()`: where the pick is now, { scope, chosen, id }, or null while there's none to show.
   const OPENING = 260;
+  // "Picked from context" is a first-time thing: it shows on the first card opened only.
+  let firstClosed = false, tipCard = null;
   function pickNote(card, target) {
     dropNote();
+    if (firstClosed || (tipCard && tipCard !== card)) return;
     const el = document.createElement("div");
     el.className = "pick-note";
     el.innerHTML = `<div class="pick-tip">
@@ -394,6 +465,13 @@
     };
   }
 
+  // Ease in over `a`, an even pace through the middle, ease out over the last `b`: the speed is a
+  // trapezoid with rounded corners, so the middle of the trip (the words in flight) isn't rushed.
+  function cruise(a, b) {
+    const v = 1 / (1 - a / 2 - b / 2);
+    return (u) => u < a ? v * u * u / (2 * a) : u <= 1 - b ? v * (a / 2 + u - a) : 1 - v * (1 - u) ** 2 / (2 * b);
+  }
+
   function glideTo(y, how = {}) {
     const from = window.scrollY, dist = y - from;
     if (reduce || Math.abs(dist) < 2) { window.scrollTo(0, y); return; }
@@ -401,8 +479,11 @@
     // on the first frame after the click and only slows near the end. `story` is for the
     // opening: just as prompt off the mark, but an even pace through the middle and longer in
     // all, so the eye is seen breaking up into the sentence on the way down.
-    const dur = how.story ? 2400 : Math.min(1400, 700 + Math.abs(dist) * 0.25), t0 = performance.now();
-    const ease = how.story ? bezier(0.3, 0.2, 0.3, 1) : bezier(0.25, 0.4, 0.1, 1);
+    // `eye`, from "Get Longyan": the sentence turning into the eye is the show, so it's paced as
+    // one: slow out of the line (the first words are seen peeling off), an unhurried flight
+    // through the middle, and a long settle as the eye fills in and the headline rises (2.9 s).
+    const dur = how.eye ? 2900 : how.story ? 2400 : Math.min(1400, 700 + Math.abs(dist) * 0.25), t0 = performance.now();
+    const ease = how.eye ? cruise(0.24, 0.34) : how.story ? bezier(0.3, 0.2, 0.3, 1) : bezier(0.25, 0.4, 0.1, 1);
     let stopped = false;
     const stop = () => { stopped = true; };
     const opts = { passive: true, once: true };
@@ -433,21 +514,30 @@
     }
   }));
 
-  // "How it picks the meaning", once the sentence has had its turn: on to the statement, the
-  // same slow glide.
-  // The statement's first line comes in as its pinned stretch reaches the top.
-  function toStatement() {
-    const st = document.getElementById("statement");
-    if (st) glideTo(st.getBoundingClientRect().top + window.scrollY);
+  // "Get it on your computer", once the sentence has had its turn: on to the eye and the
+  // headline, on the slow glide, so the sentence is seen gathering into the eye on the way.
+  function toEye() {
+    if (window.LongyanHero) glideTo(window.LongyanHero.eyeY(), { eye: true });
   }
-  document.querySelectorAll("[data-continue]").forEach((b) => b.addEventListener("click", toStatement));
+  document.querySelectorAll("[data-continue]").forEach((b) => b.addEventListener("click", toEye));
+  // "How it works", beside the download: on to the statement, which opens on its first line.
+  document.querySelectorAll("[data-statement]").forEach((a) => a.addEventListener("click", (e) => {
+    const st = document.getElementById("statement");
+    if (!st) return;
+    e.preventDefault();
+    glideTo(st.getBoundingClientRect().top + window.scrollY);
+  }));
 
   // In-page links: down to where they point, on the same glide. Without script they're plain links.
   document.querySelectorAll("[data-glide]").forEach((a) => a.addEventListener("click", (e) => {
     const t = document.querySelector(a.getAttribute("href"));
     if (!t) return;
     e.preventDefault();
-    glideTo(t.getBoundingClientRect().top + window.scrollY);
+    // To the section's heading, a little below the bar, not its top: the sections open with
+    // a lot of night above their headings.
+    const head = t.querySelector("h2");
+    const y = head ? head.getBoundingClientRect().top - 120 : t.getBoundingClientRect().top;
+    glideTo(Math.max(0, y + window.scrollY));
   }));
 
   // The Windows links, once they're live. Until then their buttons pick Windows in the steps
