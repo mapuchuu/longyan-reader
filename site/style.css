@@ -379,7 +379,10 @@ h1 .rise > span { white-space: nowrap; }
 .lc-note { padding: calc(10 * var(--u)) calc(12 * var(--u)); border-radius: calc(10 * var(--u)); background: rgba(255, 255, 255, .045); }
 .lc-note-head { display: flex; align-items: center; gap: calc(5 * var(--u)); font-size: calc(11 * var(--u)); font-weight: 600; color: var(--secondary); margin-bottom: calc(4 * var(--u)); }
 .lc-note-head > span { display: grid; }
-.lc-note-head .lc-sym { width: calc(12 * var(--u)); height: calc(12 * var(--u)); }
+/* The note symbols at the app's size: SF Symbols set at the label's 11 pt (in em, so they scale with it). */
+.lc-note-head .lc-globe { width: 1.011em; height: 1.011em; }
+.lc-note-head .lc-translate { width: 1.5985em; height: 1.14em; margin-right: .045em; }
+.lc-note-head > span, .note-head > span { position: relative; top: -.02em; }   /* centred on the label's ink, as the app's HStack has it */
 .lc-note-head .lost { color: rgb(230, 163, 194); } .lc-note-head .culture { color: rgb(148, 199, 194); }
 .lc-note-text { font-size: calc(13 * var(--u)); line-height: calc(1em + 5 * var(--u)); }
 
@@ -432,8 +435,6 @@ h1 .rise > span { white-space: nowrap; }
 
 .lc-sym { display: block; width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; overflow: visible; }
 .lc-sym .lc-fill { fill: currentColor; stroke: none; }
-.lc-sym .lc-knock { stroke: rgba(20, 20, 23, .9); stroke-width: 1.1; }
-.lc-sym .lc-knock-fill { fill: rgba(20, 20, 23, .9); stroke: none; }
 
 /* CardActions: unscaled, fixed at the top right over the first line's slot. */
 .lc-actions { position: absolute; z-index: 2; right: calc(16 * var(--u) - 6px); top: 16px; display: flex; gap: 2px; }
@@ -616,8 +617,6 @@ h1 .rise > span { white-space: nowrap; }
 .lit-demo.light #lit-card .lc-row:hover, .lit-demo.light #lit-card .lc-part:hover { background: rgba(0, 0, 0, .04); }
 .lit-demo.light #lit-card .lc-row:active, .lit-demo.light #lit-card .lc-part:active { background: rgba(0, 0, 0, .07); }
 .lit-demo.light #lit-card .lc-card .lc-action:hover { background: rgba(0, 0, 0, .05); }
-.lit-demo.light #lit-card .lc-sym .lc-knock { stroke: rgba(240, 244, 250, .95); }
-.lit-demo.light #lit-card .lc-sym .lc-knock-fill { fill: rgba(240, 244, 250, .95); }
 .lit-demo.light #lit-card .lc-grab { background: rgba(0, 0, 0, .18); }
 /* Light: the same system colours, a little stronger than the dark card's, so they still read
    as colour on white glass rather than a grey smudge. */
@@ -798,10 +797,10 @@ figcaption b { color: var(--ink); font-weight: 600; }
    the word card draws them) in the note's colour, the label in secondary grey. */
 .note-head { color: rgba(255, 255, 255, .55); }
 .note-head > span { display: grid; }
-.note-head svg { width: 15px; height: 15px; overflow: visible; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.note-head svg { overflow: visible; }
+.note-head .n-globe { width: 1.011em; height: 1.011em; }
+.note-head .n-translate { width: 1.5985em; height: 1.14em; margin-right: .045em; }
 .note-head .lc-fill { fill: currentColor; }
-.note-head .lc-knock { stroke: #26262b; stroke-width: 1.1; }
-.note-head .lc-knock-fill { fill: #26262b; }
 .note.lost .note-head > span { color: rgb(230, 163, 194); }
 .note.culture .note-head > span { color: rgb(148, 199, 194); }
 .note p { margin: 0; font-size: 14px; line-height: 1.42; color: rgba(255, 255, 255, .88); }
@@ -884,8 +883,6 @@ figcaption b { color: var(--ink); font-weight: 600; }
 .notes-stack .note-head { font-size: 12.5px; margin-bottom: 5px; }
 .notes-stack .note p { font-size: 14.5px; line-height: 1.45; color: #1d1d1f; }
 .notes-stack .note-head { color: rgba(29, 29, 31, .5); }
-.notes-stack .note-head .lc-knock { stroke: #fff; }
-.notes-stack .note-head .lc-knock-fill { fill: #fff; }
 .notes-stack .note.lost .note-head > span { color: #d2558c; }
 .notes-stack .note.culture .note-head > span { color: #1f9488; }
 .notes-stack .n-front { opacity: 1; transform: none; z-index: 3; }
