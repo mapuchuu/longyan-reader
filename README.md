@@ -4,12 +4,12 @@
 
 <h1 align="center">Longyan Reader</h1>
 
-<p align="center">A pop-up Chinese reader for the Mac that understands the sentence you're reading.</p>
+<p align="center">A pop-up Chinese reader for Mac and Windows that understands the sentence you're reading.</p>
 
 <p align="center">
   <a href="https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip"><b>Download for Mac</b></a>
   &nbsp;·&nbsp;
-  <a href="#windows"><b>Windows</b></a>
+  <a href="#windows"><b>Get it for Windows</b></a>
   &nbsp;·&nbsp;
   <a href="https://longyan.app">Try it in your browser</a>
 </p>
@@ -18,6 +18,7 @@
   <a href="https://github.com/mapuchuu/longyan-reader/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/mapuchuu/longyan-reader?style=flat-square&label=release&color=3d444d"></a>
   <a href="https://github.com/mapuchuu/longyan-reader/releases"><img alt="Downloads" src="https://img.shields.io/endpoint?style=flat-square&label=downloads&color=3d444d&url=https%3A%2F%2Fraw.githubusercontent.com%2Fmapuchuu%2Flongyan-reader%2Fstats%2Fdownloads.json"></a>
   <img alt="macOS 15 or later" src="https://img.shields.io/badge/macOS-15%2B-3d444d?style=flat-square">
+  <img alt="Windows 10 and 11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-3d444d?style=flat-square">
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/github/license/mapuchuu/longyan-reader?style=flat-square&color=3d444d"></a>
 </p>
 
@@ -29,7 +30,7 @@
 
 Highlight Chinese in Safari, Chrome, WeChat, Preview, Mail or any other app, and a card opens with what each word means in that sentence. Instead of every definition the word has ever had, you see the one the writer meant, with pinyin, a translation of the whole phrase, and a note when the word carries more than its gloss can say.
 
-It takes about a tenth of a second, and it all happens on your Mac. The language model runs on your own GPU, so nothing you read leaves your computer. There's no account and nothing to pay for.
+It takes about a tenth of a second on a Mac, and it all happens on your own computer. The language model runs there too, so nothing you read leaves it. There's no account and nothing to pay for.
 
 ## One sentence, two answers
 
@@ -69,7 +70,7 @@ That's because it ships its own model rather than leaning on Apple Intelligence.
 
 The 4B model was as accurate as one twice its size and four times faster. Measured on 2026-11-19 on an M5 Pro. `scripts/evals.sh` runs every test, and [DEVELOPMENT.md](DEVELOPMENT.md#the-model) explains the method and what else was tried.
 
-## Install
+## Install on a Mac
 
 1. [Download the zip](https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip), unzip it, and drag **Longyan Reader** to your Applications folder.
 2. Open it. macOS asks if you're sure, since it came from the internet. Click **Open**.
@@ -88,7 +89,7 @@ Updating from 0.1? 1.0 is signed differently. If the app asks for Accessibility 
 
 You'll need a Mac with Apple silicon running macOS 15 or later, and about 4 GB of free space for the model download. The app itself is 34 MB.
 
-## Using it
+## Using it on a Mac
 
 Highlight some Chinese, with a drag or a double-click, and a small eye appears beside it. Click the eye, or press **⌃⌥L**. With nothing highlighted, ⌃⌥L looks up the word under the pointer. Right-click the eye to hide it in that app or turn it off; ⌃⌥L keeps working either way.
 
@@ -148,9 +149,9 @@ To uninstall, find Longyan Reader in Settings > Apps > Installed apps (Apps & fe
 
 ## Privacy
 
-Nothing you look up is ever sent anywhere. The app goes online for three things only: downloading the reading model when you ask (a plain file from hf-mirror.com, or huggingface.co if that fails, checked against its SHA-256), checking GitHub for updates once you've agreed to it (nothing about your Mac is sent), and Report a Problem, which opens a pre-filled GitHub issue in your browser and sends nothing until you submit it. Add to Anki talks only to Anki on your own Mac.
+Nothing you look up is ever sent anywhere. The app goes online for three things only: downloading the reading model when you ask (a plain file from hf-mirror.com, or huggingface.co if that fails, checked against its SHA-256), checking GitHub for updates once you've agreed to it (nothing about your computer is sent), and Report a Problem, which opens a pre-filled GitHub issue in your browser and sends nothing until you submit it. Add to Anki talks only to Anki on your own computer.
 
-Your history stays in `~/Library/Application Support/LongyanReader/History` unless you export it. Keep 30 days, turn it off, or clear it under **Keep History** in the menu. The [privacy page](https://longyan.app/privacy.html) has the details.
+Your history stays in `~/Library/Application Support/LongyanReader/History` on a Mac, or `%LOCALAPPDATA%\LongyanReader` on Windows, unless you export it. Keep 30 days, turn it off, or clear it under **Keep History** in the menu (in Lookup history on Windows). The [privacy page](https://longyan.app/privacy.html) has the details.
 
 ## Under the hood
 
@@ -167,9 +168,9 @@ The dictionary ships compiled into a sorted binary file that's searched in place
 ## FAQ
 
 <details>
-<summary><b>Does it work on Intel Macs, Windows or iPhone?</b></summary>
+<summary><b>Does it work on Windows, Intel Macs or iPhone?</b></summary>
 
-Not on Intel Macs or iPhone. The Mac app needs Apple silicon and macOS 15 or later, which is what lets the model run this fast. There is a [Windows version](#windows) for Windows 10 and 11.
+On Windows 10 and 11, yes: see [Windows](#windows). Not on Intel Macs or iPhone. The Mac app needs Apple silicon and macOS 15 or later, which is what lets the model run this fast.
 </details>
 
 <details>
@@ -213,6 +214,8 @@ If you installed it with Homebrew, `brew uninstall --zap longyan-reader` removes
 - anything named `LongyanReader` or `com.mapuchuu.longyanreader` in `~/Library/Caches` and `~/Library/HTTPStorages`
 
 Then remove it from System Settings > Privacy & Security > Accessibility, and from System Settings > General > Login Items & Extensions if you turned on Open at Login. Its settings go with `defaults delete com.mapuchuu.longyanreader` in Terminal.
+
+On Windows, uninstall it from Settings > Apps. That removes your history, settings and the model too.
 </details>
 
 ## Contributing
@@ -221,6 +224,6 @@ Reports of wrong meanings help more than anything else. Issues and pull requests
 
 ## License
 
-The code is MIT licensed. The dictionary is [CC-CEDICT](https://cc-cedict.org/), © MDBG and contributors, under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/); the app's dictionary files and the notes, examples and cues in `Resources/` (which quote its definitions) are derived from it and use the same license. Word frequencies in `notes/frequency.txt` come from [jieba](https://github.com/fxsjy/jieba) (MIT). The app also includes [llama.cpp](https://github.com/ggml-org/llama.cpp) and [Sparkle](https://sparkle-project.org), both MIT. The Qwen model is downloaded separately and is Apache 2.0.
+The code is MIT licensed. The dictionary is [CC-CEDICT](https://cc-cedict.org/), © MDBG and contributors, under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/); the app's dictionary files and the notes, examples and cues in `Resources/` (which quote its definitions) are derived from it and use the same license. Word frequencies in `notes/frequency.txt` come from [jieba](https://github.com/fxsjy/jieba) (MIT). The app also includes [llama.cpp](https://github.com/ggml-org/llama.cpp) and [Sparkle](https://sparkle-project.org) on the Mac and [WinSparkle](https://winsparkle.org) on Windows, all MIT. The Qwen model is downloaded separately and is Apache 2.0.
 
 Meanings and translations come from a language model and can be wrong. The notes were written by Claude and checked against the dictionary.
