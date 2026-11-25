@@ -18,3 +18,14 @@ swift film/encode.swift /tmp/frames reading-10-h264.mp4 h264 5000000 60
 ```
 
 Give a new film a new file name (browsers cache these), upload it to the `site-media` release, and update `site/index.html`.
+
+## The Windows cut
+
+`index.html?os=win` is the same film on a Windows 11 desktop, for the Microsoft Store trailer: Windows title bars, a plain gradient wallpaper, Segoe UI and Microsoft YaHei, the Windows app's light card (its own symbols from `windows/LongyanReader/Icons.cs`) and eye, and an end card. `win.css` and `win.js` hold all of it.
+
+It needs Windows' fonts in `film/fonts/` (not in git): `SegUIVar.ttf segoeui.ttf seguisb.ttf segoeuib.ttf msyh.ttc msyhbd.ttc simsun.ttc SegoeIcons.ttf` from `C:\Windows\Fonts`.
+
+```
+FILM_URL='http://127.0.0.1:8791/film/?os=win' node film/shoot.js /tmp/wframes 6 1920
+swift film/encode.swift /tmp/wframes trailer.mp4 h264 12000000 60 1920 1080
+```

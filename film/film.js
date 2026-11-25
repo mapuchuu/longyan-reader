@@ -23,6 +23,7 @@
   const W = 1440, H = 810;
   const WIN = !!window.FILM_WIN;
   let winSel = null;
+  const END = 6.5;   // seconds of the Windows cut's end card
 
   // MARK: The scenes
 
@@ -96,6 +97,9 @@
     plan[plan.length - 1].tClose = tOut;
     moves.push({ t0: tOut + 0.5, t1: tOut + 1.4, from: click, to: REST, bend: -0.1 });
     T = Math.round((tOut + 3.4) * FPS) / FPS;
+    // The Windows cut ends on a title card (win.js), held long enough to read.
+    plan.tEnd = T;
+    if (WIN) T = Math.round((T + END) * FPS) / FPS;
     plan.tOut = tOut;
   }
 
@@ -278,6 +282,11 @@
 
   function render(t) {
     t = clamp(t, 0, T);
+    if (WIN) {
+      const e = sine((t - plan.tEnd) / 0.7), end = document.getElementById("endcard");
+      end.style.opacity = e;
+      end.firstElementChild.style.transform = `translateY(${(1 - sine((t - plan.tEnd - 0.1) / 0.9)) * 14}px)`;
+    }
     // Windows
     const wins = windowsAt(t);
     wins.order.forEach((w, i) => { w.style.zIndex = 10 + i; w.classList.toggle("key", w === wins.key); });

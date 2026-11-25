@@ -65,5 +65,9 @@
     // The wallpaper: our own soft gradient, under the windows.
     const wall = document.querySelector(".wall");
     const div = document.createElement("div"); div.className = "wwall"; wall.replaceWith(div);
+    // The end card, over the whole frame.
+    const end = document.createElement("div"); end.id = "endcard";
+    end.innerHTML = `<div><i class="appicon">${document.querySelector("#chip svg").outerHTML}</i><h2>Longyan Reader</h2><p>Look up Chinese in any app on your PC.</p></div>`;
+    document.getElementById("stage").appendChild(end);
   });
 })();
