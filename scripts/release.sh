@@ -16,10 +16,12 @@ cd "$(dirname "$0")/.."
 tools="$HOME/Library/Application Support/LongyanReader-signing/sparkle-2.10.1/bin"
 [ -x "$tools/generate_appcast" ] || { echo "Sparkle's tools aren't in $tools" >&2; exit 1; }
 [ -z "$(git status --porcelain)" ] || { echo "commit first: the build number is the commit count" >&2; exit 1; }
-# The release tag must point at the commit that was built, so release from pushed main.
-[ "$(git branch --show-current)" = main ] || { echo "release from main" >&2; exit 1; }
-git fetch -q origin main
-[ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || { echo "HEAD isn't origin/main: push (or pull) first" >&2; exit 1; }
+# The release tag must point at the commit that was built, so release from pushed main, or
+# from a pushed release-<version> branch for a fix that shouldn't carry main's other changes.
+branch=$(git branch --show-current)
+case "$branch" in main|release-*) ;; *) echo "release from main or a release-<version> branch" >&2; exit 1 ;; esac
+git fetch -q origin "$branch"
+[ "$(git rev-parse HEAD)" = "$(git rev-parse "origin/$branch")" ] || { echo "HEAD isn't origin/$branch: push (or pull) first" >&2; exit 1; }
 next=$(sed -n 's/^version=//p' scripts/build-app.sh)
 team_id=$(sed -n 's/^team_id=//p' scripts/build-app.sh)
 [ -n "$team_id" ] || { echo "set team_id in scripts/build-app.sh (the Developer ID team)" >&2; exit 1; }

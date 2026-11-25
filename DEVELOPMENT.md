@@ -127,7 +127,7 @@ The model sees each noted sense with the first sentence of its note. A few fixed
 
 ## Releases
 
-1. Bump `version` in `scripts/build-app.sh` (1.0, 1.1, 1.0.1 for a fix) and commit. The build number is the commit count, so the tree has to be clean. Never rewrite main's history: a lower commit count would make the next release look older than the last.
+1. Bump `version` in `scripts/build-app.sh` (1.0, 1.1, 1.0.1 for a fix) and commit. The build number is the commit count, so the tree has to be clean. Never rewrite main's history: a lower commit count would make the next release look older than the last. A fix that shouldn't carry main's other changes can go out from a pushed `release-<version>` branch made from the last release's tag (1.1.1 was v1.1 plus dictionary data); main's next release still has a higher count.
 2. Run `scripts/release.sh notes.md`, where `notes.md` is what's new (shown in the update window). It signs the app with the project's Developer ID, notarizes and staples it (`scripts/notarize.sh`, a few minutes), and stops if either step didn't work.
 3. Test the update locally (below) before publishing.
 4. Run the commands it prints, in order: create the release as a draft with all three files, then publish it as latest (installed copies and the website follow `releases/latest`, which skips drafts and prereleases), then `scripts/check-release.sh`, then deploy the site. A draft first means the feed never points at a release that's missing a file.
