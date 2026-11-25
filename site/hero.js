@@ -38,6 +38,12 @@
   const soft = (c) => c.map((v, k) => Math.round(v + (MIST[k] - v) * SOFT));
   const AZURE = soft([107, 155, 255]), VIOLET = soft([169, 139, 255]), MAGENTA = soft([236, 130, 214]), CORAL = soft([255, 159, 133]);
   const INK = [245, 245, 247];
+  // At rest the eye is white, like the mark in the bar, each character a little lighter or
+  // darker so it reads as print and not a flat shape. The colour is in the moment a character
+  // comes in: it arrives in the paper's hues, fuller than the inks above, and cools to white.
+  const DIM = [170, 170, 184];
+  const hotOf = (c) => c.map((v, k) => Math.round(v + (v - MIST[k]) * 0.55));
+  const COOL = 0.05, COOL_T = 0.7;   // how long the colour lasts: in story progress, and in seconds
   const PUNCT = /[，。？！、：；“”（）《》…—]/;
   // Characters too light to fill a square of the eye.
   const SPARSE = /[一二三十八人入了个上下几儿小大卜七九工口]/;
@@ -204,6 +210,8 @@
     for (const g of out) {
       const u = (g.x + g.w / 2 - eye.x) / eye.w, v = (g.y + g.w / 2 - eye.y) / eye.h;
       g.col = pearl(0.62 * u + 0.3 * v + 0.12 * Math.sin(6.2 * v + 2.4 * u) + (g.rnd - 0.5) * 0.1);
+      g.hot = hotOf(g.col).map((v) => clamp(v, 0, 255));
+      g.rest = mix(DIM, INK, 0.45 + 0.55 * hash(g.x * 0.37 + g.y * 1.91) - (g.w >= unit * 3 ? 0.15 : 0));
     }
     return { unit: h, ucols, urows, ux0, uy0, owner, glyphs: out };
   }
@@ -276,7 +284,7 @@
   let litCtx = null;
   function drawLit(g, fresh) {
     if (fresh) litCtx.clearRect(g.x - 1, g.y - 1, g.w + 2, g.w + 2);
-    litCtx.fillStyle = rgb(g.col);
+    litCtx.fillStyle = rgb(g.rest);
     litCtx.font = `${g.wt} ${g.w * 0.94}px ${ZH}`;
     litCtx.fillText(g.ch, g.x + g.w / 2, g.y + g.w / 2 + g.w * 0.04);
   }
@@ -372,7 +380,7 @@
       {
         drawLit(g, true);
       }
-      flights.push({ line: l, k, ch, g: pick, x0: g.x + g.w / 2, y0: g.y + g.w / 2 + g.w * 0.04, size0: g.w * 0.94, col: g.col, wt: g.wt, start: e.start });
+      flights.push({ line: l, k, ch, g: pick, x0: g.x + g.w / 2, y0: g.y + g.w / 2 + g.w * 0.04, size0: g.w * 0.94, col: g.hot, wt: g.wt, start: e.start });
     }
     // The eye spreads out from each character as it lands, nearest first, the big ones a beat
     // ahead of the small round them. Round a character still in the air the eye waits for
@@ -422,20 +430,24 @@
     // just where its characters are.
     if (p < 0.24) {
       ctx.save();
-      const settled = still || t > 0.5 + SWEEP + 0.25;
+      const settled = still || t > 0.5 + SWEEP + 0.25 + COOL_T;
       if (settled && p <= 0.002) ctx.drawImage(lit, 0, 0, W, H);
       else {
         const flying = new Set();
         for (const f of flights) if (p > f.start) flying.add(f.g);
-        ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = "#fff";
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
         for (let k = 0; k < fine.glyphs.length; k++) {
           const g = fine.glyphs[k];
           const at = 0.5 + glideAt(clamp((g.x - eye.x) / eye.w + (g.rnd - 0.5) * 0.14)) * SWEEP, leave = g.leave == null ? 0.035 + g.rnd * 0.15 : g.leave;
           if ((!still && t < at) || p > leave + FLASH || flying.has(k)) continue;
-          if ((!still && t < at + 0.2) || p > leave) {
-            // Coming in: white, opening out from a little small to its size as it takes its tint.
+          // Coming in: in colour, opening out from a little small to its size, then cooling to
+          // its white. The cooling is done by the time the eye is whole (p = 0).
+          const cool = Math.min(COOL, leave);
+          const warm = still ? 0 : Math.max(p > leave ? 1 : 1 - (leave - p) / cool, t < at + COOL_T ? 1 - Math.max(0, t - at) / COOL_T : 0);
+          if (warm > 0) {
             const pop = p > leave && !g.seed ? 1 - 0.3 * clamp((p - leave) / FLASH) : 1;
-            ctx.font = `600 ${g.w * 0.94 * pop}px ${ZH}`;
+            ctx.fillStyle = rgb(mix(g.rest, g.hot, warm * warm * (3 - 2 * warm)));
+            ctx.font = `${g.wt} ${g.w * 0.94 * pop}px ${ZH}`;
             ctx.fillText(g.ch, g.x + g.w / 2, g.y + g.w / 2 + g.w * 0.04);
           } else ctx.drawImage(lit, g.x * dpr, g.y * dpr, g.w * dpr, g.w * dpr, g.x, g.y, g.w, g.w);
         }
