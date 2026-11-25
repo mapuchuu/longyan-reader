@@ -155,13 +155,13 @@
 
   // MARK: Another sentence
 
-  // The next of the four, in place: the card and selection go, the grid is ruled again for
-  // the new line's size, and the line rises in.
+  // The next of the four, in place: the card and selection go and the new line rises in.
+  // Nothing behind it changes.
   function another() {
     if (!window.LongyanHero) return;
     clear(true);
     swapping = true;
-    story.querySelector(".story-pin").classList.remove("grid-set");
+    holdGrid = true;
     window.LongyanHero.setCurrent((current + 1) % N);
     swapping = false;
   }
@@ -185,7 +185,10 @@
   // Measured from where the characters sit in the layout, not where they're drawn: while
   // they rise in they're drawn lower, and measuring that put the grid off by the rise and
   // jumped it into place a second later. It shows once it's placed (.grid-set).
+  let holdGrid = false;
   function placeGrid() {
+    // After "Try another sentence" the new line sits on the same columns: the grid stays.
+    if (holdGrid) { holdGrid = false; if (story.querySelector(".story-pin.grid-set")) return; }
     const line = currentEl(), pin = story.querySelector(".story-pin"), c = line && line.querySelector(".c");
     if (!c || !pin) return;
     const p = pin.getBoundingClientRect(), lr = line.getBoundingClientRect();

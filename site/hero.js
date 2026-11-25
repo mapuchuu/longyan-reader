@@ -277,6 +277,7 @@
       drawLit(g);
     }
 
+    gridX = null;
     placeLines();
   }
 
@@ -301,14 +302,21 @@
 
   // The sentence to read, as a line of text. try.js shows it once it has formed; until then
   // its characters fly in from the eye.
+  // Where the practice grid's columns fall, set by the first line after a layout. "Try another
+  // sentence" changes only the words: every sentence is the size the longest one fits at, and
+  // each sits on the same columns, so the grid behind them never moves.
+  let gridX = null;
   function placeLines() {
-    const s = demo[current].sentence;
-    const size = Math.floor(Math.min(narrow ? 40 : 64, (W - (narrow ? 32 : 240)) / s.length));
+    const s = demo[current].sentence, longest = Math.max(...demo.map((d) => d.sentence.length));
+    const size = Math.floor(Math.min(narrow ? 40 : 64, (W - (narrow ? 32 : 240)) / longest));
     const y = lineY;
     // Centred on its ink: a closing 。 or ！ sits in the left of its square, so the line is
     // nudged right by the blank part of that square.
     const tail = /[。！？，]$/.test(s) ? size * 0.28 : 0;
-    lines = [{ k: 0, text: s, size, x: Math.round((W - size * s.length) / 2 + tail), y }];
+    let x = Math.round((W - size * s.length) / 2 + tail);
+    if (gridX == null) gridX = x;
+    else x = gridX + Math.round((x - gridX) / size) * size;
+    lines = [{ k: 0, text: s, size, x, y }];
     buildFlights();
     document.dispatchEvent(new CustomEvent("longyan:lines", { detail: { lines: lines.map((l) => ({ ...l })), W, H, current } }));
   }
