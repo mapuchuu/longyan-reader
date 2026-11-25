@@ -161,7 +161,6 @@
     if (!window.LongyanHero) return;
     clear(true);
     swapping = true;
-    holdGrid = true;
     window.LongyanHero.setCurrent((current + 1) % N);
     swapping = false;
   }
@@ -169,7 +168,7 @@
 
   // MARK: The way on
 
-  // "Get Longyan" stays put, two thirds of the way down (and clear of the line): the card
+  // "What is Longyan?" stays put, two thirds of the way down (and clear of the line): the card
   // opens at its full height over it if it reaches that far, and never moves it.
   let nextTop = Infinity;
   function placeNext() {
@@ -180,33 +179,6 @@
     root.style.setProperty("--next-y", nextTop + "px");
   }
   window.addEventListener("resize", placeNext);
-  // The practice grid behind the opening (style.css .tianzige): one square per character, a
-  // row of them exactly under the sentence.
-  // Measured from where the characters sit in the layout, not where they're drawn: while
-  // they rise in they're drawn lower, and measuring that put the grid off by the rise and
-  // jumped it into place a second later. It shows once it's placed (.grid-set).
-  let holdGrid = false;
-  function placeGrid() {
-    // After "Try another sentence" the new line sits on the same columns: the grid stays.
-    if (holdGrid) { holdGrid = false; if (story.querySelector(".story-pin.grid-set")) return; }
-    const line = currentEl(), pin = story.querySelector(".story-pin"), c = line && line.querySelector(".c");
-    if (!c || !pin) return;
-    const p = pin.getBoundingClientRect(), lr = line.getBoundingClientRect();
-    let ox = 0, oy = 0;
-    for (let e = c; e && e !== line; e = e.offsetParent) { ox += e.offsetLeft; oy += e.offsetTop; }
-    const size = c.offsetWidth, x = lr.left - p.left + ox, y = lr.top - p.top + oy + c.offsetHeight / 2 - size / 2;
-    if (!size) return;
-    const mod = (v) => ((v % size) + size) % size;
-    pin.style.setProperty("--grid-cell", size + "px");
-    pin.style.setProperty("--grid-x", mod(x) + "px");
-    pin.style.setProperty("--grid-y", mod(y) + "px");
-    pin.style.setProperty("--grid-mx", Math.round(lr.left - p.left + lr.width / 2) + "px");
-    pin.style.setProperty("--grid-my", Math.round(y + size / 2) + "px");
-    pin.classList.add("grid-set");
-  }
-  window.addEventListener("resize", () => requestAnimationFrame(placeGrid));
-  document.addEventListener("longyan:lines", () => requestAnimationFrame(placeGrid));
-  if (document.fonts) document.fonts.ready.then(() => requestAnimationFrame(placeGrid));
   document.addEventListener("longyan:lines", () => requestAnimationFrame(placeNext));
   // A card is never behind the button: while any card (opening, open or fading out) covers
   // its place, the button steps out of the way, and comes back once the card has gone.
@@ -482,10 +454,10 @@
     // on the first frame after the click and only slows near the end. `story` is for the
     // opening: just as prompt off the mark, but an even pace through the middle and longer in
     // all, so the eye is seen breaking up into the sentence on the way down.
-    // `eye`, from "Get Longyan": the sentence turning into the eye is the show, so it's paced as
+    // `eye`, from "What is Longyan?": the sentence turning into the eye is the show, so it's paced as
     // one: slow out of the line (the first words are seen peeling off), an unhurried flight
-    // through the middle, and a long settle as the eye fills in and the headline rises (2.9 s).
-    const dur = how.eye ? 2900 : how.story ? 2400 : Math.min(1400, 700 + Math.abs(dist) * 0.25), t0 = performance.now();
+    // through the middle, and a long settle as the eye fills in and the headline rises (2.4 s).
+    const dur = how.eye ? 2400 : how.story ? 2400 : Math.min(1400, 700 + Math.abs(dist) * 0.25), t0 = performance.now();
     const ease = how.eye ? cruise(0.24, 0.34) : how.story ? bezier(0.3, 0.2, 0.3, 1) : bezier(0.25, 0.4, 0.1, 1);
     let stopped = false;
     const stop = () => { stopped = true; };

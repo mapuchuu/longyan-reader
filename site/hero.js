@@ -47,6 +47,8 @@
   const PUNCT = /[，。？！、：；“”（）《》…—]/;
   // Characters too light to fill a square of the eye.
   const SPARSE = /[一二三十八人入了个上下几儿小大卜七九工口]/;
+  // The waves' characters: every one in the page's sentences.
+  const CHARS = [...new Set(PAGE.map((p) => p.s).join(""))].filter((ch) => !PUNCT.test(ch));
   const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
   const smooth = (a, b, x) => { const u = clamp((x - a) / (b - a)); return u * u * (3 - 2 * u); };
   // Glide: an even pace for most of the way, then easing to a stop. Its first 60% of the time
@@ -64,6 +66,21 @@
   const hash = (i) => { const s = Math.sin(i * 12.9898) * 43758.5453; return s - Math.floor(s); };
   const mix = (a, b, u) => a.map((v, k) => Math.round(v + (b[k] - v) * clamp(u)));
   const rgb = (c, a = 1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+
+  // Noise for the waves of characters behind the opening, and the mist in them.
+  const h1 = (x) => { const s = Math.sin(x * 127.1) * 43758.5453; return s - Math.floor(s); };
+  const n1 = (x) => { const i = Math.floor(x); let f = x - i; f = f * f * (3 - 2 * f); return h1(i) + (h1(i + 1) - h1(i)) * f; };
+  const h2 = (x, y) => { const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return s - Math.floor(s); };
+  function n2(x, y) {
+    const ix = Math.floor(x), iy = Math.floor(y);
+    let fx = x - ix, fy = y - iy; fx = fx * fx * (3 - 2 * fx); fy = fy * fy * (3 - 2 * fy);
+    const a = h2(ix, iy), b = h2(ix + 1, iy), c = h2(ix, iy + 1), d = h2(ix + 1, iy + 1);
+    return a + (b - a) * fx + (c - a) * fy + (a - b - c + d) * fx * fy;
+  }
+  function fbm(x, y) { let s = 0, a = 0.5; for (let i = 0; i < 4; i++) { s += a * n2(x, y); x = x * 2.02 + 9.7; y = y * 2.02 + 9.7; a *= 0.5; } return s; }
+  function ridge(x) { let v = 0, a = 0.55, f = 1; for (let i = 0; i < 5; i++) { v += a * (1 - Math.abs(2 * n1(x * f) - 1)); a *= 0.48; f *= 2.13; } return v; }
+  // 4×4 ordered-dither thresholds, 0..1.
+  const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map((v) => (v + 0.5) / 16);
 
   // MARK: The mark
 
@@ -233,6 +250,51 @@
   let progress = 0, target = 0, lineY = 0;
   let hover = null;                    // { k }: the eye's character pointed at
 
+  // The waves: a grid of small characters, and an atlas of them in four tints, by ink.
+  let cell = 12, cols = 0, rows = 0, zh = 10, tile = 24, landBase = 0.8;
+  let order_ = [], landAtlas = [], tops = [], copyBand = null;
+  const atlasCols = 32;
+  // How bright the waves are at most: felt behind the sentence, never competing with it.
+  const FAINT = 0.34;
+
+  function buildAtlas() {
+    tile = Math.max(8, Math.round(cell * dpr));
+    const white = document.createElement("canvas");
+    white.width = atlasCols * tile; white.height = Math.ceil(CHARS.length / atlasCols) * tile;
+    const g = white.getContext("2d", { willReadFrequently: true });
+    g.fillStyle = "#fff"; g.textAlign = "center"; g.textBaseline = "middle";
+    g.font = `400 ${Math.round(zh * dpr)}px ${ZH}`;
+    CHARS.forEach((ch, k) => g.fillText(ch, (k % atlasCols) * tile + tile / 2, ((k / atlasCols) | 0) * tile + tile / 2 + dpr * 0.5));
+    // Ink per character, measured once.
+    const data = g.getImageData(0, 0, white.width, white.height).data;
+    const ink = CHARS.map((_, k) => {
+      const x0 = (k % atlasCols) * tile, y0 = ((k / atlasCols) | 0) * tile;
+      let s = 0;
+      for (let y = y0; y < y0 + tile; y++) for (let x = x0; x < x0 + tile; x++) s += data[(y * white.width + x) * 4 + 3];
+      return s;
+    });
+    order_ = CHARS.map((_, k) => k).sort((a, b) => ink[a] - ink[b]);
+    landAtlas = [0, 1, 2, 3].map((k) => {
+      const a = document.createElement("canvas");
+      a.width = white.width; a.height = white.height;
+      const t = a.getContext("2d");
+      t.drawImage(white, 0, 0);
+      t.globalCompositeOperation = "source-in";
+      t.fillStyle = rgb(mix(AZURE, VIOLET, k / 3)); t.fillRect(0, 0, a.width, a.height);
+      return a;
+    });
+  }
+  // A character with about `u` (0..1) of the most ink, varied by `seed`; reflected at the
+  // ends rather than clamped, so the densest isn't picked half the time.
+  function byInk(u, seed, spread = 0.08) {
+    let v = u + (seed - 0.5) * spread * 2;
+    if (v > 1) v = 2 - v; else if (v < 0) v = -v;
+    return order_[Math.round(clamp(v) * (order_.length - 1))];
+  }
+  function blit(atlas, k, c, r) {
+    ctx.drawImage(atlas, (k % atlasCols) * tile, ((k / atlasCols) | 0) * tile, tile, tile, c * cell, r * cell, cell, cell);
+  }
+
   function markMatrix() {
     const s = eye.s;
     return [s, 0, 0, s, eye.cx - MC[0] * s, eye.cy - MC[1] * s];
@@ -276,6 +338,30 @@
       g.wt = g.w >= unit * 3 ? 500 : 600;
       drawLit(g);
     }
+
+    // The waves, low on the screen, under the sentence and the room for its card.
+    cell = narrow ? 10 : W < 1200 ? 11 : 12;
+    zh = cell * 0.88;
+    cols = Math.ceil(W / cell); rows = Math.ceil(H / cell);
+    buildAtlas();
+    tops = [];
+    // The ranges start just under the eye, so it stands over them; on a wide screen, under the
+    // headline's last line too.
+    landBase = Math.min(narrow ? 0.74 : 0.84, (eye.y + eye.h) / H + (narrow ? 0.1 : 0.085));
+    const copyEl = document.querySelector(".hero-copy");
+    if (copyEl) {
+      // Under the words: beside the eye on a wide screen, under the headline and its buttons
+      // on a phone, so the ranges never run behind the text.
+      const cb = copyEl.getBoundingClientRect(), top = canvas.getBoundingClientRect().top;
+      landBase = narrow ? Math.min(0.92, Math.max(landBase, (cb.bottom - top) / H + 0.1))
+        : Math.min(0.86, Math.max(landBase, (cb.bottom - top) / H + 0.075));
+    }
+    // On a phone the headline sits over them once the eye has formed: they go quiet behind it.
+    const copy = document.querySelector(".hero-copy");
+    if (narrow && copy) {
+      const cb = copy.getBoundingClientRect(), top = canvas.getBoundingClientRect().top;
+      copyBand = [cb.top - top - 10, cb.bottom - top + 10];
+    } else copyBand = null;
 
     gridX = null;
     placeLines();
@@ -425,12 +511,72 @@
 
   // MARK: Drawing
 
+  // The waves: four ranges of characters, far to near, each a ridge with a brighter rim that
+  // fades into the body under it, drawn the way a halftone draws, by how much ink each
+  // character has, with mist drifting through. They roll slowly on their own, and as the page
+  // scrolls on from the sentence to the eye they sink and fade, the near ones fastest.
+  function drawLand(t, sink) {
+    const intro = still ? 0 : (1 - glide(clamp(t / 1.6))) * 0.25;
+    const asp = W / H;
+    if (!tops.length || tops[0].length !== cols) tops = [0, 1, 2, 3].map(() => new Float32Array(cols));
+    let highest = 1;
+    const fade = FAINT * (1 - 0.4 * sink);
+    // The ridges are measured against the screen's height, so a wide screen gets broad ranges
+    // rather than more, smaller bumps. On a wide screen they stay low under the headline and
+    // open into a valley under the eye, so it floats clear over them with ranges rising either
+    // side: they cup the eye and the words beside it.
+    // The ranges sit at uneven depths, a near pair and a far pair, so they read as layers
+    // of land rather than evenly ruled lines.
+    const span = narrow ? H : H * 1.7, depthOf = [0, 0.042, 0.135, 0.2], deep = narrow ? 0.8 : 1;
+    const roll = still ? 0 : t * 0.003;
+    for (let k = 0; k < 4; k++) {
+      const amp = (narrow ? 0.14 : 0.16) * [1, 0.72, 0.9, 0.55][k];
+      const base = landBase + depthOf[k] * deep + intro + sink * 1.9 * (0.06 + 0.05 * k);
+      for (let c = 0; c < cols; c++) {
+        const px = (c + 0.5) * cell, x = px / span;
+        // A little lift at the eye's corners and a valley under it, so the ranges settle round it.
+        const side = Math.exp(-Math.pow((px - eye.x) / (eye.w * 0.3), 2)) + Math.exp(-Math.pow((px - eye.x - eye.w) / (eye.w * 0.3), 2));
+        // Only the far range follows the eye closely; the nearer ones keep more of their own
+        // shape, so the four never run parallel.
+        const shaped = (0.34 + 0.66 * smooth(W * 0.28, eye.x, px)) * (1 + 0.2 * side) * (1 - 0.66 * Math.exp(-Math.pow((px - eye.cx) / (eye.w * 0.36), 2)));
+        const env = narrow ? 1 : 1 - (1 - shaped) * [1, 0.62, 0.38, 0.2][k];
+        // Scrolling slides the ranges sideways, the near ones furthest, as they rise.
+        const slide = (0.5 - sink) * (0.4 + 0.25 * k);
+        tops[k][c] = base - amp * env * ridge(x * [0.8, 1.45, 1.05, 2.1][k] + k * 13.7 + roll * (1 + 0.6 * k) + slide);
+        if (tops[k][c] < highest) highest = tops[k][c];
+      }
+    }
+    const r0 = Math.max(0, Math.floor((highest * H) / cell) - 1);
+    for (let r = r0; r < rows; r++) {
+      const y = ((r + 0.5) * cell) / H;
+      const quiet = copyBand ? 1 - 0.7 * smooth(copyBand[0] - 40, copyBand[0] + 10, y * H) * (1 - smooth(copyBand[1] - 10, copyBand[1] + 40, y * H)) : 1;
+      const band = smooth(landBase - 0.05, landBase + 0.12, y) * (1 - smooth(landBase + 0.12, 1, y)) * (1 - sink * 0.6);
+      for (let c = 0; c < cols; c++) {
+        let layer = -1, depth = 0;
+        for (let k = 0; k < 4; k++) if (y > tops[k][c]) { layer = k; depth = y - tops[k][c]; }
+        if (layer < 0) continue;
+        let L = Math.exp(-depth * 80) * (0.46 - 0.04 * layer) + Math.exp(-depth * (14 + 3 * layer)) * (0.16 - 0.02 * layer);
+        if (band > 0.01) L += Math.max(0, fbm(((c + 0.5) / cols) * asp * 1.6 - t * 0.025, y * 7 + t * 0.01) - 0.5) * 0.7 * band;
+        const v = L * 2.3;
+        if (v < BAYER[(r & 3) * 4 + (c & 3)] * 0.85 + 0.06) continue;
+        // Quantized, so a cell keeps its character until the light on it really changes.
+        const level = Math.min(7, Math.floor(v * 6));
+        const floor = 1 - sink * smooth(0.8, 0.97, y);
+        ctx.globalAlpha = Math.min(1, 0.32 + v * 0.5) * quiet * fade * floor;
+        blit(landAtlas[layer], byInk(level / 9, hash((r * cols + c) * 1.7 + level), 0.06), c, r);
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
   function draw(t) {
     if (!lit) return;
     const p = progress;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    drawLand(t, 0.5 * smooth(0, FORMED, p));
 
 
     // The eye comes in from left to right, each character flashing white as it arrives; on
@@ -559,7 +705,7 @@
   // characters back up into the eye (progress 0), with the rest of the eye filling in round
   // them. The pinned stretch after that holds the eye and the headline under it. The shared
   // preview (?og) is the eye.
-  const gather = () => window.innerHeight * 0.54;
+  const gather = () => window.innerHeight * 0.44;
   function progressAt(d) { return og ? 0 : FORMED * (1 - clamp(d / gather())); }
   function readScroll() {
     if (!story) return;
