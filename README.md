@@ -49,7 +49,7 @@ Look up 躺平 in a dictionary and you get "to lie stretched out" and "to opt ou
 
 Select a single word and you get its meaning in context, pinyin colored by tone, and the dictionary's other senses underneath in case you want them. Select a phrase or a whole sentence and you get a natural translation first, then every word in it with its meaning there. Any word can be opened to see the rest of its senses or to pick a different one yourself.
 
-Meanings always come from CC-CEDICT, so the model chooses between real dictionary entries and never invents one. On top of that, 693 words where a gloss falls short have short usage notes, written ahead of time and checked against the dictionary: 面子, 关系, 内卷, 摸鱼, 正能量 and about 690 others.
+Meanings always come from CC-CEDICT, so the model chooses between real dictionary entries and never invents one. On top of that sit 1,040 short notes on 693 words where a gloss falls short, written ahead of time and checked against the dictionary: 面子, 关系, 内卷, 摸鱼, 正能量 and hundreds more.
 
 Every lookup goes into a history with its sentence and the meaning the word had there. You can search it or export it to Anki or a spreadsheet. If Anki is open with the [AnkiConnect](https://ankiweb.net/shared/info/2055492159) add-on, a button on the card adds the word to Anki straight away, with its pinyin, its sentence and the meaning it had there.
 

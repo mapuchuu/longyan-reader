@@ -565,8 +565,8 @@
   const PAGE = "https://longyan.app/#install";
   const SHARE = { title: "Longyan Reader", url: PAGE };
   const canShare = !!(navigator.share && (!navigator.canShare || navigator.canShare(SHARE)));
-  const NAME = { mac: "Mac", win: "PC" };
-  const phoneLabel = (a) => `${canShare ? "Send to" : "Copy link for"} your ${NAME[a.dataset.get] || "computer"}`;
+  // Either system's button sends the same page, so a phone never has to know which computer.
+  const phoneLabel = () => `${canShare ? "Send to" : "Copy link for"} your computer`;
   document.querySelectorAll("[data-download] .for-phone").forEach((l) => { l.textContent = phoneLabel(l.closest("a")); });
   function copy(text) {
     if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text).then(() => true, () => copyOld(text));
@@ -601,9 +601,9 @@
     if (window.LongyanInstall && a.dataset.get) window.LongyanInstall.pick(a.dataset.get);
     const live = !a.getAttribute("href").startsWith("#");
     if (live) {
-      const store = a.hasAttribute("data-store");
-      started.querySelector(".started-done").textContent = store ? "The Microsoft Store is opening." : "Your download has started.";
-      started.querySelector(".started-again").textContent = store ? "Didn’t open?" : "Didn’t start?";
+      const store = a.hasAttribute("data-store"), github = a.hasAttribute("data-installer");
+      started.querySelector(".started-done").textContent = store ? "The Microsoft Store is opening." : github ? "The installers are on GitHub, in a new tab." : "Your download has started.";
+      started.querySelector(".started-again").textContent = store || github ? "Didn’t open?" : "Didn’t start?";
       started.querySelector("a").href = a.href;
       install.classList.add("downloading");
     } else e.preventDefault();

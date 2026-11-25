@@ -35,39 +35,32 @@
 <main class="doc">
   <div class="doc-wrap">
     <h1>Privacy</h1>
-    <p class="doc-date">Updated 24 November 2026</p>
+    <p class="doc-date">Updated 25 November 2026</p>
 
     <p class="doc-lead">Longyan Reader runs on your Mac or PC. What you highlight and look up stays on it. There’s no account, no analytics and no tracking.</p>
 
     <h2>What the app reads</h2>
-    <p>With the Accessibility permission you give it, the app reads the text you highlight and the sentence around it, in whatever app you’re reading. When you finish a selection, it reads it to check whether it’s Chinese and to decide whether to show the eye. Nothing is kept unless you open a card. The one exception: when a lookup finds no Chinese to read, history notes the app’s name and why, without any text.</p>
-    <p>Some apps don’t share what’s selected. In those, the app copies the selection with ⌘C and then puts back what was on your clipboard.</p>
+    <p>The app reads the text you highlight and the sentence around it, in whatever app you’re reading. On a Mac it does this with the Accessibility permission you give it. On Windows there’s no permission to give: it reads the selection through UI Automation.</p>
+    <p>When you finish a selection, it reads it to check whether it’s Chinese and to decide whether to show the eye. Nothing is kept unless you open a card. The one exception: when a lookup finds no Chinese to read, history notes the app’s name and why, without any text.</p>
+    <p>Some apps don’t share what’s selected. In those, the app copies the selection (⌘C on a Mac, Ctrl+C on Windows) and then puts back what was on your clipboard. On Windows it doesn’t do this in terminals, where Ctrl+C would stop what’s running.</p>
 
-    <h2>What it keeps on your Mac</h2>
+    <h2>What it keeps on your computer</h2>
     <ul>
-      <li><b>Your lookup history.</b> Each word or phrase you look up, the meaning it had, its sentence, and the app you were reading in. It’s kept in <code>~/Library/Application Support/LongyanReader/History</code>, readable only by your account. History is on by default. Under Keep History in the menu you can keep 30 days, turn it off, or clear it. Clearing moves the file to the Trash. It leaves your Mac only if you export it.</li>
-      <li><b>The reading model</b>, if you download it, in <code>~/Library/Application Support/LongyanReader</code>.</li>
+      <li><b>Your lookup history.</b> Each word or phrase you look up, the meaning it had, its sentence, and the app you were reading in. History is on by default. You can keep 30 days, turn it off, or clear it: under Keep History in the menu on a Mac, in Lookup history on Windows. It leaves your computer only if you export it.</li>
+      <li><b>The reading model</b>, if you download it.</li>
       <li><b>Your settings</b>, such as appearance and card size.</li>
     </ul>
+    <p>On a Mac all of it is in <code>~/Library/Application Support/LongyanReader</code>, readable only by your account, and clearing history moves the file to the Trash.</p>
+    <p>On Windows it’s in <code>%LOCALAPPDATA%\LongyanReader</code>. The Microsoft Store version keeps it in its own folder under <code>%LOCALAPPDATA%\Packages</code>. Clearing history moves the file to the Recycle Bin, or deletes it if the Recycle Bin is off. Uninstalling removes the folder; a history you cleared earlier stays in the Recycle Bin until you empty it.</p>
 
     <h2>When it goes online</h2>
     <ul>
       <li><b>Downloading the reading model</b>, only when you ask. It comes from hf-mirror.com, or huggingface.co if that fails. Those sites see an ordinary download request from your IP address.</li>
-      <li><b>Checking for updates</b>, only after you say yes, or when you choose Check for Updates. The app asks GitHub for the latest version. GitHub sees your IP address and the app’s version. Nothing about your Mac or your reading is sent.</li>
-      <li><b>Report a Problem</b> opens a GitHub page in your browser with the app version, macOS version, chip, memory and reading model filled in. Nothing is sent unless you submit it.</li>
+      <li><b>Checking for updates</b>, only after you say yes, or when you choose Check for Updates. The app asks GitHub for the latest version. GitHub sees your IP address and the app’s version. Nothing about your computer or your reading is sent. The Microsoft Store version doesn’t check; the Store updates it.</li>
+      <li><b>Report a Problem</b> opens a GitHub page in your browser with the app version, system version, processor, memory and reading model filled in. On Windows it also adds the number of cores and the last lines of the app’s log, which has no text you looked up. Nothing is sent unless you submit it.</li>
     </ul>
-    <p>Without the downloaded model, the app checks whether Ollama is running on your Mac with <code>qwen3.5:4b</code>, and uses it if so. That check never leaves your Mac. On macOS 26 with Apple Intelligence on, Apple’s on-device models can fill in; they also run on your Mac.</p>
-    <p>If Anki is open with the AnkiConnect add-on, each card asks Anki whether its word is already in your deck, and when you click Add to Anki it gives Anki that card. Anki runs on your Mac, so this never leaves it either.</p>
-
-    <h2>On Windows</h2>
-    <p>The Windows app works the same way, with these differences.</p>
-    <ul>
-      <li>There’s no permission to give on Windows. The app reads the selection through UI Automation, or, in apps that don’t share it, copies it with Ctrl+C and then puts back what was on your clipboard. It doesn’t do this in terminals, where Ctrl+C would stop what’s running.</li>
-      <li>History, settings and the reading model are kept in <code>%LOCALAPPDATA%\LongyanReader</code>. The Microsoft Store version keeps them in its own folder under <code>%LOCALAPPDATA%\Packages</code>. Clearing history moves the file to the Recycle Bin, or deletes it if the Recycle Bin is off. Uninstalling removes the folder. A history you cleared earlier stays in the Recycle Bin until you empty it.</li>
-      <li>The version from GitHub checks GitHub for updates once a day after you say yes, or when you choose Check for updates. The Microsoft Store version doesn’t; the Store updates it.</li>
-      <li>Report a Problem fills in the app version, Windows version, processor and its number of cores, memory, reading model, and the last lines of the app’s log. The log has no text you looked up. Nothing is sent unless you submit it.</li>
-      <li>There’s no Ollama or Apple Intelligence fallback. Without the model, cards show the dictionary’s meanings.</li>
-    </ul>
+    <p>If Anki is open with the AnkiConnect add-on, each card asks Anki whether its word is already in your deck, and when you click Add to Anki it gives Anki that card. Anki runs on your computer, so this never leaves it either.</p>
+    <p>On a Mac without the downloaded model, the app checks whether Ollama is running with <code>qwen3.5:4b</code>, and uses it if so. That check never leaves your Mac. On macOS 26 with Apple Intelligence on, Apple’s on-device models can fill in; they also run on your Mac. Windows has neither: without the model, cards show the dictionary’s meanings.</p>
 
     <h2>This website</h2>
     <p>longyan.app is a static page hosted on GitHub Pages. The Mac download and the Windows installer come from GitHub, and the Microsoft Store version from Microsoft. The site sets no cookies and has no analytics. GitHub may keep standard server logs, as described in <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">its privacy statement</a>.</p>

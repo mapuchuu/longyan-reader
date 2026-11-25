@@ -18,7 +18,7 @@
 <link rel="icon" href="favicon.ico" sizes="32x32">
 <link rel="icon" href="images/tab-icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="images/touch-icon.png">
-<link rel="stylesheet" href="style.css?v=1127c">
+<link rel="stylesheet" href="style.css?v=1127d">
 <script>
   document.documentElement.classList.add("js");
   // Scroll motion, unless the visitor asked for less (or ?still, for screenshots).
@@ -155,7 +155,7 @@
           <div><svg class="contour" viewBox="0 0 40 30" aria-hidden="true"><path class="base" d="M7 5L33 26"/><path class="draw" pathLength="1" d="M7 5L33 26"/></svg><span class="t4">骂</span><i class="t4">mà</i><small>to scold</small></div>
         </div>
       </div>
-      <figcaption><b>Every tone in its own color.</b> Characters and pinyin are colored by tone, so you start to hear a word as you read it. Choose from two color sets or pick your own.</figcaption>
+      <figcaption><b>Every tone in its own color.</b> Characters and pinyin are colored by tone, so you start to hear a word as you read it. On a Mac, choose from two color sets or pick your own.</figcaption>
     </figure>
 
     <figure class="tile" data-reveal>
@@ -184,7 +184,7 @@
         <div class="ui ui-menu">
           <div class="menu-item dim">Highlight Chinese text, then click the eye</div>
           <hr>
-          <div class="menu-item">Dictionary: 198,488 entries</div>
+          <div class="menu-item">Dictionary: 125,308 entries</div>
           <div class="menu-item">Reading model: Qwen 3.5 4B</div>
           <hr>
           <div class="menu-item">Lookup History</div>
@@ -200,7 +200,7 @@
 
 <section class="trusted" id="trusted">
   <div class="wrap" data-reveal>
-    <h2 class="trusted-sel"><span class="sel sel-a"><i class="knob knob-a" aria-hidden="true"></i>Trusted by <span class="pill"><b class="t4" lang="zh-CN">外</b>expats</span>, <span class="pill"><b class="t1" lang="zh-CN">家</b>heritage speakers</span>,</span><br><span class="sel sel-b"><span class="pill"><b class="t3" lang="zh-CN">考</b>HSK test-takers</span>, and <span class="pill"><b class="t4" lang="zh-CN">教</b>educators</span><i class="knob knob-b" aria-hidden="true"></i></span></h2>
+    <h2 class="trusted-sel"><span class="sel sel-a"><i class="knob knob-a" aria-hidden="true"></i>Made for <span class="pill"><b class="t4" lang="zh-CN">外</b>expats</span>, <span class="pill"><b class="t1" lang="zh-CN">家</b>heritage speakers</span>,</span><br><span class="sel sel-b"><span class="pill"><b class="t3" lang="zh-CN">考</b>HSK test-takers</span>, and <span class="pill"><b class="t4" lang="zh-CN">教</b>educators</span><i class="knob knob-b" aria-hidden="true"></i></span></h2>
   </div>
 </section>
 
@@ -218,12 +218,12 @@
       </div>
       <div class="get-pair" data-for="win">
         <a class="button" href="#install" data-download data-get="win" data-store><svg class="windows" viewBox="0 0 16 16" aria-hidden="true"><path d="M0 0h7.55v7.55H0zM8.45 0H16v7.55H8.45zM0 8.45h7.55V16H0zM8.45 8.45H16V16H8.45z"/></svg><span class="for-mac">Get it from the Microsoft Store</span><span class="for-phone">Send to your PC</span></a>
-        <a class="button-quiet for-mac" href="#install" data-download data-get="win" data-installer>Installer on GitHub <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg></a>
+        <a class="button-quiet for-mac" href="#install" data-download data-get="win" data-installer target="_blank" rel="noopener">Installer on GitHub <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg></a>
       </div>
       <p class="started" id="started" role="status"><span class="started-done">Your download has started.</span> <span class="started-again">Didn’t start?</span> <a href="https://github.com/mapuchuu/longyan-reader/releases/latest/download/LongyanReader.zip">Try again</a></p>
     </div>
     <p class="install-fine" data-for="mac"><span class="fine-line"><span class="fine-pair">Free · Notarized by Apple</span><span class="fine-sep"> · </span><span class="fine-pair">Apple silicon · macOS 15 or later</span></span><span class="fine-line">34&nbsp;MB, plus an optional 2.7&nbsp;GB reading model.</span></p>
-    <p class="install-fine" data-for="win"><span class="fine-line">Free · Windows 10 or 11</span><span class="fine-line">The 2.7&nbsp;GB reading model is optional.</span></p>
+    <p class="install-fine" data-for="win"><span class="fine-line"><span class="fine-pair">Free · Microsoft Store or GitHub</span><span class="fine-sep"> · </span><span class="fine-pair">x64 or Arm · Windows 10 or 11</span></span><span class="fine-line">About 75&nbsp;MB, plus an optional 2.7&nbsp;GB reading model.</span><span class="fine-line">The GitHub installer isn’t signed, so Windows asks you to confirm.</span></p>
   </div>
   <div class="wrap install-grid" data-for="mac" data-reveal>
     <div class="steps-col">
@@ -305,7 +305,7 @@
     <div class="steps-col">
     <ol class="steps">
       <li><button type="button" data-step="0" aria-pressed="true">Get <b>Longyan&nbsp;Reader</b> from the Microsoft Store, then click <b>Open</b>.</button><i class="step-bar"><b></b></i></li>
-      <li><button type="button" data-step="1" aria-pressed="false">The welcome window offers the 2.7&nbsp;GB reading model. Click <b>Download</b>, or click <b>Done</b> and get it from the notification area any time.</button><i class="step-bar"><b></b></i></li>
+      <li><button type="button" data-step="1" aria-pressed="false">The welcome window offers the 2.7&nbsp;GB reading model. Click <b>Download</b>, or click <b>Done</b> and get it in Settings any time.</button><i class="step-bar"><b></b></i></li>
       <li><button type="button" data-step="2" aria-pressed="false">Longyan waits in the notification area, by the clock. Select Chinese text in any app, then click the eye or press <b>Ctrl+Alt+L</b>.</button><i class="step-bar"><b></b></i></li>
     </ol>
     </div>
@@ -411,13 +411,13 @@
   </div>
 </footer>
 
-<script src="data.js?v=1127c"></script>
-<script src="card.js?v=1127c"></script>
-<script src="hero.js?v=1127c"></script>
-<script src="try.js?v=1127c"></script>
-<script src="paper.js?v=1127c"></script>
-<script src="motion.js?v=1127c"></script>
-<script src="tiles.js?v=1127c"></script>
-<script src="install.js?v=1127c"></script>
+<script src="data.js?v=1127d"></script>
+<script src="card.js?v=1127d"></script>
+<script src="hero.js?v=1127d"></script>
+<script src="try.js?v=1127d"></script>
+<script src="paper.js?v=1127d"></script>
+<script src="motion.js?v=1127d"></script>
+<script src="tiles.js?v=1127d"></script>
+<script src="install.js?v=1127d"></script>
 </body>
 </html>

@@ -36,9 +36,18 @@ body:
     attributes:
       label: Which app the text was in
       placeholder: Safari, Preview, WeChat
+  - type: dropdown
+    id: source
+    attributes:
+      label: Where you got it
+      options:
+        - Mac download from GitHub or longyan.app
+        - Homebrew
+        - Microsoft Store
+        - Windows installer from GitHub
   - type: input
     id: version
     attributes:
       label: Versions
       description: Report a Problem in the app's menu fills these in for you.
-      placeholder: Longyan Reader 1.0, macOS 15.6, M1, 8 GB, reading model Qwen 3.5 4B
+      placeholder: Longyan Reader 1.1, macOS 15.6, M1, 8 GB, reading model Qwen 3.5 4B (or Windows 11 24H2, x64, 16 GB)
