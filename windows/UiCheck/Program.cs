@@ -150,6 +150,8 @@ static partial class Program
         CardFeelCheck.Run(app, window, log, failures, Shot);
         AnkiCheck(app, window);   // AnkiCheck.cs
         SettingsCheck(exe);
+        // History again, from Settings this time, after it was open and closed (4-history).
+        HistoryCheck.FromSettings(() => OpenAgain(exe), app, outDir, failures, "5-history-again-from-settings");
 
         // Started again, as at login (no welcome now): its first eye, then the scalings.
         try { app.Kill(); app.WaitForExit(10000); } catch { }
