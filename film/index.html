@@ -5,6 +5,10 @@
 <title>Film</title>
 <link rel="stylesheet" href="../site/style.css">
 <link rel="stylesheet" href="film.css">
+<script>
+  // ?os=win: the Windows cut, for the Microsoft Store (win.css, win.js).
+  if (/[?&]os=win\b/.test(location.search)) document.write('<link rel="stylesheet" href="win.css"><script src="win.js"><\/script>');
+</script>
 </head>
 <body>
 <div id="stage">

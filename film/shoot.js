@@ -1,12 +1,12 @@
-// shoot.js <outdir> <workers> : every frame of the film at 2560×1440, JPEG q95.
+// shoot.js <outdir> <workers> [width] : every frame of the film at 2560×1440 (or width×9/16), JPEG q95.
 const { chromium } = require(process.env.PLAYWRIGHT_CORE || 'playwright-core');
 const fs = require('fs');
-const out = process.argv[2], W = Number(process.argv[3] || 4);
+const out = process.argv[2], W = Number(process.argv[3] || 4), PX = Number(process.argv[4] || 2560);
 fs.mkdirSync(out, { recursive: true });
 (async () => {
   const b = await chromium.launch({ channel: 'chrome' });
   const open = async () => {
-    const p = await (await b.newContext({ viewport: { width: 1440, height: 810 }, deviceScaleFactor: 2560 / 1440, reducedMotion: 'reduce' })).newPage();
+    const p = await (await b.newContext({ viewport: { width: 1440, height: 810 }, deviceScaleFactor: PX / 1440, reducedMotion: 'reduce' })).newPage();
     await p.goto((process.env.FILM_URL || 'http://127.0.0.1:8791/film/'), { waitUntil: 'load' });
     await p.evaluate(() => window.film.ready);
     return p;

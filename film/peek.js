@@ -6,7 +6,7 @@ const times = (process.argv[3] || '0').split(',').map(Number);
   const b = await chromium.launch({ channel: 'chrome' });
   const p = await (await b.newContext({ viewport: { width: 1440, height: 810 }, deviceScaleFactor: Number(process.argv[4] || 1), reducedMotion: 'reduce' })).newPage();
   const errs = []; p.on('pageerror', (e) => errs.push(e.message)); p.on('response', (r) => { if (r.status() >= 400) errs.push(r.status() + ' ' + r.url()); }); p.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
-  await p.goto((process.env.FILM_URL || 'http://127.0.0.1:8791/film/') + '?r=' + Date.now(), { waitUntil: 'load' });
+  await p.goto((process.env.FILM_URL || 'http://127.0.0.1:8791/film/').replace(/$/, (process.env.FILM_URL || '').includes('?') ? '&r=' + Date.now() : '?r=' + Date.now()), { waitUntil: 'load' });
   await p.evaluate(() => window.film.ready);
   console.log('T', await p.evaluate(() => window.film.T), JSON.stringify(await p.evaluate(() => window.film.plan().map((x) => ({ down: +x.tDown.toFixed(2), open: +x.tOpen.toFixed(2), close: +x.tClose.toFixed(2), frame: x.frame })))));
   for (const t of times) {

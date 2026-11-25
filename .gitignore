@@ -10,3 +10,6 @@ site/_shot.html
 # Site videos live on the site-media release, not in git (see DEVELOPMENT.md).
 site/media/*.mp4
 Vendor/
+
+# Windows fonts for the film's Windows cut (copied from a Windows PC, not ours to ship).
+film/fonts

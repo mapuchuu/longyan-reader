@@ -21,6 +21,9 @@
 
   const cam = $("#cam"), cursorEl = $("#cursor"), chipEl = $("#chip");
   const W = 1440, H = 810;
+  const WIN = !!window.FILM_WIN;
+  let winSel = null;
+  const END = 6.5;   // seconds of the Windows cut's end card
 
   // MARK: The scenes
 
@@ -94,6 +97,9 @@
     plan[plan.length - 1].tClose = tOut;
     moves.push({ t0: tOut + 0.5, t1: tOut + 1.4, from: click, to: REST, bend: -0.1 });
     T = Math.round((tOut + 3.4) * FPS) / FPS;
+    // The Windows cut ends on a title card (win.js), held long enough to read.
+    plan.tEnd = T;
+    if (WIN) T = Math.round((T + END) * FPS) / FPS;
     plan.tOut = tOut;
   }
 
@@ -241,6 +247,14 @@
 
   function drawSelection(s, count, show) {
     s.hl.innerHTML = "";
+    // On Windows the page's own selection, so the words turn white in the highlight as they do there.
+    if (WIN) {
+      if (!show || count <= 0) return;
+      const node = s.winEl.querySelector(".s").firstChild, r = document.createRange();
+      r.setStart(node, s.sel[0]); r.setEnd(node, s.sel[0] + count);
+      winSel = r;
+      return;
+    }
     if (!show || count <= 0) return;
     const cs = s.chars.slice(s.sel[0], s.sel[0] + count);
     const lines = [];
@@ -268,6 +282,11 @@
 
   function render(t) {
     t = clamp(t, 0, T);
+    if (WIN) {
+      const e = sine((t - plan.tEnd) / 0.7), end = document.getElementById("endcard");
+      end.style.opacity = e;
+      end.firstElementChild.style.transform = `translateY(${(1 - sine((t - plan.tEnd - 0.1) / 0.9)) * 14}px)`;
+    }
     // Windows
     const wins = windowsAt(t);
     wins.order.forEach((w, i) => { w.style.zIndex = 10 + i; w.classList.toggle("key", w === wins.key); });
@@ -282,6 +301,11 @@
         count = s.chars.slice(s.sel[0], s.sel[1]).filter((c) => (c.left + c.right) / 2 < x).length;
       }
       drawSelection(s, count, live);
+    }
+    if (WIN) {
+      const sel = getSelection(); sel.removeAllRanges();
+      if (winSel) sel.addRange(winSel);
+      winSel = null;
     }
 
     // The eye by the selection
@@ -300,7 +324,7 @@
       chipEl.style.left = s.chip.x + "px"; chipEl.style.top = s.chip.y + "px";
       chipEl.style.transform = `scale(${scale})`;
       chipEl.style.opacity = op;
-      chipEl.style.color = `rgba(255,255,255,${0.62 + 0.33 * hov})`;
+      chipEl.style.color = WIN ? `rgba(0,0,0,${0.52 + 0.33 * hov})` : `rgba(255,255,255,${0.62 + 0.33 * hov})`;
     } else chipEl.style.display = "none";
 
     // The card
