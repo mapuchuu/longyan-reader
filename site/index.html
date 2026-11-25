@@ -18,8 +18,9 @@
 <link rel="icon" href="favicon.ico" sizes="32x32">
 <link rel="icon" href="images/tab-icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="images/touch-icon.png">
-<link rel="stylesheet" href="style.css?v=1126g">
+<link rel="stylesheet" href="style.css?v=1126l">
 <script>
+  document.documentElement.classList.add("js");
   // Scroll motion, unless the visitor asked for less (or ?still, for screenshots).
   if (!matchMedia("(prefers-reduced-motion: reduce)").matches && !/[?&]still/.test(location.search)) document.documentElement.classList.add("motion");
 </script>
@@ -57,7 +58,7 @@
         <p class="try-title"><span class="on-touch">Tap</span><span class="on-mouse">Click</span> any word or drag to select&nbsp;text.</p>
       </div>
       <div class="lines" id="lines" lang="zh-CN"></div>
-          <div class="try-next"><button type="button" class="try-continue" data-continue>Get Longyan <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5"/></svg></button></div>
+      <div class="try-next"><button type="button" class="try-another" data-another><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.2 8.6a5.3 5.3 0 1 1-1.6-4.4"/><path d="M12.1 1.6v3h-3"/></svg>Try another sentence</button><button type="button" class="try-continue" data-continue>Get Longyan <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5"/></svg></button></div>
     </div>
   </div>
 </section>
@@ -118,7 +119,16 @@
 
     <figure class="tile" data-reveal>
       <div class="glass-box tone-rose stage-notes">
-        <div class="ground glosses" aria-hidden="true"></div>
+        <svg class="ground bubbles" viewBox="0 0 1100 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          <defs>
+            <linearGradient id="bb-a" x1="0" y1="0" x2=".6" y2="1"><stop offset="0" stop-color="#ffcf73"/><stop offset="1" stop-color="#ff9d42"/></linearGradient>
+            <radialGradient id="bb-al" cx=".2" cy=".15" r=".75"><stop offset="0" stop-color="#fff4d6" stop-opacity=".9"/><stop offset="1" stop-color="#fff4d6" stop-opacity="0"/></radialGradient>
+            <linearGradient id="bb-b" x1=".2" y1="0" x2=".8" y2="1"><stop offset="0" stop-color="#ff94b4"/><stop offset="1" stop-color="#ff5b8c"/></linearGradient>
+            <radialGradient id="bb-bl" cx=".75" cy=".95" r=".7"><stop offset="0" stop-color="#ffd3df" stop-opacity=".75"/><stop offset="1" stop-color="#ffd3df" stop-opacity="0"/></radialGradient>
+          </defs>
+          <g class="bb-a"><path d="M90 -110H560A170 170 0 0 1 730 60V290A170 170 0 0 1 560 460H250L40 610L110 460H90A170 170 0 0 1 -80 290V60A170 170 0 0 1 90 -110Z" fill="url(#bb-a)"/><path d="M90 -110H560A170 170 0 0 1 730 60V290A170 170 0 0 1 560 460H250L40 610L110 460H90A170 170 0 0 1 -80 290V60A170 170 0 0 1 90 -110Z" fill="url(#bb-al)"/><text x="150" y="230" lang="zh-CN">文</text></g>
+          <g class="bb-b"><path d="M560 270H910A170 170 0 0 1 1080 440V560A170 170 0 0 1 910 730H900L975 800L770 730H560A170 170 0 0 1 390 560V440A170 170 0 0 1 560 270Z" fill="url(#bb-b)"/><path d="M560 270H910A170 170 0 0 1 1080 440V560A170 170 0 0 1 910 730H900L975 800L770 730H560A170 170 0 0 1 390 560V440A170 170 0 0 1 560 270Z" fill="url(#bb-bl)"/><text x="1022" y="714" text-anchor="end">A</text></g>
+        </svg>
         <div class="notes-stack">
           <div class="note lost n-front"><div class="note-head"><span><svg viewBox="0 0 16 16" aria-hidden="true"><path class="lc-fill" d="M2.6 1.8h6.6c.9 0 1.6.7 1.6 1.6v4.4c0 .9-.7 1.6-1.6 1.6H6.4L4.2 11.2V9.4H2.6c-.9 0-1.6-.7-1.6-1.6V3.4c0-.9.7-1.6 1.6-1.6z"/><path class="lc-knock" d="M3.6 3.9h4.6M5.9 3.1v.8M4.5 3.9c.3 1.4 1.3 2.6 2.9 3.1M7.3 3.9c-.3 1.4-1.3 2.6-2.9 3.1"/><path class="lc-fill" d="M11.6 6.4h1.8c.9 0 1.6.7 1.6 1.6v4.2c0 .9-.7 1.6-1.6 1.6h-.9v1.6l-2-1.6H8.6c-.9 0-1.6-.7-1.6-1.6v-1.6h2.2c1.3 0 2.4-1.1 2.4-2.4z"/><path class="lc-knock" d="M9.4 12.6l1.6-4.1 1.6 4.1M9.9 11.4h2.2"/></svg></span>Lost in translation</div>
             <p><span lang="zh-CN">卷</span>: online and office slang, short for <span lang="zh-CN">内卷</span>. <span lang="zh-CN">别卷了</span> (“stop overdoing it”) is said to colleagues who stay until midnight.</p></div>
@@ -145,7 +155,7 @@
           <div><svg class="contour" viewBox="0 0 40 30" aria-hidden="true"><path class="base" d="M7 5L33 26"/><path class="draw" pathLength="1" d="M7 5L33 26"/></svg><span class="t4">骂</span><i class="t4">mà</i><small>to scold</small></div>
         </div>
       </div>
-      <figcaption><b>Every tone in its own color.</b> Characters and pinyin are colored by tone, so you start to hear a word as you read it. On a Mac, choose from two color sets or pick your own.</figcaption>
+      <figcaption><b>Every tone in its own color.</b> Characters and pinyin are colored by tone, so you start to hear a word as you read it. Choose from two color sets or pick your own.</figcaption>
     </figure>
 
     <figure class="tile" data-reveal>
@@ -402,13 +412,13 @@
   </div>
 </footer>
 
-<script src="data.js?v=1126g"></script>
-<script src="card.js?v=1126g"></script>
-<script src="hero.js?v=1126g"></script>
-<script src="try.js?v=1126g"></script>
-<script src="paper.js?v=1126g"></script>
-<script src="motion.js?v=1126g"></script>
-<script src="tiles.js?v=1126g"></script>
-<script src="install.js?v=1126g"></script>
+<script src="data.js?v=1126l"></script>
+<script src="card.js?v=1126l"></script>
+<script src="hero.js?v=1126l"></script>
+<script src="try.js?v=1126l"></script>
+<script src="paper.js?v=1126l"></script>
+<script src="motion.js?v=1126l"></script>
+<script src="tiles.js?v=1126l"></script>
+<script src="install.js?v=1126l"></script>
 </body>
 </html>

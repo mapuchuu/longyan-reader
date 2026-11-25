@@ -918,7 +918,9 @@
     const st = { expanded: null, picked: new Map(), showingAll: new Set() };
     const grammarOn = (r) => r.grammar && !st.picked.has(r.id);
     const shownSense = (r) => (st.picked.has(r.id) ? st.picked.get(r.id) : r.shown);
-    const gloss = (r) => (grammarOn(r) ? r.grammar : r.senses[shownSense(r)] ? r.senses[shownSense(r)].short : r.gloss);
+    // Until a meaning is picked by hand the row says what the word means here (its gloss, which
+    // "Back to …" also uses); a pick shows that sense's own wording.
+    const gloss = (r) => (grammarOn(r) ? r.grammar : !st.picked.has(r.id) && r.gloss ? r.gloss : r.senses[shownSense(r)] ? r.senses[shownSense(r)].short : r.gloss);
     const noteOf = (r) => { const s = r.senses[shownSense(r)]; return s && s.note; };
     const canOpen = (r) => r.senses.length > 1 || !!noteOf(r) || !!(!st.picked.has(r.id) && r.here) || !!r.failure;
     return show("phrase", anchor, { speech: ph.text, copy: ph.text }, (card) => {

@@ -32,25 +32,3 @@
     row.classList.add("arrive");
   }, 2800);
 })();
-
-// The notes tile's field: rows of everyday phrases with their word-for-word English struck
-// through, each row twice over so it can drift without a seam.
-(() => {
-  const field = document.querySelector(".glosses");
-  if (!field) return;
-  const P = [["吃醋", "eat vinegar"], ["躺平", "lie flat"], ["加油", "add oil"], ["摸鱼", "touch fish"], ["吃瓜", "eat melon"],
-    ["打酱油", "beat soy sauce"], ["马马虎虎", "horse horse tiger tiger"], ["泼冷水", "pour cold water"], ["穿小鞋", "wear small shoes"],
-    ["内卷", "involution"], ["面子", "face"], ["吃苦", "eat bitterness"], ["黑历史", "black history"], ["小鲜肉", "small fresh meat"],
-    ["水军", "water army"], ["吃软饭", "eat soft rice"], ["关系", "relationship"], ["开夜车", "drive the night car"]];
-  const rows = 11;
-  for (let r = 0; r < rows; r++) {
-    const pick = P.map((_, i) => P[(i * 7 + r * 5) % P.length]);
-    const html = pick.map(([zh, en]) => `<i><b>${zh}</b><s>${en}</s></i>`).join("");
-    const row = document.createElement("div");
-    row.className = "gl-row";
-    row.innerHTML = `<span>${html}${html}</span>`;
-    row.style.setProperty("--gl-t", 90 + ((r * 37) % 50) + "s");
-    row.style.marginLeft = -((r * 113) % 300) + "px";
-    field.append(row);
-  }
-})();

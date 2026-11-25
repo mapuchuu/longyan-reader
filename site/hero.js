@@ -627,14 +627,8 @@
   document.addEventListener("visibilitychange", () => { visible = !document.hidden; if (visible && running) kick(); });
   new IntersectionObserver((entries) => { for (const e of entries) e.isIntersecting ? start() : stop(); }).observe(canvas);
 
-  // The headline never waits on the eye: it rises as soon as the font is in, or after 0.8 s
-  // whatever the font is doing (a Safari font load can hang in a background tab or on a cold
-  // cache), and before any of the drawing is set up, so nothing there can keep it hidden.
-  const showCopy = () => document.documentElement.classList.add("hero-ready");
-  setTimeout(showCopy, 800);
 
   function boot() {
-    showCopy();
     lastW = window.innerWidth;
     layout();
     // ?t=5 starts five seconds in, for screenshots.

@@ -18,7 +18,7 @@
   const Card = () => window.LongyanCard;
   const N = demo.length;
 
-  let lines = [], current = 0, els = [], sel = null;
+  let lines = [], current = 0, els = [], sel = null, swapping = false;
   const indexOf = (k) => (((current + k) % N) + N) % N;
   const currentEl = () => els.find((e) => e.dataset.k === "0");
   const sizeOf = (el) => parseFloat(el.style.getPropertyValue("--size"));
@@ -38,7 +38,7 @@
     els = lines.map((l) => {
       const d = demo[indexOf(l.k)];
       const el = document.createElement("div");
-      el.className = "line" + (l.k === 0 ? " current" : "");
+      el.className = "line" + (l.k === 0 ? " current" : "") + (swapping && l.k === 0 ? " swap" : "");
       el.dataset.k = l.k;
       el.style.left = l.x + "px";
       el.style.top = l.y - l.size * 0.65 + "px";
@@ -153,6 +153,20 @@
     })();
   }
 
+  // MARK: Another sentence
+
+  // The next of the four, in place: the card and selection go, the grid is ruled again for
+  // the new line's size, and the line rises in.
+  function another() {
+    if (!window.LongyanHero) return;
+    clear(true);
+    swapping = true;
+    story.querySelector(".story-pin").classList.remove("grid-set");
+    window.LongyanHero.setCurrent((current + 1) % N);
+    swapping = false;
+  }
+  document.querySelectorAll("[data-another]").forEach((b) => b.addEventListener("click", another));
+
   // MARK: The way on
 
   // "Get Longyan" stays put, two thirds of the way down (and clear of the line): the card
@@ -168,33 +182,37 @@
   window.addEventListener("resize", placeNext);
   // The practice grid behind the opening (style.css .tianzige): one square per character, a
   // row of them exactly under the sentence.
+  // Measured from where the characters sit in the layout, not where they're drawn: while
+  // they rise in they're drawn lower, and measuring that put the grid off by the rise and
+  // jumped it into place a second later. It shows once it's placed (.grid-set).
   function placeGrid() {
     const line = currentEl(), pin = story.querySelector(".story-pin"), c = line && line.querySelector(".c");
     if (!c || !pin) return;
-    const p = pin.getBoundingClientRect(), r = c.getBoundingClientRect(), lr = line.getBoundingClientRect();
-    const size = r.width, x = r.left - p.left, y = r.top - p.top + r.height / 2 - size / 2;
+    const p = pin.getBoundingClientRect(), lr = line.getBoundingClientRect();
+    let ox = 0, oy = 0;
+    for (let e = c; e && e !== line; e = e.offsetParent) { ox += e.offsetLeft; oy += e.offsetTop; }
+    const size = c.offsetWidth, x = lr.left - p.left + ox, y = lr.top - p.top + oy + c.offsetHeight / 2 - size / 2;
+    if (!size) return;
     const mod = (v) => ((v % size) + size) % size;
     pin.style.setProperty("--grid-cell", size + "px");
     pin.style.setProperty("--grid-x", mod(x) + "px");
     pin.style.setProperty("--grid-y", mod(y) + "px");
     pin.style.setProperty("--grid-mx", Math.round(lr.left - p.left + lr.width / 2) + "px");
     pin.style.setProperty("--grid-my", Math.round(y + size / 2) + "px");
+    pin.classList.add("grid-set");
   }
   window.addEventListener("resize", () => requestAnimationFrame(placeGrid));
   document.addEventListener("longyan:lines", () => requestAnimationFrame(placeGrid));
   if (document.fonts) document.fonts.ready.then(() => requestAnimationFrame(placeGrid));
-  // Again once the line has risen into place.
-  [1200, 2600].forEach((ms) => setTimeout(placeGrid, ms));
   document.addEventListener("longyan:lines", () => requestAnimationFrame(placeNext));
   // A card is never behind the button: while any card (opening, open or fading out) covers
   // its place, the button steps out of the way, and comes back once the card has gone.
   let watching = false;
   function watchCards() {
     const cards = [...document.querySelectorAll("body > .lc-card")];
-    const btn = story.querySelector(".try-continue");
-    if (!btn || !cards.length) { story.classList.remove("under-card"); watching = false; return; }
-    const b = btn.getBoundingClientRect();
-    const over = b.height > 0 && cards.some((c) => { const r = c.getBoundingClientRect(); return r.bottom > b.top - 8 && r.top < b.bottom + 8 && r.right > b.left && r.left < b.right; });
+    const btns = [...story.querySelectorAll(".try-continue, .try-another")];
+    if (!btns.length || !cards.length) { story.classList.remove("under-card"); watching = false; return; }
+    const over = btns.some((btn) => { const b = btn.getBoundingClientRect(); return b.height > 0 && cards.some((c) => { const r = c.getBoundingClientRect(); return r.bottom > b.top - 8 && r.top < b.bottom + 8 && r.right > b.left && r.left < b.right; }); });
     story.classList.toggle("under-card", over);
     requestAnimationFrame(watchCards);
   }

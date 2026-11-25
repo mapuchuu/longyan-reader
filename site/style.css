@@ -109,6 +109,7 @@ section { position: relative; }
   transition: opacity 1.2s var(--ease-out);
 }
 .story:not(.is-away) .tianzige { opacity: .6; }
+.story .story-pin:not(.grid-set) .tianzige { opacity: 0; transition: none; }
 #field { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; display: block; transition: opacity .5s cubic-bezier(.4, 0, .2, 1); }
 /* Once the eye has formed: the headline beside it, on the left (under it on a phone or an
    upright tablet). It answers what the visitor just did: someone who looked a word up reads
@@ -134,10 +135,12 @@ h1 .rise > span { white-space: nowrap; }
 
 
 /* In, as the eye forms: the lines rise one after the other, then the rest comes up. Out,
-   as it comes apart: all of it goes quickly. (Before the script says so, it's as written.) */
-.hero-ready .story:not(.is-eye) .hero-copy { visibility: hidden; transition: visibility 0s .35s; }
-.motion.hero-ready .story:not(.is-eye) .rise > span { transform: translateY(105%); transition: transform .35s ease-in; }
-.motion.hero-ready .story:not(.is-eye) .hero-sub, .motion.hero-ready .story:not(.is-eye) .hero-actions { opacity: 0; transform: translateY(12px); transition: opacity .25s ease-out, transform .3s ease-out; }
+   as it comes apart: all of it goes quickly. With the script on (the "js" class, set before
+   anything draws) it starts put away, so the first frame is the opening, not this; without
+   the script it stays as written. */
+.js .story:not(.is-eye) .hero-copy { visibility: hidden; transition: visibility 0s .35s; }
+.motion.js .story:not(.is-eye) .rise > span { transform: translateY(105%); transition: transform .35s ease-in; }
+.motion.js .story:not(.is-eye) .hero-sub, .motion.js .story:not(.is-eye) .hero-actions { opacity: 0; transform: translateY(12px); transition: opacity .25s ease-out, transform .3s ease-out; }
 .motion .is-eye .rise > span { transform: none; transition: transform 1s var(--glide) .1s; }
 .motion .is-eye .rise + .rise > span { transition-delay: .22s; }
 .motion .is-eye .hero-sub, .motion .is-eye .hero-actions { opacity: 1; transform: none; transition: opacity .8s var(--glide) .45s, transform .9s var(--glide) .45s; }
@@ -222,7 +225,30 @@ h1 .rise > span { white-space: nowrap; }
    of it and scrolls inside, as the app's does. It stays put while the card moves (try.js
    sets --next-y). Until then it isn't there at all, to the pointer or
    the keyboard; scrolling takes them on just the same. */
-.try-next { position: absolute; left: 0; right: 0; top: var(--next-y, 80%); display: flex; justify-content: center; pointer-events: none; }
+.try-next { position: absolute; left: 0; right: 0; top: var(--next-y, 80%); display: flex; justify-content: center; align-items: center; gap: 12px; padding: 0 16px; pointer-events: none; }
+/* Beside it, the quieter way: another sentence to try, the same moment it comes in. */
+.try-another {
+  display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 18px; white-space: nowrap;
+  font: 500 16px/1 var(--text); letter-spacing: -0.012em; color: rgba(245, 245, 247, .82);
+  background: none; border: 0; border-radius: 999px; cursor: pointer; pointer-events: auto;
+  visibility: hidden; opacity: 0;
+  transition: opacity .3s ease-out, transform .3s ease-out, visibility 0s .3s, background .2s, color .2s;
+}
+.try-another svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; transition: transform .5s var(--ease-out); }
+@media (hover: hover) { .try-another:hover { background: rgba(255, 255, 255, .08); color: #fff; } .try-another:hover svg { transform: rotate(-120deg); } }
+.try-another:active { transform: scale(.97); }
+.try-another:focus-visible { outline: 2px solid var(--t3); outline-offset: 3px; }
+.is-formed.can-continue .try-another { visibility: visible; opacity: 1; transition: opacity .8s var(--ease-out), visibility 0s, background .2s, color .2s; }
+.is-formed.can-continue.under-card .try-another { visibility: hidden; opacity: 0; transition: opacity .12s ease-out, visibility 0s .12s; }
+@media (max-width: 430px) {
+  .try-next { gap: 4px 6px; flex-wrap: wrap; }
+  .try-another { padding: 0 10px; gap: 7px; font-size: 15px; }
+  .try-continue { padding: 0 16px 0 18px; font-size: 15px; }
+}
+/* A new sentence rises in at once, without the first one's shimmer. */
+.motion .cued .line.current.swap .c { animation: char-in .7s var(--glide) both; animation-delay: calc(var(--i) * 28ms); }
+.motion .cued .line.current.swap .w.noted::after { animation: dots-in .6s ease-out .9s both; }
+@keyframes dots-in { from { opacity: 0; } }
 .try-continue {
   display: inline-flex; align-items: center; height: 44px; padding: 0 20px 0 22px; white-space: nowrap;
   font: 500 16px/1 var(--text); letter-spacing: -0.012em; color: #fff;
@@ -799,25 +825,14 @@ figcaption b { color: var(--ink); font-weight: 600; }
 .blocks i { position: absolute; left: var(--x); top: var(--y); width: var(--w); height: var(--h);
   background: radial-gradient(var(--rs, 85% 75%) at var(--gx, 50%) var(--gy, 50%), var(--c2), transparent 72%), linear-gradient(var(--ang, 180deg), var(--c1), var(--c3, var(--c1))); }
 .blocks i.o { height: auto; aspect-ratio: 1; border-radius: 50%; }
-/* Notes: a pattern, the way a badge is drawn: the notes' own two symbols ("Lost in
-   translation", "Cultural context") in fine outline on a grid, over a vivid coral-red. */
-/* Notes: a field of type, made of what the notes are for: rows of everyday phrases with
-   their word-for-word English struck through (吃醋 "eat vinegar", 躺平 "lie flat"), drifting
-   slowly side to side, on a sunset orange, the one warm tile. The notes themselves are white,
-   in the app's light appearance, stacked over the middle where the field fades back. */
-.stage-notes { background: radial-gradient(80% 70% at 18% 0%, rgba(255, 214, 140, .7), transparent 70%), radial-gradient(70% 70% at 100% 100%, rgba(200, 30, 110, .55), transparent 70%), linear-gradient(155deg, #ffa13d, #ff6a3d 45%, #f0435e); }
-.glosses { display: flex; flex-direction: column; justify-content: center; gap: 13px; overflow: hidden;
-  -webkit-mask-image: radial-gradient(62% 50% at 50% 50%, rgba(0, 0, 0, .12), #000 100%); mask-image: radial-gradient(62% 50% at 50% 50%, rgba(0, 0, 0, .12), #000 100%); }
-.gl-row { white-space: nowrap; }
-.gl-row > span { display: inline-block; }
-.gl-row i { font-style: normal; display: inline-block; margin-right: 26px; font: 500 13px/1.2 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .02em; color: rgba(255, 255, 255, .4); }
-.gl-row i b { font: 600 14px/1 var(--zh); color: rgba(255, 255, 255, .66); margin-right: 8px; }
-.gl-row i s { text-decoration: line-through; text-decoration-thickness: 1.5px; text-decoration-color: rgba(255, 255, 255, .6); }
-.motion .gl-row > span { animation: gl-drift var(--gl-t, 70s) linear infinite; animation-play-state: paused; }
-.motion .live .gl-row > span { animation-play-state: running; }
-.gl-row:nth-child(2n) > span { animation-direction: reverse; }
-@keyframes gl-drift { to { transform: translateX(-50%); } }
-  -webkit-mask-image: radial-gradient(120% 90% at 50% 50%, #000 40%, rgba(0, 0, 0, .5)); mask-image: radial-gradient(120% 90% at 50% 50%, #000 40%, rgba(0, 0, 0, .5)); }
+/* Notes: the notes' own "Lost in translation" symbol at poster size, two speech bubbles, 文
+   and A, cut from paper in the one warm tile's colours, with a soft light inside each the way
+   the blocks have it. The notes stack sits where the two meet. Still; only the notes move. */
+.stage-notes { background: radial-gradient(70% 60% at 85% 10%, rgba(255, 120, 80, .55), transparent 70%), linear-gradient(155deg, #f2573f, #e0384c 50%, #b9204f); }
+.bubbles { width: 100%; height: 100%; }
+.bubbles text { font: 600 230px/1 var(--zh); }
+.bb-a text { fill: #ff9a3c; opacity: .55; }
+.bb-b text { font-family: var(--text); font-weight: 600; font-size: 190px; fill: #ff4f84; opacity: .45; }
 /* Tones: the one light tile, a soft mesh of the four tones' colours, the way an iPhone's
    wallpaper glows: one light behind each column of the panel (tiles.js puts --x1..--x4 at the
    columns' centres), each set at its tone's pitch: high, rising, low, falling. */
@@ -879,8 +894,8 @@ figcaption b { color: var(--ink); font-weight: 600; }
 /* A card's text shows only while it's in front: it fades out as the next card comes up over
    it, so the two never read through each other while the new one turns opaque. */
 .motion .notes-stack .note { animation: note-cycle 17.5s cubic-bezier(.4, 0, .2, 1) var(--d) infinite both; animation-play-state: paused; }
-.motion .notes-stack .note > p { animation: note-text 17.5s linear var(--d) infinite both; animation-play-state: paused; }
-.motion .live .notes-stack .note, .motion .live .notes-stack .note > p { animation-play-state: running; }
+.motion .notes-stack .note > * { animation: note-text 17.5s linear var(--d) infinite both; animation-play-state: paused; }
+.motion .live .notes-stack .note, .motion .live .notes-stack .note > * { animation-play-state: running; }
 .notes-stack .note:nth-child(1) { --d: -1.75s; }
 .notes-stack .note:nth-child(2) { --d: -15.75s; }
 .notes-stack .note:nth-child(3) { --d: -12.25s; }
