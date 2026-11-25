@@ -180,6 +180,16 @@ static class HistoryCheck
     static List<string> Undrawn(AutomationElement window)
     {
         var o = new List<string>();
+        // Only what's on top can be read off the screen (the Arm runner's desktop can open
+        // with Windows' first-run screens over everything).
+        var hwnd = (IntPtr)window.Current.NativeWindowHandle;
+        var box = window.Current.BoundingRectangle;
+        var middle = new POINT { X = (int)(box.Left + box.Width / 2), Y = (int)(box.Top + box.Height / 2) };
+        if (GetAncestor(WindowFromPoint(middle), 2 /* GA_ROOT */) != hwnd)
+        {
+            Console.WriteLine("[history drawn] another window covers it; not read off the screen");
+            return o;
+        }
         var parts = new (string Name, ControlType Type, string What)[]
         {
             ("All", ControlType.RadioButton, "the All tab"),
@@ -234,6 +244,9 @@ static class HistoryCheck
     }
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern IntPtr SendMessageTimeout(IntPtr h, uint msg, IntPtr w, string l, uint flags, uint timeout, out IntPtr result);
+    [StructLayout(LayoutKind.Sequential)] struct POINT { public int X, Y; }
+    [DllImport("user32.dll")] static extern IntPtr WindowFromPoint(POINT p);
+    [DllImport("user32.dll")] static extern IntPtr GetAncestor(IntPtr h, uint flags);
     [DllImport("user32.dll")] static extern bool RedrawWindow(IntPtr h, IntPtr rect, IntPtr region, uint flags);
 
     static List<JsonObject> Records(string file)
