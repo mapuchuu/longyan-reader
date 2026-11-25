@@ -526,14 +526,19 @@ sealed class CardView
         var box = new Border { Background = Theme.NoteFill, CornerRadius = new CornerRadius(10), Padding = new Thickness(12, 10, 12, 9.5), Margin = new Thickness(0, top, 0, 0) };
         var stack = new StackPanel();
         var title = new StackPanel { Orientation = Orientation.Horizontal };
-        var icon = (lost ? Icons.Translate : Icons.Globe).Shape(lost ? Theme.NoteLost : Theme.NoteCulture);
-        icon.VerticalAlignment = VerticalAlignment.Center;
-        icon.Margin = new Thickness(0, 0, 5, 0);   // the spec's 4, and the symbol's own side bearing
-        title.Children.Add(icon);
         // As tall as the Mac's row: its translate symbol is 15 tall, the globe fits the label's 14.
         title.Height = lost ? 15 : LineHeight(11);
         var label = Label((string?)note["title"] ?? "", 11, Theme.Secondary, FontWeights.SemiBold);
         label.VerticalAlignment = VerticalAlignment.Center;
+        // The symbol as the Mac's sits (measured at 10x): its ink centred on the label's text
+        // ink, its side bearing before it (1.0, 1.4), and 5.8 or 6.5 of ink gap to the text.
+        var symbol = lost ? Icons.Translate : Icons.Globe;
+        var icon = symbol.Shape(lost ? Theme.NoteLost : Theme.NoteCulture);
+        var ink = TextInk(label.Text, 11, FontWeights.SemiBold);
+        var middle = (title.Height - LineHeight(11)) / 2 + ink.Top + ink.Height / 2;
+        icon.VerticalAlignment = VerticalAlignment.Top;
+        icon.Margin = new Thickness(lost ? 1.4 : 1.0, middle - symbol.Height / 2, (lost ? 6.5 : 5.8) - ink.Left, 0);
+        title.Children.Add(icon);
         title.Children.Add(label);
         stack.Children.Add(title);
         var body = Label((string?)note["text"] ?? "", 13, Theme.Primary, top: 2.5);   // the spec's 4, less what Segoe adds
@@ -1212,6 +1217,16 @@ sealed class CardView
 
     /// How far below the top of a line its baseline sits, for lining up text of two sizes. Lines
     /// are `Lines` tall, and WPF keeps the font's own baseline-to-height ratio in them.
+    /// Where a Label's text is inked, from the label's top-left (its stretch across included).
+    static Rect TextInk(string text, double size, FontWeight weight)
+    {
+        var ft = new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+            new Typeface(Theme.Text, FontStyles.Normal, Theme.LatinWeight(weight), FontStretches.Normal), Theme.Latin(size), Brushes.Black, 1.0);
+        var b = ft.BuildGeometry(new Point(0, 0)).Bounds;
+        var stretch = Theme.LatinStretch(size);
+        return new Rect(b.X * stretch, b.Y - ft.Baseline + Baseline(Theme.Text, size, weight), b.Width * stretch, b.Height);
+    }
+
     public static double Baseline(FontFamily family, double size, FontWeight weight)
     {
         var key = (family.Source, size, weight.ToOpenTypeWeight());
