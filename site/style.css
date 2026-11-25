@@ -1588,6 +1588,10 @@ footer a { color: #a1a1a6; }
   .wrap, .bar-inner, .screen-wrap { padding: 0 16px; }
   .hero-copy { padding: 0 16px; }
   h1 { font-size: 42px; }
+  /* "Now do that in any app." on one line: the two halves side by side, the type sized so the
+     line (9.5 em) fits the screen, 42px wherever it can. */
+  .has-tried .hero-copy h1 { display: flex; justify-content: center; column-gap: .24em; font-size: min(42px, calc((100vw - 32px) / 9.7)); }
+  .has-tried .hero-copy h1 .rise { margin-left: 0; margin-right: 0; }
   h2 { font-size: 32px; }
   .closing h2 { font-size: min(32px, calc((100vw - 40px) / 12.3)); }
   .trusted { margin-top: 110px; padding: 66px 0; }
