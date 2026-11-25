@@ -92,6 +92,14 @@ static partial class Program
         // 5. The next start reads it back, and opening it again shows Settings with the same switch.
         try { app.Kill(); app.WaitForExit(10000); } catch { }
         Thread.Sleep(1000);
+        // Two lookups in the package's history, for the History window from Settings (6).
+        var historyFile = Path.Combine(kept, "History", "lookups.jsonl");
+        Directory.CreateDirectory(Path.GetDirectoryName(historyFile)!);
+        var at = DateTime.UtcNow.AddHours(-1).ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", System.Globalization.CultureInfo.InvariantCulture);
+        File.WriteAllText(historyFile,
+            new System.Text.Json.Nodes.JsonObject { ["at"] = at, ["event"] = "word", ["word"] = "干杯", ["pinyin"] = "gān bēi", ["meaningHere"] = "cheers", ["gloss"] = "to drink a toast; cheers!", ["sentence"] = "来，大家干杯！" }.ToJsonString() + "\n" +
+            new System.Text.Json.Nodes.JsonObject { ["at"] = at, ["event"] = "phrase", ["text"] = "明天再说吧。", ["translation"] = "Let's talk tomorrow." }.ToJsonString() + "\n",
+            new UTF8Encoding(false));
         var lines = ReadShared(appLog).Split('\n').Length;
         app = Open(family);
         WaitFor(() => ReadShared(appLog).Split('\n').Skip(lines - 1).Any(l => l.Contains("open at login: startup task")), 60);
@@ -127,6 +135,8 @@ static partial class Program
                 RunKeyUntouched();
                 Shot("pk-4-settings-after");
             }
+            // 6. Lookup history from Settings' Open, clicked: drawn whole.
+            HistoryCheck.FromSettings(() => Open(family), app!, outDir, failures, "pk-5-history-from-settings", Click);
         }
         return Done(appLog);
     }

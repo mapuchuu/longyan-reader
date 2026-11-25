@@ -121,10 +121,10 @@ static class HistoryCheck
     /// The window opened from Settings' Open (Settings from opening the app again, as from
     /// Start): drawn as from --history, with its tabs, search box, More options and column
     /// names, on its grey. Open is invoked, or clicked with the mouse when `click` is given.
-    public static void FromSettings(string exe, Process app, string outDir, List<string> failures, string name, Action<double, double>? click = null)
+    public static void FromSettings(Action openAgain, Process app, string outDir, List<string> failures, string name, Action<double, double>? click = null)
     {
         void Fail(string why) { failures.Add(name + ": " + why); Console.WriteLine($"[{name}] FAILED " + why); }
-        using (var p = Process.Start(new ProcessStartInfo(exe) { WorkingDirectory = Path.GetDirectoryName(exe)! })!) p.WaitForExit(10000);
+        openAgain();
         var settings = WaitForWindow(app, "Longyan Reader settings", 10000);
         if (settings == null) { Fail("opening the app again didn't open Settings"); Shot(outDir, name + "-no-settings"); return; }
         Thread.Sleep(1000);

@@ -157,7 +157,7 @@ static partial class Program
         Thread.Sleep(12000);
         Focus(window);
         FirstEye(app, window, "6-first-eye-again");
-        HistoryCheck.FromSettings(exe, app, outDir, failures, "7-history-from-settings");
+        HistoryCheck.FromSettings(() => OpenAgain(exe), app, outDir, failures, "7-history-from-settings");
         EyeScalings(app);
 
         // Once more with WPF drawing in software, as in a VM without a GPU for it, and Open
@@ -167,7 +167,7 @@ static partial class Program
             k.SetValue("DisableHWAcceleration", 1, Microsoft.Win32.RegistryValueKind.DWord);
         app = Process.Start(start)!;
         Thread.Sleep(12000);
-        HistoryCheck.FromSettings(exe, app, outDir, failures, "8-history-software", Click);
+        HistoryCheck.FromSettings(() => OpenAgain(exe), app, outDir, failures, "8-history-software", Click);
         using (var k = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Avalon.Graphics"))
             k.DeleteValue("DisableHWAcceleration", false);
 
@@ -284,6 +284,13 @@ static partial class Program
         var command = run?.GetValue("Longyan Reader") as string;
         Console.WriteLine($"[0-welcome] open at login: {command ?? "off"}");
         if (command == null || !command.StartsWith("\"") || !command.EndsWith("LongyanReader.exe\"")) failures.Add($"0-welcome: open at login isn't the quoted exe ({command ?? "none"})");
+    }
+
+    /// The app opened again, as from Start: the running copy shows Settings.
+    static void OpenAgain(string exe)
+    {
+        using var p = Process.Start(new ProcessStartInfo(exe) { WorkingDirectory = Path.GetDirectoryName(exe)! })!;
+        p.WaitForExit(10000);
     }
 
     /// Settings, by opening the app again: the eye's switch off and on through UI Automation,
