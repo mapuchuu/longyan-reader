@@ -21,6 +21,8 @@
 
   const cam = $("#cam"), cursorEl = $("#cursor"), chipEl = $("#chip");
   const W = 1440, H = 810;
+  const WIN = !!window.FILM_WIN;
+  let winSel = null;
 
   // MARK: The scenes
 
@@ -241,6 +243,14 @@
 
   function drawSelection(s, count, show) {
     s.hl.innerHTML = "";
+    // On Windows the page's own selection, so the words turn white in the highlight as they do there.
+    if (WIN) {
+      if (!show || count <= 0) return;
+      const node = s.winEl.querySelector(".s").firstChild, r = document.createRange();
+      r.setStart(node, s.sel[0]); r.setEnd(node, s.sel[0] + count);
+      winSel = r;
+      return;
+    }
     if (!show || count <= 0) return;
     const cs = s.chars.slice(s.sel[0], s.sel[0] + count);
     const lines = [];
@@ -283,6 +293,11 @@
       }
       drawSelection(s, count, live);
     }
+    if (WIN) {
+      const sel = getSelection(); sel.removeAllRanges();
+      if (winSel) sel.addRange(winSel);
+      winSel = null;
+    }
 
     // The eye by the selection
     const pos = cursorAt(t);
@@ -300,7 +315,7 @@
       chipEl.style.left = s.chip.x + "px"; chipEl.style.top = s.chip.y + "px";
       chipEl.style.transform = `scale(${scale})`;
       chipEl.style.opacity = op;
-      chipEl.style.color = `rgba(255,255,255,${0.62 + 0.33 * hov})`;
+      chipEl.style.color = WIN ? `rgba(0,0,0,${0.52 + 0.33 * hov})` : `rgba(255,255,255,${0.62 + 0.33 * hov})`;
     } else chipEl.style.display = "none";
 
     // The card

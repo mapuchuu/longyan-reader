@@ -87,6 +87,8 @@
     xmark: svg('<path d="M4.6 4.6l6.8 6.8M11.4 4.6l-6.8 6.8"/>'),
     uturn: svg('<path d="M5.6 3.2 2.6 6.2l3 3"/><path d="M2.8 6.2h6.6c2.2 0 4 1.8 4 4s-1.8 4-4 4H7.6"/>'),
   };
+  // The film's Windows cut (win.js) draws the Windows app's own symbols.
+  Object.assign(SYM, window.LC_SYM || {});
 
   // MARK: Helpers
 

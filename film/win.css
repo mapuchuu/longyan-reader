@@ -1,0 +1,127 @@
+/* The film's Windows cut (index.html?os=win): a Windows 11 desktop in light mode, Windows title
+   bars and caption buttons, Segoe UI and Microsoft YaHei, and the Windows app's light card
+   (windows/LongyanReader/CardWindow.cs, CardView.cs, Theme.cs) and eye (Chip.cs).
+   The fonts are Windows' own, put in film/fonts/ from a Windows PC (they're not in git). */
+
+@font-face { font-family: "W Segoe"; src: url("fonts/SegUIVar.ttf"); font-weight: 200 700; }
+@font-face { font-family: "W Segoe Fixed"; src: url("fonts/segoeui.ttf"); font-weight: 400; }
+@font-face { font-family: "W Segoe Fixed"; src: url("fonts/seguisb.ttf"); font-weight: 600; }
+@font-face { font-family: "W Segoe Fixed"; src: url("fonts/segoeuib.ttf"); font-weight: 700; }
+@font-face { font-family: "W YaHei"; src: url("fonts/msyh.ttc"); font-weight: 100 450; }
+@font-face { font-family: "W YaHei"; src: url("fonts/msyhbd.ttc"); font-weight: 451 900; }
+@font-face { font-family: "W SimSun"; src: url("fonts/simsun.ttc"); }
+@font-face { font-family: "W Icons"; src: url("fonts/SegoeIcons.ttf"); }
+/* The card's faces, sized as Theme.cs sets them against the Mac's: Latin 1.04×, Chinese 0.92×. */
+@font-face { font-family: "W Card Latin"; src: url("fonts/SegUIVar.ttf"); font-weight: 200 700; size-adjust: 104%; }
+@font-face { font-family: "W Card Zh"; src: url("fonts/msyh.ttc"); font-weight: 100 450; size-adjust: 92%; }
+@font-face { font-family: "W Card Zh"; src: url("fonts/msyhbd.ttc"); font-weight: 451 900; size-adjust: 92%; }
+
+html.os-win { --text: "W Card Latin", "W Card Zh", sans-serif; --zh: "W Card Zh", sans-serif; }
+.os-win body { font-family: "W Segoe", "W YaHei", sans-serif; -webkit-font-smoothing: auto; color: #1a1a1a; }
+.os-win #stage { background: #dfe6ef; }
+
+/* The wallpaper: soft light colour, nobody's picture. */
+.wwall { position: absolute; inset: 0;
+  background:
+    radial-gradient(60% 70% at 18% 92%, rgba(122, 160, 214, .55), transparent 70%),
+    radial-gradient(55% 60% at 88% 8%, rgba(170, 150, 214, .42), transparent 70%),
+    radial-gradient(70% 60% at 70% 100%, rgba(140, 196, 214, .45), transparent 70%),
+    linear-gradient(160deg, #e9eef6 0%, #d6e1ef 45%, #c9d6ea 100%); }
+
+/* Windows 11 windows: 8 px corners, a 1 px edge, a deep shadow on the active one. */
+.os-win .win { border-radius: 8px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .14), 0 16px 48px rgba(10, 20, 40, .22), 0 4px 12px rgba(10, 20, 40, .1); }
+.os-win .win.key { box-shadow: 0 0 0 1px rgba(0, 0, 0, .18), 0 26px 64px rgba(10, 20, 40, .34), 0 8px 18px rgba(10, 20, 40, .14); }
+.os-win .win::after { box-shadow: none; }
+.os-win .bar { height: auto; display: block; background: #eef1f6; border-bottom: 1px solid rgba(0, 0, 0, .07); }
+.os-win .win.key .bar { background: #e6ecf5; }
+.os-win .bar .fl { font: normal 400 16px/1 "W Icons"; color: #1a1a1a; display: inline-grid; place-items: center; }
+.os-win .bar svg { display: none; }
+
+.os-win .caps { position: absolute; right: 0; top: 0; display: flex; }
+.os-win .caps b { width: 46px; height: 32px; display: grid; place-items: center; font: normal 400 10px/1 "W Icons"; color: rgba(0, 0, 0, .9); }
+.os-win .win:not(.key) .caps b { color: rgba(0, 0, 0, .38); }
+.os-win .ttl { display: flex; align-items: center; gap: 12px; height: 32px; padding-left: 14px; font: 400 12px/1 "W Segoe", "W YaHei"; color: #1a1a1a; }
+.os-win .win:not(.key) .ttl { color: rgba(0, 0, 0, .45); }
+.os-win .ttl .app { width: 16px; height: 16px; border-radius: 3px; display: grid; place-items: center; }
+.os-win .ttl .app .fl { font-size: 12px; color: #fff; }
+.os-win .mailapp { background: #1f6fd1; }
+.os-win .pdfapp { background: #c4314b; }
+.os-win .tool { height: 40px; display: flex; align-items: center; gap: 4px; padding: 0 8px; background: #f9f9fb; border-top: 1px solid rgba(0, 0, 0, .05); }
+.os-win .tool .fl { width: 34px; height: 30px; font-size: 15px; border-radius: 4px; color: #2b2b2b; }
+
+/* Browser: a tab in the title bar, a toolbar under it. */
+.os-win .tabs { height: 40px; display: flex; align-items: flex-end; gap: 4px; padding-left: 8px; }
+.os-win .tab { position: relative; height: 32px; width: 230px; box-sizing: border-box; display: flex; align-items: center; gap: 9px; padding: 0 10px 0 12px;
+  background: #f9f9fb; border-radius: 8px 8px 0 0; font: 400 12px/1 "W Segoe", "W YaHei"; color: #1a1a1a; box-shadow: 0 0 0 .5px rgba(0, 0, 0, .06); }
+.os-win .tab span { flex: 1; white-space: nowrap; overflow: hidden; }
+.os-win .tab .fl { width: 18px; height: 18px; font-size: 9px; }
+.os-win .tabs > .fl { height: 32px; width: 32px; font-size: 13px; }
+.os-win .fav { width: 16px; height: 16px; border-radius: 4px; background: linear-gradient(140deg, #f08a3c, #d2502f); }
+.os-win .browser .caps { top: 0; }
+.os-win .browser .tool { border-top: 0; }
+.os-win .addr { flex: 1; height: 30px; margin: 0 6px; border-radius: 15px; background: #eef0f3; display: flex; align-items: center; gap: 4px; padding: 0 6px;
+  font: 400 13px/1 "W Segoe", "W YaHei"; color: #3b3b3b; }
+.os-win .addr .fl { width: 22px; height: 22px; font-size: 12px; color: #5f5f5f; }
+.os-win .article { padding-top: 26px; }
+.os-win .article .kicker, .os-win .article .by { font-family: "W YaHei", sans-serif; }
+.os-win .article h1 { font: 700 34px/1.2 "W YaHei", sans-serif; letter-spacing: 0; }
+.os-win .article .t { font: 400 18px/1.85 "W YaHei", sans-serif; color: #222; }
+
+/* Mail: a Windows-style list, the open message marked with an accent bar. */
+.os-win .mailbody { height: calc(100% - 33px); }
+.os-win .mail .list { background: #f3f5f9; border-right: 1px solid rgba(0, 0, 0, .06); }
+.os-win .mail .item { position: relative; border-radius: 4px; font-family: "W Segoe", "W YaHei"; color: #5f5f5f; }
+.os-win .mail .item b, .os-win .mail .item span { color: #1a1a1a; }
+.os-win .mail .item.on { background: rgba(0, 0, 0, .06); color: #5f5f5f; }
+.os-win .mail .item.on b, .os-win .mail .item.on span { color: #1a1a1a; }
+.os-win .mail .item.on::before { content: ""; position: absolute; left: 0; top: 50%; width: 3px; height: 18px; margin-top: -9px; border-radius: 2px; background: #005fb8; }
+.os-win .mail .from { font-family: "W Segoe", "W YaHei"; border-bottom: 1px solid rgba(0, 0, 0, .08); }
+.os-win .mail .from i { font-family: "W YaHei"; background: linear-gradient(160deg, #4aa0e6, #1f6fd1); }
+.os-win .mail .t { font: 400 16px/1.8 "W YaHei", sans-serif; color: #222; }
+
+/* PDF: the page on a grey desk under a reader's toolbar. */
+.os-win .pdfbody { height: calc(100% - 73px); background: #e4e6ea; padding-top: 22px; }
+.os-win .pdf .page { display: flex; align-items: center; gap: 6px; font: 400 13px/1 "W Segoe"; color: #3b3b3b; }
+.os-win .pdf .page .box { width: 34px; height: 24px; border-radius: 4px; background: #fff; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .1); display: grid; place-items: center; }
+.os-win .pdf .zoom { font: 400 13px/1 "W Segoe"; color: #3b3b3b; padding: 0 4px; }
+.os-win .pdf .sp { flex: 1; }
+.os-win .sheet { box-shadow: 0 1px 3px rgba(0, 0, 0, .14), 0 6px 20px rgba(0, 0, 0, .08); }
+.os-win .sheet .t, .os-win .sheet .folio { font-family: "W SimSun", serif; }
+
+/* The selection: Windows' highlight, the words in white (film.js selects them for real). */
+.os-win .t::selection, .os-win .t .s::selection { background: #3266d0; color: #fff; }
+.os-win .hl { display: none; }
+
+/* The eye (Chip.cs): a 24 px white circle with a hairline and a soft shadow, the mark in ink. */
+.os-win #chip { background: #fff; -webkit-backdrop-filter: none; backdrop-filter: none;
+  box-shadow: 0 0 0 .5px rgba(0, 0, 0, .085), 0 2px 8px rgba(0, 0, 0, .24); color: rgba(0, 0, 0, .52); }
+
+/* The pointer: Windows' own, with its lighter shadow. */
+.os-win #cursor { filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .3)); }
+
+/* The card (Theme.cs, light): white, 16 px corners, a hairline and two shadows; label colours
+   black at 0.85, 0.50 and 0.26; the accent and tone colours the app's. */
+.os-win #cam > .lc-card {
+  --primary: rgba(0, 0, 0, .85); --secondary: rgba(0, 0, 0, .50); --tertiary: rgba(0, 0, 0, .26);
+  --accent: #0a60ff;
+  --lc-tone1: #a8544c; --lc-tone2: #4a8761; --lc-tone3: #4a73a6; --lc-tone4: #8061a3;
+  border-radius: 16px; -webkit-font-smoothing: auto;
+}
+.os-win #cam > .lc-card .lc-glass {
+  background: #fff; -webkit-backdrop-filter: none; backdrop-filter: none;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, .16), 0 .5px 3px rgba(0, 0, 0, .08), 0 0 0 .5px rgba(0, 0, 0, .085);
+}
+.os-win #cam > .lc-card .lc-glass::before, .os-win #cam > .lc-card .lc-glass::after { display: none; }
+.os-win .lc-divider { background: rgba(0, 0, 0, .068); }
+.os-win .lc-note { background: rgba(0, 0, 0, .038); }
+.os-win .lc-note-head .lost { color: #b05c80; } .os-win .lc-note-head .culture { color: #458280; }
+.os-win .lc-row:hover, .os-win .lc-part:hover { background: rgba(0, 0, 0, .0425); }
+.os-win .lc-card .lc-action:hover { background: rgba(0, 0, 0, .06); }
+.os-win .lc-grab { background: rgba(0, 0, 0, .2); }
+/* San Francisco's Medium is Segoe's Semibold on Windows. */
+.os-win .lc-num, .os-win .lc-more, .os-win .lc-here b, .os-win .lc-part-word { font-weight: 600; }
+/* The Windows symbols are drawn at their own boxes (win.js). */
+.os-win .lc-sym.lw { overflow: visible; }
+.os-win .lc-note-head .lc-sym.lw { width: auto; height: auto; }
+.os-win .browser .addr { position: static; transform: none; width: auto; }
