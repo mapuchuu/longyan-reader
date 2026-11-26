@@ -31,15 +31,16 @@
   // One word, three apps, three meanings: 白, which every learner knows as "white", and
   // never means white here. The window on top first (the news), then the chat under it, then a novel.
   const SCENES = [
-    { id: "a", win: "#w-a", data: FILM.a, sel: [10, 11], kind: "word", hold: 3.1 },
-    { id: "b", win: "#w-b", data: FILM.b, sel: [9, 10], kind: "word", hold: 3.1, focus: ".room .input", context: ".room" },
-    { id: "c", win: "#w-c", data: FILM.c, sel: [6, 7], kind: "word", hold: 3.1 },
+    { id: "a", win: "#w-a", data: FILM.a, sel: [10, 11], kind: "word", hold: 4.7, pickAt: 1.9, tip: true },
+    { id: "b", win: "#w-b", data: FILM.b, sel: [9, 10], kind: "word", hold: 4.7, pickAt: 1.9, tip: true, focus: ".room .input", context: ".room" },
+    { id: "c", win: "#w-c", data: FILM.c, sel: [7, 8], kind: "word", hold: 4.7, pickAt: 1.9, tip: true },
   ];
   // The end: the three sentences, their 白 in one column, each with what it meant there.
   // Top down from the last one seen (the push lands on its 白), so the film's last words are
   // "free of charge".
-  const ROWS = [["总算没", "来", "in vain"], ["外面全", "了", "white"], ["第二件", "送", "free of charge"]];
-  const PICK = spring(0.5, 0.86);   // the light drawing in onto the meaning picked
+  const ROWS = [["讲得很", "", "clear"], ["外面全", "了", "white"], ["第二件", "送", "free of charge"]];
+  const PICK = spring(0.5, 0.86);
+  const pickAt = (s) => s.pickAt || 0.95;   // seconds after a card opens that its light draws in   // the light drawing in onto the meaning picked
   const OPEN = 0.7;   // seconds the opening line holds before the first reach
   const REST = { x: 1150, y: 700 };
   const MENUS = {
@@ -200,10 +201,11 @@
         const a = prev.frame || focus(prev.s);
         return { x: (a.x + here.x) / 2, y: (a.y + here.y) / 2, z: Math.min(a.z, here.z) * 0.78 };
       }
-      if (t >= p.tOpen + 1.25 && p.pickFrame) {
+      const tp = p.tOpen + pickAt(s) + 0.3;
+      if (t >= tp && p.pickFrame) {
         // held, it keeps going in, slowly, so no frame stands still
         const f = p.pickFrame;
-        return { x: f.x, y: f.y, z: f.z * (1 + 0.022 * Math.min(2.5, t - p.tOpen - 1.25)) };
+        return { x: f.x, y: f.y, z: f.z * (1 + 0.022 * Math.min(2.5, t - tp)) };
       }
       if (t >= p.tOpen + 0.05 && p.frame) return p.frame;
       return here;
@@ -318,8 +320,10 @@
       if (r) p.hwRect = { x: (r.left + r.right) / 2, y: (r.top + r.bottom) / 2, h: r.bottom - r.top };
       const ch = card.el.querySelector(".lc-def.chosen");
       if (ch) { const rb = ch.closest(".lc-row").getBoundingClientRect(); p.pickRect = { left: b.left, right: b.right, top: b.top, bottom: rb.bottom }; }
+      if (!WIN && p.s.tip && !p.tipEl) { p.tipEl = makeTip(p, card); if (p.pickRect) { p.pickRect.right = Math.max(p.pickRect.right, p.tipRect.right); p.pickRect.left = Math.min(p.pickRect.left, p.tipRect.left); } }
     }
     if (!WIN) lightUp(card.el);
+    if (!WIN && p.s.tip && !p.tipEl) p.tipEl = makeTip(p, card);
     return card;
   }
   // The app's light, run by the film's clock: purple over every meaning the dictionary has (a
@@ -341,12 +345,14 @@
       check: chosen.querySelector(".lc-check"), meaning: el.querySelector(".lc-meaning") };
   }
   const rgba = (c) => (c.match(/[\d.]+/g) || [0, 0, 0, 1]).map(Number).concat([1]).slice(0, 4);
-  function drawLight(el, k) {
+  function drawLight(el, k, at) {
     const L = el._light;
     if (!L) return;
+    const k0 = k;   // the purple comes on as the card opens, however long it holds
+    k += 0.95 - at;   // the timings below are for a light that draws in at 0.95 s
     const u = PICK(k - 0.95);
     const g = (key) => lerp(L.all[key], L.one[key], u);
-    L.light.style.cssText = `opacity:${sine((k - 0.12) / 0.4)};top:${g("top")}px;left:${g("left")}px;width:${g("width")}px;height:${g("height")}px`;
+    L.light.style.cssText = `opacity:${sine((k0 - 0.12) / 0.4)};top:${g("top")}px;left:${g("left")}px;width:${g("width")}px;height:${g("height")}px`;
     L.light.children[0].style.opacity = 1 - sine((k - 0.95) / 0.3);
     L.light.children[1].style.opacity = sine((k - 0.95) / 0.45);
     const a = rgba(L.on), b = rgba(L.off), d = sine((k - 1.0) / 0.45);
@@ -360,6 +366,45 @@
       L.meaning.style.opacity = m;
       L.meaning.style.transform = `translateY(${(1 - m) * -5}px)`;
     }
+  }
+  // "Picked from context": the site's tip, out of its arrow beside the row picked.
+  const TIP = { gap: 6, arrow: 8, base: 8, r: 12 };
+  function tipPath(w, h, ay) {
+    const { arrow: A, base: b, r } = TIP, f = (v) => Math.round(v * 100) / 100;
+    return `M${A + r},0 H${f(A + w - r)} A${r},${r} 0 0 1 ${f(A + w)},${r} V${f(h - r)} A${r},${r} 0 0 1 ${f(A + w - r)},${f(h)}` +
+      ` H${A + r} A${r},${r} 0 0 1 ${A},${f(h - r)} V${f(ay + b)} C${A},${f(ay + b * 0.45)} 1.6,${f(ay + 1.7)} .6,${f(ay + 0.55)}` +
+      ` Q0,${f(ay)} .6,${f(ay - 0.55)} C1.6,${f(ay - 1.7)} ${A},${f(ay - b * 0.45)} ${A},${f(ay - b)} V${r} A${r},${r} 0 0 1 ${A + r},0 Z`;
+  }
+  function makeTip(p, card) {
+    const row = card.el.querySelector(".lc-def.chosen").closest(".lc-row").getBoundingClientRect();
+    const el = document.createElement("div");
+    el.className = "pick-note on film-tip";
+    el.innerHTML = `<div class="pick-tip"><div class="pick-glass"></div>
+      <svg class="pick-shape" aria-hidden="true"><defs><linearGradient id="pick-edge" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".24"/><stop offset=".5" stop-color="#fff" stop-opacity=".1"/><stop offset="1" stop-color="#fff" stop-opacity=".07"/></linearGradient></defs><path/></svg>
+      <p class="pick-title">Picked from context</p></div>`;
+    cam.appendChild(el);
+    const tip = el.firstElementChild, glass = tip.children[0], shape = tip.children[1];
+    const w = el.offsetWidth, h = el.offsetHeight, mid = (row.top + row.bottom) / 2;
+    const d = tipPath(w, h, h / 2), Wd = w + TIP.arrow, reach = TIP.gap + TIP.arrow;
+    // On the card's right if it fits on the desk, else its left, mirrored, as the site does.
+    const right = p.cardRect.right + reach + w <= W - 24;
+    const left = right ? -TIP.arrow : 0, flip = right ? "none" : "scaleX(-1)";
+    shape.querySelector("path").setAttribute("d", d);
+    shape.setAttribute("viewBox", `-.5 -.5 ${Wd + 1} ${h + 1}`);
+    Object.assign(shape.style, { left: left - 0.5 + "px", top: "-.5px", width: Wd + 1 + "px", height: h + 1 + "px", transform: flip });
+    Object.assign(glass.style, { left: left + "px", top: "0", width: Wd + "px", height: h + "px", clipPath: `path("${d}")`, transform: flip });
+    tip.style.transformOrigin = `${right ? -TIP.arrow : w + TIP.arrow}px ${h / 2}px`;
+    const x = right ? p.cardRect.right + reach : p.cardRect.left - reach - w, y = Math.round(mid - h / 2);
+    el.style.transform = `translate(${x}px, ${y}px)`;
+    p.tipRect = { left: right ? x - TIP.arrow : x, right: right ? x + w : x + w + TIP.arrow, top: y, bottom: y + h };
+    return el;
+  }
+  const TIP_IN = spring(0.42, 0.78);
+  function drawTip(p, k) {
+    // out of its arrow's tip once the check is in, and gone with the card
+    const e = TIP_IN(k - 0.5), o = clamp((k - 0.5) / 0.2) * (shown && shown.p === p ? +shown.card.el.style.opacity : 0);
+    p.tipEl.style.opacity = o;
+    const tp = p.tipEl.firstElementChild; tp.style.opacity = 1; tp.style.transform = `scale(${0.94 + 0.06 * e})`;
   }
   function closeCard() {
     if (!shown) return;
@@ -409,7 +454,7 @@
   function measureEnd(end) {
     const big = end.querySelector(".word b"), cmp = end.querySelector(".cmp");
     const bai = [...cmp.querySelectorAll("b")], r0 = big.getBoundingClientRect(), r1 = bai[0].getBoundingClientRect();
-    return { shift: W / 2 - (r1.left + r1.right) / 2, big, cmp, bai, ctx: [...cmp.querySelectorAll(".pre, .post")], mean: [...cmp.querySelectorAll(".m")], name: end.querySelector(".name"),
+    return { paper: document.getElementById("endpaper"), shift: W / 2 - (r1.left + r1.right) / 2, big, cmp, bai, ctx: [...cmp.querySelectorAll(".pre, .post")], mean: [...cmp.querySelectorAll(".m")], name: end.querySelector(".name"),
       dx: (r1.left + r1.right) / 2 - (r0.left + r0.right) / 2, dy: (r1.top + r1.bottom) / 2 - (r0.top + r0.bottom) / 2, s: (r1.bottom - r1.top) / (r0.bottom - r0.top) };
   }
   function render(t) {
@@ -456,6 +501,10 @@
         E.name.style.opacity = ni * (1 - no);
         E.name.style.filter = ni < 0.999 ? `blur(${((1 - ni) * 10).toFixed(2)}px)` : "";
         E.name.style.transform = `scale(${0.97 + 0.03 * ni + 0.01 * clamp((k - 7.6) / 1.4)})`;
+        // The site's paper behind it all, rising very slowly.
+        E.paper.style.transform = `translateY(${(1 - clamp(k / 9.6)) * 26}px) scale(1.04)`;
+        // and last it sinks into the night the film opens out of, for the loop
+        E.paper.style.opacity = 1 - sine((k - 9.0) / 0.6);
       }
     }
     // The loop: the film opens out of the end card's dark.
@@ -529,6 +578,7 @@
     let want = null;
     for (const p of plan) if (t >= p.tOpen && t < p.tClose + 0.14) want = p;
     if (!want || (shown && shown.p !== want)) closeCard();
+    for (const q of plan) if (q.tipEl && (!want || want !== q)) q.tipEl.style.opacity = 0;
     if (want && !shown) shown = { p: want, card: openCard(want) };
     if (shown) {
       const p = shown.p, k = t - p.tOpen, el = shown.card.el;
@@ -538,7 +588,8 @@
       if (t >= p.tClose) op *= 1 - clamp((t - p.tClose) / 0.12);
       el.style.transform = `translateY(${(1 - e) * (below ? -4 : 4)}px) scale(${0.96 + 0.04 * e})`;
       el.style.opacity = op;
-      if (!WIN) drawLight(el, k);
+      if (!WIN) drawLight(el, k - 0, pickAt(p.s));
+      if (!WIN && p.tipEl) drawTip(p, k - pickAt(p.s));
       if (!WIN && p === plan[plan.length - 1]) {
         const f = 1 - sine((t - plan.tOut - 0.15) / 0.55);
         for (const x of el.querySelectorAll(".lc-py, .lc-slot, .lc-meaning, .lc-note-slot, .lc-senses, .lc-status, .lc-head > :not(.lc-hw)")) x.style.opacity = x.classList.contains("lc-meaning") ? Math.min(f, +x.style.opacity || 1) : f;
@@ -588,6 +639,7 @@
         `<div class="name">${document.querySelector("#chip svg").outerHTML}<span>longyan.app</span></div>`;
       const f = document.createElement("div"); f.id = "fadein"; document.getElementById("stage").appendChild(f);
       document.getElementById("stage").appendChild(end);
+      end.prepend(document.getElementById("endpaper"));
     }
     measure();
     schedule();

@@ -1,8 +1,8 @@
 # The site film
 
-Source for `site/media/reading-10.mp4`, the "Longyan works across any app" video: 白 in a news article, a chat and a novel, with the card picking what it means in each, then the three side by side. It's an HTML set, not a screen recording: every frame is a function of time, so the pointer and camera move without jumps.
+Source for `site/media/reading-11.mp4`, the "Longyan works across any app" video: 白 in a news article, a chat and a novel, with the card picking what it means in each, then the three side by side on the site's own paper. It's an HTML set, not a screen recording: every frame is a function of time, so the pointer and camera move without jumps.
 
-- `index.html`, `film.css`, `film.js`: the set (three windows, the pointer, the camera, and the end card). Each card shows the app's light running on the film's clock: purple over every meaning, then drawn onto the one picked.
+- `index.html`, `film.css`, `film.js`: the set (three windows, the pointer, the camera, and the end card). Each card shows the app's light running on the film's clock (purple over every meaning, then drawn onto the one picked) and the site's "Picked from context" tip.
 - `card.js`: a copy of `site/card.js` drawn at the app's 1:1 size.
 - `data.js`: the cards, from `LongyanReader --site-json` for each sentence.
 
@@ -13,8 +13,8 @@ python3 -m http.server 8791 --bind 127.0.0.1      # from the repo root
 node film/peek.js /tmp/peek 2,6,10                # check a few frames
 node film/smooth.js                               # check the camera and pointer for jumps
 node film/shoot.js /tmp/frames 4                  # every frame at 2560×1440
-swift film/encode.swift /tmp/frames reading-11.mp4 hevc 3000000 60
-swift film/encode.swift /tmp/frames reading-11-h264.mp4 h264 5000000 60
+swift film/encode.swift /tmp/frames reading-12.mp4 hevc 3000000 60
+swift film/encode.swift /tmp/frames reading-12-h264.mp4 h264 5000000 60
 ```
 
 Give a new film a new file name (browsers cache these), upload it to the `site-media` release, and update `site/index.html` (and its poster, `site/media/reading-N.jpg`, a frame from just after the fade-in).

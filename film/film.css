@@ -168,23 +168,29 @@ body { font-family: -apple-system, "SF Pro Text", "PingFang SC", system-ui, sans
   box-shadow: 0 12px 40px rgba(0, 0, 0, .3), 0 0 0 .5px rgba(255, 255, 255, .15); color: #fff; font: 500 30px/1.2 -apple-system, "PingFang SC", sans-serif; }
 #caption b { font: 600 40px/1 "PingFang SC"; margin: 0 6px; vertical-align: -3px; }
 #caption em { font-style: normal; color: rgba(255, 255, 255, .55); }
-/* The Mac cut's end card: the camera has gone into the last card, so it's the card's own dark
-   glass, and nothing on it but the word, one line under it, and then the name. */
-html:not(.os-win) #endcard { position: absolute; inset: 0; z-index: 200; opacity: 0; background: #232327; color: #f5f5f7; }
+/* The Mac cut's end card: the site's own night and paper (the azure the film sits on there),
+   so as the film ends it becomes the page around it. The folds stay low; the words sit on night. */
+html:not(.os-win) #endcard { position: absolute; inset: 0; z-index: 200; opacity: 0; background: #040720; color: #f5f5f7; overflow: hidden; }
+#endpaper { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#stage > #endpaper { opacity: 0; }
+html.os-win #endpaper { display: none; }
+#endcard > .word, #endcard > .cmp, #endcard > .name { z-index: 1; }
 #endcard .word { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 #endcard .word b { font: 500 236px/1.12 "PingFang SC"; letter-spacing: 0; }
 /* The three 白 in one column: the sentence around each in grey, what it meant in white. */
 #endcard .cmp { position: absolute; inset: 0; display: grid; grid-template-columns: auto auto auto auto; place-content: center; align-items: baseline; row-gap: 34px; }
 #endcard .cmp > * { font: 500 80px/1.12 "PingFang SC"; }
-#endcard .cmp b { color: #9ecca8; }
-#endcard .cmp .pre { text-align: right; color: rgba(245, 245, 247, .36); }
-#endcard .cmp .post { text-align: left; color: rgba(245, 245, 247, .36); }
-#endcard .cmp .m { padding-left: 72px; font: 500 52px/1 -apple-system, "SF Pro Display", sans-serif; letter-spacing: -.012em; color: #f5f5f7; }
+#endcard .cmp b { color: #9ecca8; text-shadow: 0 0 28px rgba(158, 204, 168, .18); }
+#endcard .cmp .pre { text-align: right; color: rgba(245, 245, 247, .5); }
+#endcard .cmp .post { text-align: left; color: rgba(245, 245, 247, .5); }
+#endcard .cmp .m { padding-left: 72px; font: 600 54px/1 -apple-system, "SF Pro Display", sans-serif; letter-spacing: -.024em; color: #f5f5f7; }
 #endcard .cmp .pre, #endcard .cmp .post, #endcard .cmp .m, #endcard .cmp b { opacity: 0; }
-#fadein { position: absolute; inset: 0; z-index: 300; background: #232327; pointer-events: none; }
+#fadein { position: absolute; inset: 0; z-index: 300; background: #040720; pointer-events: none; }
 html.os-win #fadein { display: none; }
 #endcard .name { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; }
 #endcard .name svg { width: 92px; height: auto; color: #f5f5f7; }
 #endcard .name b { margin-top: 34px; font: 600 54px/1 -apple-system, "SF Pro Display", sans-serif; letter-spacing: -.015em; }
-#endcard .name span { margin-top: 30px; font: 500 44px/1 -apple-system, "SF Pro Display", sans-serif; letter-spacing: -.01em; color: #f5f5f7; }
+#endcard .name span { margin-top: 30px; font: 600 48px/1 -apple-system, "SF Pro Display", sans-serif; letter-spacing: -.024em; color: #f5f5f7; }
 #endcard .word b { color: #9ecca8; }
+/* The tip, in the film's world: placed by film.js, over the card. */
+.film-tip { position: absolute; left: 0; top: 0; z-index: 70; visibility: visible; }

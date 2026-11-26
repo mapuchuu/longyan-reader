@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>Film</title>
 <link rel="stylesheet" href="../site/style.css">
-<link rel="stylesheet" href="film.css?v=22">
+<link rel="stylesheet" href="film.css?v=24">
 <script>
   // ?os=win: the Windows cut, for the Microsoft Store (win.css, win.js).
   if (/[?&]os=win\b/.test(location.search)) document.write('<link rel="stylesheet" href="win.css"><script src="win.js"><\/script>');
@@ -12,6 +12,7 @@
 </head>
 <body>
 <div id="stage">
+  <canvas id="endpaper" class="paper" data-paper="azure" data-seed="3.1" data-drop=".5" aria-hidden="true"></canvas>
   <div id="cam">
     <canvas class="paper wall" data-paper="cobalt" data-seed="4.4" aria-hidden="true"></canvas>
 
@@ -89,9 +90,9 @@
           <div class="hl"></div>
           <p class="runhead">旧 街</p>
           <p class="t">那天下午，我骑车去城东找老陈，想把借的书还给他。</p>
-          <p class="t">他留我吃了晚饭，又把这条街几十年的旧事讲了一遍。</p>
-          <p class="t" id="t-c"><span class="s">这一趟总算没白来。</span></p>
-          <p class="t">回去的路上下起了小雨，我推着车，一路都在笑。</p>
+          <p class="t">他留我吃了晚饭。我问他，这条街为什么一直没拆。</p>
+          <p class="t" id="t-c"><span class="s">他把道理讲得很白。</span></p>
+          <p class="t">回去的路上下起了小雨，我推着车，一路都在想他的话。</p>
           <p class="t">后来我常常想起那个下午。</p>
           <p class="folio">36</p>
         </div>
@@ -107,9 +108,9 @@
     </div>
   </div>
 </div>
-<script src="data.js?v=2"></script>
+<script src="data.js?v=3"></script>
 <script src="../site/paper.js"></script>
 <script src="card.js"></script>
-<script src="film.js?v=26"></script>
+<script src="film.js?v=29"></script>
 </body>
 </html>
