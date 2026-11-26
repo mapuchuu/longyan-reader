@@ -15,6 +15,37 @@
   }, { rootMargin: "0px 0px -12% 0px" });
   document.querySelectorAll("[data-reveal]").forEach((el) => io.observe(el));
 
+  // Trusted by blinks into being, photon.codes's closing strip played backwards: black, then a
+  // thin white line drawn out from the middle, then the band opens up and down from it, the
+  // white burning off into the sky as it opens. Tied to the scroll, so going back up closes it.
+  const trusted = document.querySelector(".trusted");
+  if (trusted && moving) {
+    const flash = document.createElement("i");
+    flash.className = "blink";
+    flash.setAttribute("aria-hidden", "true");
+    trusted.append(flash);
+    trusted.classList.add("blinking");
+    const clamp = (v) => Math.max(0, Math.min(1, v));
+    const ease = (v) => 1 - Math.pow(1 - v, 3);
+    let queued = false;
+    const blink = () => {
+      queued = false;
+      const r = trusted.getBoundingClientRect(), vh = innerHeight, h = r.height, w = r.width;
+      if (r.bottom < -vh || r.top > 2 * vh) return;
+      // From the band's middle at the foot of the screen to a little under the screen's middle.
+      const c = r.top + h / 2, p = (vh * 0.98 - c) / (vh * 0.48);
+      const line = ease(clamp(p / 0.24)), open = ease(clamp((p - 0.24) / 0.76));
+      const tall = p <= 0 ? 0 : Math.max(2, open * h), side = (1 - line) * w / 2, cap = (h - tall) / 2;
+      trusted.style.clipPath = `inset(${cap.toFixed(1)}px ${side.toFixed(1)}px ${cap.toFixed(1)}px round ${tall < 6 ? 1 : 0}px)`;
+      trusted.style.setProperty("--open", open.toFixed(3));
+      flash.style.opacity = (1 - clamp(open * 1.7)).toFixed(3);
+    };
+    const ask = () => { if (!queued) { queued = true; requestAnimationFrame(blink); } };
+    window.addEventListener("scroll", ask, { passive: true });
+    window.addEventListener("resize", ask);
+    blink();
+  }
+
   // The feature tiles' slow drift and little loops only run while a tile is on screen.
   if (moving) {
     const live = new IntersectionObserver((entries) => {

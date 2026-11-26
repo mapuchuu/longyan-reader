@@ -816,7 +816,7 @@ figcaption b { color: var(--ink); font-weight: 600; }
 .bubbles { width: 100%; height: 100%; }
 .bubbles text { font: 600 230px/1 var(--zh); }
 .bb-a text { fill: #ff9a3c; opacity: .55; }
-.bb-b text { font-family: var(--text); font-weight: 600; font-size: 190px; fill: #ff4f84; opacity: .45; }
+.bb-b text { font-family: var(--text); font-weight: 600; font-size: 230px; fill: #ff4f84; opacity: .55; }
 /* Tones: the one light tile, a soft mesh of the four tones' colours, the way an iPhone's
    wallpaper glows: one light behind each column of the panel (tiles.js puts --x1..--x4 at the
    columns' centres), each set at its tone's pitch: high, rising, low, falling. */
@@ -1225,6 +1225,10 @@ figcaption b { color: var(--ink); font-weight: 600; }
 .trusted .pill .t1 { color: #d1574a; } .trusted .pill .t3 { color: #3f74c9; } .trusted .pill .t4 { color: #8456c2; }
 @media (prefers-reduced-motion: reduce) { .trusted .sel { animation: none; } }
 
+/* The blink (motion.js): a white veil over the band, solid while it's a line, burning off as it
+   opens. The words come in as it finishes opening. */
+.trusted .blink { position: absolute; inset: 0; z-index: 3; background: #fff; pointer-events: none; }
+.trusted.blinking .wrap { opacity: calc(var(--open, 0) * 2.2 - 1.2); transform: translateY(calc((1 - var(--open, 0)) * 18px)); }
 .trusted-line { display: block; }
 .nobr { white-space: nowrap; }
 

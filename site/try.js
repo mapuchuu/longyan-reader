@@ -137,12 +137,11 @@
       if (opened && opened.pickTarget) pickNote(opened, opened.pickTarget);
     }
     if (!opened) return;
-    if (!tipCard) tipCard = opened;
     const at = selRect().top, s0 = sel;
     opened.anchorStill = () => sel === s0 && story.classList.contains("is-formed") && Math.abs(selRect().top - at) < 2;
     story.classList.add("card-open");
     const prevClose = opened.onClose;
-    opened.onClose = () => { firstClosed = true; if (prevClose) prevClose(); if (!Card().open) story.classList.remove("card-open", "covered"); };
+    opened.onClose = () => { if (prevClose) prevClose(); if (!Card().open) story.classList.remove("card-open", "covered"); };
     // The way on to how it picks stays, unless the card is over it.
     const more = root.querySelector(".try-continue");
     (function cover() {
@@ -212,11 +211,9 @@
   let note = null;
   // `target()`: where the pick is now, { scope, chosen, id }, or null while there's none to show.
   const OPENING = 260;
-  // "Picked from context" is a first-time thing: it shows on the first card opened only.
-  let firstClosed = false, tipCard = null;
+  // "Picked from context" shows on every card where the app picked a meaning.
   function pickNote(card, target) {
     dropNote();
-    if (firstClosed || (tipCard && tipCard !== card)) return;
     const el = document.createElement("div");
     el.className = "pick-note";
     el.innerHTML = `<div class="pick-tip">
