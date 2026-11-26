@@ -18,53 +18,121 @@ body { font-family: -apple-system, "SF Pro Text", "PingFang SC", system-ui, sans
 .win.key .lights b:nth-child(3) { background: #28c840; }
 .bar svg { width: 16px; height: 16px; fill: none; stroke: #8e8e93; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 
-/* Browser */
-.browser { left: 48px; top: 44px; width: 790px; height: 520px; }
-.browser .nav { position: absolute; left: 92px; top: 18px; display: flex; gap: 14px; }
-.browser .addr { position: absolute; left: 50%; top: 11px; transform: translateX(-50%); width: 360px; height: 30px; border-radius: 9px; background: rgba(0, 0, 0, .055);
+/* The menu bar, across the top of the desk. */
+#menubar { position: absolute; left: 0; top: 0; right: 0; height: 26px; z-index: 5; display: flex; align-items: center; gap: 20px; padding: 0 16px;
+  background: rgba(20, 18, 48, .38); -webkit-backdrop-filter: blur(30px); backdrop-filter: blur(30px); color: #fff; font-size: 13px; }
+#menubar .apple { font-size: 15px; font-weight: 400; }
+#menubar #mb-app { font-weight: 700; }
+#menubar #mb-menus { white-space: pre; opacity: .92; }
+#menubar .right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+#menubar svg { width: 17px; height: 12px; fill: #fff; }
+#menubar .batt { width: 22px; height: 10px; border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .6); padding: 2px; box-sizing: border-box; }
+#menubar .batt i { display: block; width: 70%; height: 100%; border-radius: 1px; background: #fff; }
+
+/* Browser, on a news site */
+.browser { left: 22px; top: 50px; width: 820px; height: 530px; }
+.browser .bar { background: #ececee; border-bottom: 0; }
+.browser .side { position: absolute; left: 88px; top: 18px; }
+.browser .nav { position: absolute; left: 128px; top: 18px; display: flex; gap: 14px; }
+.browser .addr { position: absolute; left: 50%; top: 11px; transform: translateX(-50%); width: 300px; height: 30px; border-radius: 9px; background: rgba(0, 0, 0, .06);
   display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; color: #3a3a3c; }
 .browser .addr svg { width: 12px; height: 12px; stroke: #6e6e73; }
-.article { position: relative; padding: 34px 92px 0; }
-.article .kicker { margin: 0 0 10px; font-size: 13px; font-weight: 600; letter-spacing: .02em; color: #c2410c; }
-.article h1 { margin: 0 0 10px; font: 700 34px/1.2 "PingFang SC", -apple-system, sans-serif; letter-spacing: -.01em; color: #111; }
-.article .by { margin: 0 0 22px; font-size: 13px; color: #86868b; }
-.article .t { margin: 0 0 16px; font: 400 18px/1.85 "PingFang SC", sans-serif; color: #26262a; }
+.browser .tools { position: absolute; right: 18px; top: 18px; display: flex; gap: 18px; }
+.tabsrow { display: flex; height: 30px; background: #dcdcdf; border-bottom: .5px solid rgba(0, 0, 0, .14); }
+.tab { flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px; font-size: 12px; color: #55555a; border-right: .5px solid rgba(0, 0, 0, .12); white-space: nowrap; }
+.tab.on { background: #f7f7f8; color: #1d1d1f; }
+.fav { width: 14px; height: 14px; border-radius: 3px; font: normal 700 9px/14px "PingFang SC"; color: #fff; text-align: center; }
+.fav.f1 { background: #e6162d; border-radius: 50%; } .fav.f2 { background: #b8121b; } .fav.f3 { background: #2f6bff; }
+.news { position: relative; height: calc(100% - 82px); background: #fff; overflow: hidden; }
+.mast { display: flex; align-items: center; gap: 26px; height: 46px; padding: 0 28px; background: #b8121b; color: #fff; }
+.mast .logo { font: 900 21px/1 "Songti SC", "STSong", serif; letter-spacing: .04em; }
+.mast .logo em { font: 600 11px/1 "PingFang SC"; font-style: normal; margin-left: 6px; opacity: .8; letter-spacing: .1em; }
+.mast nav { font-size: 13.5px; white-space: pre; opacity: .95; }
+.mast nav u { text-decoration: none; border-bottom: 2px solid #fff; padding-bottom: 4px; font-weight: 600; }
+.mast .login { margin-left: auto; font-size: 12.5px; padding: 4px 10px; border-radius: 4px; background: rgba(255, 255, 255, .16); }
+.cols { display: flex; gap: 30px; padding: 0 28px; }
+.article { position: relative; flex: 1; padding-top: 16px; }
+.article .crumb { margin: 0 0 10px; font-size: 12px; color: #8a8a8e; }
+.article h1 { margin: 0 0 10px; font: 700 29px/1.25 "PingFang SC", -apple-system, sans-serif; color: #111; }
+.article .by { margin: 0 0 16px; padding-bottom: 12px; border-bottom: 1px solid #eee; font-size: 12.5px; color: #86868b; }
+.article .by span { color: #b8121b; }
+.article .by em { font-style: normal; float: right; }
+.article .t { margin: 0 0 14px; font: 400 17px/1.85 "PingFang SC", sans-serif; color: #26262a; }
+.news .rail { width: 200px; flex: none; padding-top: 18px; }
+.news .rh { margin: 0 0 8px; padding-left: 8px; border-left: 3px solid #b8121b; font-size: 14px; font-weight: 700; }
+.news ol { list-style: none; margin: 0 0 16px; padding: 0; }
+.news li { display: flex; gap: 8px; padding: 7px 0; border-bottom: 1px dashed #e6e6e6; font-size: 13px; color: #333; white-space: nowrap; }
+.news li i { font-style: normal; font-weight: 700; color: #b8121b; width: 12px; }
+.news li:nth-child(n+4) i { color: #999; }
+.news .ad { position: relative; height: 96px; border-radius: 6px; padding: 16px 14px; box-sizing: border-box; color: #fff;
+  background: radial-gradient(circle at 85% 30%, rgba(255, 255, 255, .35) 0 18px, transparent 19px), linear-gradient(135deg, #3a4a6b, #1d2740); }
+.news .ad em { position: absolute; right: 6px; bottom: 5px; font: normal 10px "PingFang SC"; opacity: .75; }
+.news .ad b { display: block; font-size: 17px; margin-bottom: 4px; }
+.news .ad span { font-size: 12px; opacity: .9; }
 
-/* Mail */
-.mail { left: 150px; top: 404px; width: 720px; height: 372px; }
-.mail .mtitle { position: absolute; left: 96px; top: 16px; font-size: 14px; font-weight: 600; color: #3a3a3c; }
-.mailbody { display: flex; height: calc(100% - 52px); }
-.mail .list { width: 220px; flex: none; background: #f5f5f7; border-right: .5px solid rgba(0, 0, 0, .1); padding: 8px; box-sizing: border-box; }
-.mail .item { padding: 10px 12px; border-radius: 9px; display: grid; gap: 2px; font-size: 12.5px; color: #6e6e73; }
-.mail .item b { font-size: 13.5px; color: #1d1d1f; }
-.mail .item span { color: #1d1d1f; }
-.mail .item em { font-style: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.mail .item.on { background: #0a64d6; color: rgba(255, 255, 255, .8); }
-.mail .item.on b, .mail .item.on span { color: #fff; }
-.mail .msg { position: relative; flex: 1; padding: 20px 30px 0; }
-.mail .from { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; padding-bottom: 14px; border-bottom: .5px solid rgba(0, 0, 0, .1); }
-.mail .from i { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(160deg, #8e9bff, #5b5fd6); color: #fff; font: normal 600 15px/36px "PingFang SC"; text-align: center; }
-.mail .from div { display: grid; gap: 1px; }
-.mail .from b { font-size: 14px; }
-.mail .from span { font-size: 13px; color: #6e6e73; }
-.mail .from time { margin-left: auto; font-size: 12px; color: #86868b; }
-.mail .t { margin: 0 0 10px; font: 400 16px/1.8 "PingFang SC", sans-serif; color: #26262a; }
+/* Chat, in dark mode */
+.chat { left: 128px; top: 380px; width: 690px; height: 404px; background: #1c1c1f; color: #e8e8ea; }
+.chat .bar { position: absolute; left: 0; top: 0; width: 64px; height: 52px; background: transparent; border: 0; z-index: 2; }
+.win.chat::after { box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .18); }
+.chatbody { display: flex; height: 100%; }
+.chat .rail { width: 64px; flex: none; background: #161618; display: flex; flex-direction: column; align-items: center; gap: 18px; padding-top: 52px; box-sizing: border-box; }
+.chat .rail .me { width: 34px; height: 34px; border-radius: 8px; background: linear-gradient(160deg, #f4a261, #e76f51); font: normal 600 14px/34px "PingFang SC"; text-align: center; color: #fff; }
+.chat .rail .ic svg { width: 22px; height: 22px; fill: none; stroke: #8b8b92; stroke-width: 1.5; stroke-linejoin: round; }
+.chat .rail .ic.on svg { stroke: #4cc38a; fill: rgba(76, 195, 138, .15); }
+.chat .list { width: 236px; flex: none; background: #232326; border-right: 1px solid #111; padding: 14px 8px 0; box-sizing: border-box; }
+.chat .search { height: 28px; border-radius: 7px; background: #2f2f33; margin: 0 4px 10px; font-size: 12.5px; color: #77777e; line-height: 28px; padding-left: 12px; }
+.chat .item { display: flex; gap: 10px; padding: 9px 8px; border-radius: 8px; align-items: center; }
+.chat .item.on { background: #36363b; }
+.chat .item div { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.chat .item b { display: flex; font-size: 13.5px; font-weight: 500; color: #ececef; }
+.chat .item time { margin-left: auto; font-size: 11px; font-weight: 400; color: #77777e; }
+.chat .item em { font-style: normal; font-size: 12px; color: #8b8b92; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.av { flex: none; width: 36px; height: 36px; border-radius: 8px; font: normal 600 14px/36px "PingFang SC"; text-align: center; color: #fff; }
+.av.g1 { background: #3d6ee0; } .av.g2 { background: #d9578b; } .av.g3 { background: #c98a2c; } .av.g4 { background: #2f9e6e; } .av.g5 { background: #7a5cd6; } .av.g6 { background: #2a9fbf; }
+.chat .room { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.chat .head { height: 52px; flex: none; display: flex; align-items: center; padding: 0 20px; border-bottom: 1px solid #2c2c30; font-size: 14.5px; }
+.chat .head span { margin-left: auto; color: #8b8b92; letter-spacing: .1em; }
+.chat .feed { position: relative; flex: 1; padding: 8px 20px 0; }
+.chat .stamp { margin: 4px 0 10px; text-align: center; font-size: 11.5px; color: #6e6e75; }
+.chat .row { display: flex; gap: 10px; margin-bottom: 12px; }
+.chat .row .av { width: 32px; height: 32px; line-height: 32px; font-size: 13px; }
+.chat .row > div { min-width: 0; }
+.chat .who { display: block; font-size: 11.5px; color: #8b8b92; margin: 0 0 4px 2px; }
+.chat .bub { display: inline-block; margin: 0; padding: 8px 12px; border-radius: 4px 12px 12px 12px; background: #2e2e33; font: 400 17px/1.6 "PingFang SC", sans-serif; color: #ececef; }
+.chat .input { height: 46px; flex: none; margin: 0 16px 14px; border-radius: 10px; background: #2a2a2e; display: flex; align-items: center; padding: 0 14px; font-size: 13.5px; color: #6e6e75; }
+.chat .input svg { margin-left: auto; width: 20px; height: 20px; fill: none; stroke: #77777e; stroke-width: 1.3; }
+.chat .input svg circle:not(:first-child) { fill: #77777e; stroke: none; }
+/* Over the bubbles: the chat's selection sits on top, see-through, so the bubble doesn't hide it. */
+.chat .hl { z-index: 3; }
+.chat .hl i { background: rgba(64, 128, 255, .42); }
+.win.chat:not(.key) .hl i { background: rgba(255, 255, 255, .16); }
 
-/* PDF */
-.pdf { left: 884px; top: 34px; width: 510px; height: 742px; }
+/* PDF viewer */
+.pdf { left: 752px; top: 40px; width: 510px; height: 742px; }
+.pdf .bar { background: #f3f3f4; }
 .pdf .ptitle { position: absolute; left: 96px; top: 9px; display: grid; gap: 1px; }
 .pdf .ptitle b { font-size: 13.5px; color: #1d1d1f; }
 .pdf .ptitle em { font-style: normal; font-size: 11.5px; color: #86868b; }
-.pdfbody { height: calc(100% - 52px); background: #dcdce0; display: flex; justify-content: center; padding-top: 26px; box-sizing: border-box; }
-.sheet { position: relative; width: 424px; height: 600px; background: #fffdf8; box-shadow: 0 1px 3px rgba(0, 0, 0, .16), 0 10px 30px rgba(0, 0, 0, .1); padding: 54px 46px 0; box-sizing: border-box; }
-.sheet .t { margin: 0 0 12px; text-indent: 2em; font: 400 17px/1.95 "Songti SC", "STSong", serif; color: #222; }
-.sheet .folio { position: absolute; bottom: 26px; left: 0; right: 0; text-align: center; font: 13px "Songti SC", serif; color: #8a8a8a; }
+.pdf .tools { position: absolute; right: 16px; top: 18px; display: flex; gap: 16px; }
+.pdfbody { display: flex; height: calc(100% - 52px); }
+.thumbs { width: 86px; flex: none; background: #ececee; border-right: .5px solid rgba(0, 0, 0, .12); display: flex; flex-direction: column; align-items: center; padding-top: 18px; gap: 4px; }
+.thumbs .th { width: 50px; height: 68px; background: #fffdf8; box-shadow: 0 0 0 .5px rgba(0, 0, 0, .18); padding: 8px 6px; box-sizing: border-box; display: grid; align-content: start; gap: 4px; }
+.thumbs .th.on { box-shadow: 0 0 0 .5px rgba(0, 0, 0, .18), 0 0 0 3px #0a64d6; }
+.thumbs .th i { height: 2px; background: #c9c7c1; }
+.thumbs .th i:last-child { width: 60%; }
+.thumbs span { font-size: 11px; color: #6e6e73; margin-bottom: 12px; }
+.thumbs span.on { color: #fff; background: #0a64d6; border-radius: 8px; padding: 0 6px; }
+.canvas { flex: 1; background: #808084; display: flex; justify-content: center; padding-top: 22px; }
+.sheet { position: relative; width: 384px; height: 610px; background: #fffdf8; box-shadow: 0 2px 8px rgba(0, 0, 0, .3); padding: 40px 38px 0; box-sizing: border-box; }
+.sheet .runhead { margin: 0 0 18px; text-align: center; font: 12px "Songti SC", serif; color: #9a9a9a; letter-spacing: .3em; }
+.sheet .t { margin: 0 0 10px; text-indent: 2em; text-align: justify; font: 400 16.5px/1.95 "Songti SC", "STSong", serif; color: #222; }
+.sheet .folio { position: absolute; bottom: 24px; left: 0; right: 0; text-align: center; font: 13px "Songti SC", serif; color: #8a8a8a; }
 
 /* The selection, under the words. */
 .hl { position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: 0; }
 .hl i { position: absolute; background: #b3d7ff; border-radius: 2px; }
 .win:not(.key) .hl i { background: #dcdcdc; }
-.t, h1, .kicker, .by, .from, .folio { position: relative; z-index: 1; }
+.t, h1, .crumb, .by, .folio, .runhead { position: relative; z-index: 1; }
 
 /* The eye that comes up by a selection: the app's 24 pt button in the cards' dark glass. */
 #chip { position: absolute; left: 0; top: 0; width: 24px; height: 24px; margin: -12px 0 0 -12px; border-radius: 50%; display: none; z-index: 40;
@@ -88,3 +156,35 @@ body { font-family: -apple-system, "SF Pro Text", "PingFang SC", system-ui, sans
   background: linear-gradient(180deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, 0) 40%), rgba(36, 36, 40, .86);
   box-shadow: 0 18px 50px rgba(0, 0, 0, .28), 0 3px 10px rgba(0, 0, 0, .14), 0 0 0 .5px rgba(0, 0, 0, .55);
 }
+.chat .lights { left: 12px; }
+.chat .bub + .bub { display: table; margin-top: 4px; }
+.chat .stamp { margin: 0 0 6px; }
+.chat .row { margin-bottom: 8px; }
+.chat .feed { padding-top: 6px; }
+
+/* The opening line and the end card, over the whole frame (not moved by the camera). */
+#caption { position: absolute; left: 0; right: 0; bottom: 70px; z-index: 150; display: flex; justify-content: center; opacity: 0; pointer-events: none; }
+#caption div { padding: 16px 30px; border-radius: 18px; background: rgba(20, 20, 24, .82); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .3), 0 0 0 .5px rgba(255, 255, 255, .15); color: #fff; font: 500 30px/1.2 -apple-system, "PingFang SC", sans-serif; }
+#caption b { font: 600 40px/1 "PingFang SC"; margin: 0 6px; vertical-align: -3px; }
+#caption em { font-style: normal; color: rgba(255, 255, 255, .55); }
+/* The Mac cut's end card: the camera has gone into the last card, so it's the card's own dark
+   glass, and nothing on it but the word, one line under it, and then the name. */
+html:not(.os-win) #endcard { position: absolute; inset: 0; z-index: 200; opacity: 0; background: #232327; color: #f5f5f7; }
+#endcard .word { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+#endcard .word b { font: 500 236px/1.12 "PingFang SC"; letter-spacing: 0; }
+/* The three 白 in one column: the sentence around each in grey, what it meant in white. */
+#endcard .cmp { position: absolute; inset: 0; display: grid; grid-template-columns: auto auto auto auto; place-content: center; align-items: baseline; row-gap: 34px; }
+#endcard .cmp > * { font: 500 80px/1.12 "PingFang SC"; }
+#endcard .cmp b { color: #9ecca8; }
+#endcard .cmp .pre { text-align: right; color: rgba(245, 245, 247, .36); }
+#endcard .cmp .post { text-align: left; color: rgba(245, 245, 247, .36); }
+#endcard .cmp .m { padding-left: 72px; font: 500 52px/1 -apple-system, "SF Pro Display", sans-serif; letter-spacing: -.012em; color: #f5f5f7; }
+#endcard .cmp .pre, #endcard .cmp .post, #endcard .cmp .m, #endcard .cmp b { opacity: 0; }
+#fadein { position: absolute; inset: 0; z-index: 300; background: #232327; pointer-events: none; }
+html.os-win #fadein { display: none; }
+#endcard .name { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; }
+#endcard .name svg { width: 92px; height: auto; color: #f5f5f7; }
+#endcard .name b { margin-top: 34px; font: 600 54px/1 -apple-system, "SF Pro Display", sans-serif; letter-spacing: -.015em; }
+#endcard .name span { margin-top: 30px; font: 500 44px/1 -apple-system, "SF Pro Display", sans-serif; letter-spacing: -.01em; color: #f5f5f7; }
+#endcard .word b { color: #9ecca8; }

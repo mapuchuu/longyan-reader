@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>Film</title>
 <link rel="stylesheet" href="../site/style.css">
-<link rel="stylesheet" href="film.css">
+<link rel="stylesheet" href="film.css?v=22">
 <script>
   // ?os=win: the Windows cut, for the Microsoft Store (win.css, win.js).
   if (/[?&]os=win\b/.test(location.search)) document.write('<link rel="stylesheet" href="win.css"><script src="win.js"><\/script>');
@@ -15,60 +15,86 @@
   <div id="cam">
     <canvas class="paper wall" data-paper="cobalt" data-seed="4.4" aria-hidden="true"></canvas>
 
-    <!-- A browser, reading an article -->
+    <!-- The menu bar: the key window's app, from film.js -->
+    <div id="menubar"><b class="apple"></b><b id="mb-app">Safari</b><span id="mb-menus">文件　编辑　显示　历史记录　书签　窗口　帮助</span><span class="right"><svg viewBox="0 0 20 14"><path d="M10 12.2 13 9a4.3 4.3 0 0 0-6 0zM4.4 6.5a7.9 7.9 0 0 1 11.2 0l-1.6 1.6a5.6 5.6 0 0 0-8 0zM1.6 3.7a11.9 11.9 0 0 1 16.8 0l-1.6 1.6a9.6 9.6 0 0 0-13.6 0z"/></svg><i class="batt"><i></i></i>11月26日 周三　9:41</span></div>
+
+    <!-- A browser, on a news site -->
     <section class="win browser" id="w-a">
       <header class="bar">
         <i class="lights"><b></b><b></b><b></b></i>
+        <span class="side"><svg viewBox="0 0 16 16"><rect x="1.5" y="2.5" width="13" height="11" rx="2"/><path d="M6 2.5v11"/></svg></span>
         <span class="nav"><svg viewBox="0 0 16 16"><path d="M10 3 5 8l5 5"/></svg><svg viewBox="0 0 16 16"><path d="m6 3 5 5-5 5"/></svg></span>
-        <span class="addr"><svg viewBox="0 0 16 16"><rect x="4" y="7" width="8" height="6" rx="1.5"/><path d="M5.8 7V5.4a2.2 2.2 0 0 1 4.4 0V7"/></svg>夏天为什么容易上火？</span>
+        <span class="addr"><svg viewBox="0 0 16 16"><rect x="4" y="7" width="8" height="6" rx="1.5"/><path d="M5.8 7V5.4a2.2 2.2 0 0 1 4.4 0V7"/></svg>chenbao.cn</span>
+        <span class="tools"><svg viewBox="0 0 16 16"><path d="M8 10V2M5 5l3-3 3 3M3.5 8.5v4.5h9V8.5"/></svg><svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg><svg viewBox="0 0 16 16"><rect x="2" y="2" width="9" height="9" rx="1.5"/><path d="M5 14h9V5"/></svg></span>
       </header>
-      <div class="page article">
-        <div class="hl"></div>
-        <p class="kicker">生活 · 健康</p>
-        <h1>夏天为什么容易上火？</h1>
-        <p class="by">文 / 林晓 · 阅读 4 分钟</p>
-        <p class="t" id="t-a">一到夏天，很多人就开始熬夜、吃烧烤、喝冰饮料。<span class="s">中医常说，天气一热就容易上火，嗓子疼、长痘痘都和它有关。</span>其实少吃辣、早点睡，再多喝点凉茶，过几天就能舒服很多。不过，凉茶也不是人人都适合喝。</p>
-        <p class="t">那么，凉茶到底该怎么喝？我们请教了三位中医，听听他们怎么说。</p>
-      </div>
-    </section>
-
-    <!-- Mail -->
-    <section class="win mail" id="w-b">
-      <header class="bar">
-        <i class="lights"><b></b><b></b><b></b></i>
-        <span class="mtitle">收件箱</span>
-      </header>
-      <div class="mailbody">
-        <aside class="list">
-          <div class="item on"><b>李明</b><span>周五上线的问题</span><em>王老师好，周五的上线出了点问题…</em></div>
-          <div class="item"><b>张晓雨</b><span>周末聚餐</span><em>这周六晚上大家有空吗？</em></div>
-          <div class="item"><b>陈静</b><span>会议纪要</span><em>附件是今天下午的会议纪要。</em></div>
-        </aside>
-        <div class="msg">
-          <div class="hl"></div>
-          <div class="from"><i>李</i><div><b>李明</b><span>周五上线的问题</span></div><time>上午 9:41</time></div>
-          <p class="t">王老师好，</p>
-          <p class="t" id="t-b">周五的上线出了点问题，主要是我们测试没做充分。<span class="s">不能让小王一个人背锅，周会上我会说明情况。</span></p>
-          <p class="t">下周一前我们会把修复方案发给您。</p>
+      <div class="tabsrow"><span class="tab"><i class="fav f1"></i>微博</span><span class="tab on"><i class="fav f2">晨</i>“第二件白送”，到底省了多少？</span><span class="tab"><i class="fav f3"></i>翻译</span></div>
+      <div class="page news">
+        <div class="mast"><b class="logo">晨报<em>新闻</em></b><nav>首页　国内　国际　<u>财经</u>　科技　健康　体育</nav><span class="login">登录</span></div>
+        <div class="cols">
+          <div class="article">
+            <div class="hl"></div>
+            <p class="crumb">首页 › 财经 › 消费</p>
+            <h1>“第二件白送”，到底省了多少？</h1>
+            <p class="by"><span>林晓</span>　2026-11-24 08:30　<em>评论 862</em></p>
+            <p class="t">双十一刚过，满减、秒杀的广告还到处都是。</p>
+            <p class="t" id="t-a"><span class="s">很多商家喊着“第二件白送”，其实早就算进了价格里。</span>我们把三家店同一件T恤的价格记了一个月，结果发现，活动前一周，它悄悄涨了二十块。</p>
+          </div>
+          <aside class="rail">
+            <p class="rh">热门</p>
+            <ol><li><i>1</i>双十一退货，运费谁出</li><li><i>2</i>直播间的“全网最低价”</li><li><i>3</i>年轻人开始记账了</li><li><i>4</i>会员自动续费怎么关</li></ol>
+          </aside>
         </div>
       </div>
     </section>
 
-    <!-- A PDF -->
+    <!-- A chat app, dark -->
+    <section class="win chat" id="w-b">
+      <header class="bar">
+        <i class="lights"><b></b><b></b><b></b></i>
+      </header>
+      <div class="chatbody">
+        <aside class="rail"><i class="me">我</i><i class="ic on"><svg viewBox="0 0 20 20"><path d="M4 4h12a1.5 1.5 0 0 1 1.5 1.5v7A1.5 1.5 0 0 1 16 14H9l-4 3v-3H4a1.5 1.5 0 0 1-1.5-1.5v-7A1.5 1.5 0 0 1 4 4z"/></svg></i><i class="ic"><svg viewBox="0 0 20 20"><circle cx="10" cy="7" r="3.2"/><path d="M3.5 17c.8-3.3 3.3-5 6.5-5s5.7 1.7 6.5 5"/></svg></i><i class="ic"><svg viewBox="0 0 20 20"><path d="M4 3.5h9l3 3v10H4z"/><path d="M7 9h6M7 12h6"/></svg></i></aside>
+        <aside class="list">
+          <div class="search">搜索</div>
+          <div class="item on"><i class="av g1">室</i><div><b>大学室友 (4)<time>9:41</time></b><em>大林：羡慕 我们这儿还二十度…</em></div></div>
+          <div class="item"><i class="av g2">雨</i><div><b>张晓雨<time>9:12</time></b><em>[图片]</em></div></div>
+          <div class="item"><i class="av g3">妈</i><div><b>妈妈<time>昨天</time></b><em>周末回来吃饭吗</em></div></div>
+          <div class="item"><i class="av g4">篮</i><div><b>周四篮球<time>周一</time></b><em>今晚八点，老地方</em></div></div>
+        </aside>
+        <div class="room">
+          <div class="head"><b>大学室友 (4)</b><span>···</span></div>
+          <div class="feed">
+            <div class="hl"></div>
+            <p class="stamp">上午 9:38</p>
+            <div class="row"><i class="av g2">雨</i><div><span class="who">张晓雨</span><p class="bub">你们那边下雪了没 ❄️</p></div></div>
+            <div class="row"><i class="av g5">杰</i><div><span class="who">阿杰</span><p class="bub">下了一夜！</p><p class="bub t" id="t-b"><span class="s">早上一开门，外面全白了。</span></p></div></div>
+            <div class="row"><i class="av g6">林</i><div><span class="who">大林</span><p class="bub">羡慕 我们这儿还二十度 😭</p></div></div>
+          </div>
+          <div class="input"><span>发消息…</span><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.5"/><path d="M7 12c.8 1 1.8 1.5 3 1.5s2.2-.5 3-1.5"/><circle cx="7.6" cy="8.3" r=".6"/><circle cx="12.4" cy="8.3" r=".6"/></svg></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- A PDF, in a viewer with page thumbnails -->
     <section class="win pdf" id="w-c">
       <header class="bar">
         <i class="lights"><b></b><b></b><b></b></i>
-        <span class="ptitle"><b>短篇小说选.pdf</b><em>第 36 页，共 212 页</em></span>
+        <span class="ptitle"><b>旧街.pdf</b><em>第 36 页，共 212 页</em></span>
+        <span class="tools"><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3M5 7h4"/></svg><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3M5 7h4M7 5v4"/></svg><svg viewBox="0 0 16 16"><path d="M3 13 11.5 4.5l1.5 1.5L4.5 14.5H3z"/></svg><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg></span>
       </header>
       <div class="pdfbody">
+        <aside class="thumbs"><div class="th"><i></i><i></i><i></i><i></i><i></i><i></i></div><span>35</span><div class="th on"><i></i><i></i><i></i><i></i><i></i><i></i></div><span class="on">36</span><div class="th"><i></i><i></i><i></i><i></i><i></i></div><span>37</span></aside>
+        <div class="canvas">
         <div class="sheet">
           <div class="hl"></div>
-          <p class="t">那天晚上，父亲又说了几句重话，我一句也没回，转身回了房间。</p>
-          <p class="t">过了一会儿，母亲端着一碗汤进来，放在我面前。</p>
-          <p class="t" id="t-c">母亲在床边坐下，叹了口气：“<span class="s">他这个人刀子嘴豆腐心，其实很关心你。</span>”</p>
-          <p class="t">我没说话。汤还是热的，是我小时候最喜欢的那种。</p>
-          <p class="t">窗外下着雨，楼下的路灯一闪一闪的。</p>
+          <p class="runhead">旧 街</p>
+          <p class="t">那天下午，我骑车去城东找老陈，想把借的书还给他。</p>
+          <p class="t">他留我吃了晚饭，又把这条街几十年的旧事讲了一遍。</p>
+          <p class="t" id="t-c"><span class="s">这一趟总算没白来。</span></p>
+          <p class="t">回去的路上下起了小雨，我推着车，一路都在笑。</p>
+          <p class="t">后来我常常想起那个下午。</p>
           <p class="folio">36</p>
+        </div>
         </div>
       </div>
     </section>
@@ -81,9 +107,9 @@
     </div>
   </div>
 </div>
-<script src="data.js"></script>
+<script src="data.js?v=2"></script>
 <script src="../site/paper.js"></script>
 <script src="card.js"></script>
-<script src="film.js"></script>
+<script src="film.js?v=26"></script>
 </body>
 </html>
