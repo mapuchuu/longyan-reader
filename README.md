@@ -25,7 +25,7 @@
 <br>
 
 <p align="center">
-  <a href="https://longyan.app"><img src="docs/media/demo-3.webp" width="720" alt="Longyan Reader on a Mac, one character in three apps. In a news article, 白 in 白送 opens a card: free of charge. In a group chat, 白 in 外面全白了 opens a card: white. In a PDF novel, the sentence 很白的道理，谁都懂 opens a card with its translation, and 白's row opens to clear. The app picks each meaning from the sentence."></a>
+  <a href="https://longyan.app"><img src="docs/media/demo-4.webp" width="720" alt="Longyan Reader on a Mac, one character in three apps. In a news article, 白 in 白送 opens a card: free of charge. In a group chat, 白 in 辩白了半天 opens a card: to explain. In a PDF novel, the sentence 很白的道理，谁都懂 opens a card with its translation, and 白's row opens to clear. The app picks each meaning from the sentence."></a>
 </p>
 
 Highlight Chinese in Safari, Chrome, WeChat, Preview, Mail or any other app, and a card opens with what each word means in that sentence. Instead of every definition the word has ever had, you see the one the writer meant, with pinyin, a translation of the whole phrase, and a note when the word carries more than its gloss can say.
