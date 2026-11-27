@@ -194,3 +194,4 @@ html.os-win #fadein { display: none; }
 #endcard .word b { color: #9ecca8; }
 /* The tip, in the film's world: placed by film.js, over the card. */
 .film-tip { position: absolute; left: 0; top: 0; z-index: 70; visibility: visible; }
+.film-words { position: relative; isolation: isolate; }

@@ -304,7 +304,7 @@
   try { pinned = sessionStorage.getItem("lc-pinned") === "1"; } catch (_) {}
   const BASE = { word: 360, phrase: 390 };
   const MIN_W = 240, MAX_W = 1000;
-  const zoomFor = () => 1;
+  const zoomFor = () => window.FILM_CARD_ZOOM || 1;
   // On a desktop a card that won't fit the room next to its selection is zoomed down until it
   // does, as far as FIT_MIN, so it always shows whole rather than cut off at the window's edge.
   const FIT_MIN = 0.9;

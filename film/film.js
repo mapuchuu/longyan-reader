@@ -31,15 +31,18 @@
   // One word, three apps, three meanings: 白, which every learner knows as "white", and
   // never means white here. The window on top first (the news), then the chat under it, then a novel.
   const SCENES = [
-    { id: "a", win: "#w-a", data: FILM.a, sel: [10, 11], kind: "word", hold: 4.7, pickAt: 1.9, tip: true },
+    { id: "a", win: "#w-a", data: FILM.a, sel: [9, 10], kind: "word", hold: 4.7, pickAt: 1.9, tip: true },
     { id: "b", win: "#w-b", data: FILM.b, sel: [9, 10], kind: "word", hold: 4.7, pickAt: 1.9, tip: true, focus: ".room .input", context: ".room" },
-    { id: "c", win: "#w-c", data: FILM.c, sel: [7, 8], kind: "word", hold: 4.7, pickAt: 1.9, tip: true },
+    // The last one is the whole sentence: its translation and its words; then 白's row is
+    // clicked open, and its meanings narrow to the one picked, as in the first two.
+    { id: "c", win: "#w-c", data: FILM.c, sel: [0, 9], kind: "phrase", hold: 6.5, click: 1.5, pickAt: 1.9, tip: true, zoom: 0.75 },
   ];
   // The end: the three sentences, their 白 in one column, each with what it meant there.
   // Top down from the last one seen (the push lands on its 白), so the film's last words are
   // "free of charge".
-  const ROWS = [["讲得很", "", "clear"], ["外面全", "了", "white"], ["第二件", "送", "free of charge"]];
+  const ROWS = [["很", "的道理", "clear"], ["全", "了", "white"], ["是", "送的", "free of charge"]];
   const PICK = spring(0.5, 0.86);
+  const OPEN_ROW = spring(0.45, 0.92);
   const pickAt = (s) => s.pickAt || 0.95;   // seconds after a card opens that its light draws in   // the light drawing in onto the meaning picked
   const OPEN = 0.7;   // seconds the opening line holds before the first reach
   const REST = { x: 1150, y: 700 };
@@ -199,9 +202,13 @@
       const here = s.winShot || focus(s);
       if (prev && t < p.tLeave + 0.55) {
         const a = prev.frame || focus(prev.s);
-        return { x: (a.x + here.x) / 2, y: (a.y + here.y) / 2, z: Math.min(a.z, here.z) * 0.78 };
+        // never so far out that the desk's edge would have to push it over (that drawn clamp
+        // was a kink: right, then back left)
+        const x = (a.x + here.x) / 2, y = (a.y + here.y) / 2;
+        const fit = Math.max(W / 2 / x, W / 2 / (W - x), H / 2 / y, H / 2 / (H - y));
+        return { x, y, z: Math.max(Math.min(a.z, here.z) * 0.78, fit) };
       }
-      const tp = p.tOpen + pickAt(s) + 0.3;
+      const tp = p.tClick ? p.tPress2 : p.tOpen + pickAt(s) + 0.3;
       if (t >= tp && p.pickFrame) {
         // held, it keeps going in, slowly, so no frame stands still
         const f = p.pickFrame;
@@ -270,9 +277,12 @@
   function pushAt(t) {
     if (!push) {
       const p = plan[plan.length - 1], hw = p.hwRect, w = document.querySelector("#endcard .word b").getBoundingClientRect();
-      const z = (w.bottom - w.top) / hw.h;
-      const sx = (w.left + w.right) / 2, sy = (w.top + w.bottom) / 2;
-      push = { hw, t0: plan.tOut, t1: plan.tEnd + 0.4, a: camAt(plan.tOut), b: { x: hw.x - (sx - W / 2) / z, y: hw.y - (sy - H / 2) / z, z } };
+      // by type size, not box height: the card's glyph box and the end's line box differ
+      const z = parseFloat(getComputedStyle(document.querySelector("#endcard .word b")).fontSize) / hw.fs;
+      // a sentence card's glyph sits a little low in its box (measured: 0.04 em at the end's size)
+      const efs = parseFloat(getComputedStyle(document.querySelector("#endcard .word b")).fontSize);
+      const sx = (w.left + w.right) / 2, sy = (w.top + w.bottom) / 2 - (p.s.kind === "phrase" ? 0.04 * efs : 0);
+      push = { hw, t0: plan.tOut, t1: plan.tEnd + 0.2, a: camAt(plan.tOut), b: { x: hw.x - (sx - W / 2) / z, y: hw.y - (sy - H / 2) / z, z } };
     }
     const u = clamp((t - push.t0) / (push.t1 - push.t0)), e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
     const { a, b, hw } = push, z = Math.exp(lerp(Math.log(a.z), Math.log(b.z), e));
@@ -306,34 +316,72 @@
     const s = p.s, d = s.data, key = `${s.sel[0]}-${s.sel[1]}`;
     const r = { left: s.rect.left, right: s.rect.right, top: s.rect.top, bottom: s.rect.bottom, preferBelow: true };
     let card;
+    window.FILM_CARD_ZOOM = s.zoom || 1;
     if (s.kind === "word") {
       const info = d.cards[key];
       card = LongyanCard.openWord({ senses: d.words[info.word] || [], card: info }, r);
     } else {
       card = LongyanCard.openPhrase({ phrase: d.phrases[key], words: d.words }, r);
     }
+    window.FILM_CARD_ZOOM = 1;
     cam.appendChild(card.el);
-    const b = card.el.getBoundingClientRect();
+    card.el._exp = false;
+    const box = (e) => { const b = e.getBoundingClientRect(); return { left: b.left, right: b.right, top: b.top, bottom: b.bottom }; };
     if (!p.cardRect) {
-      p.cardRect = { left: b.left, right: b.right, top: b.top, bottom: b.bottom };
-      const hw = card.el.querySelector(".lc-hw"), r = hw && hw.getBoundingClientRect();
-      if (r) p.hwRect = { x: (r.left + r.right) / 2, y: (r.top + r.bottom) / 2, h: r.bottom - r.top };
-      const ch = card.el.querySelector(".lc-def.chosen");
-      if (ch) { const rb = ch.closest(".lc-row").getBoundingClientRect(); p.pickRect = { left: b.left, right: b.right, top: b.top, bottom: rb.bottom }; }
+      p.cardRect = box(card.el);
+      const wr = s.kind === "word" ? null : wordRow(card.el);
+      // the glyph itself (its span), not the word column it sits in
+      const hw = wr ? wr.querySelector(".lc-wchars > span") || wr.querySelector(".lc-wchars") : card.el.querySelector(".lc-hw"), r = hw && hw.getBoundingClientRect();
+      if (r) p.hwRect = { x: (r.left + r.right) / 2, y: (r.top + r.bottom) / 2, h: r.bottom - r.top, fs: parseFloat(getComputedStyle(hw).fontSize) };
+      if (wr) {
+        // where the pointer clicks the row, then the card with the row open
+        const g = wr.querySelector(".lc-wgloss").getBoundingClientRect();
+        p.wrBottom = wr.getBoundingClientRect().bottom;
+        p.clickPt = { x: g.left + Math.min(40, (g.right - g.left) / 2), y: (g.top + g.bottom) / 2 };
+        setOpen(card.el, true);
+        p.detailH = card.el.querySelector(".lc-detail").offsetHeight;
+        // the card grows to its content a beat later (card.js), so its open size is added up here
+        p.openRect = { ...p.cardRect, bottom: p.cardRect.bottom + p.detailH };
+      }
+      const pr = pickRow(card.el), b = p.openRect || p.cardRect;
+      if (pr) { const rb = pr.getBoundingClientRect(); p.pickRect = { left: b.left, right: b.right, top: b.top, bottom: rb.bottom }; }
       if (!WIN && p.s.tip && !p.tipEl) { p.tipEl = makeTip(p, card); if (p.pickRect) { p.pickRect.right = Math.max(p.pickRect.right, p.tipRect.right); p.pickRect.left = Math.min(p.pickRect.left, p.tipRect.left); } }
+      if (wr) setOpen(card.el, false);
     }
-    if (!WIN) lightUp(card.el);
+    if (!WIN && s.kind === "word") lightUp(card.el);
     if (!WIN && p.s.tip && !p.tipEl) p.tipEl = makeTip(p, card);
     return card;
+  }
+  // A sentence's card: 白's row, and opening or closing it, as a click on it does.
+  function wordRow(el) {
+    return [...el.querySelectorAll(".lc-rows .lc-prow")].find((r) => r.querySelector(".lc-wchars").textContent === "白") || null;
+  }
+  function setOpen(el, on) {
+    if (el._exp === on) return;
+    el._exp = on;
+    wordRow(el).querySelector(".lc-wordrow").click();
+    // the app's own reveal runs on the wall clock; the film draws it instead
+    for (const x of el.getAnimations({ subtree: true })) x.finish();
+    const det = wordRow(el).querySelector(".lc-detail");
+    if (det) det.style.cssText = "";
+    if (on && !WIN) lightUp(el);
+    if (!on) el._light = null;
   }
   // The app's light, run by the film's clock: purple over every meaning the dictionary has (a
   // dictionary would stop there), then drawn in onto the one this sentence means, turning the
   // checkmark's blue, as its check springs in, the others step back and the answer opens under
   // the word.
+  // The row the light lands on: the meaning picked (in a sentence's card, in 白's open row).
+  function pickRow(el) {
+    const def = el.querySelector(".lc-list .lc-def.chosen");
+    return def ? def.closest(".lc-row") : null;
+  }
   function lightUp(el) {
-    const senses = el.querySelector(".lc-senses"), rows = [...el.querySelectorAll(".lc-list .lc-row[data-i]")];
+    const open = el.querySelector(".lc-detail");
+    const senses = open ? open.querySelector(".lc-v.s") : el.querySelector(".lc-senses"), rows = [...el.querySelectorAll(".lc-list .lc-row[data-i]")];
     const chosen = rows.find((r) => r.querySelector(".lc-def.chosen"));
     if (!senses || !chosen) return;
+    if (open) senses.classList.add("film-words");
     const light = document.createElement("div");
     light.className = "lc-light film-light";
     light.innerHTML = '<i class="purple"></i><i class="blue"></i>';
@@ -376,7 +424,7 @@
       ` Q0,${f(ay)} .6,${f(ay - 0.55)} C1.6,${f(ay - 1.7)} ${A},${f(ay - b * 0.45)} ${A},${f(ay - b)} V${r} A${r},${r} 0 0 1 ${A + r},0 Z`;
   }
   function makeTip(p, card) {
-    const row = card.el.querySelector(".lc-def.chosen").closest(".lc-row").getBoundingClientRect();
+    const row = pickRow(card.el).getBoundingClientRect();
     const el = document.createElement("div");
     el.className = "pick-note on film-tip";
     el.innerHTML = `<div class="pick-tip"><div class="pick-glass"></div>
@@ -396,7 +444,9 @@
     tip.style.transformOrigin = `${right ? -TIP.arrow : w + TIP.arrow}px ${h / 2}px`;
     const x = right ? p.cardRect.right + reach : p.cardRect.left - reach - w, y = Math.round(mid - h / 2);
     el.style.transform = `translate(${x}px, ${y}px)`;
-    p.tipRect = { left: right ? x - TIP.arrow : x, right: right ? x + w : x + w + TIP.arrow, top: y, bottom: y + h };
+    // drawn at the card's own size (drawTip scales it about its arrow's tip)
+    const z = p.s.zoom || 1, ax = right ? x - TIP.arrow : x + w + TIP.arrow, span = (w + TIP.arrow) * z;
+    p.tipRect = { left: right ? ax : ax - span, right: right ? ax + span : ax, top: mid - h * z / 2, bottom: mid + h * z / 2 };
     return el;
   }
   const TIP_IN = spring(0.42, 0.78);
@@ -404,7 +454,7 @@
     // out of its arrow's tip once the check is in, and gone with the card
     const e = TIP_IN(k - 0.5), o = clamp((k - 0.5) / 0.2) * (shown && shown.p === p ? +shown.card.el.style.opacity : 0);
     p.tipEl.style.opacity = o;
-    const tp = p.tipEl.firstElementChild; tp.style.opacity = 1; tp.style.transform = `scale(${0.94 + 0.06 * e})`;
+    const tp = p.tipEl.firstElementChild; tp.style.opacity = 1; tp.style.transform = `scale(${(p.s.zoom || 1) * (0.94 + 0.06 * e)})`;
   }
   function closeCard() {
     if (!shown) return;
@@ -588,11 +638,36 @@
       if (t >= p.tClose) op *= 1 - clamp((t - p.tClose) / 0.12);
       el.style.transform = `translateY(${(1 - e) * (below ? -4 : 4)}px) scale(${0.96 + 0.04 * e})`;
       el.style.opacity = op;
-      if (!WIN) drawLight(el, k - 0, pickAt(p.s));
-      if (!WIN && p.tipEl) drawTip(p, k - pickAt(p.s));
+      if (p.tClick) {
+        // A sentence's card: 白's row is clicked open, then its light, as on a word's card.
+        setOpen(el, t >= p.tClick);
+        const wr = wordRow(el), btn = wr.querySelector(".lc-wordrow");
+        const pr = t >= p.tPress2 && t < p.tClick + 0.25 ? (t < p.tClick ? 1 : 1 - (t - p.tClick) / 0.25) : 0;
+        btn.style.background = pr ? `rgba(255,255,255,${(0.09 * pr).toFixed(3)})` : "";
+        const det = wr.querySelector(".lc-detail");
+        if (det) {
+          const o = OPEN_ROW(t - p.tClick);
+          det.style.height = Math.max(0, p.detailH * Math.min(1, o)) + "px";
+          det.style.overflow = "hidden";
+          det.style.opacity = clamp((t - p.tClick) / 0.25);
+        }
+        const kc = t - p.tClick;
+        if (!WIN) drawLight(el, kc, pickAt(p.s));
+        if (!WIN && p.tipEl) { if (kc >= 0) drawTip(p, kc - pickAt(p.s)); else p.tipEl.style.opacity = 0; }
+      } else {
+        if (!WIN) drawLight(el, k - 0, pickAt(p.s));
+        if (!WIN && p.tipEl) drawTip(p, k - pickAt(p.s));
+      }
       if (!WIN && p === plan[plan.length - 1]) {
         const f = 1 - sine((t - plan.tOut - 0.15) / 0.55);
         for (const x of el.querySelectorAll(".lc-py, .lc-slot, .lc-meaning, .lc-note-slot, .lc-senses, .lc-status, .lc-head > :not(.lc-hw)")) x.style.opacity = x.classList.contains("lc-meaning") ? Math.min(f, +x.style.opacity || 1) : f;
+        // a sentence's card: everything but 白 itself
+        if (p.s.kind === "phrase") {
+          const wr = wordRow(el);
+          for (const x of el.querySelectorAll(".lc-src-line, .lc-translation, .lc-divider, .lc-label, .lc-prow")) if (x !== wr) x.style.opacity = f;
+          if (wr) for (const x of wr.querySelectorAll(".lc-wpy, .lc-wgloss, .lc-chev, .lc-notemark, .lc-detail")) x.style.opacity = f;
+          if (p.tipEl) p.tipEl.style.opacity = Math.min(f, +p.tipEl.style.opacity);
+        }
       }
     }
 
@@ -602,7 +677,8 @@
     for (const d of downs) {
       if (t >= d.t && t < d.up + 0.4) press = 1 - 0.12 * PRESS(t - d.t) + (t >= d.up ? 0.12 * PRESS(t - d.up) : 0);
     }
-    const ibeam = !chip || Math.hypot(pos.x - chip.s.chip.x, pos.y - chip.s.chip.y) > 14 ? overText(pos, wins) || (pressed && !chip) : false;
+    const inCard = shown && shown.p.tClick && t >= shown.p.tOpen && pos.x >= shown.p.openRect.left && pos.x <= shown.p.openRect.right && pos.y >= shown.p.openRect.top && pos.y <= shown.p.openRect.bottom;
+    const ibeam = inCard ? false : !chip || Math.hypot(pos.x - chip.s.chip.x, pos.y - chip.s.chip.y) > 14 ? overText(pos, wins) || (pressed && !chip) : false;
     cursorEl.classList.toggle("ibeam", ibeam);
     const hx = ibeam ? 14 : 8.2, hy = ibeam ? 14 : 4.1;
     cursorEl.style.transform = `translate(${pos.x - hx}px, ${pos.y - hy}px) scale(${press})`;
@@ -620,7 +696,16 @@
     for (const p of plan) {
       const c = openCard(p);
       p.frame = frameFor(p, p.cardRect);
+      // a sentence's card is read close: the translation and the first few words, not every row
+      if (p.wrBottom && !WIN) p.frame = frameFor(p, { ...p.cardRect, bottom: Math.min(p.cardRect.bottom, p.wrBottom + 110) }, 2.05);
       if (p.pickRect && !WIN) p.pickFrame = frameFor(p, p.pickRect, 2.05);
+      if (p.clickPt && !WIN) {
+        // the pointer goes from the chip down onto 白's row and clicks it
+        p.tClick = p.tOpen + p.s.click; p.tPress2 = p.tClick - 0.1;
+        moves.push({ t0: p.tPress2 - 0.7, t1: p.tPress2 - 0.06, from: p.toChip, to: p.clickPt, bend: 0.12 });
+        downs.push({ t: p.tPress2, up: p.tClick, win: null });
+        moves.sort((a, b) => a.t0 - b.t0); downs.sort((a, b) => a.t - b.t);
+      }
       if (p.s.wantWinShot) p.s.winShot = winShot(p.s);
       LongyanCard.close(true, true); if (c.el.isConnected) c.el.remove();
     }
