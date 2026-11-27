@@ -131,7 +131,8 @@
       // Out: a click on the page's margin puts the last card away, and the pointer goes back to
       // where it waits; the camera opens back out to the whole desk.
       const click = { x: 1150, y: 640 };
-      moves.push({ t0: t, t1: t + 0.8, from, to: click, bend: 0.12 });
+      plan.outMove = { t0: t, t1: t + 0.8, from, to: click, bend: 0.12 };
+      moves.push(plan.outMove);
       const tOut = t + 0.8 + 0.12;
       downs.push({ t: tOut, up: tOut + 0.1, win: $("#w-c") });
       plan[plan.length - 1].tClose = tOut;
@@ -643,7 +644,7 @@
         setOpen(el, t >= p.tClick);
         const wr = wordRow(el), btn = wr.querySelector(".lc-wordrow");
         const pr = t >= p.tPress2 && t < p.tClick + 0.25 ? (t < p.tClick ? 1 : 1 - (t - p.tClick) / 0.25) : 0;
-        btn.style.background = pr ? `rgba(255,255,255,${(0.09 * pr).toFixed(3)})` : "";
+        btn.style.background = pr ? `rgba(${WIN ? "0,0,0" : "255,255,255"},${(0.09 * pr).toFixed(3)})` : "";
         const det = wr.querySelector(".lc-detail");
         if (det) {
           const o = OPEN_ROW(t - p.tClick);
@@ -697,11 +698,13 @@
       const c = openCard(p);
       p.frame = frameFor(p, p.cardRect);
       // a sentence's card is read close: the translation and the first few words, not every row
-      if (p.wrBottom && !WIN) p.frame = frameFor(p, { ...p.cardRect, bottom: Math.min(p.cardRect.bottom, p.wrBottom + 110) }, 2.05);
-      if (p.pickRect && !WIN) p.pickFrame = frameFor(p, p.pickRect, 2.05);
-      if (p.clickPt && !WIN) {
+      if (p.wrBottom) p.frame = frameFor(p, { ...p.cardRect, bottom: Math.min(p.cardRect.bottom, p.wrBottom + 110) }, 2.05);
+      if (p.pickRect) p.pickFrame = frameFor(p, p.pickRect, 2.05);
+      if (p.clickPt) {
         // the pointer goes from the chip down onto 白's row and clicks it
         p.tClick = p.tOpen + p.s.click; p.tPress2 = p.tClick - 0.1;
+        // on Windows the pointer then leaves from the row to put the card away
+        if (plan.outMove && plan.outMove.from === p.toChip) plan.outMove.from = p.clickPt;
         moves.push({ t0: p.tPress2 - 0.7, t1: p.tPress2 - 0.06, from: p.toChip, to: p.clickPt, bend: 0.12 });
         downs.push({ t: p.tPress2, up: p.tClick, win: null });
         moves.sort((a, b) => a.t0 - b.t0); downs.sort((a, b) => a.t - b.t);
