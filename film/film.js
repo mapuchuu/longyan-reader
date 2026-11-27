@@ -40,7 +40,7 @@
   // The end: the three sentences, their 白 in one column, each with what it meant there.
   // Top down from the last one seen (the push lands on its 白), so the film's last words are
   // "free of charge".
-  const ROWS = [["很", "的道理", "clear"], ["全", "了", "white"], ["是", "送的", "free of charge"]];
+  const ROWS = [["很", "的道理", "clear"], ["辩", "了半天", "to explain"], ["是", "送的", "free of charge"]];
   const PICK = spring(0.5, 0.86);
   const OPEN_ROW = spring(0.45, 0.92);
   const pickAt = (s) => s.pickAt || 0.95;   // seconds after a card opens that its light draws in   // the light drawing in onto the meaning picked
